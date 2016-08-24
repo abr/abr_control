@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class interface:
     """ Base class for interfaces.
     The purpose of interfaces is to abstract away the API
@@ -35,13 +38,13 @@ class interface:
         """
         raise NotImplementedError
 
-    def save_info(self, folder, postfix='')
+    def save_info(self, folder, postfix=''):
         """ Save the stored information to file.
 
         folder string: name of the folder to save data in
         postfix string: appended to end of files for easier ID
         """
         np.savez_compressed('%s/q%s' % (folder, postfix),
-                            q=np.array(track_q))
+                            q=np.array(self.track_q))
         np.savez_compressed('%s/dq%s' % (folder, postfix),
-                            dq=np.array(track_dq))
+                            dq=np.array(self.track_dq))
