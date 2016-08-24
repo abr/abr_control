@@ -16,7 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
 import numpy as np
 
-import nengo
+try:
+    import nengo
+except ImportError:
+    print('Nengo module needs to be installed to use this controller.')
 
 
 class controller:

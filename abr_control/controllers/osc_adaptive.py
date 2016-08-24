@@ -17,7 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import numpy as np
 import time
 
-import nengo
+try:
+    import nengo
+except ImportError:
+    print('Nengo module needs to be installed to use this controller.')
 
 from . import osc
 
@@ -75,7 +78,7 @@ class controller(osc.controller):
         super(controller, self).__init__(robot_config, tracking)
 
         self.u_adapt = np.zeros(self.robot_config.num_joints)
-        
+
         if self.tracking is True:
             self.track_u_adapt = []
             self.track_adapt_input = []
@@ -97,7 +100,7 @@ class controller(osc.controller):
             def u_input(t):
                 """ returns the control signal for training """
                 print('self.u: ', self.u)
-                return self.u 
+                return self.u
             u_input = nengo.Node(u_input, size_out=dim)
 
             def u_adapt_output(t, x):
@@ -112,20 +115,22 @@ class controller(osc.controller):
                                        seed=10)
 
             nengo.Connection(qdq_input, adapt_ens)
-            learn_conn = \
-                nengo.Connection(adapt_ens, output,
-                                 # start with outputting just zero
-                                 function=lambda x: np.zeros(dim),
-                                 learning_rule_type=nengo.PES(learning_rate),)
-                                 # use the weights solver that lets you keep
-                                 # learning from the what's saved to file
-                                 # solver=KeepLearningSolver('weights.npz'))
-            nengo.Connection(u_input, learn_conn.learning_rule,
-                             # invert because we're providing error not reward
-                             transform=-1, synapse=.01)
+            learn_conn = nengo.Connection(
+                adapt_ens, output,
+                # start with outputting just zero
+                function=lambda x: np.zeros(dim),
+                learning_rule_type=nengo.PES(learning_rate),)
+                # use the weights solver that lets you keep
+                # learning from the what's saved to file
+                # solver=KeepLearningSolver('weights.npz'))
+            nengo.Connection(
+                u_input, learn_conn.learning_rule,
+                # invert because we're providing error not reward
+                transform=-1, synapse=.01)
 
-            self.probe_weights = nengo.Probe(learn_conn, 'weights',
-                                        sample_every=.1)  # in seconds
+            self.probe_weights = nengo.Probe(
+                learn_conn, 'weights',
+                sample_every=.1)  # in seconds
 
         self.sim = nengo.Simulator(nengo_model)
 
