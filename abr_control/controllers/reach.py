@@ -17,22 +17,23 @@ class controller:
         self.kp = 100.0  # proportional gain term
         self.kv = np.sqrt(self.kp)  # derivative gain term
 
+        self.dq = np.zeros(self.robot_config.num_joints)
+
         self.target = np.zeros(3)
 
         dim = self.robot_config.num_joints
         self.model = nengo.Network('REACH', seed=5)
+        self.model.config[nengo.Connection].synapse = None
         with self.model:
 
             # create input nodes
-            def get_arm_state(t):
+            def get_feedback(t):
                 """ returns q and dq scaled and bias to
                 be around -1 to 1 """
-                return np.hstack([self.q, self.dq, self.xyz])
-            arm_node = nengo.Node(output=get_arm_state, size_out=dim*2 + 3)
-
-            def get_target(t):
-                return self.target
-            target_node = nengo.Node(output=get_target)
+                return np.hstack([self.q,
+                                  self.dq,
+                                  self.target - self.xyz])
+            feedback_node = nengo.Node(output=get_feedback, size_out=dim*2 + 3)
 
             def set_output(t, x):
                 self.u = np.copy(x)
@@ -49,19 +50,18 @@ class controller:
 
             # Connect up M1 ---------------------------------------------------
 
-            def m1_input(t, x):
-                return self.robot_config.scaledown('M1', x)
-            M1_relay = nengo.Node(output=m1_input,
-                                  size_in=9, size_out=dim+3)
+            # def m1_input(t, x):
+            #     return self.robot_config.scaledown('M1', x)
+            # M1_relay = nengo.Node(output=m1_input,
+            #                       size_in=9, size_out=dim+3)
 
             # connect up arm joint angles feedback to M1
-            nengo.Connection(arm_node[:dim], M1_relay[:dim], synapse=None)
+            # nengo.Connection(feedback_node[:dim], M1_relay[:dim], synapse=None)
+            nengo.Connection(feedback_node[:dim], M1[:dim], synapse=None)
             # connect up hand xyz feedback to M1
-            nengo.Connection(arm_node[dim*2:], M1_relay[dim:], synapse=None,
-                             transform=-1)
-            # connect up target xyz feedback to M1
-            nengo.Connection(target_node, M1_relay[dim:], synapse=None)
-            nengo.Connection(M1_relay, M1)
+            # nengo.Connection(feedback_node[dim*2:], M1_relay[dim:], synapse=None,
+            nengo.Connection(feedback_node[dim*2:], M1[dim:], synapse=None)
+            # nengo.Connection(M1_relay, M1)
 
             def gen_Mx(q):
                 """ Generate the inertia matrix in operational space """
@@ -86,7 +86,7 @@ class controller:
                 # scale things back
                 signal = self.robot_config.scaleup('M1', signal)
                 q = signal[:dim]
-                u = signal[dim:]
+                u = self.kp * signal[dim:]
 
                 JEE = self.robot_config.J('EE', q)
                 Mx = gen_Mx(q)
@@ -105,14 +105,14 @@ class controller:
 
                 # calculate our secondary control signal
                 q = self.robot_config.scaleup('M1_null', signal[:dim])
-                u_null = ((self.robot_config.rest_angles - q) +
-                          np.pi) % (np.pi*2) - np.pi
+                q_des = (((self.robot_config.rest_angles - q) + np.pi) %
+                        (np.pi*2) - np.pi)
 
                 Mq = self.robot_config.Mq(q=q)
                 JEE = self.robot_config.J('EE', q=q)
                 Mx = gen_Mx(q=q)
 
-                u_null = np.dot(Mq, 100 * u_null)
+                u_null = np.dot(Mq, (self.kp * q_des - self.kv * self.dq))
 
                 # calculate the null space filter
                 Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
@@ -120,7 +120,7 @@ class controller:
 
                 return np.dot(null_filter, u_null).flatten()
 
-            nengo.Connection(arm_node[:dim], M1_null,
+            nengo.Connection(feedback_node[:dim], M1_null,
                              function=lambda x:
                              self.robot_config.scaledown('M1_null', x))
             nengo.Connection(M1_null, u_relay,
@@ -129,12 +129,12 @@ class controller:
             # Connect up cerebellum -------------------------------------------
 
             # connect up arm feedback to Cerebellum
-            nengo.Connection(arm_node[:dim*2], CB,
+            nengo.Connection(feedback_node[:dim*2], CB,
                              function=lambda x:
                              self.robot_config.scaledown('CB', x))
 
             def gen_Mqdq(signal):
-                """Generate inertia compensation signal, np.dot(Mq,dq)"""
+                """ Generate inertia compensation signal, np.dot(Mq,dq)"""
                 # scale things back
                 signal = self.robot_config.scaleup('CB', signal)
 
@@ -144,9 +144,22 @@ class controller:
                 Mq = self.robot_config.Mq(q=q)
                 return np.dot(Mq, self.kv * dq).flatten()
 
-            # connect up Cerebellum inertia compensation to summation node
+            def gen_Mq_g(signal):
+                """ Generate the gravity compensation signal """
+                # scale things back
+                signal = self.robot_config.scaleup('CB', signal)
+
+                q = signal[:dim]
+                return self.robot_config.Mq_g(q)
+
+            # connect up CB inertia compensation to relay node
             nengo.Connection(CB, u_relay,
                              function=gen_Mqdq,
+                             transform=-1)
+
+            # connect up CB gravity compensation to relay node
+            nengo.Connection(CB, u_relay,
+                             function=gen_Mq_g,
                              transform=-1)
 
             # connect up summation node u_relay to arm
@@ -180,7 +193,7 @@ class controller:
         self.target = target_xyz
         self.xyz = self.robot_config.T('EE', q)
         # run the simulation to generate the control signal
-        self.sim.run(time_in_seconds=.005, progress_bar=False)
+        self.sim.run(time_in_seconds=.004, progress_bar=False)
 
         # return the sum of the two
         return self.u

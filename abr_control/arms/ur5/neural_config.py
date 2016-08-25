@@ -12,7 +12,7 @@ class robot_config(config.robot_config):
 
         super(robot_config, self).__init__()
 
-        n_neurons = 3000
+        n_neurons = 30
         self.CB = {
             'dimensions': self.num_joints * 2,
             'n_neurons': n_neurons,
