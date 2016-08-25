@@ -19,9 +19,6 @@ class controller:
 
         self.target = np.zeros(3)
 
-        self.track_u = []
-        self.track_u_adapt = []
-
         dim = self.robot_config.num_joints
         self.model = nengo.Network('REACH', seed=5)
         with self.model:
@@ -184,8 +181,6 @@ class controller:
         self.xyz = self.robot_config.T('EE', q)
         # run the simulation to generate the control signal
         self.sim.run(time_in_seconds=.005, progress_bar=False)
-
-        self.track_u.append(np.copy(self.u))
 
         # return the sum of the two
         return self.u
