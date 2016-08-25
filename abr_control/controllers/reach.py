@@ -1,19 +1,3 @@
-'''
-Copyright (C) 2016 Travis DeWolf
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
 import numpy as np
 
 try:
@@ -26,7 +10,7 @@ class controller:
     """ Implements an operational space controller (OSC)
     """
 
-    def __init__(self, robot_config, tracking=False):  # noqa C901
+    def __init__(self, robot_config):  # noqa C901
 
         self.robot_config = robot_config
 
@@ -35,10 +19,8 @@ class controller:
 
         self.target = np.zeros(3)
 
-        self.tracking = tracking
-        if self.tracking is True:
-            self.track_u = []
-            self.track_u_adapt = []
+        self.track_u = []
+        self.track_u_adapt = []
 
         dim = self.robot_config.num_joints
         self.model = nengo.Network('REACH', seed=5)
@@ -203,8 +185,7 @@ class controller:
         # run the simulation to generate the control signal
         self.sim.run(time_in_seconds=.005, progress_bar=False)
 
-        if self.tracking is True:
-            self.track_u.append(np.copy(self.u))
+        self.track_u.append(np.copy(self.u))
 
         # return the sum of the two
         return self.u
