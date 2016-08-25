@@ -1,9 +1,21 @@
+""" This version of the REACH controller uses q and modulo math to
+keep the angles in bounds. """
+
+import itertools
 import numpy as np
 
 try:
     import nengo
 except ImportError:
     print('Nengo module needs to be installed to use this controller.')
+
+nengo_ocl = None
+try:
+    import nengo_ocl
+except ImportWarning:
+    print('Nengo OCL not installed, simulation will be slower.')
+
+from .keeplearningsolver import KeepLearningSolver
 
 
 class controller:
@@ -17,51 +29,47 @@ class controller:
         self.kp = 100.0  # proportional gain term
         self.kv = np.sqrt(self.kp)  # derivative gain term
 
+        self.dq = np.zeros(self.robot_config.num_joints)
+
         self.target = np.zeros(3)
 
         dim = self.robot_config.num_joints
         self.model = nengo.Network('REACH', seed=5)
+        self.model.config[nengo.Connection].synapse = None
         with self.model:
 
             # create input nodes
-            def get_arm_state(t):
-                """ returns q and dq scaled and bias to
-                be around -1 to 1 """
-                return np.hstack([self.q, self.dq, self.xyz])
-            arm_node = nengo.Node(output=get_arm_state, size_out=dim*2 + 3)
-
-            def get_target(t):
-                return self.target
-            target_node = nengo.Node(output=get_target)
+            def get_feedback(t):
+                """ returns q, dq, and target - hand_xyz scaled and
+                biased such that each dimension will have a range
+                around -1 to 1. Also modulo. """
+                q = ((self.q + np.pi) % (np.pi*2)) - np.pi
+                return np.hstack([self.robot_config.scaledown('q', q),
+                                  self.robot_config.scaledown('dq', self.dq),
+                                  self.target - self.xyz])
+            feedback_node = nengo.Node(output=get_feedback, size_out=dim*2 + 3)
 
             def set_output(t, x):
                 self.u = np.copy(x)
             output_node = nengo.Node(output=set_output, size_in=dim)
 
-            # create neural ensembles
             CB = nengo.Ensemble(**self.robot_config.CB)
+            # CB_adapt = nengo.Ensemble(**self.robot_config.CB_adapt)
             M1 = nengo.Ensemble(**self.robot_config.M1)
-            M1_null = nengo.Ensemble(**self.robot_config.M1_null)
 
-            # create summation / output ensembles
+            # create relay
             u_relay = nengo.Ensemble(n_neurons=1, dimensions=dim,
                                      neuron_type=nengo.Direct())
 
+            # connect up relay to output
+            nengo.Connection(u_relay, output_node, synapse=None)
+
             # Connect up M1 ---------------------------------------------------
 
-            def m1_input(t, x):
-                return self.robot_config.scaledown('M1', x)
-            M1_relay = nengo.Node(output=m1_input,
-                                  size_in=9, size_out=dim+3)
-
             # connect up arm joint angles feedback to M1
-            nengo.Connection(arm_node[:dim], M1_relay[:dim], synapse=None)
+            nengo.Connection(feedback_node[:dim], M1[:dim])
             # connect up hand xyz feedback to M1
-            nengo.Connection(arm_node[dim*2:], M1_relay[dim:], synapse=None,
-                             transform=-1)
-            # connect up target xyz feedback to M1
-            nengo.Connection(target_node, M1_relay[dim:], synapse=None)
-            nengo.Connection(M1_relay, M1)
+            nengo.Connection(feedback_node[dim*2:], M1[dim:])
 
             def gen_Mx(q):
                 """ Generate the inertia matrix in operational space """
@@ -84,17 +92,18 @@ class controller:
             def gen_u(signal):
                 """Generate Jacobian weighted by task-space inertia matrix"""
                 # scale things back
-                signal = self.robot_config.scaleup('M1', signal)
-                q = signal[:dim]
+                q = self.robot_config.scaleup('q', signal[:dim])
                 u = signal[dim:]
 
                 JEE = self.robot_config.J('EE', q)
                 Mx = gen_Mx(q)
 
-                u = np.dot(JEE.T, np.dot(Mx, u))
+                u = self.kp * np.dot(JEE.T, np.dot(Mx, u))
                 return u
 
-            nengo.Connection(M1, u_relay, function=gen_u)
+            nengo.Connection(M1, u_relay,
+                             function=gen_u,
+                             synapse=.01)
 
             # Set up null control ---------------------------------------------
 
@@ -104,15 +113,15 @@ class controller:
                 """Generate the null space control signal"""
 
                 # calculate our secondary control signal
-                q = self.robot_config.scaleup('M1_null', signal[:dim])
-                u_null = ((self.robot_config.rest_angles - q) +
-                          np.pi) % (np.pi*2) - np.pi
+                q = self.robot_config.scaleup('q', signal[:dim])
+                q_des = (((self.robot_config.rest_angles - q) + np.pi) %
+                         (np.pi*2) - np.pi)
 
                 Mq = self.robot_config.Mq(q=q)
                 JEE = self.robot_config.J('EE', q=q)
                 Mx = gen_Mx(q=q)
 
-                u_null = np.dot(Mq, 100 * u_null)
+                u_null = np.dot(Mq, (self.kp * q_des - self.kv * self.dq))
 
                 # calculate the null space filter
                 Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
@@ -120,55 +129,62 @@ class controller:
 
                 return np.dot(null_filter, u_null).flatten()
 
-            nengo.Connection(arm_node[:dim], M1_null,
-                             function=lambda x:
-                             self.robot_config.scaledown('M1_null', x))
-            nengo.Connection(M1_null, u_relay,
-                             function=gen_null_signal)
+            nengo.Connection(M1, u_relay,
+                             function=gen_null_signal,
+                             synapse=.01)
 
             # Connect up cerebellum -------------------------------------------
 
             # connect up arm feedback to Cerebellum
-            nengo.Connection(arm_node[:dim*2], CB,
-                             function=lambda x:
-                             self.robot_config.scaledown('CB', x))
+            nengo.Connection(feedback_node[:dim*2], CB)
 
             def gen_Mqdq(signal):
-                """Generate inertia compensation signal, np.dot(Mq,dq)"""
+                """ Generate inertia compensation signal, np.dot(Mq,dq)"""
                 # scale things back
-                signal = self.robot_config.scaleup('CB', signal)
-
-                q = signal[:dim]
-                dq = signal[dim:dim*2]
+                q = self.robot_config.scaleup('q', signal[:dim])
+                dq = self.robot_config.scaleup('dq', signal[dim:dim*2])
 
                 Mq = self.robot_config.Mq(q=q)
                 return np.dot(Mq, self.kv * dq).flatten()
 
-            # connect up Cerebellum inertia compensation to summation node
+            # connect up CB inertia compensation to relay node
             nengo.Connection(CB, u_relay,
                              function=gen_Mqdq,
                              transform=-1)
 
-            # connect up summation node u_relay to arm
-            nengo.Connection(u_relay, output_node, synapse=None)
+            def gen_Mq_g(signal):
+                """ Generate the gravity compensation signal """
+                # scale things back
+                q = self.robot_config.scaleup('q', signal[:dim])
+                return self.robot_config.Mq_g(q)
 
-            # ---------------- set up adaptive bias -------------------
+            # connect up CB gravity compensation to arm directly
+            # (not to be used as part of training signal for u_adapt)
+            nengo.Connection(CB, output_node,
+                             function=gen_Mq_g,
+                             transform=-1)
 
-            print('applying adaptive bias...')
-            # set up learning, with initial output the zero vector
-            # CB_adapt_conn = nengo.Connection(CB, output_node,
+            # # ---------------- set up adaptive bias -------------------
+            # print('applying adaptive bias...')
+            # # set up learning, with initial output the zero vector
+            # nengo.Connection(feedback_node[:dim*2], CB_adapt,
+            #                  learning_rule_type=nengo.Voja(learning_rate=1e-3))
+            # CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
             #                                  function=lambda x: np.zeros(dim),
             #                                  learning_rule_type=nengo.PES(
-            #                                      learning_rate=1e-3))
+            #                                      learning_rate=1e-4))
             # nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
             #                  transform=-1)
 
         print('building REACH model...')
-        self.sim = nengo.Simulator(self.model, dt=.001)
+        if nengo_ocl is not None:
+            self.sim = nengo_ocl.Simulator(self.model, dt=.001)
+        else:
+            self.sim = nengo.Simulator(self.model, dt=.001)
+        print('building complete...')
 
     def control(self, q, dq, target_xyz):
         """ Generates the control signal
-
         q np.array: the current joint angles
         dq np.array: the current joint velocities
         target_xyz np.array: the current target for the end-effector
@@ -180,7 +196,7 @@ class controller:
         self.target = target_xyz
         self.xyz = self.robot_config.T('EE', q)
         # run the simulation to generate the control signal
-        self.sim.run(time_in_seconds=.005, progress_bar=False)
+        self.sim.run(time_in_seconds=.001, progress_bar=False)
 
         # return the sum of the two
         return self.u

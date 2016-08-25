@@ -5,12 +5,12 @@ import numpy as np
 import seaborn
 
 
-def plot_trajectory(ee_path, target_path, save_figure_name=None):
+def plot_trajectory(ee_path, target_path, save_file_name=None):
     """ 3D plot of the end-effector and target trajectory
 
     ee_path np.array: the ee trajectory [[x0,y0,z0],...,[xN,yN,zN]]
     target_path np.array: the target trajectory [[x0,y0,z0],...,[xN,yN,zN]]
-    save_figure_name string: saves the figure with this name
+    save_file_name string: saves the figure with this name
     """
 
     ee_path = np.asarray(ee_path)
@@ -36,7 +36,7 @@ def plot_trajectory(ee_path, target_path, save_figure_name=None):
 
     plt.tight_layout()
 
-    if save_figure_name is not None:
-        plt.savefig(save_figure_name)
+    if save_file_name is not None:
+        plt.savefig(save_file_name)
 
     plt.show()

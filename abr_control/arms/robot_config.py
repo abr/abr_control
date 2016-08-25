@@ -55,7 +55,7 @@ class robot_config():
         return np.array(self._J[name](*q))
 
     def Mq(self, q):
-        """ Calculates the joint space inertia matrix for the ur5
+        """ Calculates the joint space inertia matrix
 
         q np.array: joint angles
         """
@@ -66,7 +66,7 @@ class robot_config():
         return np.array(self._Mq(*q))
 
     def Mq_g(self, q):
-        """ Calculates the force of gravity in joint space for the ur5
+        """ Calculates the force of gravity in joint space
 
         q np.array: joint angles
         """
@@ -122,6 +122,7 @@ class robot_config():
                 # fill in the rest of the joints orientation info with 0
                 for ii in range(end_point, self.num_joints):
                     J[ii] = J[ii] + [0, 0, 0]
+            J = sp.simplify(J)
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
@@ -134,7 +135,7 @@ class robot_config():
 
     def _calc_Mq(self, lambdify=True):
         """ Uses Sympy to generate the inertia matrix in
-        joint space for the ur5
+        joint space
 
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
@@ -154,6 +155,7 @@ class robot_config():
             Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
                 Mq += J[ii].T * self._M[ii] * J[ii]
+            Mq = sp.simplify(Mq)
 
             # save to file
             cloudpickle.dump(Mq, open('%s/Mq' % self.config_folder, 'wb'))
@@ -164,7 +166,7 @@ class robot_config():
 
     def _calc_Mq_g(self, lambdify=True):
         """ Uses Sympy to generate the force of gravity in
-        joint space for the ur5
+        joint space
 
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
@@ -185,6 +187,7 @@ class robot_config():
             Mq_g = sp.zeros(self.num_joints, 1)
             for ii in range(self.num_joints):
                 Mq_g += J[ii].T * self._M[ii] * self.gravity
+            Mq_g = sp.simplify(Mq_g)
 
             # save to file
             cloudpickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder,
