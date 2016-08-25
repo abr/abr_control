@@ -1,19 +1,3 @@
-'''
-Copyright (C) 2016 Travis DeWolf
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
 import numpy as np
 
 
@@ -21,16 +5,14 @@ class controller:
     """ Implements an operational space controller (OSC)
     """
 
-    def __init__(self, robot_config, tracking=False):
+    def __init__(self, robot_config):
 
         self.robot_config = robot_config
 
         self.kp = 100.0  # proportional gain term
         self.kv = np.sqrt(self.kp)  # derivative gain term
 
-        self.tracking = tracking
-        if self.tracking is True:
-            self.track_u = []
+        self.track_u = []
 
     def control(self, q, dq, target_xyz):
         """ Generates the control signal
@@ -82,7 +64,6 @@ class controller:
 
         u += u_null_filtered
 
-        if self.tracking is True:
-            self.track_u.append(np.copy(u))
+        self.track_u.append(np.copy(u))
 
         return u
