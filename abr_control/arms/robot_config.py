@@ -20,6 +20,8 @@ import numpy as np
 import os
 import sympy as sp
 
+import abr_control.arms
+
 
 class robot_config():
     """ Class defines a bunch of useful functions for controlling
@@ -38,7 +40,8 @@ class robot_config():
         self.num_joints = num_joints
         self.num_links = num_links
         self.robot_name = robot_name
-        self.config_folder = 'arms/%s/saved_functions' % robot_name 
+        self.config_folder = (os.path.dirname(abr_control.arms.__file__) +
+                              '/%s/saved_functions' % robot_name)
 
         # create function dictionaries
         self._T = {}  # for transform calculations
