@@ -14,6 +14,7 @@ def plot_trajectory(ee_path, target_path, save_figure_name=None):
     """
 
     ee_path = np.asarray(ee_path)
+    target_path = np.asarray(target_path)
 
     fig = plt.figure(figsize=(6, 6))
 
