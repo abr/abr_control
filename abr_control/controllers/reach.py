@@ -28,8 +28,9 @@ class controller:
 
             # create input nodes
             def get_feedback(t):
-                """ returns q and dq scaled and bias to
-                be around -1 to 1 """
+                """ returns q, dq, and target - hand  scaled and
+                biased such that each dimension will have a
+                range around -1 to 1 """
                 return np.hstack([self.robot_config.scaledown('q', self.q),
                                   self.robot_config.scaledown('dq', self.dq),
                                   self.target - self.xyz])
@@ -114,9 +115,7 @@ class controller:
 
                 return np.dot(null_filter, u_null).flatten()
 
-            nengo.Connection(feedback_node[:dim], M1_null,
-                             function=lambda x:
-                             self.robot_config.scaledown('M1_null', x))
+            nengo.Connection(feedback_node[:dim], M1_null)
             nengo.Connection(M1_null, u_relay,
                              function=gen_null_signal)
 
