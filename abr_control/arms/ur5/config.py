@@ -1,20 +1,3 @@
-'''
-Copyright (C) 2016 Travis DeWolf
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-
 import cloudpickle
 import os
 import numpy as np
@@ -24,7 +7,7 @@ from .. import robot_config
 
 
 class robot_config(robot_config.robot_config):
-    """ robot config file for the UR5 arm """
+    """ Robot config file for the UR5 arm """
 
     def __init__(self):
 
@@ -39,17 +22,17 @@ class robot_config(robot_config.robot_config):
 
         # create the inertia matrices for each link of the ur5
         self._M.append(np.diag([1.0, 1.0, 1.0,
-                                     0.02, 0.02, 0.02]))  # link0
+                                0.02, 0.02, 0.02]))  # link0
         self._M.append(np.diag([2.5, 2.5, 2.5,
-                                     0.04, 0.04, 0.04]))  # link1
+                                0.04, 0.04, 0.04]))  # link1
         self._M.append(np.diag([5.7, 5.7, 5.7,
-                                     0.06, 0.06, 0.04]))  # link2
+                                0.06, 0.06, 0.04]))  # link2
         self._M.append(np.diag([3.9, 3.9, 3.9,
-                                     0.055, 0.055, 0.04]))  # link3
+                                0.055, 0.055, 0.04]))  # link3
         self._M.append(np.copy(self._M[1]))  # link4
         self._M.append(np.copy(self._M[1]))  # link5
         self._M.append(np.diag([0.7, 0.7, 0.7,
-                                     0.01, 0.01, 0.01]))  # link6
+                                0.01, 0.01, 0.01]))  # link6
 
         # segment lengths associated with each joint
         L = np.array([0.0935, 0.13453, 0.4251,
@@ -177,50 +160,3 @@ class robot_config(robot_config.robot_config):
         if lambdify is False:
             return Tx
         return sp.lambdify(self.q, Tx)
-
-    # def C(self, q, dq):
-    #     """ Calculates the Coriolis and centrifugal effects for the ur5
-    #
-    #     q np.array: joint angles
-    #     """
-    #     # check for function in dictionary
-    #     if self._C is None:
-    #         print('Generating Coriolis and centrifugal effects function')
-    #         self._C = self.calc_C()
-    #     return np.array(self._C(*q, *dq))
-    #
-    # def calc_C(self, lambdify=True):
-    #     """ Uses Sympy to generate the coriolis effects in
-    #     joint space for the ur5
-    #
-    #     lambdify boolean: if True returns a function to calculate
-    #                       the Jacobian. If False returns the Sympy
-    #                       matrix
-    #     """
-    #
-    #     # check to see if we have our inertia matrix saved in file
-    #     if os.path.isfile('ur5_TnJ/C'):
-    #         C = cloudpickle.load(open('ur5_TnJ/C', 'rb'))
-    #     else:
-    #         # from Improvements to the Adaptive Slotine & Li Controller
-    #         # by Rudas and Gati
-    #
-    #         # TODO: Is this the full term or just part of the term?
-    #
-    #         # C_ij = 1/2 * sum_k dq_k * (-dM_kj/dq_i + dM_ij/dq_k + dM_iz/dq_j)
-    #         Mq = self.calc_Mq(lambdify=False)
-    #         C = sp.zeros(6)
-    #         for ii in range(6):
-    #             for jj in range(6):
-    #                 for kk in range(self.num_joints):
-    #                     C[ii, jj] += (.5 * self.dq[kk] *
-    #                                   -Mq[kk, jj].diff(self.q[ii]) +
-    #                                   Mq[ii, jj].diff(self.q[kk]) +
-    #                                   Mq[ii, kk].diff(self.q[jj]))
-    #
-    #         # save to file
-    #         cloudpickle.dump(Mq, open('ur5_TnJ/C', 'wb'))
-    #
-    #     if lambdify is False:
-    #         return C
-    #     return sp.lambdify(self.q + self.dq, C)

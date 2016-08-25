@@ -1,24 +1,9 @@
-'''
-Copyright (C) 2016 Travis DeWolf
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-'''
-
 import cloudpickle
 import numpy as np
 import os
 import sympy as sp
+
+import abr_control.arms
 
 
 class robot_config():
@@ -38,14 +23,15 @@ class robot_config():
         self.num_joints = num_joints
         self.num_links = num_links
         self.robot_name = robot_name
-        self.config_folder = 'arms/%s/saved_functions' % robot_name 
+        self.config_folder = (os.path.dirname(abr_control.arms.__file__) +
+                              '/%s/saved_functions' % robot_name)
 
         # create function dictionaries
         self._T = {}  # for transform calculations
         self._J = {}  # for Jacobian calculations
         self._M = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
-        self._Mq_g = None # placeholder for joint space gravity term function
+        self._Mq_g = None  # placeholder for joint space gravity term function
 
         # position of point of interest relative to
         # joint axes 6 (right at the origin)
@@ -187,7 +173,7 @@ class robot_config():
 
         # check to see if we have our gravity term saved in file
         if os.path.isfile('%s/Mq_g' % self.config_folder):
-            Mq_g = cloudpickle.load(open('%s/Mq_g' % self.config_folder, 
+            Mq_g = cloudpickle.load(open('%s/Mq_g' % self.config_folder,
                                          'rb'))
         else:
             # get the Jacobians for each link's COM
@@ -197,11 +183,11 @@ class robot_config():
             # transform each inertia matrix into joint space and
             # sum together the effects of arm segments' inertia on each motor
             Mq_g = sp.zeros(self.num_joints, 1)
-            for ii in range(self.num_joints): 
+            for ii in range(self.num_joints):
                 Mq_g += J[ii].T * self._M[ii] * self.gravity
 
             # save to file
-            cloudpickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder, 
+            cloudpickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder,
                                         'wb'))
 
         if lambdify is False:
@@ -217,4 +203,3 @@ class robot_config():
                           matrix
         """
         raise NotImplementedError("_calc_T function not implemented")
-
