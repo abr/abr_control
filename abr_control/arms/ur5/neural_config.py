@@ -12,11 +12,11 @@ class robot_config(config.robot_config):
 
         super(robot_config, self).__init__()
 
-        n_neurons = 30
+        n_neurons = 3000
         self.CB = {
             'dimensions': self.num_joints * 2,
             'n_neurons': n_neurons,
-            'neuron_type': nengo.Direct(),
+            # 'neuron_type': nengo.Direct(),
             'radius': 5,
             }
 

@@ -44,24 +44,19 @@ class controller:
             M1 = nengo.Ensemble(**self.robot_config.M1)
             M1_null = nengo.Ensemble(**self.robot_config.M1_null)
 
-            # create summation / output ensembles
+            # create relay
             u_relay = nengo.Ensemble(n_neurons=1, dimensions=dim,
                                      neuron_type=nengo.Direct())
 
+            # connect up relay to output
+            nengo.Connection(u_relay, output_node, synapse=None)
+
             # Connect up M1 ---------------------------------------------------
 
-            # def m1_input(t, x):
-            #     return self.robot_config.scaledown('M1', x)
-            # M1_relay = nengo.Node(output=m1_input,
-            #                       size_in=9, size_out=dim+3)
-
             # connect up arm joint angles feedback to M1
-            # nengo.Connection(feedback_node[:dim], M1_relay[:dim], synapse=None)
-            nengo.Connection(feedback_node[:dim], M1[:dim], synapse=None)
+            nengo.Connection(feedback_node[:dim], M1[:dim])#, synapse=None)
             # connect up hand xyz feedback to M1
-            # nengo.Connection(feedback_node[dim*2:], M1_relay[dim:], synapse=None,
-            nengo.Connection(feedback_node[dim*2:], M1[dim:], synapse=None)
-            # nengo.Connection(M1_relay, M1)
+            nengo.Connection(feedback_node[dim*2:], M1[dim:])#, synapse=None)
 
             def gen_Mx(q):
                 """ Generate the inertia matrix in operational space """
@@ -144,6 +139,13 @@ class controller:
                 Mq = self.robot_config.Mq(q=q)
                 return np.dot(Mq, self.kv * dq).flatten()
 
+            # connect up CB inertia compensation to relay node
+            nengo.Connection(CB, u_relay,
+                             function=gen_Mqdq,
+                             transform=-1)
+
+            # TODO: Should gravity comp go straight into the arm /
+            # not be used as part of the training signal for u_adapt?
             def gen_Mq_g(signal):
                 """ Generate the gravity compensation signal """
                 # scale things back
@@ -152,29 +154,24 @@ class controller:
                 q = signal[:dim]
                 return self.robot_config.Mq_g(q)
 
-            # connect up CB inertia compensation to relay node
-            nengo.Connection(CB, u_relay,
-                             function=gen_Mqdq,
-                             transform=-1)
-
             # connect up CB gravity compensation to relay node
-            nengo.Connection(CB, u_relay,
+            nengo.Connection(CB, output_node,
                              function=gen_Mq_g,
                              transform=-1)
 
-            # connect up summation node u_relay to arm
-            nengo.Connection(u_relay, output_node, synapse=None)
-
             # ---------------- set up adaptive bias -------------------
+            # TODO: make this a separate CB population, so that Voja can
+            # be run on the input connection, to have the encoders adapt
+            # to the range of signals most commonly sent in
 
             print('applying adaptive bias...')
             # set up learning, with initial output the zero vector
-            # CB_adapt_conn = nengo.Connection(CB, output_node,
-            #                                  function=lambda x: np.zeros(dim),
-            #                                  learning_rule_type=nengo.PES(
-            #                                      learning_rate=1e-3))
-            # nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
-            #                  transform=-1)
+            CB_adapt_conn = nengo.Connection(CB, output_node,
+                                             function=lambda x: np.zeros(dim),
+                                             learning_rule_type=nengo.PES(
+                                                 learning_rate=1e-3))
+            nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
+                             transform=-1)
 
         print('building REACH model...')
         self.sim = nengo.Simulator(self.model, dt=.001)
@@ -193,7 +190,7 @@ class controller:
         self.target = target_xyz
         self.xyz = self.robot_config.T('EE', q)
         # run the simulation to generate the control signal
-        self.sim.run(time_in_seconds=.004, progress_bar=False)
+        self.sim.run(time_in_seconds=.001, progress_bar=False)
 
         # return the sum of the two
         return self.u
