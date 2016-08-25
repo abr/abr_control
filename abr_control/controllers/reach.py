@@ -30,8 +30,8 @@ class controller:
             def get_feedback(t):
                 """ returns q and dq scaled and bias to
                 be around -1 to 1 """
-                return np.hstack([self.q,
-                                  self.dq,
+                return np.hstack([self.robot_config.scaledown('q', self.q),
+                                  self.robot_config.scaledown('dq', self.dq),
                                   self.target - self.xyz])
             feedback_node = nengo.Node(output=get_feedback, size_out=dim*2 + 3)
 
@@ -79,8 +79,7 @@ class controller:
             def gen_u(signal):
                 """Generate Jacobian weighted by task-space inertia matrix"""
                 # scale things back
-                signal = self.robot_config.scaleup('M1', signal)
-                q = signal[:dim]
+                q = self.robot_config.scaleup('q', signal[:dim])
                 u = self.kp * signal[dim:]
 
                 JEE = self.robot_config.J('EE', q)
@@ -99,7 +98,7 @@ class controller:
                 """Generate the null space control signal"""
 
                 # calculate our secondary control signal
-                q = self.robot_config.scaleup('M1_null', signal[:dim])
+                q = self.robot_config.scaleup('q', signal[:dim])
                 q_des = (((self.robot_config.rest_angles - q) + np.pi) %
                         (np.pi*2) - np.pi)
 
@@ -124,17 +123,13 @@ class controller:
             # Connect up cerebellum -------------------------------------------
 
             # connect up arm feedback to Cerebellum
-            nengo.Connection(feedback_node[:dim*2], CB,
-                             function=lambda x:
-                             self.robot_config.scaledown('CB', x))
+            nengo.Connection(feedback_node[:dim*2], CB)
 
             def gen_Mqdq(signal):
                 """ Generate inertia compensation signal, np.dot(Mq,dq)"""
                 # scale things back
-                signal = self.robot_config.scaleup('CB', signal)
-
-                q = signal[:dim]
-                dq = signal[dim:dim*2]
+                q = self.robot_config.scaleup('q', signal[:dim])
+                dq = self.robot_config.scaleup('dq', signal[dim:dim*2])
 
                 Mq = self.robot_config.Mq(q=q)
                 return np.dot(Mq, self.kv * dq).flatten()
@@ -149,9 +144,7 @@ class controller:
             def gen_Mq_g(signal):
                 """ Generate the gravity compensation signal """
                 # scale things back
-                signal = self.robot_config.scaleup('CB', signal)
-
-                q = signal[:dim]
+                q = self.robot_config.scaleup('q', signal[:dim])
                 return self.robot_config.Mq_g(q)
 
             # connect up CB gravity compensation to relay node
@@ -164,14 +157,14 @@ class controller:
             # be run on the input connection, to have the encoders adapt
             # to the range of signals most commonly sent in
 
-            print('applying adaptive bias...')
-            # set up learning, with initial output the zero vector
-            CB_adapt_conn = nengo.Connection(CB, output_node,
-                                             function=lambda x: np.zeros(dim),
-                                             learning_rule_type=nengo.PES(
-                                                 learning_rate=1e-3))
-            nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
-                             transform=-1)
+            # print('applying adaptive bias...')
+            # # set up learning, with initial output the zero vector
+            # CB_adapt_conn = nengo.Connection(CB, output_node,
+            #                                  function=lambda x: np.zeros(dim),
+            #                                  learning_rule_type=nengo.PES(
+            #                                      learning_rate=1e-3))
+            # nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
+            #                  transform=-1)
 
         print('building REACH model...')
         self.sim = nengo.Simulator(self.model, dt=.001)
