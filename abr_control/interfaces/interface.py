@@ -11,11 +11,6 @@ class interface:
     def __init__(self, robot_config):
         self.robot_config = robot_config
 
-        # for plotting
-        self.track_q = []
-        self.track_dq = []
-        self.track_hand = []
-
     def connect(self):
         """ All initial setup. """
         raise NotImplementedError
@@ -37,14 +32,3 @@ class interface:
         controller. At very least this contains q, dq.
         """
         raise NotImplementedError
-
-    def save_info(self, folder, postfix=''):
-        """ Save the stored information to file.
-
-        folder string: name of the folder to save data in
-        postfix string: appended to end of files for easier ID
-        """
-        np.savez_compressed('%s/q%s' % (folder, postfix),
-                            q=np.array(self.track_q))
-        np.savez_compressed('%s/dq%s' % (folder, postfix),
-                            dq=np.array(self.track_dq))
