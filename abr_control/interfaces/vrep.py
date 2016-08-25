@@ -1,7 +1,7 @@
 import numpy as np
-import vrep.vrep
+from .vrep_files import vrep
 
-import interface
+from . import interface
 
 
 class interface(interface.interface):
