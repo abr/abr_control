@@ -44,22 +44,23 @@ class controller:
         Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
         # calculate desired force in (x,y,z) space
-        u_xyz = np.dot(Mx, target_xyz - self.xyz)
+        # u_xyz = np.dot(Mx, target_xyz - self.xyz)
+        u_xyz = (target_xyz - self.xyz)
         # transform into joint space, add vel and gravity compensation
         u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq) - Mq_g)
 
-        # calculate our secondary control signal
-        # calculated desired joint angle acceleration
-        q_des = (((self.robot_config.rest_angles - q) + np.pi) %
-                 (np.pi*2) - np.pi)
-        u_null = np.dot(Mq, (self.kp * q_des - self.kv * dq))
-
-        # calculate the null space filter
-        Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
-        null_filter = (np.eye(self.robot_config.num_joints) -
-                       np.dot(JEE.T, Jdyn_inv))
-        u_null_filtered = np.dot(null_filter, u_null)
-
-        u += u_null_filtered
+        # # calculate our secondary control signal
+        # # calculated desired joint angle acceleration
+        # q_des = (((self.robot_config.rest_angles - q) + np.pi) %
+        #          (np.pi*2) - np.pi)
+        # u_null = np.dot(Mq, (self.kp * q_des - self.kv * dq))
+        #
+        # # calculate the null space filter
+        # Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
+        # null_filter = (np.eye(self.robot_config.num_joints) -
+        #                np.dot(JEE.T, Jdyn_inv))
+        # u_null_filtered = np.dot(null_filter, u_null)
+        #
+        # u += u_null_filtered
 
         return u
