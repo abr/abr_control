@@ -130,14 +130,15 @@ class interface(interface.interface):
             if _ != 0:
                 raise Exception()
 
-        self.hand_xyz = self.robot_config.T(name='EE',
+        hand_xyz = self.robot_config.T(name='EE',
                                             q=self.q)
+
         # Update position of hand sphere
         vrep.simxSetObjectPosition(
             self.clientID,
             self.hand_handle,
             -1,  # set absolute, not relative position
-            self.hand_xyz,
+            hand_xyz,
             vrep.simx_opmode_blocking)
 
         # move simulation ahead one time step
@@ -166,8 +167,7 @@ class interface(interface.interface):
                 raise Exception()
 
         return {'q': self.q,
-                'dq': self.dq,
-                'ee_xyz': self.hand_xyz}
+                'dq': self.dq}
 
     def set_target(self, xyz):
         """ Set the position of the target object.
