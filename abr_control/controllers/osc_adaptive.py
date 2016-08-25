@@ -52,9 +52,6 @@ class controller(osc.controller):
 
         self.u_adapt = np.zeros(self.robot_config.num_joints)
 
-        self.track_u_adapt = []
-        self.track_adapt_input = []
-
         dim = self.robot_config.num_joints
         nengo_model = nengo.Network()
         with nengo_model:
@@ -117,7 +114,6 @@ class controller(osc.controller):
         # run the simulation to generate the adaptive signal
         self.sim.run(time_in_seconds=.001, progress_bar=False)
 
-        self.track_u_adapt.append(np.copy(self.u_adapt))
         self.u += self.u_adapt
 
         print('u_adapt: ', self.u_adapt)

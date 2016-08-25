@@ -28,11 +28,6 @@ class interface(interface.interface):
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times apply_u has been called
 
-        # for plotting post run
-        self.track_q = []
-        self.track_dq = []
-        self.track_hand = []
-
     def connect(self):
         """ Connect to the current scene open in VREP,
         find the VREP references to the joints of the robot,
@@ -135,17 +130,15 @@ class interface(interface.interface):
             if _ != 0:
                 raise Exception()
 
-        hand_xyz = self.robot_config.T(name='EE',
-                                       q=self.q)
+        self.hand_xyz = self.robot_config.T(name='EE',
+                                            q=self.q)
         # Update position of hand sphere
         vrep.simxSetObjectPosition(
             self.clientID,
             self.hand_handle,
             -1,  # set absolute, not relative position
-            hand_xyz,
+            self.hand_xyz,
             vrep.simx_opmode_blocking)
-
-        self.track_hand.append(np.copy(hand_xyz))
 
         # move simulation ahead one time step
         vrep.simxSynchronousTrigger(self.clientID)
@@ -172,11 +165,9 @@ class interface(interface.interface):
             if _ != 0:
                 raise Exception()
 
-        self.track_q.append(np.copy(self.q))
-        self.track_dq.append(np.copy(self.dq))
-
         return {'q': self.q,
-                'dq': self.dq}
+                'dq': self.dq,
+                'ee_xyz': self.hand_xyz}
 
     def set_target(self, xyz):
         """ Set the position of the target object.

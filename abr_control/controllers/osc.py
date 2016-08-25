@@ -12,8 +12,6 @@ class controller:
         self.kp = 100.0  # proportional gain term
         self.kv = np.sqrt(self.kp)  # derivative gain term
 
-        self.track_u = []
-
     def control(self, q, dq, target_xyz):
         """ Generates the control signal
 
@@ -63,7 +61,5 @@ class controller:
         u_null_filtered = np.dot(null_filter, u_null)
 
         u += u_null_filtered
-
-        self.track_u.append(np.copy(u))
 
         return u
