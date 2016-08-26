@@ -28,6 +28,11 @@ class controller:
         self.model.config[nengo.Connection].synapse = None
         with self.model:
 
+            # TODO: The reason that genius past me used cos(q) and sin(q)
+            # was twofold.
+            # 1) you get rid of the insane discontinuity when you wrap around 2*pi
+            # 2) you don't go crazy when you move outside 0-2*pi
+
             # create input nodes
             def get_feedback(t):
                 """ returns q, dq, and target - hand  scaled and
