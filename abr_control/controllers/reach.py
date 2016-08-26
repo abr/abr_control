@@ -44,6 +44,7 @@ class controller:
 
             # create neural ensembles
             CB = nengo.Ensemble(**self.robot_config.CB)
+            CB_adapt = nengo.Ensemble(**self.robot_config.CB_adapt)
             M1 = nengo.Ensemble(**self.robot_config.M1)
 
             # create relay
@@ -154,16 +155,14 @@ class controller:
                              transform=-1)
 
             # ---------------- set up adaptive bias -------------------
-            # TODO: make this a separate CB population, so that Voja can
-            # be run on the input connection, to have the encoders adapt
-            # to the range of signals most commonly sent in
-
             print('applying adaptive bias...')
             # set up learning, with initial output the zero vector
-            CB_adapt_conn = nengo.Connection(CB, output_node,
+            nengo.Connection(feedback_node[:dim*2], CB_adapt,
+                             learning_rule_type=nengo.Voja(learning_rate=1e-3))
+            CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
                                              function=lambda x: np.zeros(dim),
                                              learning_rule_type=nengo.PES(
-                                                 learning_rate=1e-5))
+                                                 learning_rate=1e-4))
             nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
                              transform=-1)
 
