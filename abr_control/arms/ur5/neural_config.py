@@ -14,7 +14,7 @@ class robot_config(config.robot_config):
 
         self.CB = {
             'dimensions': self.num_joints * 2,
-            'n_neurons': 3000,
+            'n_neurons': 10000,
             # 'neuron_type': nengo.Direct(),
             'radius': np.sqrt(self.num_joints * 2),
             }
@@ -23,7 +23,7 @@ class robot_config(config.robot_config):
             'dimensions': self.num_joints + 3,
             'n_neurons': 10000,
             # 'neuron_type': nengo.Direct(),
-            'radius': np.sqrt(self.num_joints + 3),
+            # 'radius': np.sqrt(self.num_joints + 3),
             }
 
         self.means = {
@@ -39,6 +39,10 @@ class robot_config(config.robot_config):
             'dq': (np.array([3.32, 3.78, 0.03, 0.00, 6.88, 0.00, ]) -
                    np.array([0.00, -0.09, -3.19, -2.56, -0.07, -11.23, ])),
             }
+        # np.array([-2.53, 1.03, -1.72, 0.73, 2.34, 12.19, ])
+        # np.array([2.41, 0.56, 0.32, 0.41, 1.28, 1.31, ])
+        # np.array([-0.53, -0.09, 0.06, 0.01, 0.23, 0.04, ])
+        # np.array([4.49, 2.01, 2.35, 2.27, 5.94, 5.63, ])
 
     def scaledown(self, name, x):
         return (x - self.means[name]) / self.scales[name]

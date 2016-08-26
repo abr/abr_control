@@ -82,12 +82,12 @@ class controller:
                 """Generate Jacobian weighted by task-space inertia matrix"""
                 # scale things back
                 q = self.robot_config.scaleup('q', signal[:dim])
-                u = self.kp * signal[dim:]
+                u = signal[dim:]
 
                 JEE = self.robot_config.J('EE', q)
                 Mx = gen_Mx(q)
 
-                u = np.dot(JEE.T, np.dot(Mx, u))
+                u = self.kp * np.dot(JEE.T, np.dot(Mx, u))
                 return u
 
             nengo.Connection(M1, u_relay,
@@ -163,7 +163,7 @@ class controller:
             CB_adapt_conn = nengo.Connection(CB, output_node,
                                              function=lambda x: np.zeros(dim),
                                              learning_rule_type=nengo.PES(
-                                                 learning_rate=1e-3))
+                                                 learning_rate=1e-5))
             nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
                              transform=-1)
 
