@@ -5,6 +5,8 @@ try:
 except ImportError:
     print('Nengo module needs to be installed to use this controller.')
 
+from .keeplearningsolver import KeepLearningSolver
+
 
 class controller:
     """ Implements an operational space controller (OSC)
@@ -43,7 +45,6 @@ class controller:
             # create neural ensembles
             CB = nengo.Ensemble(**self.robot_config.CB)
             M1 = nengo.Ensemble(**self.robot_config.M1)
-            M1_null = nengo.Ensemble(**self.robot_config.M1_null)
 
             # create relay
             u_relay = nengo.Ensemble(n_neurons=1, dimensions=dim,
@@ -89,7 +90,9 @@ class controller:
                 u = np.dot(JEE.T, np.dot(Mx, u))
                 return u
 
-            nengo.Connection(M1, u_relay, function=gen_u)
+            nengo.Connection(M1, u_relay,
+                             function=gen_u,
+                             synapse=.01)
 
             # Set up null control ---------------------------------------------
 
@@ -115,9 +118,9 @@ class controller:
 
                 return np.dot(null_filter, u_null).flatten()
 
-            nengo.Connection(feedback_node[:dim], M1_null)
-            nengo.Connection(M1_null, u_relay,
-                             function=gen_null_signal)
+            nengo.Connection(M1, u_relay,
+                             function=gen_null_signal,
+                             synapse=.01)
 
             # Connect up cerebellum -------------------------------------------
 
@@ -138,15 +141,14 @@ class controller:
                              function=gen_Mqdq,
                              transform=-1)
 
-            # TODO: Should gravity comp go straight into the arm /
-            # not be used as part of the training signal for u_adapt?
             def gen_Mq_g(signal):
                 """ Generate the gravity compensation signal """
                 # scale things back
                 q = self.robot_config.scaleup('q', signal[:dim])
                 return self.robot_config.Mq_g(q)
 
-            # connect up CB gravity compensation to relay node
+            # connect up CB gravity compensation to arm directly
+            # (not to be used as part of training signal for u_adapt)
             nengo.Connection(CB, output_node,
                              function=gen_Mq_g,
                              transform=-1)
@@ -156,17 +158,18 @@ class controller:
             # be run on the input connection, to have the encoders adapt
             # to the range of signals most commonly sent in
 
-            # print('applying adaptive bias...')
-            # # set up learning, with initial output the zero vector
-            # CB_adapt_conn = nengo.Connection(CB, output_node,
-            #                                  function=lambda x: np.zeros(dim),
-            #                                  learning_rule_type=nengo.PES(
-            #                                      learning_rate=1e-3))
-            # nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
-            #                  transform=-1)
+            print('applying adaptive bias...')
+            # set up learning, with initial output the zero vector
+            CB_adapt_conn = nengo.Connection(CB, output_node,
+                                             function=lambda x: np.zeros(dim),
+                                             learning_rule_type=nengo.PES(
+                                                 learning_rate=1e-3))
+            nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
+                             transform=-1)
 
         print('building REACH model...')
         self.sim = nengo.Simulator(self.model, dt=.001)
+        print('building complete...')
 
     def control(self, q, dq, target_xyz):
         """ Generates the control signal

@@ -114,9 +114,6 @@ class robot_config(robot_config.robot_config):
                               [0, 0, 10],  # joint 4 rotates around z axis
                               [1, 0, 0]]  # joint 5 rotates around x axis
 
-        # # create placeholder for Coriolis and centrifugal term
-        # self._C = None
-
     def _calc_T(self, name, lambdify=True):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 

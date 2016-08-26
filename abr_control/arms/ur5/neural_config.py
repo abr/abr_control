@@ -12,50 +12,24 @@ class robot_config(config.robot_config):
 
         super(robot_config, self).__init__()
 
-        n_neurons = 3000
         self.CB = {
             'dimensions': self.num_joints * 2,
-            'n_neurons': n_neurons,
+            'n_neurons': 3000,
             # 'neuron_type': nengo.Direct(),
-            'radius': 5,
+            'radius': np.sqrt(self.num_joints * 2),
             }
 
-        # n_neurons = 2000
         self.M1 = {
             'dimensions': self.num_joints + 3,
-            'n_neurons': n_neurons,
-            'neuron_type': nengo.Direct(),
-            'radius': .25,
-            }
-
-        # # n_neurons = 7000
-        # self.M1_mult = {
-        #     'encoders': nengo.dists.Choice([[1, 1],
-        #                                     [-1, 1],
-        #                                     [-1, -1],
-        #                                     [1, -1]]),
-        #     'ens_dimensions': 2,
-        #     'n_ensembles': 6,
-        #     'n_neurons': n_neurons,
-        #     'neuron_type': nengo.Direct(),
-        #     'radius': np.sqrt(2),
-        #     }
-
-        # n_neurons = 3000
-        self.M1_null = {
-            'dimensions': self.num_joints,
-            'n_neurons': n_neurons,
-            'neuron_type': nengo.Direct(),
-            'radius': np.sqrt(3),
+            'n_neurons': 10000,
+            # 'neuron_type': nengo.Direct(),
+            'radius': np.sqrt(self.num_joints + 3),
             }
 
         self.means = {
             'u': np.array([0, 0, 0]),
-            'q': np.array([-0.53, 1.16, -1.90, 0.88, 1.93, 13.05, ]),
-            'dq': np.array([1.25, 1.70, -1.44, -0.53, 3.18, -6.41, ]),
-            'M1': np.zeros(9),#np.array([.58, .57, .23, .79, -.76, -.96, 0, 0, 0]),
-            'M1_null': np.zeros(6)#np.array([0.61,  1.9,  0.4, 0, 0, 0]),
-            # 'M1_mult': np.array([-167., -26., -90., -81., -20., -33.]),
+            'q': np.array([-0.86, 1.26, -2.12, 0.94, 2.44, 12.10, ]),
+            'dq': np.array([-0.11, 0.67, -0.93, 0.04, 2.66, -3.80, ]),
             }
 
         self.scales = {
@@ -64,9 +38,6 @@ class robot_config(config.robot_config):
                   np.array([-0.79, 0.80, -2.05, 0.83, 1.35, 12.32, ])),
             'dq': (np.array([3.32, 3.78, 0.03, 0.00, 6.88, 0.00, ]) -
                    np.array([0.00, -0.09, -3.19, -2.56, -0.07, -11.23, ])),
-            'M1': np.ones(9),#np.array([.43, .525, .3, .25, .4, .08, 1.0, 1.0, 1.0]),
-            'M1_null': np.ones(6)# np.array([.45, .55, .32, 1.0, 1.0, 1.0]),
-            # 'M1_mult': np.array([50., 65., 35., 35., 5., 9.])
             }
 
     def scaledown(self, name, x):
