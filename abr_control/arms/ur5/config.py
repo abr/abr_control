@@ -86,6 +86,7 @@ class robot_config(robot_config.robot_config):
                                 sp.cos(-self.q[3] - sp.pi/2), 0],
                                [0, 0, 0, 1]])
 
+        # TODO: confirm rows 1 and 2 shouldn't be flipped
         # transform matrix from joint 3 to joint 4
         self.T43 = sp.Matrix([[sp.sin(-self.q[4] - sp.pi/2),
                                sp.cos(-self.q[4] - sp.pi/2), 0, -L[5]],
@@ -148,7 +149,7 @@ class robot_config(robot_config.robot_config):
             elif name == 'link6' or name == 'EE':
                 T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43 * \
                     self.T54 * self.TEE5
-            Tx = T * self.x  # to convert from transform matrix to (x,y,z)
+            Tx = sp.simplify(T * self.x)  # to convert from transform matrix to (x,y,z)
 
             # save to file
             cloudpickle.dump(Tx, open('%s/%s.T' % (self.config_folder, name),

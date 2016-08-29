@@ -38,10 +38,13 @@ class controller:
                 """ returns q, dq, and target - hand  scaled and
                 biased such that each dimension will have a
                 range around -1 to 1 """
-                return np.hstack([self.robot_config.scaledown('q', self.q),
-                                  self.robot_config.scaledown('dq', self.dq),
-                                  self.target - self.xyz])
-            feedback_node = nengo.Node(output=get_feedback, size_out=dim*2 + 3)
+                # NOTE: Leaving out q[5] as it's not used in any functions!
+                return np.hstack([
+                    self.cqsq,
+                    self.robot_config.scaledown('dq', self.dq),
+                    self.target - self.xyz])
+            feedback_node = nengo.Node(output=get_feedback,
+                                       size_out=dim*3 + 3)
 
             def set_output(t, x):
                 self.u = np.copy(x)
@@ -62,14 +65,14 @@ class controller:
             # Connect up M1 ---------------------------------------------------
 
             # connect up arm joint angles feedback to M1
-            nengo.Connection(feedback_node[:dim], M1[:dim])#, synapse=None)
+            nengo.Connection(feedback_node[:dim*2], M1[:dim*2])#, synapse=None)
             # connect up hand xyz feedback to M1
-            nengo.Connection(feedback_node[dim*2:], M1[dim:])#, synapse=None)
+            nengo.Connection(feedback_node[dim*3:], M1[dim*2:])#, synapse=None)
 
-            def gen_Mx(q):
+            def gen_Mx(cqsq):
                 """ Generate the inertia matrix in operational space """
-                Mq = self.robot_config.Mq(q)
-                JEE = self.robot_config.J('EE', q)
+                Mq = self.robot_config.Mq(cqsq)
+                JEE = self.robot_config.J('EE', cqsq)
 
                 # convert the mass compensation into end effector space
                 Mx_inv = np.dot(JEE, np.dot(np.linalg.inv(Mq), JEE.T))
@@ -85,13 +88,16 @@ class controller:
                 return Mx
 
             def gen_u(signal):
-                """Generate Jacobian weighted by task-space inertia matrix"""
-                # scale things back
-                q = self.robot_config.scaleup('q', signal[:dim])
-                u = signal[dim:]
+                """Generate Jacobian weighted by task-space inertia matrix
+                The q that is being passed in here is actually that crazy
+                one from above, with cos and sin all over the place """
+                cqsq = signal[:dim*2]
+                # # scale things back
+                # q = self.robot_config.scaleup('q', signal[:dim])
+                u = signal[dim*2:]
 
-                JEE = self.robot_config.J('EE', q)
-                Mx = gen_Mx(q)
+                JEE = self.robot_config.J('EE', cqsq)
+                Mx = gen_Mx(cqsq)
 
                 u = self.kp * np.dot(JEE.T, np.dot(Mx, u))
                 return u
@@ -104,17 +110,20 @@ class controller:
 
             print('applying null space control')
 
+            # TODO: get this shit working with cos and sin
             def gen_null_signal(signal):
                 """Generate the null space control signal"""
 
                 # calculate our secondary control signal
-                q = self.robot_config.scaleup('q', signal[:dim])
+                # q = self.robot_config.scaleup('q', signal[:dim])
+                cqsq = signal[:dim*2]
+                q = np.arctan2(cqsq[dim:], cqsq[:dim])
                 q_des = (((self.robot_config.rest_angles - q) + np.pi) %
                         (np.pi*2) - np.pi)
 
-                Mq = self.robot_config.Mq(q=q)
-                JEE = self.robot_config.J('EE', q=q)
-                Mx = gen_Mx(q=q)
+                Mq = self.robot_config.Mq(q=cqsq)
+                JEE = self.robot_config.J('EE', q=cqsq)
+                Mx = gen_Mx(q=cqsq)
 
                 u_null = np.dot(Mq, (self.kp * q_des - self.kv * self.dq))
 
@@ -131,15 +140,18 @@ class controller:
             # Connect up cerebellum -------------------------------------------
 
             # connect up arm feedback to Cerebellum
-            nengo.Connection(feedback_node[:dim*2], CB)
+            nengo.Connection(feedback_node[:dim*3], CB)
 
             def gen_Mqdq(signal):
-                """ Generate inertia compensation signal, np.dot(Mq,dq)"""
+                """ Generate inertia compensation signal, np.dot(Mq,dq)
+                The q that is being passed in here is actually that crazy
+                one from above, with cos and sin all over the place """
+                cqsq = signal[:dim*2]
                 # scale things back
-                q = self.robot_config.scaleup('q', signal[:dim])
-                dq = self.robot_config.scaleup('dq', signal[dim:dim*2])
+                # q = self.robot_config.scaleup('q', signal[:dim])
+                dq = self.robot_config.scaleup('dq', signal[dim*2:dim*3])
 
-                Mq = self.robot_config.Mq(q=q)
+                Mq = self.robot_config.Mq(q=cqsq)
                 return np.dot(Mq, self.kv * dq).flatten()
 
             # connect up CB inertia compensation to relay node
@@ -148,10 +160,13 @@ class controller:
                              transform=-1)
 
             def gen_Mq_g(signal):
-                """ Generate the gravity compensation signal """
-                # scale things back
-                q = self.robot_config.scaleup('q', signal[:dim])
-                return self.robot_config.Mq_g(q)
+                """ Generate the gravity compensation signal
+                The q that is being passed in here is actually that crazy
+                one from above, with cos and sin all over the place """
+                cqsq = signal[:dim*2]
+                # # scale things back
+                # q = self.robot_config.scaleup('q', signal[:dim])
+                return self.robot_config.Mq_g(cqsq)
 
             # connect up CB gravity compensation to arm directly
             # (not to be used as part of training signal for u_adapt)
@@ -159,17 +174,17 @@ class controller:
                              function=gen_Mq_g,
                              transform=-1)
 
-            # ---------------- set up adaptive bias -------------------
-            print('applying adaptive bias...')
-            # set up learning, with initial output the zero vector
-            nengo.Connection(feedback_node[:dim*2], CB_adapt,
-                             learning_rule_type=nengo.Voja(learning_rate=1e-3))
-            CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
-                                             function=lambda x: np.zeros(dim),
-                                             learning_rule_type=nengo.PES(
-                                                 learning_rate=1e-4))
-            nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
-                             transform=-1)
+            # # ---------------- set up adaptive bias -------------------
+            # print('applying adaptive bias...')
+            # # set up learning, with initial output the zero vector
+            # nengo.Connection(feedback_node[:dim*3], CB_adapt,
+            #                  learning_rule_type=nengo.Voja(learning_rate=1e-3))
+            # CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
+            #                                  function=lambda x: np.zeros(dim),
+            #                                  learning_rule_type=nengo.PES(
+            #                                      learning_rate=1e-4))
+            # nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
+            #                  transform=-1)
 
         print('building REACH model...')
         self.sim = nengo.Simulator(self.model, dt=.001)
@@ -184,10 +199,11 @@ class controller:
         """
 
         # store local copies to feed in to the adaptive population
-        self.q = q
+        self.cqsq = self.robot_config.format_q(q)
         self.dq = dq
         self.target = target_xyz
-        self.xyz = self.robot_config.T('EE', q)
+        self.xyz = self.robot_config.T('EE', q=q)
+
         # run the simulation to generate the control signal
         self.sim.run(time_in_seconds=.001, progress_bar=False)
 

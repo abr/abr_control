@@ -122,6 +122,7 @@ class robot_config():
                 # fill in the rest of the joints orientation info with 0
                 for ii in range(end_point, self.num_joints):
                     J[ii] = J[ii] + [0, 0, 0]
+            J = sp.simplify(J)
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
@@ -154,6 +155,7 @@ class robot_config():
             Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
                 Mq += J[ii].T * self._M[ii] * J[ii]
+            Mq = sp.simplify(Mq)
 
             # save to file
             cloudpickle.dump(Mq, open('%s/Mq' % self.config_folder, 'wb'))
@@ -185,6 +187,7 @@ class robot_config():
             Mq_g = sp.zeros(self.num_joints, 1)
             for ii in range(self.num_joints):
                 Mq_g += J[ii].T * self._M[ii] * self.gravity
+            Mq_g = sp.simplify(Mq_g)
 
             # save to file
             cloudpickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder,
