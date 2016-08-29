@@ -121,9 +121,9 @@ class controller:
                 q_des = (((self.robot_config.rest_angles - q) + np.pi) %
                         (np.pi*2) - np.pi)
 
-                Mq = self.robot_config.Mq(q=cqsq)
-                JEE = self.robot_config.J('EE', q=cqsq)
-                Mx = gen_Mx(q=cqsq)
+                Mq = self.robot_config.Mq(cqsq)
+                JEE = self.robot_config.J('EE', cqsq)
+                Mx = gen_Mx(cqsq)
 
                 u_null = np.dot(Mq, (self.kp * q_des - self.kv * self.dq))
 
