@@ -23,6 +23,8 @@ class controller:
 
         self.target = np.zeros(3)
 
+        self.track_input = []
+
         dim = self.robot_config.num_joints
         self.model = nengo.Network('REACH', seed=5)
         self.model.config[nengo.Connection].synapse = None
@@ -38,11 +40,13 @@ class controller:
                 """ returns q, dq, and target - hand  scaled and
                 biased such that each dimension will have a
                 range around -1 to 1 """
-                # NOTE: Leaving out q[5] as it's not used in any functions!
+                self.track_input.append(np.hstack([self.cqsq,
+                                                   (self.target - self.xyz) * 5]))
                 return np.hstack([
                     self.cqsq,
                     self.robot_config.scaledown('dq', self.dq),
-                    self.target - self.xyz])
+                    (self.target - self.xyz) * 5])
+
             feedback_node = nengo.Node(output=get_feedback,
                                        size_out=dim*3 + 3)
 
@@ -92,9 +96,7 @@ class controller:
                 The q that is being passed in here is actually that crazy
                 one from above, with cos and sin all over the place """
                 cqsq = signal[:dim*2]
-                # # scale things back
-                # q = self.robot_config.scaleup('q', signal[:dim])
-                u = signal[dim*2:]
+                u = signal[dim*2:] / 5.0
 
                 JEE = self.robot_config.J('EE', cqsq)
                 Mx = gen_Mx(cqsq)
@@ -110,32 +112,31 @@ class controller:
 
             print('applying null space control')
 
-            # TODO: get this shit working with cos and sin
-            def gen_null_signal(signal):
-                """Generate the null space control signal"""
-
-                # calculate our secondary control signal
-                # q = self.robot_config.scaleup('q', signal[:dim])
-                cqsq = signal[:dim*2]
-                q = np.arctan2(cqsq[dim:], cqsq[:dim])
-                q_des = (((self.robot_config.rest_angles - q) + np.pi) %
-                        (np.pi*2) - np.pi)
-
-                Mq = self.robot_config.Mq(cqsq)
-                JEE = self.robot_config.J('EE', cqsq)
-                Mx = gen_Mx(cqsq)
-
-                u_null = np.dot(Mq, (self.kp * q_des - self.kv * self.dq))
-
-                # calculate the null space filter
-                Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
-                null_filter = np.eye(dim) - np.dot(JEE.T, Jdyn_inv)
-
-                return np.dot(null_filter, u_null).flatten()
-
-            nengo.Connection(M1, u_relay,
-                             function=gen_null_signal,
-                             synapse=.01)
+            # # TODO: get this shit working with cos and sin
+            # def gen_null_signal(signal):
+            #     """Generate the null space control signal"""
+            #
+            #     # calculate our secondary control signal
+            #     cqsq = signal[:dim*2]
+            #     q = np.arctan2(cqsq[dim:], cqsq[:dim])
+            #     q_des = (((self.robot_config.rest_angles - q) + np.pi) %
+            #             (np.pi*2) - np.pi)
+            #
+            #     Mq = self.robot_config.Mq(cqsq)
+            #     JEE = self.robot_config.J('EE', cqsq)
+            #     Mx = gen_Mx(cqsq)
+            #
+            #     u_null = np.dot(Mq, (self.kp * q_des - self.kv * self.dq))
+            #
+            #     # calculate the null space filter
+            #     Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
+            #     null_filter = np.eye(dim) - np.dot(JEE.T, Jdyn_inv)
+            #
+            #     return np.dot(null_filter, u_null).flatten()
+            #
+            # nengo.Connection(M1, u_relay,
+            #                  function=gen_null_signal,
+            #                  synapse=.01)
 
             # Connect up cerebellum -------------------------------------------
 
@@ -147,8 +148,6 @@ class controller:
                 The q that is being passed in here is actually that crazy
                 one from above, with cos and sin all over the place """
                 cqsq = signal[:dim*2]
-                # scale things back
-                # q = self.robot_config.scaleup('q', signal[:dim])
                 dq = self.robot_config.scaleup('dq', signal[dim*2:dim*3])
 
                 Mq = self.robot_config.Mq(q=cqsq)
@@ -164,8 +163,6 @@ class controller:
                 The q that is being passed in here is actually that crazy
                 one from above, with cos and sin all over the place """
                 cqsq = signal[:dim*2]
-                # # scale things back
-                # q = self.robot_config.scaleup('q', signal[:dim])
                 return self.robot_config.Mq_g(cqsq)
 
             # connect up CB gravity compensation to arm directly
