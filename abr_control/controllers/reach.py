@@ -26,7 +26,7 @@ class controller:
         self.track_input = []
 
         dim = self.robot_config.num_joints
-        self.model = nengo.Network('REACH', seed=5)
+        self.model = nengo.Network('REACH')#, seed=5)
         self.model.config[nengo.Connection].synapse = None
         with self.model:
 
@@ -71,7 +71,7 @@ class controller:
             # connect up arm joint angles feedback to M1
             nengo.Connection(feedback_node[:dim*2], M1[:dim*2])#, synapse=None)
             # connect up hand xyz feedback to M1
-            nengo.Connection(feedback_node[dim*3:], M1[dim*2:])#, synapse=None)
+            nengo.Connection(feedback_node[dim*3:], M1[dim*2:dim*2+3])#, synapse=None)
 
             def gen_Mx(cqsq):
                 """ Generate the inertia matrix in operational space """
@@ -104,15 +104,14 @@ class controller:
                 u = self.kp * np.dot(JEE.T, np.dot(Mx, u))
                 return u
 
-            nengo.Connection(M1, u_relay,
-                             function=gen_u,
-                             synapse=.01)
+            self.conn_u = nengo.Connection(M1[:dim*2+3], u_relay,
+                                           function=gen_u,
+                                           synapse=.01)
 
             # Set up null control ---------------------------------------------
 
-            print('applying null space control')
-
-            # # TODO: get this shit working with cos and sin
+            # print('applying null space control')
+            #
             # def gen_null_signal(signal):
             #     """Generate the null space control signal"""
             #
@@ -126,7 +125,9 @@ class controller:
             #     JEE = self.robot_config.J('EE', cqsq)
             #     Mx = gen_Mx(cqsq)
             #
-            #     u_null = np.dot(Mq, (self.kp * q_des - self.kv * self.dq))
+            #     kp = self.kp / 10
+            #     kv = np.sqrt(kp)
+            #     u_null = np.dot(Mq, (kp * q_des - kv * self.dq))
             #
             #     # calculate the null space filter
             #     Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
@@ -171,21 +172,23 @@ class controller:
                              function=gen_Mq_g,
                              transform=-1)
 
-            # # ---------------- set up adaptive bias -------------------
-            # print('applying adaptive bias...')
-            # # set up learning, with initial output the zero vector
-            # nengo.Connection(feedback_node[:dim*3], CB_adapt,
-            #                  learning_rule_type=nengo.Voja(learning_rate=1e-3))
-            # CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
-            #                                  function=lambda x: np.zeros(dim),
-            #                                  learning_rule_type=nengo.PES(
-            #                                      learning_rate=1e-4))
-            # nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
-            #                  transform=-1)
+            # ---------------- set up adaptive bias -------------------
+            print('applying adaptive bias...')
+            # set up learning, with initial output the zero vector
+            nengo.Connection(feedback_node[:dim*3], CB_adapt,
+                             learning_rule_type=nengo.Voja(learning_rate=1e-3))
+            CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
+                                             function=lambda x: np.zeros(dim),
+                                             learning_rule_type=nengo.PES(
+                                                 learning_rate=1e-4))
+            nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
+                             transform=-1)
 
         print('building REACH model...')
         self.sim = nengo.Simulator(self.model, dt=.001)
         print('building complete...')
+
+        print('error of conn_u: ', self.sim.data[self.conn_u].solver_info)
 
     def control(self, q, dq, target_xyz):
         """ Generates the control signal

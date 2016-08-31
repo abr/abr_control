@@ -25,11 +25,15 @@ class robot_config(config.robot_config):
             # 'neuron_type': nengo.Direct(),
             }
 
+        import itertools
+        encoder_set = [[-1,1]]*15
+        encoders = list(itertools.product(*encoder_set))
         self.M1 = {
-            'dimensions': self.num_joints * 2 + 3,
+            'dimensions': self.num_joints * 2 + 3,# + 128,
             'n_neurons': 20000,
             # 'neuron_type': nengo.Direct(),
             'radius': np.sqrt(self.num_joints * 2 + 3) / 2.0,
+            'encoders': nengo.dists.Choice(encoders)
             }
 
         self.means = {
