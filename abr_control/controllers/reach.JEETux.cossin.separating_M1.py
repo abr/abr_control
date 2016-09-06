@@ -1,3 +1,11 @@
+""" This version of the REACH implements a basic np.dot(JEE.T, ux) control
+with each dimension of the resulting torque signal calculated by a separate
+population that only represents the dimensions necessary for the calculation.
+It's more accurate in this calculation, but without the inertia matrix
+incorporated the gain scaling needs to be fixed.
+
+TODO: have kp be a matrix with different gain values for each joint """
+
 import numpy as np
 import sympy as sp
 
@@ -61,53 +69,68 @@ class controller:
             CB_adapt = nengo.Ensemble(**self.robot_config.CB_adapt)
 
             n_neurons = 1000
+            # (cq0, cq3, cq4, sq0, sq1, sq2, sq3, sq4, u0)
             M1_j00 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=9,  # (cq0, cq3, cq4, sq0, sq1, sq2, sq3, sq4, u0)
+                                    dimensions=9,
                                     radius=3)
+            # (cq1, cq2, cq3, sq0, sq3, sq4, u0)
             M1_j01 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=7,  # (cq1, cq2, cq3, sq0, sq3, sq4, u0)
+                                    dimensions=7,
                                     radius=np.sqrt(7))
+            # (cq2, cq3, sq0, sq3, sq4, u0)
             M1_j02 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=6,  # (cq2, cq3, sq0, sq3, sq4, u0)
+                                    dimensions=6,
                                     radius=np.sqrt(6))
+            # (cq3, sq0, sq3, sq4, u0)
             M1_j03 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=5,  # (cq3, sq0, sq3, sq4, u0)
+                                    dimensions=5,
                                     radius=np.sqrt(5))
+            # (cq0, cq3, cq4, sq0, sq4, u0)
             M1_j04 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=6,  # (cq0, cq3, cq4, sq0, sq4, u0)
+                                    dimensions=6,
                                     radius=np.sqrt(6))
             # M1_j05 = 0
 
+            # (cq0, cq3, cq4, sq0, sq1, sq2, sq3, sq4, u0)
             M1_j10 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=9,  # (cq0, cq3, cq4, sq0, sq1, sq2, sq3, sq4, u0)
+                                    dimensions=9,
                                     radius=3)
+            # (cq0, cq1, cq2, cq3, sq3, sq4, u1)
             M1_j11 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=7,  # (cq0, cq1, cq2, cq3, sq3, sq4, u1)
+                                    dimensions=7,
                                     radius=np.sqrt(7))
+            # (cq0, cq2, cq3, sq3, sq4, u1)
             M1_j12 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=6,  # (cq0, cq2, cq3, sq3, sq4, u1)
+                                    dimensions=6,
                                     radius=np.sqrt(6))
+            # (cq0, cq3, sq3, sq4, u1)
             M1_j13 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=5,  # (cq0, cq3, sq3, sq4, u1)
+                                    dimensions=5,
                                     radius=np.sqrt(5))
+            # (cq0, cq3, cq4, sq0, sq4, u1)
             M1_j14 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=6,  # (cq0, cq3, cq4, sq0, sq4, u1)
+                                    dimensions=6,
                                     radius=np.sqrt(6))
             # M1_j15 = 0
 
             # M1_j20 = 0
+
+            # (cq3, sq1, sq2, sq3, sq4, u2)
             M1_j21 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=6,  # (cq3, sq1, sq2, sq3, sq4, u2)
+                                    dimensions=6,
                                     radius=np.sqrt(6))
+            # (cq3, sq2, sq3, sq4, u2)
             M1_j22 = nengo.Ensemble(n_neurons=n_neurons,
-                                    dimensions=5,  # (cq3, sq2, sq3, sq4, u2)
+                                    dimensions=5,
                                     radius=np.sqrt(5))
+            # (cq3, sq3, sq4, u2)
             M1_j23 = nengo.Ensemble(n_neurons=n_neurons,
-                                     dimensions=4,  # (cq3, sq3, sq4, u2)
-                                     radius=np.sqrt(4))
+                                    dimensions=4,
+                                    radius=np.sqrt(4))
+            # (cq4, sq3, u2)
             M1_j24 = nengo.Ensemble(n_neurons=n_neurons,
-                                     dimensions=3,  # (cq4, sq3, u2)
-                                     radius=np.sqrt(3))
+                                    dimensions=3,
+                                    radius=np.sqrt(3))
             # M1_j25 = 0
 
             # create relay
@@ -128,7 +151,7 @@ class controller:
             sq = self.robot_config.sq
             u = [sp.Symbol('u%i' % ii) for ii in range(3)]
 
-            # TODO: what index is sq0?? !!----------------------------------------
+            # TODO: what index is sq0?? !!-------------------------------------
 
             # (cq0, cq3, cq4, sq0, sq1, sq2, sq3, sq4, u0)
             nengo.Connection(feedback_node[[0, 3, 4, 5, 6, 7, 8, 9, -3]],
@@ -179,7 +202,6 @@ class controller:
                                       JEE[0, 4] * self.kp * u[0])
             nengo.Connection(M1_j04, u_relay[0],
                              function=lambda x: JEE_04_func(*x))
-
 
             # (cq0, cq3, cq4, sq0, sq1, sq2, sq3, sq4, u1)
             nengo.Connection(feedback_node[[0, 3, 4, 5, 6, 7, 8, 9, -2]],
@@ -267,10 +289,12 @@ class controller:
             JEE_24_func = sp.lambdify([cq[4],
                                        sq[3],
                                        u[2]],
-                                       JEE[2, 4] * self.kp * u[2])
+                                      JEE[2, 4] * self.kp * u[2])
             nengo.Connection(M1_j24, u_relay[2],
                              function=lambda x: JEE_24_func(*x))
 
+            # TODO: figure out how effective the null control
+            # is with 15D state
 
             # def gen_Mx(cqsq):
             #     """ Generate the inertia matrix in operational space """
@@ -306,12 +330,11 @@ class controller:
             # nengo.Connection(M1, u_relay,
             #                  function=gen_u,
             #                  synapse=.01)
-
-            # Set up null control ---------------------------------------------
-
-            print('applying null space control')
-
-            # # TODO: get this shit working with cos and sin
+            #
+            # # Set up null control ---------------------------------------------
+            #
+            # print('applying null space control')
+            #
             # def gen_null_signal(signal):
             #     """Generate the null space control signal"""
             #
@@ -325,7 +348,9 @@ class controller:
             #     JEE = self.robot_config.J('EE', cqsq)
             #     Mx = gen_Mx(cqsq)
             #
-            #     u_null = np.dot(Mq, (self.kp * q_des - self.kv * self.dq))
+            #     kp = self.kp / 10
+            #     kv = np.sqrt(kp)
+            #     u_null = np.dot(Mq, (kp * q_des - kv * self.dq))
             #
             #     # calculate the null space filter
             #     Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
@@ -370,17 +395,17 @@ class controller:
                              function=gen_Mq_g,
                              transform=-1)
 
-            # # ---------------- set up adaptive bias -------------------
-            # print('applying adaptive bias...')
-            # # set up learning, with initial output the zero vector
-            # nengo.Connection(feedback_node[:dim*3], CB_adapt,
-            #                  learning_rule_type=nengo.Voja(learning_rate=1e-3))
-            # CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
-            #                                  function=lambda x: np.zeros(dim),
-            #                                  learning_rule_type=nengo.PES(
-            #                                      learning_rate=1e-4))
-            # nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
-            #                  transform=-1)
+            # ---------------- set up adaptive bias -------------------
+            print('applying adaptive bias...')
+            # set up learning, with initial output the zero vector
+            nengo.Connection(feedback_node[:dim*3], CB_adapt,
+                             learning_rule_type=nengo.Voja(learning_rate=1e-3))
+            CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
+                                             function=lambda x: np.zeros(dim),
+                                             learning_rule_type=nengo.PES(
+                                                 learning_rate=1e-4))
+            nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
+                             transform=-1)
 
         print('building REACH model...')
         self.sim = nengo.Simulator(self.model, dt=.001)
