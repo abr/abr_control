@@ -53,37 +53,9 @@ class controller:
                 self.u = np.copy(x)
             output_node = nengo.Node(output=set_output, size_in=dim)
 
-            # generate diagonal encoders for CB
-            CB_encoder_set = [[-1,1]] * (dim * 2)
-            CB_encoders = list(itertools.product(*CB_encoder_set))
-            # generate diagonal encoders for M1
-            M1_encoder_set = [[-1,1]] * (dim + 3)
-            M1_encoders = list(itertools.product(*M1_encoder_set))
-
-            # create neural ensembles
-            CB = nengo.Ensemble(
-                n_neurons=5000,
-                dimensions=dim * 2,
-                encoders=nengo.dists.Choice(CB_encoders),
-                radius=np.sqrt(dim * 2),
-                neuron_type=nengo.Direct(),
-                )
-
-            # CB_adapt = nengo.Ensemble(
-            #     n_neurons=1000,
-            #     dimensions=self.num_joints * 2,
-            #     encoders=nengo.dists.Choice(CB_encoders),
-            #     radius=np.sqrt(self.num_joints * 2),
-            #     neuron_type=nengo.Direct(),
-            #     )
-
-            M1 = nengo.Ensemble(
-                n_neurons=20000,
-                dimensions=dim + 3,
-                encoders=nengo.dists.Choice(M1_encoders),
-                radius=np.sqrt(dim * 2 + 3) / 2.0,
-                # 'neuron_type': nengo.Direct(),
-                )
+            CB = nengo.Ensemble(**self.robot_config.CB)
+            # CB_adapt = nengo.Ensemble(**self.robot_config.CB_adapt)
+            M1 = nengo.Ensemble(**self.robot_config.M1)
 
             # create relay
             u_relay = nengo.Ensemble(n_neurons=1, dimensions=dim,
