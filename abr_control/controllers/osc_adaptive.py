@@ -1,5 +1,4 @@
 import numpy as np
-import time
 
 try:
     import nengo
@@ -15,9 +14,17 @@ class controller(osc.controller):
     adaptation using a Nengo model
     """
 
-    def __init__(self, robot_config, learning_rate=1e-3):
+    def __init__(self, robot_config,
+                 pes_learning_rate=1e-6, voja_learning_rate=1e-6,
+                 weights_file=None, encoders_file=None):
         """
-        learning_rate float: controls the speed of neural adaptation
+        pes_learning_rate float: controls the speed of neural adaptation
+                                 for training the dynamics compensation term
+        voja_learning_rate float: controls the speed of neural adaptation
+                                  for shifting the sensitivity of the CB
+                                  encoders towards areas most often explored
+        weights_file string: path to file where learned weights are saved
+        encoders_file string: path to file where learned encoders are saved
         """
 
         super(controller, self).__init__(robot_config)
@@ -31,14 +38,15 @@ class controller(osc.controller):
             def qdq_input(t):
                 """ returns q and dq scaled and bias to
                 be around -1 to 1 """
-                return self.robot_config.scaledown(
-                    'CB', np.hstack([self.q, self.dq]))
+                q = ((self.q + np.pi) % (np.pi*2)) - np.pi
+                return np.hstack([
+                    self.robot_config.scaledown('q', q),
+                    self.robot_config.scaledown('dq', self.dq)])
             qdq_input = nengo.Node(qdq_input, size_out=dim*2)
 
             def u_input(t):
                 """ returns the control signal for training """
-                print('self.u: ', self.u)
-                return self.u
+                return self.training_signal
             u_input = nengo.Node(u_input, size_out=dim)
 
             def u_adapt_output(t, x):
@@ -46,27 +54,38 @@ class controller(osc.controller):
                 self.u_adapt = np.copy(x)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
 
-            adapt_ens = nengo.Ensemble(n_neurons=500,
-                                       dimensions=dim*2,
-                                       # TODO: investigate best radius size
-                                       radius=np.sqrt(dim*2),
-                                       seed=10)
+            adapt_ens = nengo.Ensemble(seed=10, **self.robot_config.CB_adapt)
+            if encoders_file is not None:
+                try:
+                    encoders = np.load(encoders_file)['encoders'][-1]
+                    adapt_ens.encoders = encoders
+                    print('Loaded encoders from %s' % encoders_file)
+                except Exception:
+                    print('No encoders file found, generating normally')
+                    pass
 
-            nengo.Connection(qdq_input, adapt_ens)
-            learn_conn = \
-                nengo.Connection(adapt_ens, output,
-                                 # start with outputting just zero
-                                 function=lambda x: np.zeros(dim),
-                                 learning_rule_type=nengo.PES(learning_rate),
-                                 # use the weights solver that lets you keep
-                                 # learning from the what's saved to file
-                                 solver=KeepLearningSolver('weights.npz'))
-            nengo.Connection(u_input, learn_conn.learning_rule,
+            # connect input to CB with Voja so that encoders shift to
+            # most commonly explored areas of state space
+            conn_in = nengo.Connection(
+                qdq_input,
+                adapt_ens,
+                learning_rule_type=nengo.Voja(voja_learning_rate))
+
+            conn_learn = \
+                nengo.Connection(
+                    adapt_ens, output,
+                    # start with outputting just zero
+                    function=lambda x: np.zeros(dim),
+                    learning_rule_type=nengo.PES(pes_learning_rate),
+                    # use the weights solver that lets you keep
+                    # learning from the what's saved to file
+                    solver=KeepLearningSolver(filename=weights_file))
+            nengo.Connection(u_input, conn_learn.learning_rule,
                              # invert because we're providing error not reward
                              transform=-1, synapse=.01)
 
-            self.probe_weights = nengo.Probe(learn_conn, 'weights',
-                                             sample_every=.1)  # in seconds
+            self.probe_weights = nengo.Probe(conn_learn, 'weights')
+            self.probe_encoders = nengo.Probe(conn_in.learning_rule, 'scaled_encoders')
 
         self.sim = nengo.Simulator(nengo_model)
 
@@ -81,14 +100,12 @@ class controller(osc.controller):
         # store local copies to feed in to the adaptive population
         self.q = q
         self.dq = dq
+
         # generate the osc signal
-        self.u = super(controller, self).control(q, dq, target_xyz)
+        u = super(controller, self).control(q, dq, target_xyz)
+
         # run the simulation to generate the adaptive signal
         self.sim.run(time_in_seconds=.001, progress_bar=False)
 
-        self.u += self.u_adapt
-
-        print('u_adapt: ', self.u_adapt)
-
-        # return the sum of the two
-        return self.u
+        u += self.u_adapt
+        return u

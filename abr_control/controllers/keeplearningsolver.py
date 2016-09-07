@@ -1,9 +1,12 @@
+import numpy as np
+import time
+
 import nengo
 
 
 class KeepLearningSolver(nengo.solvers.Lstsq):
     """ Loads in weights from a file if they exist,
-    otherwise returns random shit. """
+    otherwise returns weights generated with the Lstq solver."""
 
     def __init__(self, filename, weights=False):
         super(KeepLearningSolver, self).__init__(weights=weights)
@@ -15,7 +18,8 @@ class KeepLearningSolver(nengo.solvers.Lstsq):
             print('Loading weights from %s' % self.filename)
             tstart = time.time()
             weights = np.load(self.filename)['weights'][-1].T
-            info = {'rmses': 'what no stop',
+            print('weights shape: ', weights.shape)
+            info = {'rmses': None,
                     'time': time.time() - tstart}
             if (weights.shape[0] != A.shape[1] or
                     weights.shape[1] != Y.shape[1]):

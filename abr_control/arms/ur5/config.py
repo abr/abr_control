@@ -86,7 +86,6 @@ class robot_config(robot_config.robot_config):
                                 sp.cos(-self.q[3] - sp.pi/2), 0],
                                [0, 0, 0, 1]])
 
-        # TODO: confirm rows 1 and 2 shouldn't be flipped
         # transform matrix from joint 3 to joint 4
         self.T43 = sp.Matrix([[sp.sin(-self.q[4] - sp.pi/2),
                                sp.cos(-self.q[4] - sp.pi/2), 0, -L[5]],
