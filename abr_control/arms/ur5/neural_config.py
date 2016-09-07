@@ -5,6 +5,7 @@ import nengo
 
 from . import config
 
+
 class robot_config(config.robot_config):
     """ Robot config file for the UR5 arm """
 
@@ -14,10 +15,10 @@ class robot_config(config.robot_config):
 
         import itertools
         # generate diagonal encoders for CB
-        CB_encoder_set = [[-1,1]] * (dim * 2)
+        CB_encoder_set = [[-1, 1]] * (self.num_joints * 2)
         CB_encoders = list(itertools.product(*CB_encoder_set))
         # generate diagonal encoders for M1
-        M1_encoder_set = [[-1,1]] * (dim + 3)
+        M1_encoder_set = [[-1, 1]] * (self.num_joints + 3)
         M1_encoders = list(itertools.product(*M1_encoder_set))
 
         self.CB = {
@@ -32,7 +33,7 @@ class robot_config(config.robot_config):
             'dimensions': self.num_joints * 2,
             'encoders': nengo.dists.Choice(CB_encoders),
             'n_neurons': 1000,
-            'neuron_type': nengo.Direct(),
+            # 'neuron_type': nengo.Direct(),
             }
 
         self.M1 = {
@@ -54,10 +55,6 @@ class robot_config(config.robot_config):
             'dq': (np.array([3.32, 3.78, 0.03, 0.00, 6.88, 0.00, ]) -
                    np.array([0.00, -0.09, -3.19, -2.56, -0.07, -11.23, ])),
             }
-        # np.array([-2.53, 1.03, -1.72, 0.73, 2.34, 12.19, ])
-        # np.array([2.41, 0.56, 0.32, 0.41, 1.28, 1.31, ])
-        # np.array([-0.53, -0.09, 0.06, 0.01, 0.23, 0.04, ])
-        # np.array([4.49, 2.01, 2.35, 2.27, 5.94, 5.63, ])
 
         self.cq = [sp.Symbol('cq%i' % ii) for ii in range(self.num_joints)]
         self.sq = [sp.Symbol('sq%i' % ii) for ii in range(self.num_joints)]

@@ -44,23 +44,37 @@ class controller:
         Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
         # calculate desired force in (x,y,z) space
-        # u_xyz = np.dot(Mx, target_xyz - self.xyz)
-        u_xyz = (target_xyz - self.xyz)
-        # transform into joint space, add vel and gravity compensation
-        u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq) - Mq_g)
+        u_xyz = np.dot(Mx, target_xyz - self.xyz)
+        # transform into joint space, add vel compensation
+        # u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq) -
+        #      Mq_g)
+        self.training_signal = (self.kp * np.dot(JEE.T, u_xyz) -
+                                np.dot(Mq, self.kv * dq))
+        # add in gravity compensation, not included in training signal
+        u = self.training_signal - Mq_g
 
-        # # calculate our secondary control signal
-        # # calculated desired joint angle acceleration
-        # q_des = (((self.robot_config.rest_angles - q) + np.pi) %
-        #          (np.pi*2) - np.pi)
-        # u_null = np.dot(Mq, (self.kp * q_des - self.kv * dq))
-        #
-        # # calculate the null space filter
-        # Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
-        # null_filter = (np.eye(self.robot_config.num_joints) -
-        #                np.dot(JEE.T, Jdyn_inv))
-        # u_null_filtered = np.dot(null_filter, u_null)
-        #
-        # u += u_null_filtered
+        # calculate the null space filter
+        Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
+        null_filter = (np.eye(self.robot_config.num_joints) -
+                       np.dot(JEE.T, Jdyn_inv))
+
+        # calculate q0 target angle relative to object to prevent
+        # getting stuck trying to reach the object while moving sideways
+        target_angle = np.arctan2(target_xyz[1], target_xyz[0])
+        # q0_des = (((target_angle - q[0]) + np.pi) %
+        #           (np.pi*2) - np.pi)
+        q0_des = ((target_angle - q[0]) % np.pi)
+
+        # calculated desired joint angle acceleration using rest angles
+        q_des = (((self.robot_config.rest_angles - q) + np.pi) %
+                 (np.pi*2) - np.pi)
+        # set desired angle for q0 to be relative to target position
+        q_des[0] = q0_des
+        u_null = np.dot(Mq, (self.kp * q_des - self.kv * dq))
+        # let it be anywhere within np.pi / 4 range of target angle
+        if q_des[0] < np.pi / 8.0 and q_des[0] > -np.pi / 8.0:
+            u_null[0] = 0.0
+
+        u += np.dot(null_filter, u_null)
 
         return u
