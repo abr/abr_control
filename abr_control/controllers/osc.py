@@ -71,7 +71,7 @@ class controller:
         # set desired angle for q0 to be relative to target position
         q_des[0] = q0_des
         u_null = np.dot(Mq, (self.kp * q_des - self.kv * dq))
-        # let it be anywhere within np.pi / 4 range of target angle
+        # let it be anywhere within np.pi / 4 range (total) of target angle
         if q_des[0] < np.pi / 8.0 and q_des[0] > -np.pi / 8.0:
             u_null[0] = 0.0
 
