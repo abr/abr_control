@@ -12,7 +12,7 @@ except ImportError:
 nengo_ocl = None
 try:
     import nengo_ocl
-except ImportWarning:
+except ImportError:
     print('Nengo OCL not installed, simulation will be slower.')
 
 from .keeplearningsolver import KeepLearningSolver
