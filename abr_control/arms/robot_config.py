@@ -55,7 +55,7 @@ class robot_config():
         return np.array(self._J[name](*q))
 
     def Mq(self, q):
-        """ Calculates the joint space inertia matrix for the ur5
+        """ Calculates the joint space inertia matrix
 
         q np.array: joint angles
         """
@@ -66,7 +66,7 @@ class robot_config():
         return np.array(self._Mq(*q))
 
     def Mq_g(self, q):
-        """ Calculates the force of gravity in joint space for the ur5
+        """ Calculates the force of gravity in joint space
 
         q np.array: joint angles
         """
@@ -135,7 +135,7 @@ class robot_config():
 
     def _calc_Mq(self, lambdify=True):
         """ Uses Sympy to generate the inertia matrix in
-        joint space for the ur5
+        joint space
 
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
@@ -166,7 +166,7 @@ class robot_config():
 
     def _calc_Mq_g(self, lambdify=True):
         """ Uses Sympy to generate the force of gravity in
-        joint space for the ur5
+        joint space
 
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
