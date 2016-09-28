@@ -32,7 +32,8 @@ class robot_config(config.robot_config):
         self.CB_adapt = {
             'dimensions': self.num_joints * 2,
             'encoders': nengo.dists.Choice(CB_encoders),
-            'n_neurons': 1000,
+            'n_neurons': 10000,
+            'radius': np.sqrt(self.num_joints * 2)
             # 'neuron_type': nengo.Direct(),
             }
 

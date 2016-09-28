@@ -42,45 +42,45 @@ class robot_config():
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
-    def J(self, name, q):
+    def J(self, name, parameters):
         """ Calculates the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
-        q np.array: joint angles
+        parameters list: set of parameters to pass in to the Jacobian function
         """
         # check for function in dictionary
         if self._J.get(name, None) is None:
             print('Generating Jacobian function for %s' % name)
             self._J[name] = self._calc_J(name)
-        return np.array(self._J[name](*q))
+        return np.array(self._J[name](*parameters))
 
-    def Mq(self, q):
-        """ Calculates the joint space inertia matrix
+    def Mq(self, parameters):
+        """ Calculates the joint space inertia matrix for the ur5
 
-        q np.array: joint angles
+        parameters list: set of parameters to pass in to the Mq function
         """
         # check for function in dictionary
         if self._Mq is None:
             print('Generating inertia matrix function')
             self._Mq = self._calc_Mq()
-        return np.array(self._Mq(*q))
+        return np.array(self._Mq(*parameters))
 
-    def Mq_g(self, q):
-        """ Calculates the force of gravity in joint space
+    def Mq_g(self, parameters):
+        """ Calculates the force of gravity in joint space for the ur5
 
-        q np.array: joint angles
+        parameters list: set of parameters to pass in to the Mq_g function
         """
         # check for function in dictionary
         if self._Mq_g is None:
             print('Generating gravity effects function')
             self._Mq_g = self._calc_Mq_g()
-        return np.array(self._Mq_g(*q)).flatten()
+        return np.array(self._Mq_g(*parameters)).flatten()
 
-    def T(self, name, q):
+    def T(self, name, parameters):
         """ Calculates the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
-        q np.array: joint angles
+        parameters list: set of parameters to pass in to the T function
         """
         # check for function in dictionary
         if self._T.get(name, None) is None:
@@ -88,7 +88,7 @@ class robot_config():
             # TODO: link0 and joint0 share a transform, but will
             # both have their own transform calculated with this check
             self._T[name] = self._calc_T(name)
-        return self._T[name](*q)[:-1].flatten()
+        return self._T[name](*parameters)[:-1].flatten()
 
     def _calc_J(self, name, lambdify=True):
         """ Uses Sympy to generate the Jacobian for a joint or link
