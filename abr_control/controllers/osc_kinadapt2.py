@@ -37,7 +37,7 @@ class controller(osc.controller):
 
         self.u_adapt = np.zeros(self.robot_config.num_joints)
 
-        self.build_dynadapt()
+        # self.build_dynadapt()
 
         # low pass filtered Yk matrix
         self.Wk = np.zeros((3, len(self.robot_config.L_hat)))
@@ -45,14 +45,14 @@ class controller(osc.controller):
         self.xyz_lp = np.zeros(3)
 
         # parameters from experiment 1 of cheah and slotine, 2005
-        self.kp = 2000
-        self.kv = 500
-        self.learn_rate_k = 0.0# np.diag([0.04, 0.045]) * 1e-2
-        self.learn_rate_d = .0005 * 1
+        self.kp = 100
+        self.kv = 10
+        self.learn_rate_k = -.04 * 1e-1  # np.diag([0.04, 0.045]) * 1e-2
+        self.learn_rate_d = .0005 * 1e3  # * 1e3 to cancel out nengo scaling
         self.alpha = 1.2
         self.lamb = 200.0 * np.pi
 
-    def control(self, q, dq, target_xyz):
+    def control(self, q, dq, target_xyz, object_xyz):
         """ Generates the control signal
 
         q np.array: the current joint angles
@@ -63,21 +63,68 @@ class controller(osc.controller):
         self.q = q
         self.dq = q
 
-        # calculate the _actual_ position of the end-effector
-        # (assuming we have visual feedback or somesuch here)
-        xyz = self.robot_config.T('EE', q=q, use_estimate=False)
+        # calculate the Jacobian for the end effector
+        JEE = self.robot_config.J('EE', q)
+        J_hat = self.robot_config.J('objectEE', q)
+
+        # calculate the inertia matrix in joint space
+        Mq = self.robot_config.Mq(q)
+
+        # calculate the effect of gravity in joint space
+        Mq_g = self.robot_config.Mq_g(q)
+
+        # convert the mass compensation into end effector space
+        Mx_inv = np.dot(JEE, np.dot(np.linalg.inv(Mq), JEE.T))
+        svd_u, svd_s, svd_v = np.linalg.svd(Mx_inv)
+        # cut off any singular values that could cause control problems
+        singularity_thresh = .00025
+        for i in range(len(svd_s)):
+            svd_s[i] = 0 if svd_s[i] < singularity_thresh else \
+                1./float(svd_s[i])
+        # numpy returns U,S,V.T, so have to transpose both here
+        Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
         # calculate desired force in (x,y,z) space
-        delta_x = xyz - target_xyz
+        u_xyz = np.dot(Mx, target_xyz - object_xyz)
+        # transform into joint space and add gravity compensation
+        u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq) - Mq_g)
+
+        # secondary controller ish
+
+        # calculate the null space filter
+        Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
+        null_filter = (np.eye(self.robot_config.num_joints) -
+                       np.dot(JEE.T, Jdyn_inv))
+
+        # calculate q0 target angle relative to object to prevent
+        # getting stuck trying to reach the object while moving sideways
+        target_angle = np.arctan2(target_xyz[1], target_xyz[0])
+        # q0_des = (((target_angle - q[0]) + np.pi) %
+        #           (np.pi*2) - np.pi)
+        q0_des = ((target_angle - q[0]) % np.pi)
+
+        # calculated desired joint angle acceleration using rest angles
+        q_des = (((self.robot_config.rest_angles - q) + np.pi) %
+                 (np.pi*2) - np.pi)
+        # set desired angle for q0 to be relative to target position
+        q_des[0] = q0_des
+        u_null = np.dot(Mq, (self.kp * q_des - self.kv * dq))
+        # let it be anywhere within np.pi / 4 range of target angle
+        if q_des[0] < np.pi / 8.0 and q_des[0] > -np.pi / 8.0:
+            u_null[0] = 0.0
+
+        u += np.dot(null_filter, u_null)
+
+        # adaptive kinematics ish
 
         # calculate dx using a low pass filter over x and taking
         # the difference from the current value of x
-        self.xyz_lp += (self.lamb * (xyz - self.xyz_lp)) * .001
-        y = self.lamb * (xyz - self.xyz_lp)
+        self.xyz_lp += (self.lamb * (object_xyz - self.xyz_lp)) * .001
+        y = self.lamb * (object_xyz - self.xyz_lp)
 
         # calculate Yk, the set of basis functions such that
         # np.dot(Yk, L) = np.dot(J, dq)
-        Yk = self.robot_config.Y(q=q, dq=dq)
+        Yk = self.robot_config.Y(q=q, dq=dq, name='objectEE')
         # create a lowpass filter of Yk
         self.Wk += (self.lamb * (Yk - self.Wk)) * .001
 
@@ -96,34 +143,38 @@ class controller(osc.controller):
                  Yk.T,
                  np.dot(
                      self.kp + self.alpha * self.kv,
-                     delta_x))))
+                     object_xyz - target_xyz))))
         # put reasonable boundaries around L values
-        dL_hat[(self.robot_config.L_hat + dL_hat) < .001] = 0.0
-        dL_hat[(self.robot_config.L_hat + dL_hat) > 1] = 0.0
+        dL_hat[(self.robot_config.L_hat + dL_hat) < 0] = 0.0
+        dL_hat[(self.robot_config.L_hat + dL_hat) > .5] = 0.0
+        dL_hat[:-3] = 0.0
+        print('dL_hat: ', [float('%.5f' % val) for val in dL_hat[-3:]])
 
         # run the model, update the parameter estimations
         # self.sim.run(dt=.001)
         self.robot_config.L_hat += dL_hat
 
-        # calculate the Jacobian for the end effector
-        J_hat = self.robot_config.J('EE', q=q)
-
-        self.training_signal = (
-            -np.dot(
-                self.learn_rate_d * 1000,
-                np.dot(
-                    np.linalg.pinv(J_hat),
-                    np.dot(
-                        Yk,
-                        self.robot_config.L_hat) +
-                    self.alpha * (xyz - target_xyz))))
-        self.sim.run(.001, progress_bar=False)
-        print('u_adapt: ', [float('%.3f' % val) for val in self.u_adapt])
-
-        u = (-np.dot(J_hat.T,
-                     self.kp * delta_x +
-                     self.kv * np.dot(Yk,
-                                      self.robot_config.L_hat))) + self.u_adapt
+        # # calculate the Jacobian for the end effector
+        # J_hat = self.robot_config.J('objectEE', q=q)
+        #
+        # self.training_signal = (
+        #     -np.dot(
+        #         self.learn_rate_d * 1000,
+        #         np.dot(
+        #             np.linalg.pinv(J_hat),
+        #             np.dot(
+        #                 Yk,
+        #                 self.robot_config.L_hat) +
+        #             self.alpha * (object_xyz - target_xyz))))
+        # # self.sim.run(.001, progress_bar=False)
+        # print('u_adapt: ', [float('%.3f' % val) for val in self.u_adapt])
+        #
+        # u += self.u_adapt
+        # u = (-np.dot(J_hat.T,
+        #              self.kp * delta_x +
+        #              self.kv * np.dot(Yk,
+        #                               self.robot_config.L_hat)) +
+        #      self.u_adapt)
         return u
 
     def build_dynadapt(self):
@@ -174,7 +225,7 @@ class controller(osc.controller):
                     adapt_ens, output,
                     # start with outputting just zero
                     function=lambda x: np.zeros(dim),
-                    learning_rule_type=nengo.PES(learning_rate=1.0),
+                    learning_rule_type=nengo.PES(learning_rate=1e-3),
                     # use the weights solver that lets you keep
                     # learning from the what's saved to file
                     solver=KeepLearningSolver(filename=self.weights_file))

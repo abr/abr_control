@@ -28,7 +28,7 @@ class robot_config(config_neural.robot_config):
         self.L_hat = L_init if L_init is not None else np.ones(len(self.L))
         self._Y = None
 
-    def J(self, name, q):
+    def J(self, name, q, use_estimate=False):
         """ Calculates the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -39,7 +39,11 @@ class robot_config(config_neural.robot_config):
             print('Generating Jacobian function for %s' % name)
             self._J[name] = self._calc_J(name=name,
                                          regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(self.L_hat)
+        parameters = tuple(q)
+        if use_estimate is True:
+            parameters += tuple(self.L_hat)
+        else:
+            parameters += tuple(self.L_actual) + (0, 0)
         return np.array(self._J[name](*parameters))
 
     def Mq(self, q):
@@ -51,7 +55,7 @@ class robot_config(config_neural.robot_config):
         if self._Mq is None:
             print('Generating inertia matrix function')
             self._Mq = self._calc_Mq(regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(self.L_hat)
+        parameters = tuple(q) + tuple(self.L_actual) + (0, 0)
         return np.array(self._Mq(*parameters))
 
     def Mq_g(self, q):
@@ -63,10 +67,10 @@ class robot_config(config_neural.robot_config):
         if self._Mq_g is None:
             print('Generating gravity effects function')
             self._Mq_g = self._calc_Mq_g(regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(self.L_hat)
+        parameters = tuple(q) + tuple(self.L_actual) + (0, 0)
         return np.array(self._Mq_g(*parameters)).flatten()
 
-    def T(self, name, q, use_estimate=True):
+    def T(self, name, q):
         """ Calculates the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -80,12 +84,13 @@ class robot_config(config_neural.robot_config):
             self._T[name] = self._calc_T(name,
                                          regenerate=self.regenerate_functions)
         parameters = tuple(q)
-        parameters += (tuple(self.L_hat) if use_estimate is True
-                       else tuple(self.L_actual))
-
+        if use_estimate is True:
+            parameters += tuple(self.L_hat)
+        else:
+            parameters += tuple(self.L_actual) + (0, 0)
         return self._T[name](*parameters)[:-1].flatten()
 
-    def Y(self, q, dq):
+    def Y(self, q, dq, name='EE'):
         """ Calculates the basis functions for the end-effector Jacobian
         as a linear function of the arm segment lengths
 
@@ -94,8 +99,10 @@ class robot_config(config_neural.robot_config):
         """
         # check for function
         if self._Y is None:
+            print('name in Y: ', name)
             print('Generating basis functions Y for end-effector')
-            self._Y = self._calc_Y(regenerate=self.regenerate_functions)
+            self._Y = self._calc_Y(name=name,
+                                   regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(dq)
         return self._Y(*parameters)
 
@@ -109,9 +116,22 @@ class robot_config(config_neural.robot_config):
         regenerate boolean: if True, don't use saved functions
         """
 
-        # get the transform using the cos and sin matrices defined above
-        Tx = super(robot_config, self)._calc_T(name=name, lambdify=False,
-                                                regenerate=regenerate)
+        # transform matrix from joint 5 to end-effector
+        self.TOBJ5 = sp.Matrix([
+            [0, 0, 0, self.L[7]],
+            [0, 0, 0, self.L[8]],
+            [0, 0, 0, self.L[9]],
+            [0, 0, 0, 1]])
+
+        if name == 'objectEE':
+            T = super(robot_config, self)._calc_T(name='link0')
+            T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43 * \
+                self.T54 * self.TOBJ5
+            Tx = T * self.x
+        else:
+            # get the transform using the cos and sin matrices defined above
+            Tx = super(robot_config, self)._calc_T(name=name, lambdify=False,
+                                                   regenerate=regenerate)
 
         if lambdify is False:
             return Tx
@@ -129,6 +149,8 @@ class robot_config(config_neural.robot_config):
                           matrix
         regenerate boolean: if True, don't use saved functions
         """
+
+        print('name in calcJ: ', name)
         # get the transform using the cos and sin matrices defined above
         J = super(robot_config, self)._calc_J(name=name, lambdify=False,
                                               regenerate=regenerate)
@@ -171,7 +193,7 @@ class robot_config(config_neural.robot_config):
             return Mq_g
         return sp.lambdify(self.q + self.L, Mq_g)
 
-    def _calc_Y(self, lambdify=True, regenerate=False):
+    def _calc_Y(self, name='EE', lambdify=True, regenerate=False):
         """ Takes the Jacobian for the end-effector and reworks
         it such that all of the self.L terms are pulled out. This
         shuffling of terms is part of kinematic adaptation, such that we
@@ -189,14 +211,15 @@ class robot_config(config_neural.robot_config):
                                       'rb'))
         else:
             # get the Jacobians for the end-effector
-            J = self._calc_J('EE', lambdify=False, regenerate=regenerate)[:3]
-            print('J: ', J)
+            J = self._calc_J(name=name, lambdify=False,
+                             regenerate=regenerate)[:3]
 
             Y = sp.Matrix(np.zeros((3, len(self.L))))
             # work through row by row
             for ii, row in enumerate(J):
                 row = sp.expand(row)
                 # get all the coefficients for each of the L terms
+                print('L shape: ', self.L)
                 for jj, l in enumerate(self.L):
                     Y[ii, jj] = sp.simplify(row.coeff(l))
 
@@ -204,6 +227,7 @@ class robot_config(config_neural.robot_config):
             cloudpickle.dump(Y, open('%s/Y' % self.config_folder,
                                      'wb'))
 
+        print('Y : ', Y)
         if lambdify is False:
             return Y
         return sp.lambdify(self.q + self.dq, Y)
