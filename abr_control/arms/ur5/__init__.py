@@ -1,2 +1,3 @@
 from . import config
-from . import neural_config
+from . import config_kinadapt
+from . import config_neural

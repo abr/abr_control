@@ -130,8 +130,7 @@ class interface(interface.interface):
             if _ != 0:
                 raise Exception()
 
-        hand_xyz = self.robot_config.T(name='EE',
-                                            q=self.q)
+        hand_xyz = self.robot_config.T(name='EE', parameters=self.q)
 
         # Update position of hand sphere
         vrep.simxSetObjectPosition(
