@@ -46,7 +46,7 @@ class robot_config(robot_config.robot_config):
                               [0, 0, 10],  # joint 4 rotates around z axis
                               [1, 0, 0]]  # joint 5 rotates around x axis
 
-    def _calc_T(self, name, lambdify=True):  # noqa C907
+    def _calc_T(self, name, lambdify=True, regenerate=False):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -133,7 +133,8 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # check to see if we have our transformation saved in file
-        if os.path.isfile('%s/%s.T' % (self.config_folder, name)):
+        if (regenerate is False and
+                os.path.isfile('%s/%s.T' % (self.config_folder, name))):
             Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
                                        'rb'))
         else:

@@ -1,5 +1,8 @@
 import numpy as np
 
+from . import osc
+from .keeplearningsolver import KeepLearningSolver
+
 try:
     import nengo
 except ImportError:
@@ -10,9 +13,6 @@ nengo_ocl = None
 #     import nengo_ocl
 # except ImportError:
 #     print('Nengo OCL not installed, simulation will be slower.')
-
-from . import osc
-from .keeplearningsolver import KeepLearningSolver
 
 
 class controller(osc.controller):
@@ -83,20 +83,18 @@ class controller(osc.controller):
 
         # run the model, update the parameter estimations
         # self.sim.run(dt=.001)
-        parameters = tuple(q) + tuple(L)
-        print('parameters: ', parameters)
 
         # calculate position of the end-effector
-        self.xyz = self.robot_config.T('EE', parameters)
+        self.xyz = self.robot_config.T('EE', q=q)
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J('EE', parameters)
+        JEE = self.robot_config.J('EE', q=q)
 
         # calculate the inertia matrix in joint space
-        Mq = self.robot_config.Mq(parameters)
+        Mq = self.robot_config.Mq(q=q)
 
         # calculate the effect of gravity in joint space
-        Mq_g = self.robot_config.Mq_g(parameters)
+        Mq_g = self.robot_config.Mq_g(q=q)
 
         # convert the mass compensation into end effector space
         Mx_inv = np.dot(JEE, np.dot(np.linalg.inv(Mq), JEE.T))
