@@ -5,6 +5,12 @@ try:
 except ImportError:
     print('Nengo module needs to be installed to use this controller.')
 
+nengo_ocl = None
+# try:
+#     import nengo_ocl
+# except ImportError:
+#     print('Nengo OCL not installed, simulation will be slower.')
+
 from . import osc
 from .keeplearningsolver import KeepLearningSolver
 
@@ -87,7 +93,10 @@ class controller(osc.controller):
             self.probe_weights = nengo.Probe(conn_learn, 'weights')
             self.probe_encoders = nengo.Probe(conn_in.learning_rule, 'scaled_encoders')
 
-        self.sim = nengo.Simulator(nengo_model)
+        if nengo_ocl is not None:
+            self.sim = nengo_ocl.Simulator(nengo_model, dt=.001)
+        else:
+            self.sim = nengo.Simulator(nengo_model, dt=.001)
 
     def control(self, q, dq, target_xyz):
         """ Generates the control signal
