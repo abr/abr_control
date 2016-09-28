@@ -9,21 +9,21 @@ from . import config
 class robot_config(config.robot_config):
     """ Robot config file for the UR5 arm """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
-        super(robot_config, self).__init__()
+        super(robot_config, self).__init__(**kwargs)
 
         import itertools
         # generate diagonal encoders for CB
-        CB_encoder_set = [[-1, 1]] * (self.num_joints * 2)
-        CB_encoders = list(itertools.product(*CB_encoder_set))
+        # CB_encoder_set = [[-1, 1]] * (self.num_joints * 2)
+        # CB_encoders = list(itertools.product(*CB_encoder_set))
         # generate diagonal encoders for M1
-        M1_encoder_set = [[-1, 1]] * (self.num_joints + 3)
-        M1_encoders = list(itertools.product(*M1_encoder_set))
+        # M1_encoder_set = [[-1, 1]] * (self.num_joints + 3)
+        # M1_encoders = list(itertools.product(*M1_encoder_set))
 
         self.CB = {
             'dimensions': self.num_joints * 2,
-            'encoders': nengo.dists.Choice(CB_encoders),
+            # 'encoders': nengo.dists.Choice(CB_encoders),
             'n_neurons': 5000,
             'neuron_type': nengo.Direct(),
             'radius': np.sqrt(self.num_joints * 2),
@@ -31,15 +31,15 @@ class robot_config(config.robot_config):
 
         self.CB_adapt = {
             'dimensions': self.num_joints * 2,
-            'encoders': nengo.dists.Choice(CB_encoders),
-            'n_neurons': 10000,
+            # 'encoders': nengo.dists.Choice(CB_encoders),
+            'n_neurons': 5000,
             'radius': np.sqrt(self.num_joints * 2)
             # 'neuron_type': nengo.Direct(),
             }
 
         self.M1 = {
             'dimensions': self.num_joints + 3,
-            'encoders': nengo.dists.Choice(M1_encoders),
+            # 'encoders': nengo.dists.Choice(M1_encoders),
             'n_neurons': 20000,
             # 'neuron_type': nengo.Direct(),
             'radius': np.sqrt(self.num_joints + 3) / 2.0,

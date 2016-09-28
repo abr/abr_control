@@ -9,10 +9,10 @@ from .. import robot_config
 class robot_config(robot_config.robot_config):
     """ Robot config file for the UR5 arm """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
         super(robot_config, self).__init__(num_joints=6, num_links=7,
-                                           robot_name='ur5')
+                                           robot_name='ur5', **kwargs)
 
         self.joint_names = ['UR5_joint%i' % ii
                             for ii in range(self.num_joints)]
@@ -37,23 +37,6 @@ class robot_config(robot_config.robot_config):
         # segment lengths associated with each joint
         self.L = np.array([0.0935, 0.13453, 0.4251,
                            0.12, 0.3921, 0.0935, 0.0935, 0.0935])
-
-        # orientation part of the Jacobian (compensating for orientations)
-        self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
-                              [10, 0, 0],  # joint 1 rotates around x axis
-                              [10, 0, 0],  # joint 2 rotates around x axis
-                              [10, 0, 0],  # joint 3 rotates around x axis
-                              [0, 0, 10],  # joint 4 rotates around z axis
-                              [1, 0, 0]]  # joint 5 rotates around x axis
-
-    def _calc_T(self, name, lambdify=True):  # noqa C907
-        """ Uses Sympy to generate the transform for a joint or link
-
-        name string: name of the joint or link, or end-effector
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
-        """
 
         # transform matrix from origin to joint 0 reference frame
         # link 0 reference frame is the same as joint 0
@@ -127,13 +110,30 @@ class robot_config(robot_config.robot_config):
 
         # transform matrix from joint 5 to end-effector
         self.TEE5 = sp.Matrix([
-            [0, 0, 0, self.L[7]],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
+            [1, 0, 0, self.L[7]],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
+        # orientation part of the Jacobian (compensating for orientations)
+        self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
+                              [10, 0, 0],  # joint 1 rotates around x axis
+                              [10, 0, 0],  # joint 2 rotates around x axis
+                              [10, 0, 0],  # joint 3 rotates around x axis
+                              [0, 0, 10],  # joint 4 rotates around z axis
+                              [1, 0, 0]]  # joint 5 rotates around x axis
+
+    def _calc_T(self, name, lambdify=True, regenerate=False):  # noqa C907
+        """ Uses Sympy to generate the transform for a joint or link
+
+        name string: name of the joint or link, or end-effector
+        lambdify boolean: if True returns a function to calculate
+                          the transform. If False returns the Sympy
+                          matrix
+        """
         # check to see if we have our transformation saved in file
-        if os.path.isfile('%s/%s.T' % (self.config_folder, name)):
+        if (regenerate is False and
+                os.path.isfile('%s/%s.T' % (self.config_folder, name))):
             Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
                                        'rb'))
         else:
@@ -152,11 +152,11 @@ class robot_config(robot_config.robot_config):
             elif name == 'joint4' or name == 'link4':
                 T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43
             elif name == 'joint5' or name == 'link5':
-                T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43 * \
-                    self.T54
+                T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
+                     self.T54)
             elif name == 'link6' or name == 'EE':
-                T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43 * \
-                    self.T54 * self.TEE5
+                T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
+                     self.T54 * self.TEE5)
             else:
                 raise Exception('Invalid transformation name: %s' % name)
             # convert from transform matrix to (x,y,z)

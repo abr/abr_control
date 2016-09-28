@@ -27,6 +27,7 @@ class interface(interface.interface):
 
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times apply_u has been called
+        self.misc_handles = {}  # for tracking miscellaneous object handles
 
     def connect(self):
         """ Connect to the current scene open in VREP,
@@ -130,7 +131,7 @@ class interface(interface.interface):
             if _ != 0:
                 raise Exception()
 
-        hand_xyz = self.robot_config.T(name='EE', parameters=self.q)
+        hand_xyz = self.robot_config.T(name='EE', q=self.q)
 
         # Update position of hand sphere
         vrep.simxSetObjectPosition(
@@ -167,6 +168,27 @@ class interface(interface.interface):
 
         return {'q': self.q,
                 'dq': self.dq}
+
+    def get_xyz(self, name):
+        """ Returns the xyz position of the specified object
+
+        name string: name of the object you want the xyz position of
+        """
+
+        if self.misc_handles.get(name, None) is None:
+            # if we haven't retrieved the handle previously
+            # get the handle and set up streaming
+            _, self.misc_handles[name] = \
+                vrep.simxGetObjectHandle(self.clientID,
+                                         name,
+                                         vrep.simx_opmode_blocking)
+
+        _, xyz = vrep.simxGetObjectPosition(
+            self.clientID,
+            self.misc_handles[name],
+            -1,  # get absolute, not relative position
+            vrep.simx_opmode_blocking)
+        return xyz
 
     def set_target(self, xyz):
         """ Set the position of the target object.
