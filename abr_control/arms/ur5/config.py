@@ -9,10 +9,10 @@ from .. import robot_config
 class robot_config(robot_config.robot_config):
     """ Robot config file for the UR5 arm """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
         super(robot_config, self).__init__(num_joints=6, num_links=7,
-                                           robot_name='ur5')
+                                           robot_name='ur5', **kwargs)
 
         self.joint_names = ['UR5_joint%i' % ii
                             for ii in range(self.num_joints)]

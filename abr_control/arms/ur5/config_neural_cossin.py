@@ -8,9 +8,9 @@ from . import config
 class robot_config(config.robot_config):
     """ Robot config file for the UR5 arm """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
-        super(robot_config, self).__init__()
+        super(robot_config, self).__init__(**kwargs)
 
         self.CB = {
             'dimensions': self.num_joints * 3,

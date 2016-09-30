@@ -1,9 +1,10 @@
+import cloudpickle
 import numpy as np
+import os
 import sympy as sp
 
-import nengo
-
 from . import config
+
 
 class robot_config(config.robot_config):
     """ Robot config file for the UR5 arm for kinematic adaptation.
@@ -12,19 +13,19 @@ class robot_config(config.robot_config):
     functions of L.
     """
 
-    def __init__(self, L_init=None):
+    def __init__(self, L_init=None, **kwargs):
 
-        super(robot_config, self).__init__()
+        super(robot_config, self).__init__(**kwargs)
 
         self.adapt = {
             'dimensions': 1,
             'n_neurons': 1000,
-            # 'neuron_type': nengo.Direct(),
             }
 
         self.L = [sp.Symbol('l%i' % ii) for ii in range(self.L.shape[0])]
         # create an estimate of the arm segment lengths
-        self.L_hat = L_est if L_init is not None else np.ones(len(self.L))
+        self.L_hat = L_init if L_init is not None else np.ones(len(self.L))
+        self._Y = None
 
     def J(self, name, q):
         """ Calculates the transform for a joint or link
@@ -79,6 +80,20 @@ class robot_config(config.robot_config):
                                          regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(self.L_hat)
         return self._T[name](*parameters)[:-1].flatten()
+
+    def Y(self, q, dq):
+        """ Calculates the basis functions for the end-effector Jacobian
+        as a linear function of the arm segment lengths
+
+        name string: name of the joint or link, or end-effector
+        q list: set of joint angles to pass in to the T function
+        """
+        # check for function
+        if self._Y is None:
+            print('Generating basis functions Y for end-effector')
+            self._Y = self._calc_Y(regenerate=self.regenerate_functions)
+        parameters = tuple(q) + tuple(dq)
+        return self._Y(*parameters)
 
     def _calc_T(self, name, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the transform for a joint or link.
@@ -150,3 +165,40 @@ class robot_config(config.robot_config):
         if lambdify is False:
             return Mq_g
         return sp.lambdify(self.q + self.L, Mq_g)
+
+    def _calc_Y(self, lambdify=True, regenerate=False):
+        """ Takes the Jacobian for the end-effector and reworks
+        it such that all of the self.L terms are pulled out. This
+        shuffling of terms is part of kinematic adaptation, such that we
+        have basis functions for the learned arm segment parameters.
+
+        lambdify boolean: if True returns a function to calculate
+                          the Jacobian. If False returns the Sympy
+                          matrix
+        regenerate boolean: if True, don't use saved functions
+        """
+
+        if (regenerate is False and
+                os.path.isfile('%s/Y' % self.config_folder)):
+            Y = cloudpickle.load(open('%s/Y' % self.config_folder,
+                                      'rb'))
+        else:
+            # get the Jacobians for the end-effector
+            J = self._calc_J('EE', lambdify=False, regenerate=regenerate)[:3]
+            print('J: ', J)
+
+            Y = sp.Matrix(np.zeros((3, len(self.L))))
+            # work through row by row
+            for ii, row in enumerate(J):
+                row = sp.expand(row)
+                # get all the coefficients for each of the L terms
+                for jj, l in enumerate(self.L):
+                    Y[ii, jj] = sp.simplify(row.coeff(l))
+
+            # save to file
+            cloudpickle.dump(Y, open('%s/Y' % self.config_folder,
+                                     'wb'))
+
+        if lambdify is False:
+            return Y
+        return sp.lambdify(self.q + self.dq, Y)
