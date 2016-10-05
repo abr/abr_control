@@ -3,10 +3,10 @@ import numpy as np
 import os
 import sympy as sp
 
-from . import config
+from . import config_neural
 
 
-class robot_config(config.robot_config):
+class robot_config(config_neural.robot_config):
     """ Robot config file for the UR5 arm for kinematic adaptation.
     All we're doing is replacing the set arm segment lengths, L, with
     variables, and making all of the transforms and Jacobians also
@@ -22,6 +22,7 @@ class robot_config(config.robot_config):
             'n_neurons': 1000,
             }
 
+        self.L_actual = np.copy(self.L)  # save actual lengths
         self.L = [sp.Symbol('l%i' % ii) for ii in range(self.L.shape[0])]
         # create an estimate of the arm segment lengths
         self.L_hat = L_init if L_init is not None else np.ones(len(self.L))
@@ -65,7 +66,7 @@ class robot_config(config.robot_config):
         parameters = tuple(q) + tuple(self.L_hat)
         return np.array(self._Mq_g(*parameters)).flatten()
 
-    def T(self, name, q):
+    def T(self, name, q, use_estimate=True):
         """ Calculates the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -78,7 +79,10 @@ class robot_config(config.robot_config):
             # both have their own transform calculated with this check
             self._T[name] = self._calc_T(name,
                                          regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(self.L_hat)
+        parameters = tuple(q)
+        parameters += (tuple(self.L_hat) if use_estimate is True
+                       else tuple(self.L_actual))
+
         return self._T[name](*parameters)[:-1].flatten()
 
     def Y(self, q, dq):
