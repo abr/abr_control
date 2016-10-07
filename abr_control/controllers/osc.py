@@ -21,7 +21,7 @@ class controller:
         """
 
         # calculate position of the end-effector
-        self.xyz = self.robot_config.T('EE', q)
+        xyz = self.robot_config.T('EE', q)
 
         # calculate the Jacobian for the end effector
         JEE = self.robot_config.J('EE', q)
@@ -44,7 +44,7 @@ class controller:
         Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
         # calculate desired force in (x,y,z) space
-        u_xyz = np.dot(Mx, target_xyz - self.xyz)
+        u_xyz = np.dot(Mx, target_xyz - xyz)
         # transform into joint space, add vel compensation
         # u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq) -
         #      Mq_g)

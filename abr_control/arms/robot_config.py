@@ -123,7 +123,7 @@ class robot_config():
                 J[ii].append(sp.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
-            if end_point != 'EE':
+            if 'EE' not in end_point:
                 end_point = min(int(end_point) + 1, self.num_joints)
                 # add on the orientation information up to the last joint
                 for ii in range(end_point):
