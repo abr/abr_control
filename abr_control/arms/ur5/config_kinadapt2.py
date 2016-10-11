@@ -28,7 +28,7 @@ class robot_config(config_neural.robot_config):
         self.L_hat = L_init if L_init is not None else np.ones(len(self.L))
         self._Y = None
 
-    def J(self, name, q):
+    def J(self, name, q, use_estimate=False):
         """ Calculates the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -39,7 +39,11 @@ class robot_config(config_neural.robot_config):
             print('Generating Jacobian function for %s' % name)
             self._J[name] = self._calc_J(name=name,
                                          regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(self.L_hat)
+        parameters = tuple(q)
+        if use_estimate is True:
+            parameters += tuple(self.L_hat)
+        else:
+            parameters += tuple(self.L_actual) + (0, 0)
         return np.array(self._J[name](*parameters))
 
     def Mq(self, q):
@@ -51,7 +55,7 @@ class robot_config(config_neural.robot_config):
         if self._Mq is None:
             print('Generating inertia matrix function')
             self._Mq = self._calc_Mq(regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(self.L_hat)
+        parameters = tuple(q) + tuple(self.L_actual) + (0, 0)
         return np.array(self._Mq(*parameters))
 
     def Mq_g(self, q):
@@ -63,7 +67,7 @@ class robot_config(config_neural.robot_config):
         if self._Mq_g is None:
             print('Generating gravity effects function')
             self._Mq_g = self._calc_Mq_g(regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(self.L_hat)
+        parameters = tuple(q) + tuple(self.L_actual) + (0, 0)
         return np.array(self._Mq_g(*parameters)).flatten()
 
     def T(self, name, q):
@@ -79,8 +83,11 @@ class robot_config(config_neural.robot_config):
             # both have their own transform calculated with this check
             self._T[name] = self._calc_T(name,
                                          regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(self.L_hat)
-
+        parameters = tuple(q)
+        if use_estimate is True:
+            parameters += tuple(self.L_hat)
+        else:
+            parameters += tuple(self.L_actual) + (0, 0)
         return self._T[name](*parameters)[:-1].flatten()
 
     def Y(self, q, dq, name='EE'):

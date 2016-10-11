@@ -27,7 +27,7 @@ class interface(interface.interface):
 
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times apply_u has been called
-        self.misc_handles  # for tracking miscellaneous object handles
+        self.misc_handles = {}  # for tracking miscellaneous object handles
 
     def connect(self):
         """ Connect to the current scene open in VREP,
@@ -183,7 +183,7 @@ class interface(interface.interface):
                                          name,
                                          vrep.simx_opmode_blocking)
 
-        xyz = vrep.simxGetObjectPosition(
+        _, xyz = vrep.simxGetObjectPosition(
             self.clientID,
             self.misc_handles[name],
             -1,  # get absolute, not relative position

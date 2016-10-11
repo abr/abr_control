@@ -47,12 +47,12 @@ class controller(osc.controller):
         # parameters from experiment 1 of cheah and slotine, 2005
         self.kp = 100
         self.kv = 10
-        self.learn_rate_k = -.04 * 1e-2  # np.diag([0.04, 0.045]) * 1e-2
+        self.learn_rate_k = -.04 * 1e-1  # np.diag([0.04, 0.045]) * 1e-2
         self.learn_rate_d = .0005 * 1e3  # * 1e3 to cancel out nengo scaling
         self.alpha = 1.2
         self.lamb = 200.0 * np.pi
 
-    def control(self, q, dq, target_xyz):
+    def control(self, q, dq, target_xyz, object_xyz):
         """ Generates the control signal
 
         q np.array: the current joint angles
@@ -63,12 +63,9 @@ class controller(osc.controller):
         self.q = q
         self.dq = q
 
-        # calculate the _actual_ position of the end-effector
-        # (assuming we have visual feedback or somesuch here)
-        xyz = self.robot_config.T('EE', q=q)
-
         # calculate the Jacobian for the end effector
         JEE = self.robot_config.J('EE', q)
+        J_hat = self.robot_config.J('objectEE', q)
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
@@ -88,7 +85,7 @@ class controller(osc.controller):
         Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
         # calculate desired force in (x,y,z) space
-        u_xyz = np.dot(Mx, target_xyz - xyz)
+        u_xyz = np.dot(Mx, target_xyz - object_xyz)
         # transform into joint space and add gravity compensation
         u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq) - Mq_g)
 
@@ -122,8 +119,8 @@ class controller(osc.controller):
 
         # calculate dx using a low pass filter over x and taking
         # the difference from the current value of x
-        self.xyz_lp += (self.lamb * (xyz - self.xyz_lp)) * .001
-        y = self.lamb * (xyz - self.xyz_lp)
+        self.xyz_lp += (self.lamb * (object_xyz - self.xyz_lp)) * .001
+        y = self.lamb * (object_xyz - self.xyz_lp)
 
         # calculate Yk, the set of basis functions such that
         # np.dot(Yk, L) = np.dot(J, dq)
@@ -146,10 +143,10 @@ class controller(osc.controller):
                  Yk.T,
                  np.dot(
                      self.kp + self.alpha * self.kv,
-                     xyz - target_xyz))))
+                     object_xyz - target_xyz))))
         # put reasonable boundaries around L values
-        dL_hat[(self.robot_config.L_hat + dL_hat) < .001] = 0.0
-        dL_hat[(self.robot_config.L_hat + dL_hat) > 1] = 0.0
+        dL_hat[(self.robot_config.L_hat + dL_hat) < 0] = 0.0
+        dL_hat[(self.robot_config.L_hat + dL_hat) > .5] = 0.0
         dL_hat[:-3] = 0.0
         print('dL_hat: ', [float('%.5f' % val) for val in dL_hat[-3:]])
 
@@ -157,22 +154,22 @@ class controller(osc.controller):
         # self.sim.run(dt=.001)
         self.robot_config.L_hat += dL_hat
 
-        # calculate the Jacobian for the end effector
-        J_hat = self.robot_config.J('objectEE', q=q)
-
-        self.training_signal = (
-            -np.dot(
-                self.learn_rate_d * 1000,
-                np.dot(
-                    np.linalg.pinv(J_hat),
-                    np.dot(
-                        Yk,
-                        self.robot_config.L_hat) +
-                    self.alpha * (xyz - target_xyz))))
-        # self.sim.run(.001, progress_bar=False)
-        print('u_adapt: ', [float('%.3f' % val) for val in self.u_adapt])
-
-        u += self.u_adapt
+        # # calculate the Jacobian for the end effector
+        # J_hat = self.robot_config.J('objectEE', q=q)
+        #
+        # self.training_signal = (
+        #     -np.dot(
+        #         self.learn_rate_d * 1000,
+        #         np.dot(
+        #             np.linalg.pinv(J_hat),
+        #             np.dot(
+        #                 Yk,
+        #                 self.robot_config.L_hat) +
+        #             self.alpha * (object_xyz - target_xyz))))
+        # # self.sim.run(.001, progress_bar=False)
+        # print('u_adapt: ', [float('%.3f' % val) for val in self.u_adapt])
+        #
+        # u += self.u_adapt
         # u = (-np.dot(J_hat.T,
         #              self.kp * delta_x +
         #              self.kv * np.dot(Yk,
