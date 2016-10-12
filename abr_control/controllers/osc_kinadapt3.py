@@ -41,7 +41,7 @@ class controller(osc.controller):
         self.dq = q
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J('EE', q)
+        JEE = self.robot_config.J('objectEE', q)
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)

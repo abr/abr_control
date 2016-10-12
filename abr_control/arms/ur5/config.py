@@ -38,23 +38,6 @@ class robot_config(robot_config.robot_config):
         self.L = np.array([0.0935, 0.13453, 0.4251,
                            0.12, 0.3921, 0.0935, 0.0935, 0.0935])
 
-        # orientation part of the Jacobian (compensating for orientations)
-        self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
-                              [10, 0, 0],  # joint 1 rotates around x axis
-                              [10, 0, 0],  # joint 2 rotates around x axis
-                              [10, 0, 0],  # joint 3 rotates around x axis
-                              [0, 0, 10],  # joint 4 rotates around z axis
-                              [1, 0, 0]]  # joint 5 rotates around x axis
-
-    def _calc_T(self, name, lambdify=True, regenerate=False):  # noqa C907
-        """ Uses Sympy to generate the transform for a joint or link
-
-        name string: name of the joint or link, or end-effector
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
-        """
-
         # transform matrix from origin to joint 0 reference frame
         # link 0 reference frame is the same as joint 0
         self.T0org = sp.Matrix([
@@ -127,11 +110,27 @@ class robot_config(robot_config.robot_config):
 
         # transform matrix from joint 5 to end-effector
         self.TEE5 = sp.Matrix([
-            [0, 0, 0, self.L[7]],
-            [0, 0, 0, 0],
-            [0, 0, 0, 0],
+            [1, 0, 0, self.L[7]],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
+        # orientation part of the Jacobian (compensating for orientations)
+        self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
+                              [10, 0, 0],  # joint 1 rotates around x axis
+                              [10, 0, 0],  # joint 2 rotates around x axis
+                              [10, 0, 0],  # joint 3 rotates around x axis
+                              [0, 0, 10],  # joint 4 rotates around z axis
+                              [1, 0, 0]]  # joint 5 rotates around x axis
+
+    def _calc_T(self, name, lambdify=True, regenerate=False):  # noqa C907
+        """ Uses Sympy to generate the transform for a joint or link
+
+        name string: name of the joint or link, or end-effector
+        lambdify boolean: if True returns a function to calculate
+                          the transform. If False returns the Sympy
+                          matrix
+        """
         # check to see if we have our transformation saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.T' % (self.config_folder, name))):
