@@ -89,8 +89,8 @@ class robot_config(config_neural.robot_config):
                 [0, 0, 1, self.L_offset[2]],
                 [0, 0, 0, 1]])
 
-            T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43 * \
-                self.T54 * self.TEE5 * TOBJ5
+            T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
+                 self.T54 * self.TEE5 * TOBJ5)
 
             Tx = T * self.x
         else:

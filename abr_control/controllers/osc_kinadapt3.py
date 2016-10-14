@@ -1,14 +1,11 @@
 import numpy as np
 
 from . import osc
+from . import osc_dynadapt
 from .keeplearningsolver import KeepLearningSolver
 
-try:
-    import nengo
-except ImportError:
-    print('Nengo module needs to be installed to use this controller.')
 
-
+# class controller(osc_dynadapt.controller):
 class controller(osc.controller):
     """ Extension of the OSC controller that incorporates dynamics
     adaptation using a Nengo model
@@ -16,18 +13,8 @@ class controller(osc.controller):
 
     def __init__(self, robot_config):
 
-        super(controller, self).__init__(robot_config)
-
-        self.u_adapt = np.zeros(self.robot_config.num_joints)
-
-        # low pass filtered Yk matrix
-        self.Wk = np.zeros((3, len(self.robot_config.L_hat)))
-        # low pass filtered hand position
-        self.xyz_lp = np.zeros(3)
-
-        # parameters from experiment 1 of cheah and slotine, 2005
-        self.kp = 100
-        self.kv = 10
+        super(controller, self).__init__(robot_config,)
+                                         # pes_learning_rate=1e-4)
 
     def control(self, q, dq, target_xyz, object_xyz):
         """ Generates the control signal
@@ -62,11 +49,19 @@ class controller(osc.controller):
 
         # calculate desired force in (x,y,z) space
         u_xyz = np.dot(Mx, target_xyz - object_xyz)
-        # transform into joint space and add gravity compensation
-        u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq) - Mq_g)
+        # transform into joint space
+        u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq))
+
+        # # run the simulation to generate the adaptive signal
+        # self.training_signal = np.copy(u)
+        # self.sim.run(time_in_seconds=.001, progress_bar=False)
+        # # add in adaptive component
+        # u += self.u_adapt
+
+        # add in gravity compensation
+        u -= Mq_g
 
         # secondary controller ish
-
         # calculate the null space filter
         Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
         null_filter = (np.eye(self.robot_config.num_joints) -
@@ -91,3 +86,4 @@ class controller(osc.controller):
 
         u += np.dot(null_filter, u_null)
 
+        return u

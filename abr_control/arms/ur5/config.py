@@ -152,11 +152,11 @@ class robot_config(robot_config.robot_config):
             elif name == 'joint4' or name == 'link4':
                 T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43
             elif name == 'joint5' or name == 'link5':
-                T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43 * \
-                    self.T54
+                T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
+                     self.T54)
             elif name == 'link6' or name == 'EE':
-                T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43 * \
-                    self.T54 * self.TEE5
+                T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
+                     self.T54 * self.TEE5)
             else:
                 raise Exception('Invalid transformation name: %s' % name)
             # convert from transform matrix to (x,y,z)
