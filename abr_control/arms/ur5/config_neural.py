@@ -24,7 +24,7 @@ class robot_config(config.robot_config):
         self.CB = {
             'dimensions': self.num_joints * 2,
             # 'encoders': nengo.dists.Choice(CB_encoders),
-            'n_neurons': 5000,
+            'n_neurons': 1000,
             'neuron_type': nengo.Direct(),
             'radius': np.sqrt(self.num_joints * 2),
             }

@@ -18,7 +18,12 @@ class robot_config(robot_config.robot_config):
                             for ii in range(self.num_joints)]
 
         # for the null space controller, keep arm near these angles
-        self.rest_angles = np.array([0, 45, -90, 45, 90, 0])
+        self.rest_angles = np.array([None,
+                                     np.pi/4.0,
+                                     -np.pi/2.0,
+                                     np.pi/4.0,
+                                     np.pi/2.0,
+                                     np.pi/2.0])
 
         # create the inertia matrices for each link of the ur5
         self._M.append(np.diag([1.0, 1.0, 1.0,
@@ -104,8 +109,8 @@ class robot_config(robot_config.robot_config):
         # transform matrix from joint 4 to joint 5
         self.T54 = sp.Matrix([
             [1, 0, 0, 0],
-            [0, sp.cos(self.q[5]), -sp.sin(self.q[5]), 0],
-            [0, sp.sin(self.q[5]), sp.cos(self.q[5]), self.L[6]],
+            [0, sp.cos(-self.q[5]), -sp.sin(-self.q[5]), 0],
+            [0, sp.sin(-self.q[5]), sp.cos(-self.q[5]), self.L[6]],
             [0, 0, 0, 1]])
 
         # transform matrix from joint 5 to end-effector
@@ -137,9 +142,11 @@ class robot_config(robot_config.robot_config):
             Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
                                        'rb'))
         else:
-            if name == 'joint0' or name == 'link0':
+            if name == 'link0':
+                T = np.eye(4)
+            if name == 'joint0' or name == 'link1':
                 T = self.T0org
-            elif name == 'joint1' or name == 'link1':
+            elif name == 'joint1':
                 T = self.T0org * self.T10
             elif name == 'joint2':
                 T = self.T0org * self.T10 * self.T21

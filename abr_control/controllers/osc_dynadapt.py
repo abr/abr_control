@@ -22,7 +22,7 @@ class controller(osc.controller):
 
     def __init__(self, robot_config,
                  pes_learning_rate=1e-6, voja_learning_rate=1e-6,
-                 weights_file=None, encoders_file=None):
+                 weights_file=None, encoders_file=None, **kwargs):
         """
         pes_learning_rate float: controls the speed of neural adaptation
                                  for training the dynamics compensation term
@@ -33,7 +33,7 @@ class controller(osc.controller):
         encoders_file string: path to file where learned encoders are saved
         """
 
-        super(controller, self).__init__(robot_config)
+        super(controller, self).__init__(robot_config, **kwargs)
 
         self.u_adapt = np.zeros(self.robot_config.num_joints)
 
@@ -45,9 +45,11 @@ class controller(osc.controller):
                 """ returns q and dq scaled and bias to
                 be around -1 to 1 """
                 q = ((self.q + np.pi) % (np.pi*2)) - np.pi
-                return np.hstack([
+
+                output = np.hstack([
                     self.robot_config.scaledown('q', q),
                     self.robot_config.scaledown('dq', self.dq)])
+                return output
             qdq_input = nengo.Node(qdq_input, size_out=dim*2)
 
             def u_input(t):
@@ -60,7 +62,12 @@ class controller(osc.controller):
                 self.u_adapt = np.copy(x)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
 
-            adapt_ens = nengo.Ensemble(seed=10, **self.robot_config.CB_adapt)
+            adapt_ens = nengo.Ensemble(
+                seed=10,
+                n_neurons=2000,
+                dimensions=self.robot_config.num_joints * 2,
+                radius=np.sqrt(self.robot_config.num_joints * 2) * 10)
+
             if encoders_file is not None:
                 try:
                     encoders = np.load(encoders_file)['encoders'][-1]
