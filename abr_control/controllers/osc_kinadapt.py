@@ -61,7 +61,7 @@ class controller(osc.controller):
         """
 
         self.q = q
-        self.dq = q
+        self.dq = dq
 
         # calculate the _actual_ position of the end-effector
         # (assuming we have visual feedback or somesuch here)

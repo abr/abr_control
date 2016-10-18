@@ -13,6 +13,8 @@ class controller:
         self.kp = kp
         # derivative gain term
         self.kv = np.sqrt(self.kp) if kv is None else kv
+        # velocity limit of the end-effector
+        self.vmax = 0.5
 
     def control(self, q, dq, target_state):
         """ Generates the control signal
@@ -39,23 +41,34 @@ class controller:
         svd_u, svd_s, svd_v = np.linalg.svd(Mx_inv)
         # cut off any singular values that could cause control problems
         singularity_thresh = .00025
-        for i in range(len(svd_s)):
-            svd_s[i] = 0 if svd_s[i] < singularity_thresh else \
-                1./float(svd_s[i])
+        for ii in range(len(svd_s)):
+            svd_s[ii] = 0 if svd_s[ii] < singularity_thresh else \
+                1./float(svd_s[ii])
         # numpy returns U,S,V.T, so have to transpose both here
         Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
-        # # calculate desired force in (x,y,z) space
-        # u_xyz = np.dot(Mx, target_state[:3] - xyz)
-        # self.training_signal = (self.kp * np.dot(JEE.T, u_xyz) -
-        #                         np.dot(Mq, self.kv * dq))
-        # # add in gravity compensation, not included in training signal
-        # u = self.training_signal - Mq_g
-
         # calculate desired force in (x,y,z) space
         dx = np.dot(JEE, dq)
-        u_xyz = np.dot(Mx, (self.kp * (target_state[:3] - xyz) +
-                            self.kv * (target_state[3:] - dx)))
+        # implement velocity limiting
+        lamb = self.kp / self.kv
+        x_tilde = xyz - target_state[:3]
+        sat = self.vmax / (lamb * np.abs(x_tilde))
+        scale = np.ones(3)
+        if np.any(sat < 1):
+            index = np.argmin(sat)
+            unclipped = self.kp * x_tilde[index]
+            clipped = self.kv * self.vmax * np.sign(x_tilde[index])
+            scale = np.ones(3) * clipped / unclipped
+            scale[index] = 1
+        u_xyz = -self.kv * (dx - target_state[3:] -
+                            np.clip(sat / scale, 0, 1) *
+                            -lamb * scale * x_tilde)
+        # u_xyz = -self.kv * (dx - target_state[3:] -
+        #                     np.clip(self.vmax / (lamb * np.abs(x_tilde)),
+        #                             0, 1) * -lamb * x_tilde)
+        # u_xyz = -self.kp * x_tilde - self.kv * dx
+        u_xyz = np.dot(Mx, u_xyz)
+
         self.training_signal = np.dot(JEE.T, u_xyz)
         # add in gravity compensation, not included in training signal
         u = self.training_signal - Mq_g
@@ -76,7 +89,7 @@ class controller:
                      (np.pi*2) - np.pi)
                 dq_des[ii] = dq[ii]
         # only compensate for velocity for joints with a control signal
-        nkp = self.kp
+        nkp = self.kp * .1
         nkv = np.sqrt(nkp)
         u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
 

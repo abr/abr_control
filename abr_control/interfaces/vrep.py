@@ -64,11 +64,10 @@ class interface(interface.interface):
                                      'hand',
                                      vrep.simx_opmode_blocking)
 
-        dt = .001
         vrep.simxSetFloatingParameter(
             self.clientID,
             vrep.sim_floatparam_simulation_time_step,
-            dt,  # specify a simulation time step
+            self.dt,  # specify a simulation time step
             vrep.simx_opmode_oneshot)
 
         # start our simulation in lockstep with our code
