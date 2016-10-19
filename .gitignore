@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# save files
+*~
+
 # Distribution / packaging
 .Python
 env/
@@ -87,3 +90,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# editor autosaves
+*~
+*.swp
