@@ -49,7 +49,7 @@ class robot_config(robot_config.robot_config):
         self._M.append(np.diag([0.37, 0.37, 0.37,
                                 0.04, 0.04, 0.04]))  # link6
         #self._M.append(np.diag([1.05, 1.05, 1.05,
-        #                        0.04, 0.04, 0.04]))  # link6 with hand                        
+        #                        0.04, 0.04, 0.04]))  # link6 with hand
 
         # segment lengths associated with each joint [m]
         # [x, y, z],  Ignoring lengths < 1e-04
@@ -256,7 +256,6 @@ class robot_config(robot_config.robot_config):
                           the transform. If False returns the Sympy
                           matrix
         """
-
 
         # check to see if we have our transformation saved in file
         if os.path.isfile('%s/%s.T' % (self.config_folder, name)):
