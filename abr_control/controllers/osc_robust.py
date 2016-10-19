@@ -15,9 +15,8 @@ class controller:
         self.kv = np.sqrt(self.kp) if kv is None else kv
         # velocity limit of the end-effector
         self.vmax = vmax
-        self.lamb = self.kp / self.kv
 
-    def control(self, q, dq, target_state, ee_name='EE'):
+    def control(self, q, dq, target_state):
         """ Generates the control signal
 
         q np.array: the current joint angles
@@ -26,67 +25,61 @@ class controller:
         """
 
         # calculate position of the end-effector
-        xyz = self.robot_config.Tx(ee_name, q)
+        xyz = self.robot_config.T('EE', q)
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J(ee_name, q)
+        JEE = self.robot_config.J('EE', q)
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
 
         # calculate the effect of gravity in joint space
-        Mq_g = 1.0 * self.robot_config.Mq_g(q)
-
-        Mq_inv = np.linalg.inv(Mq)
-        JEE_Mq_inv = np.dot(JEE, Mq_inv)
+        Mq_g = 2.0 * self.robot_config.Mq_g(q)
 
         # convert the mass compensation into end effector space
-        Mx_inv = np.dot(JEE_Mq_inv, JEE.T)
-        # using the rcond to set singular values < thresh to 0
-        # is slightly faster than doing it manually with svd
-        Mx = np.linalg.pinv(Mx_inv, rcond=.01)
+        Mx_inv = np.dot(JEE, np.dot(np.linalg.pinv(Mq), JEE.T))
+        svd_u, svd_s, svd_v = np.linalg.svd(Mx_inv)
+        # cut off any singular values that could cause control problems
+        singularity_thresh = .00025
+        for ii in range(len(svd_s)):
+            svd_s[ii] = 0 if svd_s[ii] < singularity_thresh else \
+                1./float(svd_s[ii])
+        # numpy returns U,S,V.T, so have to transpose both here
+        Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
         # calculate desired force in (x,y,z) space
         dx = np.dot(JEE, dq)
-        if self.vmax is not None:
-            # implement velocity limiting
-            x_tilde = xyz - target_state[:3]
-            sat = self.vmax / (self.lamb * np.abs(x_tilde))
-            if np.any(sat < 1):
-                index = np.argmin(sat)
-                unclipped = self.kp * x_tilde[index]
-                clipped = self.kv * self.vmax * np.sign(x_tilde[index])
-                scale = np.ones(3, dtype='float32') * clipped / unclipped
-                scale[index] = 1
-            else:
-                scale = np.ones(3, dtype='float32')
-
-            u_xyz = -self.kv * (dx - target_state[3:] -
-                                np.clip(sat / scale, 0, 1) *
-                                -self.lamb * scale * x_tilde)
-        else:
-            # generate (x,y,z) force without velocity limiting)
-            u_xyz = (self.kp * (target_state[:3] - xyz) +
-                     self.kv * (target_state[3:] - dx))
-
+        # implement velocity limiting
+        lamb = self.kp / self.kv
+        x_tilde = xyz - target_state[:3]
+        sat = self.vmax / (lamb * np.abs(x_tilde))
+        scale = np.ones(3)
+        if np.any(sat < 1):
+            index = np.argmin(sat)
+            unclipped = self.kp * x_tilde[index]
+            clipped = self.kv * self.vmax * np.sign(x_tilde[index])
+            scale = np.ones(3) * clipped / unclipped
+            scale[index] = 1
+        u_xyz = -self.kv * (dx - target_state[3:] -
+                            np.clip(sat / scale, 0, 1) *
+                            -lamb * scale * x_tilde)
+        # u_xyz = -self.kv * (dx - target_state[3:] -
+        #                     np.clip(self.vmax / (lamb * np.abs(x_tilde)),
+        #                             0, 1) * -lamb * x_tilde)
+        # u_xyz = -self.kp * x_tilde - self.kv * dx
         u_xyz = np.dot(Mx, u_xyz)
 
-        # TODO: This is really awkward, but how else to get out
-        # this signal for dynamics adaptation training?
         self.training_signal = np.dot(JEE.T, u_xyz)
         # add in gravity compensation, not included in training signal
         u = self.training_signal - Mq_g
 
-        # NOTE: Should the null space controller be separated out
-        # as a signal to be added in if chosen? -----------------
-
         # calculate the null space filter
-        Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
+        Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
         null_filter = (np.eye(self.robot_config.num_joints) -
                        np.dot(JEE.T, Jdyn_inv))
 
-        q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
-        dq_des = np.zeros(self.robot_config.num_joints, dtype='float32')
+        q_des = np.zeros(self.robot_config.num_joints)
+        dq_des = np.zeros(self.robot_config.num_joints)
 
         # calculated desired joint angle acceleration using rest angles
         for ii in range(1, self.robot_config.num_joints):
