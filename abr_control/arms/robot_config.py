@@ -251,6 +251,8 @@ class robot_config():
             # transform each inertia matrix into joint space
             # sum together the effects of arm segments' inertia on each motor
             Mq = sp.zeros(self.num_joints)
+            print('J: ', np.array(J).shape)
+            print('M: ', np.array(self._M).shape)
             for ii in range(self.num_links):
                 Mq += (J[ii].T * self._M[ii] * J[ii])
             Mq = sp.simplify(Mq)
