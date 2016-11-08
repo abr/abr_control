@@ -18,16 +18,16 @@ class robot_config(robot_config.robot_config):
                             for ii in range(self.num_joints)]
 
         #Set joint limits
-        self.limits_upper = None
-        self.limits_lower = None
+        #self.limits_upper = None
+        #self.limits_lower = None
 
-        # for the null space controller, keep arm near these angles - currently 
+        # for the null space controller, keep arm near these angles - currently
         # set to the center of the limits
         self.rest_angles = np.array([0, 0, 0, 0, 0, 0])
 
         # create the inertia matrices for each link of the kinova jaco2
-        self._M.append(np.diag([2.072, 2.072, 2.072,
-                                0.007128, 0.002128, 0.0009964]))  # link0
+        self._M.append(np.diag([0.5, 0.5, 0.5,
+                                0.01, 0.01, 0.01]))  # link0
         self._M.append(np.diag([0.5, 0.5, 0.5,
                                 0.04, 0.04, 0.04]))  # link1
         self._M.append(np.diag([0.5, 0.5, 0.5,
@@ -40,22 +40,19 @@ class robot_config(robot_config.robot_config):
                                 0.04, 0.04, 0.04]))  # link5
         self._M.append(np.diag([0.25, 0.25, 0.25,
                                 0.04, 0.04, 0.04]))  # link6
-        #self._M.append(np.diag([0.4, 0.4, 0.4,
-        #                        0.01, 0.01, 0.01]))  # EE
 
         # segment lengths associated with each joint [m]
-        # [x, y, z]       
-        # Ignoring lengths < 1e-04
-            
-        #using world frame       
+        # [x, y, z],  Ignoring lengths < 1e-04
+
+        #using world frame
         self.L = np.array([
             [-0.0000327, -0.0000173, 0.15675],
             [0.0, 0.0, -0.119],
             [0.0, 0.410, 0.000000014901],
             [0.0, -0.207, -0.00980],
             [0.0, 0.0342, -0.0658],
-            [0.0, 0.0343, -0.0659]])                                    
-        
+            [0.0, 0.0343, -0.0659]])
+
         self.L_com = np.array([
             [-0.0000327, -0.0000173, 0.081581],
             [-0.0000221, 0.00013257, -0.0799],
@@ -64,11 +61,11 @@ class robot_config(robot_config.robot_config):
             [-0.000478, 0.012373, -0.0354],
             [-0.000539, 0.012305, -0.0355],
             [-0.0000386, 0.000073135, 0.00000032783]]) # EE
-                   
+
         # ---- Joint Transform Matrices ----
 
-        # transform matrix from origin to joint 0 reference frame  
-        # adding pi offset to have arm point straight up at joint angles = 0          
+        # transform matrix from origin to joint 0 reference frame
+        # adding pi offset to have arm point straight up at joint angles = 0
         self.T0org = sp.Matrix([
             [1, 0, 0, self.L[0, 0]],
             [0, -1, 0, self.L[0, 1]],
@@ -98,10 +95,10 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         self.T21b = sp.Matrix([
-            [sp.cos(sp.pi + self.q[1]), sp.sin(sp.pi + self.q[1]), 0, 
+            [sp.cos(sp.pi + self.q[1]), sp.sin(sp.pi + self.q[1]), 0,
              self.L[2, 1]*sp.sin(sp.pi + self.q[1])],
-            [-sp.sin(sp.pi + self.q[1]), sp.cos(sp.pi + self.q[1]), 0, 
-             self.L[2, 1]*sp.cos(sp.pi + self.q[1])],            
+            [-sp.sin(sp.pi + self.q[1]), sp.cos(sp.pi + self.q[1]), 0,
+             self.L[2, 1]*sp.cos(sp.pi + self.q[1])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
@@ -113,11 +110,11 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         self.T32b = sp.Matrix([
-            [sp.cos(sp.pi + self.q[2]), 0, sp.sin(sp.pi + self.q[2]), 
-             self.L[3, 1]*sp.sin(sp.pi + self.q[2])],           
+            [sp.cos(sp.pi + self.q[2]), 0, sp.sin(sp.pi + self.q[2]),
+             self.L[3, 1]*sp.sin(sp.pi + self.q[2])],
             [0, 1, 0, self.L[3, 2]],
-            [-sp.sin(sp.pi + self.q[2]), 0, sp.cos(sp.pi + self.q[2]), 
-             self.L[3, 1]*sp.cos(sp.pi + self.q[2])], 
+            [-sp.sin(sp.pi + self.q[2]), 0, sp.cos(sp.pi + self.q[2]),
+             self.L[3, 1]*sp.cos(sp.pi + self.q[2])],
             [0, 0, 0, 1]])
 
         # transform matrix from joint 3 to joint 4
@@ -130,7 +127,7 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         self.T43b = sp.Matrix([
-            [sp.cos(sp.pi - self.q[3]), sp.sin(sp.pi - self.q[3]), 0, 
+            [sp.cos(sp.pi - self.q[3]), sp.sin(sp.pi - self.q[3]), 0,
              self.L[4, 1]*sp.sin(sp.pi + self.q[3])],
             [-sp.sin(sp.pi - self.q[3]), sp.cos(sp.pi - self.q[3]), 0,
              -self.L[4, 1]*sp.cos(sp.pi + self.q[3])],
@@ -147,7 +144,7 @@ class robot_config(robot_config.robot_config):
         self.T54b = sp.Matrix([
             [sp.cos(sp.pi - self.q[4]), sp.sin(sp.pi - self.q[4]), 0,
              self.L[5, 1]*sp.sin(sp.pi + self.q[4])],
-            [-sp.sin(sp.pi - self.q[4]), sp.cos(sp.pi - self.q[4]), 0, 
+            [-sp.sin(sp.pi - self.q[4]), sp.cos(sp.pi - self.q[4]), 0,
              -self.L[5, 1]*sp.cos(sp.pi + self.q[4])],
             [0, 0, 1, self.L[5, 2]],
             [0, 0, 0, 1]])
@@ -169,75 +166,78 @@ class robot_config(robot_config.robot_config):
             [0, 1, 0, self.L_com[0, 1]],
             [0, 0, 1, self.L_com[0, 2]],
             [0, 0, 0, 1]])
-            
+
         # transform matrix from joint 0  to link 1
         self.Tl10 = sp.Matrix([
             [sp.cos(sp.pi + self.q[0]), 0, sp.sin(sp.pi + self.q[0]), 0],
             [0, 1, 0, self.L_com[1, 2]],
             [-sp.sin(sp.pi + self.q[0]), 0, sp.cos(sp.pi + self.q[0]), 0],
             [0, 0, 0, 1]])
-            
+
         # transform matrix from joint 1  to link 2
         self.Tl21 = sp.Matrix([
-            [sp.cos(sp.pi + self.q[1]), sp.sin(sp.pi + self.q[1]), 0, 
+            [sp.cos(sp.pi + self.q[1]), sp.sin(sp.pi + self.q[1]), 0,
              self.L_com[2, 1]*sp.sin(sp.pi + self.q[1])],
-            [-sp.sin(sp.pi + self.q[1]), sp.cos(sp.pi + self.q[1]), 0, 
-             self.L_com[2, 1]*sp.cos(sp.pi + self.q[1]) + self.L_com[2,0]],            
+            [-sp.sin(sp.pi + self.q[1]), sp.cos(sp.pi + self.q[1]), 0,
+             self.L_com[2, 1]*sp.cos(sp.pi + self.q[1]) + self.L_com[2,0]],
             [0, 0, 1, -self.L_com[2, 2]],
             [0, 0, 0, 1]])
-            
+
         # transform matrix from joint 2  to link 3
         # offset of -0.00153[m] in x, not sure if necessary, but currently added
         self.Tl32 = sp.Matrix([
-            [sp.cos(sp.pi + self.q[2]), 0, sp.sin(sp.pi + self.q[2]), 
-             self.L_com[3, 1]*sp.sin(sp.pi + self.q[2])],           
+            [sp.cos(sp.pi + self.q[2]), 0, sp.sin(sp.pi + self.q[2]),
+             self.L_com[3, 1]*sp.sin(sp.pi + self.q[2])],
             [0, 1, 0, self.L_com[3, 2]],
-            [-sp.sin(sp.pi + self.q[2]), 0, sp.cos(sp.pi + self.q[2]), 
-             self.L_com[3, 1]*sp.cos(sp.pi + self.q[2])], 
+            [-sp.sin(sp.pi + self.q[2]), 0, sp.cos(sp.pi + self.q[2]),
+             self.L_com[3, 1]*sp.cos(sp.pi + self.q[2])],
             [0, 0, 0, 1]])
 
         # transform matrix from joint 3  to link 4
         self.Tl43 = sp.Matrix([
-            [sp.cos(sp.pi - self.q[3]), sp.sin(sp.pi - self.q[3]), 0, 
+            [sp.cos(sp.pi - self.q[3]), sp.sin(sp.pi - self.q[3]), 0,
              self.L_com[4, 1]*sp.sin(sp.pi + self.q[3])],
             [-sp.sin(sp.pi - self.q[3]), sp.cos(sp.pi - self.q[3]), 0,
              -self.L_com[4, 1]*sp.cos(sp.pi + self.q[3])],
             [0, 0, 1, self.L_com[4, 2]],
             [0, 0, 0, 1]])
-        
+
         # transform matrix from joint 4  to link 5
         self.Tl54 = sp.Matrix([
             [sp.cos(sp.pi - self.q[4]), sp.sin(sp.pi - self.q[4]), 0,
              self.L_com[5, 1]*sp.sin(sp.pi + self.q[4])],
-            [-sp.sin(sp.pi - self.q[4]), sp.cos(sp.pi - self.q[4]), 0, 
+            [-sp.sin(sp.pi - self.q[4]), sp.cos(sp.pi - self.q[4]), 0,
              -self.L_com[5, 1]*sp.cos(sp.pi + self.q[4])],
             [0, 0, 1, self.L_com[5, 2]],
             [0, 0, 0, 1]])
-                   
-        # orientation part of the Jacobian (compensating for orientations)
-        self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
-                              [0, 0, 10],  # joint 1 rotates around z axis
-                              [0, 0, 10],  # joint 2 rotates around z axis
-                              [0, 0, 10],  # joint 3 rotates around z axis
-                              [0, 0, 10],  # joint 4 rotates around z axis
-                              [0, 0, 10]]  # joint 5 rotates around z axis
 
-    def _calc_T(self, name, lambdify=True, regenerate=False):  # noqa C907
+        # orientation part of the Jacobian (compensating for orientations)
+        self.J_orientation = [[0, 1, 0],  # joint 0 rotates around y axis
+                              [0, 0, 1],  # joint 1 rotates around z axis
+                              [0, 1, 0],  # joint 2 rotates around y axis
+                              [0, 0, 1],  # joint 3 rotates around z axis
+                              [0, 0, 1],  # joint 4 rotates around z axis
+                              [0, 0, 1]]  # joint 5 rotates around z axis
+
+    def _calc_T(self, name, lambdify=True): #, regenerate=False):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
         name string: name of the joint or link, or end-effector
         lambdify boolean: if True returns a function to calculate
                           the transform. If False returns the Sympy
                           matrix
         """
-        
+
 
         # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, name))):
+        if os.path.isfile('%s/%s.T' % (self.config_folder, name)):
             Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
                                        'rb'))
+        #if (regenerate is False and
+        #        os.path.isfile('%s/%s.T' % (self.config_folder, name))):
+        #    Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
+        #                               'rb'))
 
-        # TODO: 
+        # TODO:
         else:
             # ---- Joint Transforms ----
             if name == 'joint0':
@@ -247,17 +247,17 @@ class robot_config(robot_config.robot_config):
             elif name == 'joint2':
                 T = self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
             elif name == 'joint3':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b 
+                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
                      * self.T32a * self.T32b)
             elif name == 'joint4':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b 
-                     * self.T32a * self.T32b * self.T43b * self.T43a)            
+                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                     * self.T32a * self.T32b * self.T43b * self.T43a)
             elif name == 'joint5':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b 
+                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
                      * self.T32a * self.T32b * self.T43b * self.T43a * self.T54b
                      * self.T54a)
             elif name == 'EE' or name == 'link6':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b 
+                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
                      * self.T32a * self.T32b * self.T43b * self.T43a * self.T54b
                      * self.T54a * self.TEE5)
 
@@ -269,15 +269,15 @@ class robot_config(robot_config.robot_config):
             elif name == 'link2':
                 T = self.T0org * self.T10a * self.T10b * self.T21a * self.Tl21
             elif name == 'link3':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b 
+                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
                      * self.T32a * self.Tl32)
             elif name == 'link4':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b 
-                     * self.T32a * self.T32b * self.Tl43)            
+                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                     * self.T32a * self.T32b * self.Tl43)
             elif name == 'link5':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b 
+                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
                      *self.T32a * self.T32b * self.T43b * self.T43a * self.Tl54)
-                     
+
             else:
                 raise Exception('Invalid transformation name: %s' % name)
             # convert from transform matrix to (x,y,z)

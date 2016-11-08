@@ -18,8 +18,8 @@ class robot_config(robot_config.robot_config):
                             for ii in range(self.num_joints)]
 
         #Set joint limits
-        self.limits_upper = None
-        self.limits_lower = None
+        #self.limits_upper = None
+        #self.limits_lower = None
 
         # for the null space controller, keep arm near these angles - currently 
         # set to the center of the limits
@@ -215,14 +215,21 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
                    
         # orientation part of the Jacobian (compensating for orientations)
-        self.J_orientation = [[0, 0, 1000],  # joint 0 rotates around z axis
-                              [0, 0, 1000],  # joint 1 rotates around z axis
-                              [0, 0, 1000],  # joint 2 rotates around z axis
-                              [0, 0, 1000],  # joint 3 rotates around z axis
-                              [0, 0, 1000],  # joint 4 rotates around z axis
-                              [0, 0, 1000]]  # joint 5 rotates around z axis
+        self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
+                              [10, 0, 0],  # joint 1 rotates around z axis
+                              [10, 0, 0],  # joint 2 rotates around z axis
+                              [10, 10, 0],  # joint 3 rotates around z axis
+                              [10, 10, 0],  # joint 4 rotates around z axis
+                              [0, 0, 1]]  # joint 5 rotates around z axis
+                              
+        """self.J_orientation = [[0, 0, 0],  # joint 0 rotates around z axis
+                              [0, 0, 0],  # joint 1 rotates around z axis
+                              [0, 0, 0],  # joint 2 rotates around z axis
+                              [0, 0, 0],  # joint 3 rotates around z axis
+                              [0, 0, 0],  # joint 4 rotates around z axis
+                              [0, 0, 0]]  # joint 5 rotates around z axis"""
 
-    def _calc_T(self, name, lambdify=True, regenerate=False):  # noqa C907
+    def _calc_T(self, name, lambdify=True): #, regenerate=False):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
         name string: name of the joint or link, or end-effector
         lambdify boolean: if True returns a function to calculate
@@ -232,10 +239,13 @@ class robot_config(robot_config.robot_config):
         
 
         # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, name))):
+        if os.path.isfile('%s/%s.T' % (self.config_folder, name)):
             Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
                                        'rb'))
+        #if (regenerate is False and
+        #        os.path.isfile('%s/%s.T' % (self.config_folder, name))):
+        #    Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
+        #                               'rb'))
 
         # TODO: 
         else:
