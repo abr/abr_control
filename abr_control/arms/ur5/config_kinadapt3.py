@@ -84,9 +84,9 @@ class robot_config(config_neural.robot_config):
             # highjack this function here and return the one to calculate
             # the end-effector position of the object
             TOBJ5 = sp.Matrix([
-                [1, 0, 0, self.L_offset[0]],
-                [0, 1, 0, self.L_offset[1]],
-                [0, 0, 1, self.L_offset[2]],
+                [1, 0, 0, self.L_offset_sym[0]],
+                [0, 1, 0, self.L_offset_sym[1]],
+                [0, 0, 1, self.L_offset_sym[2]],
                 [0, 0, 0, 1]])
 
             T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *

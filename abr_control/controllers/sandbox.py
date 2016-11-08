@@ -6,8 +6,16 @@ import abr_control
 robot_config = abr_control.arms.ur5.config.robot_config(
     regenerate_functions=False)
 
+# # instantiate the REACH controller
+ctrlr = abr_control.controllers.osc_robust.controller(robot_config, kp=200)
 # instantiate the REACH controller
-ctrlr = abr_control.controllers.osc.controller(robot_config)
+# osc_ctrlr = abr_control.controllers.osc.controller(
+#     robot_config, kp=200)
+# traj_ctrlr = abr_control.controllers.trajectory.controller(
+#     osc_ctrlr)
+
+
+
 # create our VREP interface
 interface = abr_control.interfaces.vrep.interface(robot_config)
 interface.connect()
@@ -24,20 +32,23 @@ target_path = []
 # set seed so we can repeat the target set for
 # various experiment conditions
 np.random.seed(6)
-
-# for ii in range(6):
-#     np.random.random()
+for ii in range(0):
+    np.random.random()
 
 try:
     num_targets = 0
     while num_targets < 30:
         # get arm feedback from VREP
         feedback = interface.get_feedback()
-        # generate a control signal
-        u = ctrlr.control(q=feedback['q'],
-                          dq=feedback['dq'],
-                          target_xyz=target_xyz)
         hand_xyz = robot_config.T('EE', feedback['q'])
+        # generate a control signal
+        u = ctrlr.control(
+        # u = traj_ctrlr.control(
+        #     n_timesteps=1000,
+            q=feedback['q'],
+            dq=feedback['dq'],
+            target_state=np.hstack(
+                [target_xyz, np.zeros(3)]))
         print('error: ', np.sqrt(np.sum((target_xyz - hand_xyz)**2)))
         # apply the control signal, step the sim forward
         interface.apply_u(u)
@@ -67,11 +78,6 @@ finally:
     abr_control.utils.plotting.plot_trajectory(
         ee_path=ee_path,
         target_path=target_path)
-
-    np.savez_compressed('data/q', q=q_path)
-    np.savez_compressed('data/dq', dq=dq_path)
-    np.savez_compressed('data/ee', ee=ee_path)
-    np.savez_compressed('data/target', target=target_path)
 
     import matplotlib.pyplot as plt
     plt.plot(np.sqrt(np.sum((np.array(target_path) -

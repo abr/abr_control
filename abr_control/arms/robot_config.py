@@ -48,7 +48,7 @@ class robot_config():
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
     def J(self, name, q):
-        """ Calculates the transform for a joint or link
+        """ Calculates the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
         q list: set of joint angles to pass in to the Jacobian function
@@ -59,6 +59,21 @@ class robot_config():
             self._J[name] = self._calc_J(name=name,
                                          regenerate=self.regenerate_functions)
         return np.array(self._J[name](*q))
+
+    def dJ(self, name, q):
+        """ Calculates the derivative of a Jacobian for a joint or link
+        with respect to time
+
+        name string: name of the joint or link, or end-effector
+        q list: set of joint angles to pass in to the Jacobian function
+        """
+        # check for function in dictionary
+        if self._dJ.get(name, None) is None:
+            print('Generating derivative of Jacobian function for %s' % name)
+            self._dJ[name] = self._calc_dJ(
+                name=name,
+                regenerate=self.regenerate_functions)
+        return np.array(self._dJ[name](*q))
 
     def Mq(self, q):
         """ Calculates the joint space inertia matrix for the ur5
@@ -96,6 +111,43 @@ class robot_config():
             self._T[name] = self._calc_T(name,
                                          regenerate=self.regenerate_functions)
         return self._T[name](*q)[:-1].flatten()
+
+    def _calc_dJ(self, name, lambdify=True, regenerate=False):
+        """ Uses Sympy to generate the derivative of the Jacobian
+        for a joint or link with respect to time
+
+        name string: name of the joint or link, or end-effector
+        lambdify boolean: if True returns a function to calculate
+                          the Jacobian. If False returns the Sympy
+                          matrix
+        regenerate boolean: if True, don't use saved functions
+        """
+
+        # check to see if we have our Jacobian saved in file
+        if (regenerate is False and
+                os.path.isfile('%s/%s.dJ' % (self.config_folder, name))):
+            dJ = cloudpickle.load(open('%s/%s.dJ' %
+                                  (self.config_folder, name), 'rb'))
+        else:
+            J = self._calc_J(name, lambdify=False)
+            dJ = sp.Matrix(np.zeros(J.shape))
+            # calculate derivative of (x,y,z) wrt to time
+            # which each joint is dependent on
+            for ii in range(J.shape[0]):
+                for jj in range(J.shape[1]):
+                    for kk in range(self.num_joints):
+                        dJ[ii, jj] += sp.simplify(
+                            J[ii, jj].diff(self.q[kk]))
+            dJ = sp.simplify(dJ)
+
+            # save to file
+            cloudpickle.dump(dJ, open('%s/%s.dJ' %
+                                     (self.config_folder, name), 'wb'))
+
+        dJ = sp.Matrix(dJ).T  # correct the orientation of J
+        if lambdify is False:
+            return dJ
+        return sp.lambdify(self.q, dJ)
 
     def _calc_J(self, name, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the Jacobian for a joint or link

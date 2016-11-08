@@ -2,83 +2,52 @@ import numpy as np
 
 
 class controller:
-    """ Implements an operational space controller (OSC)
+    """ Implements an trajectory controller over on top of a given
+    point to point control system.
     """
 
-    def __init__(self, robot_config):
+    def __init__(self, controller):
 
-        self.robot_config = robot_config
+        self.controller = controller
 
-        self.kp = 100.0  # proportional gain term
-        self.kv = np.sqrt(self.kp)  # derivative gain term
+        self.target_state = None  # for tracking target changes
 
-        # trajectory parameters
-        self.n_steps = 50  # how many time steps to reach the target
-        self.old_target = None  # for tracking target changes
-
-    def control(self, q, dq, target_xyz):
-        """ Generates the control signal
+    def control(self, q, target_state, n_timesteps=200,
+                endpoint_name='EE', **kwargs):
+        """ Generates the control signal.
+        The trajectory controller checks to see if the target has changed,
+        if it has, it generates a new desired trajectory that moves the system
+        from the current state to the target state in n_timesteps. The
+        trajectory will move from the current state to the target in a
+        straight line.
 
         q np.array: the current joint angles
         dq np.array: the current joint velocities
-        target_xyz np.array: the current target for the end-effector
+        target_state np.array: the target [pos, vel] for the end-effector
+        n_timesteps int: the number of time steps to reach the target
         """
 
-        # calculate position of the end-effector
-        xyz = self.robot_config.T('EE', q)
+        # check for change in target
+        if np.any(target_state != self.target_state):
+            # generate a new desired trajectory
+            self.trajectory = np.zeros((n_timesteps, 6))
+            # generate desired positions
+            xyz = self.controller.robot_config.T(endpoint_name, q)
+            for ii in range(3):
+                self.trajectory[:, ii] = np.linspace(xyz[ii],
+                                                     target_state[ii],
+                                                     n_timesteps)
+                self.trajectory[:-1, ii+3] = (
+                    np.diff(self.trajectory[:, ii]) / 0.001)
+            self.target_state = np.copy(target_state)
+            # reset trajectory index
+            self.n = 0
+            print(self.trajectory)
 
-        # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J('EE', q)
+        target_state = (self.trajectory[self.n]
+                        if self.n < n_timesteps else target_state)
+        self.n += 1
+        print('n: ', self.n)
 
-        # calculate the inertia matrix in joint space
-        Mq = self.robot_config.Mq(q)
-
-        # calculate the effect of gravity in joint space
-        Mq_g = self.robot_config.Mq_g(q)
-
-        # convert the mass compensation into end effector space
-        Mx_inv = np.dot(JEE, np.dot(np.linalg.pinv(Mq), JEE.T))
-        svd_u, svd_s, svd_v = np.linalg.svd(Mx_inv)
-        # cut off any singular values that could cause control problems
-        singularity_thresh = .00025
-        for i in range(len(svd_s)):
-            svd_s[i] = 0 if svd_s[i] < singularity_thresh else \
-                1./float(svd_s[i])
-        # numpy returns U,S,V.T, so have to transpose both here
-        Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
-
-        # calculate desired force in (x,y,z) space
-        u_xyz = np.dot(Mx, target_xyz - xyz)
-        # transform into joint space, add vel compensation
-        # u = (self.kp * np.dot(JEE.T, u_xyz) - np.dot(Mq, self.kv * dq) -
-        #      Mq_g)
-        self.training_signal = (self.kp * np.dot(JEE.T, u_xyz) -
-                                np.dot(Mq, self.kv * dq))
-        # add in gravity compensation, not included in training signal
-        u = self.training_signal - Mq_g
-
-        # calculate the null space filter
-        Jdyn_inv = np.dot(Mx, np.dot(JEE, np.linalg.inv(Mq)))
-        null_filter = (np.eye(self.robot_config.num_joints) -
-                       np.dot(JEE.T, Jdyn_inv))
-
-        # calculate q0 target angle relative to object to prevent
-        # getting stuck trying to reach the object while moving sideways
-        target_angle = np.arctan2(target_xyz[1], target_xyz[0])
-        # q0_des = (((target_angle - q[0]) + np.pi) %
-        #           (np.pi*2) - np.pi)
-        q0_des = ((target_angle - q[0]) % np.pi)
-
-        # calculated desired joint angle acceleration using rest angles
-        q_des = (((self.robot_config.rest_angles - q) + np.pi) %
-                 (np.pi*2) - np.pi)
-        # set desired angle for q0 to be relative to target position
-        q_des[0] = q0_des
-        u_null = np.dot(Mq, (self.kp * q_des - self.kv * dq))
-        # let it be anywhere within np.pi / 4 range of target angle
-        if q_des[0] < np.pi / 8.0 and q_des[0] > -np.pi / 8.0:
-            u_null[0] = 0.0
-
-        u += np.dot(null_filter, u_null)
-
-        return u
+        return self.controller.control(
+            q=q, target_state=target_state, **kwargs)

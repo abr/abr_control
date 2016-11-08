@@ -61,7 +61,7 @@ class controller(osc.controller):
         """
 
         self.q = q
-        self.dq = q
+        self.dq = dq
 
         # calculate the Jacobian for the end effector
         JEE = self.robot_config.J('EE', q)
