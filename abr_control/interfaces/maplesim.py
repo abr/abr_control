@@ -24,6 +24,9 @@ class interface(interface.interface):
         """ Creates the MapleSim model and set up PyGame.
         """
 
+        # create the PyGame display
+        self.display = pygame_display.display(L=self.robot_config.L)
+
         # stores information returned from maplesim
         self.state = np.zeros(7)
         # maplesim arm simulation
@@ -32,11 +35,6 @@ class interface(interface.interface):
         self.sim.reset(self.state)
         self._update_state()
         print('Connected to MapleSim model')
-
-        # create the PyGame display
-        self.display = pygame_display.display(L=self.robot_config.L)
-        # update to starting position
-        self.display.update(q=self.q)
 
     def disconnect(self):
         """ Reset the simulation and close PyGame display.
@@ -53,7 +51,7 @@ class interface(interface.interface):
 
         print('connection closed...')
 
-    def apply_u(self, u):
+    def apply_u(self, u, dt=None):
         """ Apply the specified torque to the robot joints,
         move the simulation one time step forward, and update
         the plot.
@@ -61,6 +59,7 @@ class interface(interface.interface):
         u np.array: an array of the torques to apply to the robot
         """
 
+        dt = self.dt if dt is None else dt
         u = -1 * np.array(u, dtype='float')
 
         for ii in range(int(np.ceil(dt/1e-5))):
@@ -89,17 +88,18 @@ class interface(interface.interface):
         q0 = self.q[0]
         q1 = self.q[1]
         q2 = self.q[2]
+        L = self.robot_config.L
 
         self.joints_x = np.cumsum([
             0,
-            self.L[0] * np.cos(q0),
-            self.L[1] * np.cos(q0+q1),
-            self.L[2] * np.cos(q0+q1+q2)])
+            L[0] * np.cos(q0),
+            L[1] * np.cos(q0+q1),
+            L[2] * np.cos(q0+q1+q2)])
         self.joints_y = np.cumsum([
             0,
-            self.L[0] * np.sin(q0),
-            self.L[1] * np.sin(q0+q1),
-            self.L[2] * np.sin(q0+q1+q2)])
+            L[0] * np.sin(q0),
+            L[1] * np.sin(q0+q1),
+            L[2] * np.sin(q0+q1+q2)])
         return np.array([self.joints_x, self.joints_y])
 
     def _update_state(self):
@@ -109,3 +109,7 @@ class interface(interface.interface):
         self.dq = self.state[4:]
         self._position()
         self.x = np.array([self.joints_x[-1], self.joints_y[-1]])
+
+        print('%.3f: ' % self.t, self.q)
+        # update the display
+        self.display.update(self.q)
