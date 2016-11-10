@@ -5,7 +5,7 @@ class controller:
     """ Implements an operational space controller (OSC)
     """
 
-    def __init__(self, robot_config, kp=100, kv=None):
+    def __init__(self, robot_config, kp=100, kv=None, vmax=0.5):
 
         self.robot_config = robot_config
 
@@ -14,7 +14,7 @@ class controller:
         # derivative gain term
         self.kv = np.sqrt(self.kp) if kv is None else kv
         # velocity limit of the end-effector
-        self.vmax = 0.5
+        self.vmax = vmax
 
     def control(self, q, dq, target_state):
         """ Generates the control signal
