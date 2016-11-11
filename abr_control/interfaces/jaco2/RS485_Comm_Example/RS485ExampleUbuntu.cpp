@@ -1,7 +1,10 @@
 /*
- * This example shows how to send RS-485 command through the USB port. Basically, that means communicating directly to the actuators
- * via the USB port. If applied on a 6 axis JACO or MICO, this example will rotate the actuator #6, the one holding the end effector.
- * It will also start a thread that read and display information during the process.
+ * This example shows how to send RS-485 command through the USB port. 
+   Basically, that means communicating directly to the actuators
+ * via the USB port. If applied on a 6 axis JACO or MICO, this example will 
+   rotate the actuator #6, the one holding the end effector.
+ * It will also start a thread that read and display information during the 
+   process.
  */
 
 //INCLUDE SECTION
@@ -14,6 +17,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "kinova-api/Kinova.API.CommLayerUbuntu.h"
+#include "kinova-api/Kinova.API.UsbCommandLayerUbuntu.h"
+#include "kinova-api/KinovaTypes.h"
 #include <string.h>
 
 using namespace std;
@@ -38,26 +43,37 @@ struct Status {
     bool read_input;
 };
 
-//This is the function that will be executed by the worker thread.(Information reading).
+//This is the function that will be executed by the worker thread.(Information 
+//reading).
 void *SerialRead(void *args);
 
 //A mutex to protect the access to the API.
 pthread_mutex_t APIMutex;
 
-//A global variable that will be shared between the main thread(SEND) and the worker thread(RECEIVE).
+//A global variable that will be shared between the main thread(SEND) and the 
+//worker thread(RECEIVE).
 volatile float Joint6Command;
 
 //A handle needed to open the API(library).
 void *commLayer_Handle;
 
 //Function pointers to access API's function.
+int(*MyInitAPI)();
+int(*MyCloseAPI)();
+int(*MyGetAngularForce)(AngularPosition &Response);
+int(*MyGetAngularForceGravityFree)(AngularPosition &Response);
+int(*MyGetDevices)(KinovaDevice devices[MAX_KINOVA_DEVICE], int &result);
+int(*MySetActiveDevice)(KinovaDevice device);
+
 int(*fptrInitCommunication)();
 int(*MyRS485_Activate)();     // FUNCTION TO ACTIVATE USB - RS485 MODE //
-int(*MyRS485_Read)(RS485_Message* PackagesIn, int QuantityWanted, int &ReceivedQtyIn);
-int(*MyRS485_Write)(RS485_Message* PackagesOut, int QuantityWanted, int &ReceivedQtyIn);
+int(*MyRS485_Read)(RS485_Message* PackagesIn, int QuantityWanted, 
+                   int &ReceivedQtyIn);
+int(*MyRS485_Write)(RS485_Message* PackagesOut, int QuantityWanted, 
+                    int &ReceivedQtyIn);
 
 //MAIN(SEND information)
-int main()
+int main(int argc, char* argv[])
 {
     Status status;
     status.flag = 0;
@@ -80,9 +96,11 @@ int main()
 
 	//Message to initialize the actuator 6's command.
 	RS485_Message InitMessage;
+	
+	RS485_Message SafetyMessage;
 
 	//Message to receive the actuator 6's position.
-	RS485_Message ReceiveInitMessage;
+	RS485_Message ReceiveInitMessage[5000];
 
 	//Message to move the actuator 6.
 	RS485_Message TrajectoryMessage;
@@ -90,16 +108,39 @@ int main()
 	cout << "RS-485 communication Example." << endl;
 
 	//We load the API.
-	commLayer_Handle = dlopen("./kinova-api/Kinova.API.CommLayerUbuntu.so", RTLD_NOW|RTLD_GLOBAL);
+	commLayer_Handle = dlopen("./kinova-api/Kinova.API.CommLayerUbuntu.so", 
+	                          RTLD_NOW|RTLD_GLOBAL);
+
+    int result;
+	AngularPosition torque;
+	AngularPosition torqueGravityFree;
+
+	int programResult = 0;
+
+	//We load the functions from the library
+	MyInitAPI = (int(*)()) dlsym(commLayer_Handle, "InitAPI");
+	MyCloseAPI = (int(*)()) dlsym(commLayer_Handle, "CloseAPI");
+	MyGetAngularForce = (int(*)(AngularPosition &Response)) dlsym(commLayer_Handle, "GetAngularForce");
+	MyGetAngularForceGravityFree = (int(*)(AngularPosition &Response)) dlsym(commLayer_Handle, "GetAngularForceGravityFree");
+	MyGetDevices = (int(*)(KinovaDevice devices[MAX_KINOVA_DEVICE], int &result)) dlsym(commLayer_Handle, "GetDevices");
+	MySetActiveDevice = (int(*)(KinovaDevice devices)) dlsym(commLayer_Handle, "SetActiveDevice");
+	
+
 
 	//Initialization of the fucntion pointers.
-	fptrInitCommunication = (int (*)()) dlsym(commLayer_Handle,"InitCommunication");
+	fptrInitCommunication = (int (*)()) dlsym(commLayer_Handle,
+	                                          "InitCommunication");
 	MyRS485_Activate = (int (*)()) dlsym(commLayer_Handle,"RS485_Activate");
-	MyRS485_Read = (int (*)(RS485_Message* PackagesIn, int QuantityWanted, int &ReceivedQtyIn)) dlsym(commLayer_Handle,"RS485_Read");
-	MyRS485_Write = (int (*)(RS485_Message* PackagesOut, int QuantityWanted, int &ReceivedQtyIn)) dlsym(commLayer_Handle,"RS485_Write");
+	MyRS485_Read = (int (*)(RS485_Message* PackagesIn, int QuantityWanted, 
+	                        int &ReceivedQtyIn)) dlsym(commLayer_Handle,
+	                        "RS485_Read");
+	MyRS485_Write = (int (*)(RS485_Message* PackagesOut, int QuantityWanted, 
+                             int &ReceivedQtyIn)) dlsym(commLayer_Handle,
+                             "RS485_Write");
 
 	//If all functions are loaded correctly.
-	if(fptrInitCommunication != NULL || MyRS485_Activate != NULL || MyRS485_Read != NULL || MyRS485_Write != NULL)
+	if(fptrInitCommunication != NULL || MyRS485_Activate != NULL || 
+	   MyRS485_Read != NULL || MyRS485_Write != NULL)
 	{
 		//Initialization of the API
 		int result = fptrInitCommunication();
@@ -107,17 +148,20 @@ int main()
 		//If API's initialization is correct.
 		if(result == NO_ERROR_KINOVA)
 		{
-			cout << "U S B   I N I T I A L I Z A T I O N   C O M P L E T E D" << endl << endl;
+			cout << "U S B   I N I T I A L I Z A T I O N   C O M P L E T E D" 
+			     << endl << endl;
 
-			//We activate the RS-485 comm API. From here you cannot control the robot with the Joystick or
-			//with the normal USB function. Only RS-485 command will be accepted. Reboot the robot to get
-			//back to normal control.
+			/*We activate the RS-485 comm API. From here you cannot control the 
+			  robot with the Joystick or with the normal USB function. Only 
+			  RS-485 command will be accepted. Reboot the robot to get back to 
+			  normal control.*/
+			  
 			MyRS485_Activate();
 
 			//Initialize the INIT message
-			InitMessage.Command = RS485_MSG_GET_ACTUALPOSITION; //Setting the command ID
-			InitMessage.SourceAddress = SOURCE_ADDRESS;                   //Setting the source address (0 means the API)
-			InitMessage.DestinationAddress = DESTINATION_ADDRESS;              //Setting the destinaiton address(0x15 is the actuator 6's default value)
+			InitMessage.Command = RS485_MSG_GET_ACTUALPOSITION; //Set command ID
+			InitMessage.SourceAddress = SOURCE_ADDRESS;        //0 means the API
+			InitMessage.DestinationAddress = DESTINATION_ADDRESS;//destinaiton 
 
 			//Those value are not used for this command.
 			InitMessage.DataLong[0] = 0x00000000;
@@ -125,146 +169,347 @@ int main()
 			InitMessage.DataLong[2] = 0x00000000;
 			InitMessage.DataLong[3] = 0x00000000;
 
-			//Send the Init Message. 1 is the message's quantity and WriteCount will stored the Qty of messages sent.
-			MyRS485_Write(&InitMessage, 1, WriteCount);
+			//Send the Init Message. 1 is the message's quantity and WriteCount 
+			//will stored the Qty of messages sent.
+			//MyRS485_Write(&InitMessage, 1, WriteCount);
 
-			//In case we did not received the answer, we continue reading until it's done
+			//If we did not receive the answer, continue reading until done
 			while(ReadCount != 1 && !ActuatorInitialized)
 			{
 				MyRS485_Write(&InitMessage, 1, WriteCount);
 				usleep(4000);
-				MyRS485_Read(&ReceiveInitMessage, 1, ReadCount);
+				MyRS485_Read(ReceiveInitMessage, 1, ReadCount);
 
-				//We make sure that the mesage come from actuator 6(0x15) and that the command ID is RS485_MSG_SEND_ACTUALPOSITION
-				//which is the answer of our message. (See document Kinova RS485 Communication protocol).
-				if(ReceiveInitMessage.SourceAddress == DESTINATION_ADDRESS && ReceiveInitMessage.Command == RS485_MSG_SEND_ACTUALPOSITION)
+				/*We make sure that the mesage come from actuator 6(0x15) and 
+				that the command ID is RS485_MSG_SEND_ACTUALPOSITION
+				which is the answer of our message. (See document Kinova RS485 
+				Communication protocol).*/
+				if(ReceiveInitMessage[0].SourceAddress == DESTINATION_ADDRESS && 
+				   ReceiveInitMessage[0].Command == RS485_MSG_SEND_ACTUALPOSITION)
 				{
-					Joint6Command = ReceiveInitMessage.DataFloat[1];
+					Joint6Command = ReceiveInitMessage[0].DataFloat[1];
 					ActuatorInitialized = true;
 				}
 			}
 
 			//Creation of the thread that will get information from the robot.
-			if(pthread_create(&GetPositionThread, NULL, &SerialRead, (void *)&status))
+			/*if(pthread_create(&GetPositionThread, NULL, 
+			                  &SerialRead, (void *)&status))
 			{
 				cout << "Error while creating thread" << endl;
 				return ERROR_OPERATION_INCOMPLETED;
-			}
+			}*/
             
-            while (status.flag == 0)
-            {
+            //while (status.flag == 0)
+           // {
                 // ========== BEGIN MAIN COMM ==========
 			     
-			    // STEP 1: SEND TORQUE COMMAND FOR VERIFICATION
-			    TrajectoryMessage.Command = RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND; //send position and torque command 
+			    // STEP 0: Get initial position 
+			    TrajectoryMessage.Command = 0x0001;  
 			    TrajectoryMessage.SourceAddress = SOURCE_ADDRESS;
 			    TrajectoryMessage.DestinationAddress = DESTINATION_ADDRESS;
-			    TrajectoryMessage.DataFloat[0] = 0x00000000; //32F position command [deg]
-			    TrajectoryMessage.DataLong[1] = 0x00000000; //not used
-			    TrajectoryMessage.DataFloat[2] = 0; //32F torque command [1Nm]
+			    TrajectoryMessage.DataFloat[0] = 0x00000000; 
+			    TrajectoryMessage.DataLong[1] = 0x00000000; 
+			    TrajectoryMessage.DataFloat[2] = 0x00000000; 
+                TrajectoryMessage.DataLong[3] = 0x00000000;
+                //pthread_mutex_lock (&APIMutex);
+		        MyRS485_Write(&TrajectoryMessage, 1, WriteCount);
+		        //pthread_mutex_unlock (&APIMutex);
+		        usleep(2000);
+			     
+			     
+			     
+			    MyRS485_Read(ReceiveInitMessage, 1, ReadCount);
+				if (ReceiveInitMessage[0].SourceAddress == DESTINATION_ADDRESS &&
+					ReceiveInitMessage[0].Command == 0x0002)
+				{
+					status.pos = ReceiveInitMessage[0].DataFloat[1];
+					cout << "Current position is: "
+						<< ReceiveInitMessage[0].DataFloat[1] << endl;
+				}
+
+				bool ack = false; 
+
+				SafetyMessage.Command =
+					0x0208;
+				SafetyMessage.SourceAddress = SOURCE_ADDRESS;
+				SafetyMessage.DestinationAddress = DESTINATION_ADDRESS;
+				SafetyMessage.DataFloat[0] = 100.0; //10 Nm maximum torque
+				SafetyMessage.DataFloat[1] = 1.0; //0.75 safety factor
+				SafetyMessage.DataFloat[2] = 0.0; //not used
+				SafetyMessage.DataFloat[3] = 0.0; //not used
+
+				MyRS485_Write(&SafetyMessage, 1, WriteCount);
+				while (ack = false)
+				{
+					MyRS485_Write(&SafetyMessage, 1, WriteCount);
+					usleep(2000);
+					MyRS485_Read(ReceiveInitMessage, 1, ReadCount);
+					if (ReceiveInitMessage[0].SourceAddress == DESTINATION_ADDRESS &&
+						ReceiveInitMessage[0].Command == 0x003E)
+					{
+						ack = true;
+					}
+
+				}
+			     
+			     
+			     
+			    // STEP 1: SEND TORQUE COMMAND FOR VERIFICATION
+			    //send position and torque command
+			    TrajectoryMessage.Command = 
+			        RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;  
+			    TrajectoryMessage.SourceAddress = SOURCE_ADDRESS;
+			    TrajectoryMessage.DestinationAddress = DESTINATION_ADDRESS;
+			    //32F position command [deg]
+			    TrajectoryMessage.DataFloat[0] = status.pos;
+			    //not used 
+			    TrajectoryMessage.DataLong[1] = 0x00000000; 
+			    //32F torque command [Nm]
+			    TrajectoryMessage.DataFloat[2] = 0;
 			    unsigned char torqueDamping = 0x01;
-                unsigned char controlMode = 0x00; // not used
-                unsigned short torqueKp = 1750; // torque kp 0 1.75 multiplied by 1000
-                TrajectoryMessage.DataLong[3] = (unsigned long) torqueDamping | ((unsigned long) controlMode << 8) | ((unsigned long) torqueKp <<   16); //U16|U8|U8 
+                unsigned char controlMode = 0x01; // not used
+                unsigned short torqueKp = 1750; // torque kp 1.75 x 1000
+                TrajectoryMessage.DataLong[3] = ((unsigned long) torqueDamping | 
+                    ((unsigned long) controlMode << 8) | ((unsigned long) 
+                    torqueKp << 16)); //U16|U8|U8 
 
 			    //We send the command and we protect the process with a mutex
 			    /*
-			     * Param1(IN):  The buffer that contains all the messages. In our case, only one.
+			     * Param1(IN):  The buffer that contains all the messages.
 			     * Param2(IN):  Messages count.
 			     * Param3(OUT): Message sent count.
 			     */
-			    cout << "STEP 1: Sending Torque Command for Verification" << endl;
-			    
-			    for (int ii = 0; ii<500; ii++)
-			    {
+			    cout << "STEP 1: Send Torque Command for Verification" << endl;
+			    cout << "Initializing position to: " << status.pos << endl;
+			    //for (int ii = 0; ii<500; ii++)
+			    //{
 			        //Joint6Command -= 40 * (0.0025);
 				    TrajectoryMessage.DataFloat[0] = status.pos;
-			        pthread_mutex_lock (&APIMutex);
+			        //pthread_mutex_lock (&APIMutex);
 			        MyRS485_Write(&TrajectoryMessage, 1, WriteCount);
-			        pthread_mutex_unlock (&APIMutex);
+			        //pthread_mutex_unlock (&APIMutex);
 			        usleep(2000);
-			    }
+			    //}
 			    
 			    // STEP 2: Validate the torque command
 			    
-			    /*status.torqueValidation = false;
+			    status.torqueValidation = false;
 			    
-			    TrajectoryMessage.Command = GET_TORQUE_VALIDATION_REQUEST; //send position and torque command 
+			    //send position and torque command
+			    TrajectoryMessage.Command = GET_TORQUE_VALIDATION_REQUEST;  
 			    TrajectoryMessage.SourceAddress = SOURCE_ADDRESS;
 			    TrajectoryMessage.DestinationAddress = DESTINATION_ADDRESS;
-			    TrajectoryMessage.DataFloat[0] = 0x00000000; //32F torque command to be tested [Nm]
+			    //32F torque command to be tested [Nm]
+			    TrajectoryMessage.DataFloat[0] = 0; 
 			    TrajectoryMessage.DataLong[1] = 0x00000000; //not used
 			    TrajectoryMessage.DataFloat[2] = 0x00000000; //not used
 			    TrajectoryMessage.DataLong[3] = 0x00000000; //not used
 			
-			    cout << "STEP 2: Requesting Torque Command Verification" << endl;
+			    cout << "STEP 2: Request Torque Command Verification" << endl;
 			    
 			    while (status.torqueValidation == false)
 			    {
-			        pthread_mutex_lock (&APIMutex);
+			        //pthread_mutex_lock (&APIMutex);
 			        MyRS485_Write(&TrajectoryMessage, 1, WriteCount);
-			        pthread_mutex_unlock (&APIMutex);
+			       // pthread_mutex_unlock (&APIMutex);
 			        usleep(2000);
-                }*/
+			        MyRS485_Read(ReceiveInitMessage, 1, ReadCount);
+					if (ReceiveInitMessage[0].SourceAddress == DESTINATION_ADDRESS &&
+						ReceiveInitMessage[0].Command == SEND_TORQUE_VALIDATION)
+					{
+						if (ReceiveInitMessage[0].DataLong[0] == 1)
+						{
+							cout << "Torque Validation True : "
+								<< ReceiveInitMessage[0].DataLong[0] << endl;
+							status.torqueValidation = true;
+						}
+
+						else if (ReceiveInitMessage[0].DataLong[0] == 0)
+						{
+							cout << "Torque Validation False : "
+								<< ReceiveInitMessage[0].DataLong[0] << endl;
+							status.flag = 10;
+						}
+						else
+						{
+							cout << "ERROR READING TORQUE VALIDATION REPLY: "
+								<< ReceiveInitMessage[0].DataLong[0] << endl;
+						}
+					}
+                }
                 
 			    // STEP 3: Switch to torque control mode
 			    
 			    status.switchValidation = false;
 			    
-			    TrajectoryMessage.Command = SWITCH_CONTROL_MODE_REQUEST; //send position and torque command 
+			    TrajectoryMessage.Command = SWITCH_CONTROL_MODE_REQUEST;
 			    TrajectoryMessage.SourceAddress = SOURCE_ADDRESS;
 			    TrajectoryMessage.DestinationAddress = DESTINATION_ADDRESS;
-			    TrajectoryMessage.DataFloat[0] = 1.0; //control mode
+			    /*TrajectoryMessage.DataFloat[0] = 1.0; //control mode
 			    TrajectoryMessage.DataLong[1] = 0x00000000; //not used
 			    TrajectoryMessage.DataFloat[2] = 0x00000000; //not used
-			    TrajectoryMessage.DataLong[3] = 0x00000000; //not used
+			    TrajectoryMessage.DataLong[3] = 0x00000000; //not used*/
 			
+			    unsigned short d1 = 0x00;
+                unsigned short d2 = 0x00; 
+                unsigned short d3 = 0x00; 
+                TrajectoryMessage.DataLong[0] = ((unsigned short) 0x01 | 
+                    ((unsigned short) d2 << 8) | ((unsigned short) d3 << 16 | 
+                    ((unsigned short) d1 << 24))); //U24|U8 
+			    TrajectoryMessage.DataLong[1]=0x00000000; 
+			    TrajectoryMessage.DataLong[2]=0x00000000; 
+			    TrajectoryMessage.DataLong[3]=0x00000000;
+			    
 			    cout << "STEP 3: Waiting for Torque Verification" << endl;
 			    
 			    do
 			    {
 			        cout << "waiting on reply for mode switch" << endl;
-			        pthread_mutex_lock (&APIMutex);
+			        //pthread_mutex_lock (&APIMutex);
 			        MyRS485_Write(&TrajectoryMessage, 1, WriteCount);
-			        pthread_mutex_unlock (&APIMutex);
+			        //pthread_mutex_unlock (&APIMutex);
 			        usleep(2000);
-			        //cout << "flag = " << status.flag << endl;
-			        //cout << "switch validation = " << status.switchValidation << endl;
+			        MyRS485_Read(ReceiveInitMessage, 1, ReadCount);
+					if (ReceiveInitMessage[0].SourceAddress == DESTINATION_ADDRESS &&
+						ReceiveInitMessage[0].Command == SWITCH_CONTROL_MODE_REPLY)
+					{
+						if (ReceiveInitMessage[0].DataLong[0] == 257)
+						{
+							cout << "Switch Control Mode TORQUE True : "
+								<< ReceiveInitMessage[0].DataLong[0] << endl;
+							status.switchValidation = true;
+						}
+
+						if (ReceiveInitMessage[0].DataLong[0] == 1)
+						{
+							cout << "Switch Control Mode POSITION True : "
+								<< ReceiveInitMessage[0].DataLong[0] << endl;
+							status.switchValidation = true;
+						}
+
+						else if (ReceiveInitMessage[0].DataLong[0] == 0)
+						{
+							cout << "Switch Control Mode False : "
+								<< ReceiveInitMessage[0].DataLong[0] << endl;
+							status.flag = 11;
+						}
+						else
+						{
+							cout << "ERROR READING SWITCH CONTROL MODE REPLY: "
+								<< ReceiveInitMessage[0].DataLong[0] << endl;
+						}
+					}
 			    } while (status.switchValidation == false);
 			    
 			     cout << "Verified: Switching to Torque Mode" << endl;
 			
 			    // Step 4: Enjoy torque control mode!
 			    
-			    TrajectoryMessage.Command = RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND; //send position and torque command 
+			    TrajectoryMessage.Command = 
+			        RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND; 
 			    TrajectoryMessage.SourceAddress = SOURCE_ADDRESS;
 			    TrajectoryMessage.DestinationAddress = DESTINATION_ADDRESS;
-			    TrajectoryMessage.DataFloat[0] = 0x00000000; //32F position command [deg]
+			    //32F position command [deg]
+			    //TrajectoryMessage.DataFloat[0] = status.pos; 
 			    TrajectoryMessage.DataLong[1] = 0x00000000; //not used
-			    TrajectoryMessage.DataFloat[2] = 0; //32F torque command [1Nm]
+			    TrajectoryMessage.DataFloat[2] = 2.0; //32F torque command [1Nm]
 			    torqueDamping = 0x01;
-                controlMode = 0x00; // not used
+                controlMode = 0x01; // not used
                 torqueKp = 1750; // torque kp 0 1.75 multiplied by 1000
-                TrajectoryMessage.DataLong[3] = (unsigned long) torqueDamping | ((unsigned long) controlMode << 8) | ((unsigned long) torqueKp <<   16); //U16|U8|U8 
+                TrajectoryMessage.DataLong[3] = ((unsigned long) torqueDamping | 
+                    ((unsigned long) controlMode << 8) | 
+                    ((unsigned long) torqueKp << 16)); //U16|U8|U8 
                 
 
 			    cout << "STEP 4: Enjoy Torque Mode" << endl;
 			    
 			    for(int i=0; i<10000; i++)
 			    {
-			        pthread_mutex_lock (&APIMutex);
+			       // pthread_mutex_lock (&APIMutex);
+			        TrajectoryMessage.DataFloat[0] = status.pos;
 		            MyRS485_Write(&TrajectoryMessage, 1, WriteCount);
-		            pthread_mutex_unlock (&APIMutex);
+		           // pthread_mutex_unlock (&APIMutex);
 		            usleep(2000);
+		            MyRS485_Read(ReceiveInitMessage, 1, ReadCount);
+					if (ReceiveInitMessage[0].SourceAddress == DESTINATION_ADDRESS &&
+						ReceiveInitMessage[0].Command == RS485_MSG_SEND_ALL_VALUES_1)
+					{
+						status.pos = ReceiveInitMessage[0].DataFloat[1];
+						cout << status.pos << endl;
+					}
 	            }
 		    }
-		    // Step 5: Swith back to position mode in case of error or if shutting down
+		    
+			status.switchValidation = false;
+
+			TrajectoryMessage.Command = SWITCH_CONTROL_MODE_REQUEST;
+			TrajectoryMessage.SourceAddress = SOURCE_ADDRESS;
+			TrajectoryMessage.DestinationAddress = DESTINATION_ADDRESS;
+			/*TrajectoryMessage.DataFloat[0] = 1.0; //control mode
+			TrajectoryMessage.DataLong[1] = 0x00000000; //not used
+			TrajectoryMessage.DataFloat[2] = 0x00000000; //not used
+			TrajectoryMessage.DataLong[3] = 0x00000000; //not used*/
+
+			unsigned short d1 = 0x00;
+			unsigned short d2 = 0x00;
+			unsigned short d3 = 0x00;
+			TrajectoryMessage.DataLong[0] = ((unsigned short)0x00 |
+				((unsigned short)d2 << 8) | ((unsigned short)d3 << 16 |
+				((unsigned short)d1 << 24))); //U24|U8 
+			TrajectoryMessage.DataLong[1] = 0x00000000;
+			TrajectoryMessage.DataLong[2] = 0x00000000;
+			TrajectoryMessage.DataLong[3] = 0x00000000;
+
+			cout << "STEP 3: Waiting for Torque Verification" << endl;
+
+			while (status.switchValidation == false)
+			{
+				cout << "waiting on reply for mode switch" << endl;
+				//pthread_mutex_lock(&APIMutex);
+				MyRS485_Write(&TrajectoryMessage, 1, WriteCount);
+				//pthread_mutex_unlock(&APIMutex);
+				usleep(2000);
+				MyRS485_Read(ReceiveInitMessage, 1, ReadCount);
+				if (ReceiveInitMessage[0].SourceAddress == DESTINATION_ADDRESS &&
+					ReceiveInitMessage[0].Command == SWITCH_CONTROL_MODE_REPLY)
+				{
+					if (ReceiveInitMessage[0].DataLong[0] == 257)
+					{
+						cout << "Switch Control Mode TORQUE True : "
+							<< ReceiveInitMessage[0].DataLong[0] << endl;
+						status.switchValidation = true;
+					}
+
+					if (ReceiveInitMessage[0].DataLong[0] == 1)
+					{
+						cout << "Switch Control Mode POSITION True : "
+							<< ReceiveInitMessage[0].DataLong[0] << endl;
+						status.switchValidation = true;
+					}
+
+					else if (ReceiveInitMessage[0].DataLong[0] == 0)
+					{
+						cout << "Switch Control Mode False : "
+							<< ReceiveInitMessage[0].DataLong[0] << endl;
+						status.flag = 11;
+					}
+					else
+					{
+						cout << "ERROR READING SWITCH CONTROL MODE REPLY: "
+							<< ReceiveInitMessage[0].DataLong[0] << endl;
+					}
+				}
+			}
+
+			cout << "Verified: Switching to position Mode" << endl;
+		    // Step 5: Swith back to position mode in case of error shut down
 		    // need to read current position to set the target to match it
 		    // to avoid sudden fast movements
 		    
-		    status.switchValidation = false;
+		    /*status.switchValidation = false;
 		    
-		    TrajectoryMessage.Command = SWITCH_CONTROL_MODE_REQUEST; //send position and torque command 
+		    TrajectoryMessage.Command = SWITCH_CONTROL_MODE_REQUEST; 
 		    TrajectoryMessage.SourceAddress = SOURCE_ADDRESS;
 		    TrajectoryMessage.DestinationAddress = DESTINATION_ADDRESS;
 		    TrajectoryMessage.DataFloat[0] = 0x00000000; //control mode
@@ -272,7 +517,7 @@ int main()
 		    TrajectoryMessage.DataFloat[2] = 0x00000000; //not used
 		    TrajectoryMessage.DataLong[3] = 0x00000000; //not used
 		
-		    cout << "STEP 5: Request to switch back to Position Control" << endl;
+		    cout << "STEP 5: Request to switch to Position Control" << endl;
 		
 		    while (status.switchValidation == false)
 		    {
@@ -284,12 +529,15 @@ int main()
 		    
 		    cout << "Verified: Switching to Position Mode" << endl;
 		    
-		    TrajectoryMessage.Command = RS485_MSG_GET_POSITION_COMMAND_ALL_VALUES; //send position and torque command 
+		    //send position and torque command
+		    TrajectoryMessage.Command = 
+		        RS485_MSG_GET_POSITION_COMMAND_ALL_VALUES;  
 		    TrajectoryMessage.SourceAddress = SOURCE_ADDRESS;
 		    TrajectoryMessage.DestinationAddress = DESTINATION_ADDRESS;
-		    TrajectoryMessage.DataFloat[0] = status.pos; //32F position command [deg] MAY NEED TO BE CONVERTED TO HEX
+		    //32F position command [deg]
+		    TrajectoryMessage.DataFloat[0] = status.pos; 
 		    TrajectoryMessage.DataLong[1] = 0x00000000; //not used
-		    TrajectoryMessage.DataFloat[2] = 0x00000000; //32F torque command [1Nm]
+		    TrajectoryMessage.DataFloat[2] = 0x00000000; //32F torque [Nm]
 		    TrajectoryMessage.DataLong[3] = 0x00010001; //U16|U16
 		    
 		    pthread_mutex_lock (&APIMutex);
@@ -298,8 +546,8 @@ int main()
 	        usleep(2000);
 		    
 		    pthread_join(GetPositionThread, NULL);
-		    status.read_input = false;
-		}
+		    status.read_input = false;*/
+		//}
 		
 		cout << "Exiting Main Control Loop" << endl;
 
@@ -333,31 +581,40 @@ void *SerialRead(void *args)
     while (status->read_input == true)
     {
         MessageReadCount = 0;
-	    pthread_mutex_lock (&APIMutex);
+	    //pthread_mutex_lock (&APIMutex);
 	    MyRS485_Read(MessageListIn, 3, MessageReadCount);
 
-	    pthread_mutex_unlock (&APIMutex);
+	    //pthread_mutex_unlock (&APIMutex);
 
 	    for(int j = 0; j < MessageReadCount; j++)
 	    {
+		    if(MessageListIn[j].Command == 0x0002)
+		    {
+		        status->pos = MessageListIn[j].DataFloat[1];
+		        cout << "Current position is: " 
+		             << MessageListIn[j].DataFloat[1] << endl;
+		    }
 		    if(MessageListIn[j].Command == RS485_MSG_SEND_ALL_VALUES_1)
 		    {
-			    //cout << "Current  = " << MessageListIn[j].DataFloat[0] << endl;
-			    //cout << "Position = " << MessageListIn[j].DataFloat[1] << endl;
-			    //cout << "Velocity = " << MessageListIn[j].DataFloat[2] << endl;
-			    //cout << "Torque   = " << MessageListIn[j].DataFloat[3] << endl;
+			  //cout << "Current  = " << MessageListIn[j].DataFloat[0] << endl;
+			  //cout << "Position = " << MessageListIn[j].DataFloat[1] << endl;
+			  //cout << "Velocity = " << MessageListIn[j].DataFloat[2] << endl;
+			  //cout << "Torque   = " << MessageListIn[j].DataFloat[3] << endl;
 			    status->pos = MessageListIn[j].DataFloat[1];
 		    }
 
 		    if(MessageListIn[j].Command == RS485_MSG_SEND_ALL_VALUES_2)
 		    {
 			    //cout << "PWM  = " << MessageListIn[j].DataFloat[0] << endl;
-			    //cout << "Position encoder = " << MessageListIn[j].DataFloat[1] << endl;
+			    //cout << "Position encoder = " << MessageListIn[j].DataFloat[1] 
+			    //     << endl;
 
 			    accelX = (short)(MessageListIn[j].DataLong[2] & 0x0000FFFF);
-			    accelY = (short)((MessageListIn[j].DataLong[2] & 0xFFFF0000) >> 16);
+			    accelY = (short)((MessageListIn[j].DataLong[2] & 0xFFFF0000) 
+			                     >> 16);
 			    accelZ = (short)(MessageListIn[j].DataLong[3] & 0x0000FFFF);
-			    temperature = (short)((MessageListIn[j].DataLong[3] & 0xFFFF0000) >> 16);
+			    temperature = (short)((MessageListIn[j].DataLong[3] & 
+			                          0xFFFF0000) >> 16);
 
 			    fAccelX = (float)accelX * 0.001;
 			    fAccelY = (float)accelY * 0.001;
@@ -372,49 +629,62 @@ void *SerialRead(void *args)
 
 		    if(MessageListIn[j].Command == RS485_MSG_SEND_ALL_VALUES_3)
 		    {
-			    cout << "Motor current = " << MessageListIn[j].DataFloat[0] << endl;
-			    cout << "Absolute position = " << MessageListIn[j].DataFloat[1] << endl;
+			    cout << "Motor current = " << MessageListIn[j].DataFloat[0] 
+			         << endl;
+			    cout << "Absolute position = " << MessageListIn[j].DataFloat[1] 
+			         << endl;
 		    }
 		
 		    // ---------- Safety Measure Checks
 		    if(MessageListIn[j].Command == SEND_TORQUE_VALIDATION)
 		    {
-		        if(MessageListIn[j].DataLong[0] == 0)
+		        if(MessageListIn[j].DataLong[0] == 1)
 		        {
-		            cout << "Torque Validation True : " << MessageListIn[j].DataLong[0] << endl;
+		            cout << "Torque Validation True : " 
+		                 << MessageListIn[j].DataLong[0] << endl;
 		            status->torqueValidation = true;
 		        }
 		        
-		        else if(MessageListIn[j].DataLong[0] == 1)
+		        else if(MessageListIn[j].DataLong[0] == 0)
 		        {
-		            cout << "Torque Validation False : " << MessageListIn[j].DataLong[0] << endl;
+		            cout << "Torque Validation False : " 
+		                 << MessageListIn[j].DataLong[0] << endl;
 		            status->flag = 10;
 		        } 
+		        else
+		        {
+		            cout << "ERROR READING TORQUE VALIDATION REPLY: " 
+		                 << MessageListIn[j].DataLong[0]<< endl;
+	            }
 		    }
 		    if(MessageListIn[j].Command == SWITCH_CONTROL_MODE_REPLY)
 		    {
-		        if(MessageListIn[j].DataLong[0] == 1)
+		        if(MessageListIn[j].DataLong[0] == 257)
 		        {
-		            cout << "Switch Control Mode True : " << MessageListIn[j].DataLong[0] << endl;
+		            cout << "Switch Control Mode True : " 
+		                 << MessageListIn[j].DataLong[0] << endl;
 		            status->switchValidation = true;
 		        }
 		        
 		        else if(MessageListIn[j].DataLong[0] == 0)
 		        {
-		            cout << "Switch Control Mode False : " << MessageListIn[j].DataLong[0] << endl;
+		            cout << "Switch Control Mode False : " 
+		                 << MessageListIn[j].DataLong[0] << endl;
 		            status->flag = 11;
 		        } 
 		        else
 		        {
-		            cout << "ERROR READING SWITCH CONTROL MODE REPLY" << endl;
+		            cout << "ERROR READING SWITCH CONTROL MODE REPLY: " 
+		                 << MessageListIn[j].DataLong[0]<< endl;
 	            }
 		    }
 		    if(MessageListIn[j].Command == REPORT_ERROR)
 		    {
 		        if(MessageListIn[j].DataLong[0] != 0)
 		        {
-		            cout << "Error number : " << MessageListIn[j].DataLong[0] << endl; //may be [1] instead of 0
-		            status->flag = 1; // for now, will add error specific values later
+		            cout << "Error number : " << MessageListIn[j].DataLong[0] 
+		                 << endl; //may be [1] instead of 0
+		            status->flag = 1; // will add error specific values later
 		        }
 		        //ADD CHECK FOR SPECIFIC ERROR
 		        //0 no error
@@ -432,6 +702,6 @@ void *SerialRead(void *args)
 	    usleep(2000);
 	}
 	
-	pthread_exit(0);
+	//pthread_exit(0);
     return NULL;
 }
