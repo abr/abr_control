@@ -17,10 +17,10 @@ class display():
         self.base_offset = np.array([self.width / 2.0, self.height*.9],
                                     dtype='int')
 
-        # self.scaling_term = 105
-        # line_width = .15 * self.scaling_term
-        self.scaling_term = 505
-        line_width = .05 * self.scaling_term
+        self.scaling_term = 105
+        line_width = .15 * self.scaling_term
+        # self.scaling_term = 505
+        # line_width = .05 * self.scaling_term
 
         self.white = (255, 255, 255)
         self.red = (255, 0, 0)

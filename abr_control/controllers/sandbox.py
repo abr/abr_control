@@ -3,11 +3,11 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.ur5.config.robot_config(
-    regenerate_functions=False)
+robot_config = abr_control.arms.threelink.config.robot_config(
+    regenerate_functions=True)
 
 # # instantiate the REACH controller
-ctrlr = abr_control.controllers.osc_robust.controller(robot_config, kp=200)
+ctrlr = abr_control.controllers.osc.controller(robot_config, kp=100)
 # instantiate the REACH controller
 # osc_ctrlr = abr_control.controllers.osc.controller(
 #     robot_config, kp=200)
@@ -17,7 +17,7 @@ ctrlr = abr_control.controllers.osc_robust.controller(robot_config, kp=200)
 
 
 # create our VREP interface
-interface = abr_control.interfaces.vrep.interface(robot_config)
+interface = abr_control.interfaces.maplesim.interface(robot_config, dt=.001)
 interface.connect()
 
 # create a target
@@ -50,6 +50,8 @@ try:
             target_state=np.hstack(
                 [target_xyz, np.zeros(3)]))
         print('error: ', np.sqrt(np.sum((target_xyz - hand_xyz)**2)))
+        print('target: ', target_xyz)
+        print('hand_xyz: ', hand_xyz)
         # apply the control signal, step the sim forward
         interface.apply_u(u)
 
@@ -57,13 +59,15 @@ try:
         # 5mm of the target
         if (num_targets == 0 or
                 np.sqrt(np.sum((target_xyz - hand_xyz)**2)) < .005):
-            target_xyz = [np.random.random() - .5,
-                          np.random.random() - .5,
-                          np.random.random() * .2 + .6]
+            target_xyz = [np.random.random()*4 - 2,
+                          np.random.random()*4,
+                          0]
+                          # np.random.random() - .5]
             # update the position of the target sphere in VREP
             interface.set_target(target_xyz)
             num_targets += 1
             print('Reaching to target %i' % num_targets)
+            print(target_xyz)
 
         # track data
         q_path.append(np.copy(feedback['q']))
@@ -75,13 +79,13 @@ finally:
     # stop and reset the VREP simulation
     interface.disconnect()
     # generate a 3D plot of the trajectory taken
-    abr_control.utils.plotting.plot_trajectory(
-        ee_path=ee_path,
-        target_path=target_path)
-
-    import matplotlib.pyplot as plt
-    plt.plot(np.sqrt(np.sum((np.array(target_path) -
-                             np.array(ee_path))**2, axis=1)))
-    plt.ylabel('Error (m)')
-    plt.xlabel('Time (ms)')
-    plt.show()
+    # abr_control.utils.plotting.plot_trajectory(
+    #     ee_path=ee_path,
+    #     target_path=target_path)
+    #
+    # import matplotlib.pyplot as plt
+    # plt.plot(np.sqrt(np.sum((np.array(target_path) -
+    #                          np.array(ee_path))**2, axis=1)))
+    # plt.ylabel('Error (m)')
+    # plt.xlabel('Time (ms)')
+    # plt.show()

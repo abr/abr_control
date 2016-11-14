@@ -40,9 +40,9 @@ class interface(interface.interface):
         """ Reset the simulation and close PyGame display.
         """
 
-        state = np.zeros(self.DOF*2)
-        state[::2] = self.init_q if not q else np.copy(q)
-        state[1::2] = self.init_dq if not dq else np.copy(dq)
+        state = np.hstack([
+            self.robot_config.rest_angles,
+            np.zeros(self.robot_config.num_joints)])
 
         self.sim.reset(self.state, state)
         self._update_state()
@@ -81,6 +81,7 @@ class interface(interface.interface):
 
         xyz np.array: the [x,y,z] location of the target (in meters)
         """
+        self.display.set_target(xyz[:2])
 
     def _position(self):
         """Compute x,y position of the hand
@@ -110,6 +111,6 @@ class interface(interface.interface):
         self._position()
         self.x = np.array([self.joints_x[-1], self.joints_y[-1]])
 
-        print('%.3f: ' % self.t, self.q)
+        # print('%.3f: ' % self.t, self.q)
         # update the display
         self.display.update(self.q)
