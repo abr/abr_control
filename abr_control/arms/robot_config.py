@@ -32,48 +32,48 @@ class robot_config():
         self.regenerate_functions = regenerate_functions
 
         # create function dictionaries
-        self._T = {}  # for transform calculations
+        self._Tx = {}  # for transform calculations
         self._J = {}  # for Jacobian calculations
         self._M = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
         self._Mq_g = None  # placeholder for joint space gravity term function
 
-        # position of point of interest relative to
-        # joint axes 6 (right at the origin)
-        self.x = sp.Matrix([0, 0, 0, 1])
         # set up our joint angle symbols
         self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
         self.dq = [sp.Symbol('dq%i' % ii) for ii in range(self.num_joints)]
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
-    def J(self, name, q):
+    def J(self, name, q, x=[0, 0, 0]):
         """ Calculates the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
         q list: set of joint angles to pass in to the Jacobian function
+        x list: the [x,y,z] position of interest in "name"'s reference frame
         """
+        fullname = name + str(x)
         # check for function in dictionary
-        if self._J.get(name, None) is None:
-            print('Generating Jacobian function for %s' % name)
-            self._J[name] = self._calc_J(name=name,
-                                         regenerate=self.regenerate_functions)
-        return np.array(self._J[name](*q))
+        if self._J.get(fullname, None) is None:
+            print('Generating Jacobian function for %s' % fullname)
+            self._J[fullname] = self._calc_J(
+                name=name, x=x, regenerate=self.regenerate_functions)
+        return np.array(self._J[fullname](*q))
 
-    def dJ(self, name, q):
+    def dJ(self, name, q, x=[0, 0, 0]):
         """ Calculates the derivative of a Jacobian for a joint or link
         with respect to time
 
         name string: name of the joint or link, or end-effector
         q list: set of joint angles to pass in to the Jacobian function
+        x list: the [x,y,z] position of interest in "name"'s reference frame
         """
+        fullname = name + str(x)
         # check for function in dictionary
-        if self._dJ.get(name, None) is None:
-            print('Generating derivative of Jacobian function for %s' % name)
-            self._dJ[name] = self._calc_dJ(
-                name=name,
-                regenerate=self.regenerate_functions)
-        return np.array(self._dJ[name](*q))
+        if self._dJ.get(fullname, None) is None:
+            print('Generating derivative of Jacobian function for %s' % fullname)
+            self._dJ[fullname] = self._calc_dJ(
+                name=name, x=x, regenerate=self.regenerate_functions)
+        return np.array(self._dJ[fullname](*q))
 
     def Mq(self, q):
         """ Calculates the joint space inertia matrix for the ur5
@@ -97,39 +97,43 @@ class robot_config():
             self._Mq_g = self._calc_Mq_g(regenerate=self.regenerate_functions)
         return np.array(self._Mq_g(*q)).flatten()
 
-    def T(self, name, q):
+    def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
         q list: set of joint angles to pass in to the T function
+        x list: the [x,y,z] position of interest in "name"'s reference frame
         """
+        fullname = name + str(x)
         # check for function in dictionary
-        if self._T.get(name, None) is None:
-            print('Generating transform function for %s' % name)
+        if self._Tx.get(fullname, None) is None:
+            print('Generating transform function for %s' % fullname)
             # TODO: link0 and joint0 share a transform, but will
             # both have their own transform calculated with this check
-            self._T[name] = self._calc_T(name,
-                                         regenerate=self.regenerate_functions)
-        return self._T[name](*q)[:-1].flatten()
+            self._Tx[fullname] = self._calc_Tx(
+                name, x=x, regenerate=self.regenerate_functions)
+        return self._Tx[fullname](*q)[:-1].flatten()
 
-    def _calc_dJ(self, name, lambdify=True, regenerate=False):
+    def _calc_dJ(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the derivative of the Jacobian
         for a joint or link with respect to time
 
         name string: name of the joint or link, or end-effector
+        x list: the [x,y,z] position of interest in "name"'s reference frame
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
                           matrix
         regenerate boolean: if True, don't use saved functions
         """
 
+        fullname = name + str(x)
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
-                os.path.isfile('%s/%s.dJ' % (self.config_folder, name))):
+                os.path.isfile('%s/%s.dJ' % (self.config_folder, fullname))):
             dJ = cloudpickle.load(open('%s/%s.dJ' %
-                                  (self.config_folder, name), 'rb'))
+                                  (self.config_folder, fullname), 'rb'))
         else:
-            J = self._calc_J(name, lambdify=False)
+            J = self._calc_J(name, x=x, lambdify=False)
             dJ = sp.Matrix(np.zeros(J.shape))
             # calculate derivative of (x,y,z) wrt to time
             # which each joint is dependent on
@@ -142,30 +146,32 @@ class robot_config():
 
             # save to file
             cloudpickle.dump(dJ, open('%s/%s.dJ' %
-                                     (self.config_folder, name), 'wb'))
+                                     (self.config_folder, fullname), 'wb'))
 
         dJ = sp.Matrix(dJ).T  # correct the orientation of J
         if lambdify is False:
             return dJ
         return sp.lambdify(self.q, dJ)
 
-    def _calc_J(self, name, lambdify=True, regenerate=False):
+    def _calc_J(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
+        x list: the [x,y,z] position of interest in "name"'s reference frame
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
                           matrix
         regenerate boolean: if True, don't use saved functions
         """
 
+        fullname = name + str(x)
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
-                os.path.isfile('%s/%s.J' % (self.config_folder, name))):
+                os.path.isfile('%s/%s.J' % (self.config_folder, fullname))):
             J = cloudpickle.load(open('%s/%s.J' %
-                                 (self.config_folder, name), 'rb'))
+                                 (self.config_folder, fullname), 'rb'))
         else:
-            Tx = self._calc_T(name, lambdify=False)
+            Tx = self._calc_Tx(name, x=x, lambdify=False)
             J = []
             # calculate derivative of (x,y,z) wrt to each joint
             for ii in range(self.num_joints):
@@ -187,7 +193,7 @@ class robot_config():
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
-                                     (self.config_folder, name), 'wb'))
+                                     (self.config_folder, fullname), 'wb'))
 
         J = sp.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
@@ -210,7 +216,7 @@ class robot_config():
             Mq = cloudpickle.load(open('%s/Mq' % self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
-            J = [self._calc_J('link%s' % ii, lambdify=False)
+            J = [self._calc_J('link%s' % ii, x=[0,0,0], lambdify=False)
                  for ii in range(self.num_links)]
 
             # transform each inertia matrix into joint space
@@ -244,7 +250,7 @@ class robot_config():
                                          'rb'))
         else:
             # get the Jacobians for each link's COM
-            J = [self._calc_J('link%s' % ii, lambdify=False)
+            J = [self._calc_J('link%s' % ii, x=[0,0,0], lambdify=False)
                  for ii in range(self.num_links)]
 
             # transform each inertia matrix into joint space and
@@ -262,13 +268,14 @@ class robot_config():
             return Mq_g
         return sp.lambdify(self.q, Mq_g)
 
-    def _calc_T(self, name, lambdify=True, regenerate=False):
+    def _calc_Tx(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
+        x list: the [x,y,z] position of interest in "name"'s reference frame
         lambdify boolean: if True returns a function to calculate
                           the transform. If False returns the Sympy
                           matrix
         regenerate boolean: if True, don't use saved functions
         """
-        raise NotImplementedError("_calc_T function not implemented")
+        raise NotImplementedError("_calc_Tx function not implemented")
