@@ -4,24 +4,34 @@ import abr_control
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.config.robot_config(
-    regenerate_functions=True)
+    regenerate_functions=False)
+
+# create our VREP interface
+interface = abr_control.interfaces.maplesim.interface(
+    robot_config, dt=.001)
+interface.connect()
 
 # # instantiate the REACH controller
-ctrlr = abr_control.controllers.osc.controller(robot_config, kp=100)
+np.random.seed(17)
+obstacles = [
+    [.5, 2, 0, .3],
+    [-1, .6, 0, .2]]
+for obstacle in obstacles:
+    # add obstacle to display
+    interface.display.add_obstacle(
+        xyz=obstacle[:3], radius=obstacle[3])
+
+ctrlr = abr_control.controllers.osc_obstacles.controller(
+    robot_config, kp=100, vmax=10, obstacles=obstacles, threshold=.5)
 # instantiate the REACH controller
 # osc_ctrlr = abr_control.controllers.osc.controller(
 #     robot_config, kp=200)
 # traj_ctrlr = abr_control.controllers.trajectory.controller(
 #     osc_ctrlr)
 
-
-
-# create our VREP interface
-interface = abr_control.interfaces.maplesim.interface(robot_config, dt=.001)
-interface.connect()
-
 # create a target
 target_xyz = [0, 0, 0]
+
 
 # set up lists for tracking data
 q_path = []
@@ -31,9 +41,9 @@ target_path = []
 
 # set seed so we can repeat the target set for
 # various experiment conditions
-np.random.seed(6)
-for ii in range(0):
-    np.random.random()
+# np.random.seed(6)
+# for ii in range(0):
+#     np.random.random()
 
 try:
     num_targets = 0
@@ -50,8 +60,6 @@ try:
             target_state=np.hstack(
                 [target_xyz, np.zeros(3)]))
         print('error: ', np.sqrt(np.sum((target_xyz - hand_xyz)**2)))
-        print('target: ', target_xyz)
-        print('hand_xyz: ', hand_xyz)
         # apply the control signal, step the sim forward
         interface.apply_u(u)
 
@@ -78,7 +86,7 @@ try:
 finally:
     # stop and reset the VREP simulation
     interface.disconnect()
-    # generate a 3D plot of the trajectory taken
+    # # generate a 3D plot of the trajectory taken
     # abr_control.utils.plotting.plot_trajectory(
     #     ee_path=ee_path,
     #     target_path=target_path)

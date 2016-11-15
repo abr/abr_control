@@ -30,6 +30,7 @@ class display():
 
         self.L = L * self.scaling_term
         self.target = None
+        self.obstacles = []
 
         # create transparent arm lines
         self.lines_base = []
@@ -90,6 +91,11 @@ class display():
         if self.target is not None:
             pygame.draw.circle(self.display, self.red,
                                [int(val) for val in self.target], 10)
+        # draw obstacles
+        for obstacle in self.obstacles:
+            pygame.draw.circle(self.display, [0, 0, 100],
+                                [int(obstacle[0]), int(obstacle[1])],
+                                 int(obstacle[2]))  # obstacles size
 
         pygame.display.update()
         self.fpsClock.tick(self.fps)
@@ -105,3 +111,14 @@ class display():
         """
         self.target = (xyz * np.array([1, -1]) *
                        self.scaling_term + self.base_offset)
+
+    def add_obstacle(self, xyz, radius):
+        """ Add an obstacle to the list.
+
+        xyz np.array: the [x,y,z] center location of the obstacle (in meters)
+        size float: the radius of the obstacle (in meters)
+        """
+        obstacle = list(xyz[:2] * np.array([1, -1]) *
+                        self.scaling_term + self.base_offset)
+        obstacle.append(radius * self.scaling_term)
+        self.obstacles.append(obstacle)
