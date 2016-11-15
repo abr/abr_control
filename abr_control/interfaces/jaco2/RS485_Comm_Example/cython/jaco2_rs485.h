@@ -1,9 +1,9 @@
 /*
- * This example shows how to send RS-485 command through the USB port. 
+ * This example shows how to send RS-485 command through the USB port.
    Basically, that means communicating directly to the actuators
- * via the USB port. If applied on a 6 axis JACO or MICO, this example will 
+ * via the USB port. If applied on a 6 axis JACO or MICO, this example will
    rotate the actuator #6, the one holding the end effector.
- * It will also start a thread that read and display information during the 
+ * It will also start a thread that read and display information during the
    process.
  */
 
@@ -17,6 +17,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "../kinova-api/Kinova.API.CommLayerUbuntu.h"
+#include "../kinova-api/Kinova.API.UsbCommandLayerUbuntu.h"
+#include "../kinova-api/KinovaTypes.h"
 #include <string.h>
 
 using namespace std;
@@ -33,35 +35,45 @@ using namespace std;
 #define CLEAR_ERROR_FLAG 0x0033
 #define POSITION_LIMIT 0x0021
 
-class jaco2 {
-    void* Init(InitStruct* args);
-    void* Connect(ConnectStruct* args);
-    void* InitForceMode(InitForceModeStruct* args);
-    void* ApplyU(void* args);
-    void* GetFeedback(void* args);
-    void* Disconnect(DisconnectStruct* args);
-};
-
 struct InitStruct {
     //Variable used during the communication process.
-	int WriteCount = 0;
-	int ReadCount = 0;
+	int WriteCount;
+	int ReadCount;
 	//Flag used during initialization.
-	bool ActuatorInitialized = false;
+	bool ActuatorInitialized;
 	//Variable needed during worker thread creation but not used after.
-	int ThreadArgument = 0;	
-	int delay = 2000;
-}; init
+	int ThreadArgument;
+	int delay;
+};
+
+InitStruct default_init = {0, 0, false, 0, 2000};
 
 struct ConnectStruct {
 	//We load the API.
-	commLayer_Handle = dlopen("./../kinova-api/Kinova.API.CommLayerUbuntu.so", 
-	                          RTLD_NOW|RTLD_GLOBAL);
-    bool connection_init = false;
+	void * commLayer_Handle;
+    bool connection_init;
 };
+
+ConnectStruct default_connect = {
+    dlopen("./../kinova-api/Kinova.API.CommLayerUbuntu.so", RTLD_NOW|RTLD_GLOBAL),
+    false};
 
 struct InitForceModeStruct {
     int servoNumber;
+};
+
+struct DisconnectStruct {
+
+} d;
+
+class jaco2 {
+    void Init(InitStruct* args);
+    void* Connect(ConnectStruct* args, RS485_Message* RS485initArgs,
+                  RS485_Message* rcvInitArgs, InitStruct* initArgs);
+    void InitForceMode(InitForceModeStruct* args);
+    void ApplyU(void* args);
+    void GetFeedback(void* args);
+    void Disconnect(DisconnectStruct* args);
 };
 
 struct ApplyUStruct {
@@ -69,10 +81,11 @@ struct ApplyUStruct {
     unsigned char torqueDamping = 0x01;
     unsigned char controlMode = 0x01;
     unsigned short torqueKp = 1750; //1.75 * 1000
-    torqueConst = ((unsigned long) torqueDamping | 
-        ((unsigned long) controlMode << 8) | ((unsigned long) 
+    unsigned long torqueConst = ((unsigned long) torqueDamping |
+        ((unsigned long) controlMode << 8) | ((unsigned long)
         torqueKp <<   16));
-};
+} au;
+
 struct GetFeedbackStruct {
     int flag;
     bool torqueValidation;
@@ -81,23 +94,19 @@ struct GetFeedbackStruct {
     bool read_input;
     float q[6];
     float dq[6];
-};
-
-struct DisconnectStruct {
-
-};
-
-//A global variable that will be shared between the main thread(SEND) and the 
-//worker thread(RECEIVE).
-//volatile float Joint6Command;
-
-//A handle needed to open the API(library).
-void *commLayer_Handle;
+} fb;
 
 //Function pointers to access API's function.
+int(*MyInitAPI)();
+int(*MyCloseAPI)();
+int(*MyGetAngularForce)(AngularPosition &Response);
+int(*MyGetAngularForceGravityFree)(AngularPosition &Response);
+int(*MyGetDevices)(KinovaDevice devices[MAX_KINOVA_DEVICE], int &result);
+int(*MySetActiveDevice)(KinovaDevice device);
+
 int(*fptrInitCommunication)();
 int(*MyRS485_Activate)();     // FUNCTION TO ACTIVATE USB - RS485 MODE //
-int(*MyRS485_Read)(RS485_Message* PackagesIn, int QuantityWanted, 
+int(*MyRS485_Read)(RS485_Message* PackagesIn, int QuantityWanted,
                    int &ReceivedQtyIn);
-int(*MyRS485_Write)(RS485_Message* PackagesOut, int QuantityWanted, 
+int(*MyRS485_Write)(RS485_Message* PackagesOut, int QuantityWanted,
                     int &ReceivedQtyIn);

@@ -93,3 +93,4 @@ ENV/
 
 # editor autosaves
 *~
+*.swp
