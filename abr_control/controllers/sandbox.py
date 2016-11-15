@@ -21,8 +21,8 @@ for obstacle in obstacles:
     interface.display.add_obstacle(
         xyz=obstacle[:3], radius=obstacle[3])
 
-ctrlr = abr_control.controllers.osc_robust.controller(
-    robot_config, kp=100, vmax=10)#, obstacles=obstacles, threshold=.5)
+ctrlr = abr_control.controllers.osc_obstacles.controller(
+    robot_config, kp=100, vmax=10, obstacles=obstacles, threshold=.5)
 # instantiate the REACH controller
 # osc_ctrlr = abr_control.controllers.osc.controller(
 #     robot_config, kp=200)

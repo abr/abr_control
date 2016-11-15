@@ -29,7 +29,7 @@ class controller:
         """
 
         # calculate position of the end-effector
-        xyz = self.robot_config.T('EE', q)
+        xyz = self.robot_config.Tx('EE', q)
 
         # calculate the Jacobian for the end effector
         JEE = self.robot_config.J('EE', q)
@@ -100,28 +100,37 @@ class controller:
             # our vertex of interest is the center point of the obstacle
             v = np.array(obstacle[:3])
 
-            # TODO: INCORPORATE THE RADIUS OF THE OBSTACLE
-
             # find the closest point of each link to the obstacle
             for ii in range(self.robot_config.num_links - 1):
                 # using notation from (Khatib, 1986)
-                m1 = self.robot_config.T('joint%i' % ii, q)
+                m1 = self.robot_config.Tx('joint%i' % ii, q=q)
                 if ii == self.robot_config.num_links - 1:
-                    m2 = self.robot_config.T('EE', q)
+                    m2 = self.robot_config.Tx('EE', q=q)
                 else:
-                    m2 = self.robot_config.T('joint%i' % (ii + 1), q)
+                    m2 = self.robot_config.Tx('joint%i' % (ii + 1), q=q)
 
-                # TODO: NEED TO TRANSFORM UPPER AND LOWER XYZ
-                # INTO LINK ii's REFERENCE FRAME
+                # transform m1, m2, and v into link ii's reference frame
+                T = self.robot_config.Tx('link%i' % ii, q=q)
+                print('T: \n: ', T)
+                R = T[:3, :3]
+                D = T[-1, :3]
+                Tinv = np.array([R.T, -np.dot(R.T, D)], [np.zeros(3), 1])
+                m1 = np.dot(Tinv, m1)
+                m2 = np.dot(Tinv, m2)
+                v = np.dot(Tinv, v)
 
                 # find the nearest point on this segment (eq A1-1)
                 l = self.robot_config.L[ii]
                 lamb = np.dot(v * m1, m1 * m2) / l**2
 
+                # TODO: INCORPORATE THE RADIUS OF THE OBSTACLE
+
                 # calculate m and distance to the vertex (eq A1-2)
                 if 0 < lamb and lamb < 1:
                     m = m1 + lamb * (m2 - m1)
-                    ro = np.sqrt(ro1**2 - lamb**2 * l**2)
+                    # NOTE: subtraction of obstacle[3] is the radius
+                    # of the object
+                    ro = np.sqrt(ro1**2 - lamb**2 * l**2) - obstacle[3]
                 elif lamb < 0:
                     m = m1
                     ro = ro1
@@ -135,9 +144,10 @@ class controller:
                     Fpsp = (eta * (1.0/ro - 1.0/self.threshold) *
                             1.0/ro**2 * drodx)
 
-                    # Jpsp = 
+                    # get the Jacobian for the closest point
+                    Jpsp = self.robot_config.J('link%i' % i, x=m, q=q)
 
-                    # convert the mass compensation into
+                    # calculate the inertia matrix for the
                     # point subjected to the potential space
                     Mxpsp_inv = np.dot(Jpsp,
                                        np.dot(np.linalg.pinv(Mq), Jpsp.T))
