@@ -25,7 +25,7 @@ class controller:
         """
 
         # calculate position of the end-effector
-        xyz = self.robot_config.T('EE', q)
+        xyz = self.robot_config.Tx('EE', q)
 
         # calculate the Jacobian for the end effector
         JEE = self.robot_config.J('EE', q)
