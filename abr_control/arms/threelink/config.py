@@ -100,24 +100,16 @@ class robot_config(robot_config.robot_config):
                               [0.0, 0.0, 1.0],  # joint 1 rotates around z axis
                               [0.0, 0.0, 1.0]]  # joint 2 rotates around z axis
 
-    def _calc_Tx(self, name, x, lambdify=True, regenerate=False):  # noqa C907
+    def _calc_T(self, name, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
-        x list: the [x,y,z] position of interest in "name"'s reference frame
         lambdify boolean: if True returns a function to calculate
                           the transform. If False returns the Sympy
                           matrix
         """
 
-        fullname = name + str(x)
-        # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, fullname))):
-            Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, fullname),
-                                       'rb'))
-        else:
-            if name == 'joint0':
+        if name == 'joint0':
                 T = self.T0org
             elif name == 'link0':
                 T = self.T0org * self.Tl00
@@ -133,15 +125,6 @@ class robot_config(robot_config.robot_config):
                 T = self.T0org * self.T10 * self.T21 * self.TEE2
             else:
                 raise Exception('Invalid transformation name: %s' % name)
-            # convert from transform matrix to (x,y,z)
-            x = sp.Matrix(x + [1])
-            print('x: ', x)
-            Tx = sp.simplify(T * x)
 
-            # save to file
-            cloudpickle.dump(Tx, open(
-                '%s/%s.T' % (self.config_folder, fullname), 'wb'))
+        return T
 
-        if lambdify is False:
-            return Tx
-        return sp.lambdify(self.q, Tx)
