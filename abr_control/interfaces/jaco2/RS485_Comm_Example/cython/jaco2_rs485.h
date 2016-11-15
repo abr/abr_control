@@ -35,6 +35,18 @@ using namespace std;
 #define CLEAR_ERROR_FLAG 0x0033
 #define POSITION_LIMIT 0x0021
 
+class jaco2 {
+    int Init(InitStruct* args);
+    void* Connect(ConnectStruct* args, RS485_Message* RS485initArgs,
+                  RS485_Message* rcvInitArgs, InitStruct* initArgs);
+    void* InitForceMode(InitForceModeStruct* args);
+    void* ApplyU(void* args);
+    void* GetFeedback(void* args);
+    void* Disconnect(DisconnectStruct* args);
+    
+    
+};
+
 struct InitStruct {
     //Variable used during the communication process.
 	int WriteCount;
@@ -52,38 +64,22 @@ struct ConnectStruct {
 	//We load the API.
 	void * commLayer_Handle;
     bool connection_init;
-};
+} c;
 
-ConnectStruct default_connect = {
-    dlopen("./../kinova-api/Kinova.API.CommLayerUbuntu.so", RTLD_NOW|RTLD_GLOBAL),
-    false};
 
 struct InitForceModeStruct {
     int servoNumber;
-};
+} ifm;
 
 struct DisconnectStruct {
 
 } d;
 
-class jaco2 {
-    void Init(InitStruct* args);
-    void* Connect(ConnectStruct* args, RS485_Message* RS485initArgs,
-                  RS485_Message* rcvInitArgs, InitStruct* initArgs);
-    void InitForceMode(InitForceModeStruct* args);
-    void ApplyU(void* args);
-    void GetFeedback(void* args);
-    void Disconnect(DisconnectStruct* args);
-};
-
 struct ApplyUStruct {
     float us[6]; //joint torques
-    unsigned char torqueDamping = 0x01;
-    unsigned char controlMode = 0x01;
-    unsigned short torqueKp = 1750; //1.75 * 1000
-    unsigned long torqueConst = ((unsigned long) torqueDamping |
-        ((unsigned long) controlMode << 8) | ((unsigned long)
-        torqueKp <<   16));
+    unsigned char torqueDamping;
+    unsigned char controlMode;
+    unsigned short torqueKp; //1.75 * 1000
 } au;
 
 struct GetFeedbackStruct {

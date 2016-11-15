@@ -10,10 +10,15 @@ int Init(InitStruct* args)
     InitStruct* init = (InitStruct *)args;
 
     ConnectStruct c;
+    c.commLayer_Handle = dlopen("./../kinova-api/Kinova.API.CommLayerUbuntu.so", RTLD_NOW|RTLD_GLOBAL);
+    c.connection_init = false;
 
     InitForceModeStruct ifm;
 
     ApplyUStruct au;
+    au.torqueDamping = 0x01;
+    au.controlMode = 0x01;
+    au.torqueKp = 1750;
 
     GetFeedbackStruct fb;
     fb.flag = 0;
@@ -39,10 +44,10 @@ int Init(InitStruct* args)
 }
 
 // ========== Connect to Jaco2 via RS485 ==========
-void* Connect(ConnectStruct* args, RS485_Message* initArgs, RS485_Message* rcvInitArgs, InitStruct* initArgs)
+void* Connect(ConnectStruct* args, RS485_Message* initMsgArgs, RS485_Message* rcvInitArgs, InitStruct* initArgs)
 {
     ConnectStruct* c = (ConnectStruct *)args;
-    RS485_Message* InitMessage = (RS485_Message *)initArgs;
+    RS485_Message* InitMessage = (RS485_Message *)initMsgArgs;
     RS485_Message* ReceiveInitMessage = (RS485_Message *)rcvInitArgs;
     InitStruct* init = (InitStruct *)initArgs;
 
@@ -53,12 +58,12 @@ void* Connect(ConnectStruct* args, RS485_Message* initArgs, RS485_Message* rcvIn
 	int programResult = 0;
 
 	//We load the functions from the library
-	MyInitAPI = (int(*)()) dlsym(commLayer_Handle, "InitAPI");
-	MyCloseAPI = (int(*)()) dlsym(commLayer_Handle, "CloseAPI");
-	MyGetAngularForce = (int(*)(AngularPosition &Response)) dlsym(commLayer_Handle, "GetAngularForce");
-	MyGetAngularForceGravityFree = (int(*)(AngularPosition &Response)) dlsym(commLayer_Handle, "GetAngularForceGravityFree");
-	MyGetDevices = (int(*)(KinovaDevice devices[MAX_KINOVA_DEVICE], int &result)) dlsym(commLayer_Handle, "GetDevices");
-	MySetActiveDevice = (int(*)(KinovaDevice devices)) dlsym(commLayer_Handle, "SetActiveDevice");
+	MyInitAPI = (int(*)()) dlsym(c->commLayer_Handle, "InitAPI");
+	MyCloseAPI = (int(*)()) dlsym(c->commLayer_Handle, "CloseAPI");
+	MyGetAngularForce = (int(*)(AngularPosition &Response)) dlsym(c->commLayer_Handle, "GetAngularForce");
+	MyGetAngularForceGravityFree = (int(*)(AngularPosition &Response)) dlsym(c->commLayer_Handle, "GetAngularForceGravityFree");
+	MyGetDevices = (int(*)(KinovaDevice devices[MAX_KINOVA_DEVICE], int &result)) dlsym(c->commLayer_Handle, "GetDevices");
+	MySetActiveDevice = (int(*)(KinovaDevice devices)) dlsym(c->commLayer_Handle, "SetActiveDevice");
 
 	//Initialization of the fucntion pointers.
 	fptrInitCommunication = (int (*)()) dlsym(c->commLayer_Handle,
@@ -111,7 +116,7 @@ void* Connect(ConnectStruct* args, RS485_Message* initArgs, RS485_Message* rcvIn
 			{
 				MyRS485_Write(&InitMessage, 1, init->WriteCount);
 				usleep(4000);
-				MyRS485_Read(&ReceiveInitMessage, 1, init->ReadCount);
+				MyRS485_Read(ReceiveInitMessage, 1, init->ReadCount);
 
 				/*We make sure that the mesage come from actuator 6(0x15) and
 				that the command ID is RS485_MSG_SEND_ACTUALPOSITION

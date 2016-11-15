@@ -45,7 +45,7 @@ struct Status {
 
 //This is the function that will be executed by the worker thread.(Information 
 //reading).
-void *SerialRead(void *args);
+//void *SerialRead(void *args);
 
 //A mutex to protect the access to the API.
 pthread_mutex_t APIMutex;
@@ -562,7 +562,7 @@ int main(int argc, char* argv[])
 }
 
 // ========== RS485 READ ==========
-void *SerialRead(void *args)
+/*void *SerialRead(void *args)
 {
     Status* status = (Status *)args;
 	RS485_Message MessageListIn [50];
@@ -704,4 +704,4 @@ void *SerialRead(void *args)
 	
 	//pthread_exit(0);
     return NULL;
-}
+}*/
