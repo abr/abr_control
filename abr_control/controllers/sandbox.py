@@ -50,6 +50,7 @@ try:
         print('error: ', np.sqrt(np.sum((target_xyz - hand_xyz)**2)))
         # apply the control signal, step the sim forward
         interface.apply_u(u)
+        print('(x, y): ', interface.display.get_mousexy())
 
         # change target location once hand is within
         # 5mm of the target
