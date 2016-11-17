@@ -80,8 +80,6 @@ class robot_config(robot_config.robot_config):
              self.L_links[0]*sp.cos(self.q[0])],
             [sp.sin(self.q[0]), sp.cos(self.q[0]), 0,
              self.L_links[0]*sp.sin(self.q[0])],
-            # [1, 0, 0, self.L_links[0]*sp.cos(self.q[0])],
-            # [0, 1, 0, self.L_links[0]*sp.sin(self.q[0])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
@@ -91,19 +89,15 @@ class robot_config(robot_config.robot_config):
              self.L_links[1]*sp.cos(self.q[1])],
             [sp.sin(self.q[1]), sp.cos(self.q[1]), 0,
              self.L_links[1]*sp.sin(self.q[1])],
-            # [1, 0, 0, self.L_links[1]*sp.cos(self.q[1])],
-            # [0, 1, 0, self.L_links[1]*sp.sin(self.q[1])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
         # transform matrix from joint 2 to link 2
         self.Tl22 = sp.Matrix([
             [sp.cos(self.q[2]), -sp.sin(self.q[2]), 0,
-             self.L_links[2]*sp.cos(self.q[2])],
+             self.L_linkmm2]*sp.cos(self.q[2])],
             [sp.sin(self.q[2]), sp.cos(self.q[2]), 0,
              self.L_links[2]*sp.sin(self.q[2])],
-            # [1, 0, 0, self.L_links[2]*sp.cos(self.q[2])],
-            # [0, 1, 0, self.L_links[2]*sp.sin(self.q[2])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
