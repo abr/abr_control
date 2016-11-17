@@ -33,6 +33,7 @@ class robot_config():
 
         # create function dictionaries
         self._Tx = {}  # for transform calculations
+        self._T_inv = {}  # for inverse transform calculations
         self._J = {}  # for Jacobian calculations
         self._M = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
@@ -113,6 +114,19 @@ class robot_config():
             self._Tx[fullname] = self._calc_Tx(
                 name, x=x, regenerate=self.regenerate_functions)
         return self._Tx[fullname](*q)[:-1].flatten()
+
+    def T_inv(self, name, q, x=[0, 0, 0]):
+        """ Calculates the inverse transform for a joint or link
+
+        q list: set of joint angles to pass in to the T function
+        """
+        fullname = name + str(x)
+        # check for function in dictionary
+        if self._T_inv.get(fullname, None) is None:
+            print('Generating inverse transform function for % s' % fullname)
+            self._T_inv[fullname] = self._calc_T_inv(
+                name=name, x=x, regenerate=self.regenerate_functions)
+        return self._T_inv[fullname](*q)
 
     def _calc_dJ(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the derivative of the Jacobian
@@ -268,16 +282,43 @@ class robot_config():
             return Mq_g
         return sp.lambdify(self.q, Mq_g)
 
-    def _calc_T(self, name, lambdify=True, regenerate=False):
+    def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
+        """
+        raise NotImplementedError("_calc_T function not implemented")
+
+    def _calc_Tx(self, name, x, lambdify=True, regenerate=False):  # noqa C907
+        """ Uses Sympy to transform x from the reference frame of a joint
+        or link to the origin (world) coordinates.
+
+        name string: name of the joint or link, or end-effector
+        x list: the [x,y,z] position of interest in "name"'s reference frame
         lambdify boolean: if True returns a function to calculate
                           the transform. If False returns the Sympy
                           matrix
-        regenerate boolean: if True, don't use saved functions
         """
-        raise NotImplementedError("_calc_T function not implemented")
+
+        fullname = name + str(x)
+        # check to see if we have our transformation saved in file
+        if (regenerate is False and
+                os.path.isfile('%s/%s.T' % (self.config_folder, fullname))):
+            Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, fullname),
+                                       'rb'))
+        else:
+            T = self._calc_T(name=name)
+            # transform x into world coordinates
+            x = sp.Matrix(list(x) + [1])
+            Tx = sp.simplify(T * x)
+
+            # save to file
+            cloudpickle.dump(Tx, open(
+                '%s/%s.T' % (self.config_folder, fullname), 'wb'))
+
+        if lambdify is False:
+            return Tx
+        return sp.lambdify(self.q, Tx)
 
     def _calc_T_inv(self, name, x, lambdify=True, regenerate=False):
         """ Return the inverse transform matrix, which converts from
@@ -298,49 +339,17 @@ class robot_config():
             T_inv = cloudpickle.load(open('%s/%s.T_inv' % (self.config_folder, fullname),
                                           'rb'))
         else:
+            T = self._calc_T(name=name)
             rotation_inv = T[:3, :3].T
             translation_inv = -rotation_inv * T[:3, 3]
             T_inv = rotation_inv.row_join(translation_inv).col_join(
                 sp.Matrix([[0, 0, 0, 1]]))
 
             # save to file
-            cloudpickle.dump(Tx, open(
+            cloudpickle.dump(T_inv, open(
                 '%s/%s.T_inv' % (self.config_folder, fullname), 'wb'))
 
         if lambdify is False:
             return T_inv
         # return a function of q and self.L_offset
         return sp.lambdify(self.q, T_inv)
-
-    def _calc_Tx(self, name, x, lambdify=True, regenerate=False):  # noqa C907
-        """ Uses Sympy to transform x from the reference frame of a joint
-        or link to the origin (world) coordinates.
-
-        name string: name of the joint or link, or end-effector
-        x list: the [x,y,z] position of interest in "name"'s reference frame
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
-        """
-
-        fullname = name + str(x)
-        # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, fullname))):
-            Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, fullname),
-                                       'rb'))
-        else:
-            T = self._calc_T(name=name,
-                             lambdify=lambdify,
-                             regenerate=regenerate)
-            # transform x into world coordinates
-            x = sp.Matrix(x + [1])
-            Tx = sp.simplify(T * x)
-
-            # save to file
-            cloudpickle.dump(Tx, open(
-                '%s/%s.T' % (self.config_folder, fullname), 'wb'))
-
-        if lambdify is False:
-            return Tx
-        return sp.lambdify(self.q, Tx)

@@ -76,22 +76,34 @@ class robot_config(robot_config.robot_config):
 
         # transform matrix from joint 0 to link 0
         self.Tl00 = sp.Matrix([
-            [1, 0, 0, self.L_links[0]*sp.cos(self.q[0])],
-            [0, 1, 0, self.L_links[0]*sp.sin(self.q[0])],
+            [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0,
+             self.L_links[0]*sp.cos(self.q[0])],
+            [sp.sin(self.q[0]), sp.cos(self.q[0]), 0,
+             self.L_links[0]*sp.sin(self.q[0])],
+            # [1, 0, 0, self.L_links[0]*sp.cos(self.q[0])],
+            # [0, 1, 0, self.L_links[0]*sp.sin(self.q[0])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
         # transform matrix from joint 1 to link 1
         self.Tl11 = sp.Matrix([
-            [1, 0, 0, self.L_links[1]*sp.cos(self.q[1])],
-            [0, 1, 0, self.L_links[1]*sp.sin(self.q[1])],
+            [sp.cos(self.q[1]), -sp.sin(self.q[1]), 0,
+             self.L_links[1]*sp.cos(self.q[1])],
+            [sp.sin(self.q[1]), sp.cos(self.q[1]), 0,
+             self.L_links[1]*sp.sin(self.q[1])],
+            # [1, 0, 0, self.L_links[1]*sp.cos(self.q[1])],
+            # [0, 1, 0, self.L_links[1]*sp.sin(self.q[1])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
         # transform matrix from joint 2 to link 2
         self.Tl22 = sp.Matrix([
-            [1, 0, 0, self.L_links[2]*sp.cos(self.q[2])],
-            [0, 1, 0, self.L_links[2]*sp.sin(self.q[2])],
+            [sp.cos(self.q[2]), -sp.sin(self.q[2]), 0,
+             self.L_links[2]*sp.cos(self.q[2])],
+            [sp.sin(self.q[2]), sp.cos(self.q[2]), 0,
+             self.L_links[2]*sp.sin(self.q[2])],
+            # [1, 0, 0, self.L_links[2]*sp.cos(self.q[2])],
+            # [0, 1, 0, self.L_links[2]*sp.sin(self.q[2])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
@@ -100,31 +112,27 @@ class robot_config(robot_config.robot_config):
                               [0.0, 0.0, 1.0],  # joint 1 rotates around z axis
                               [0.0, 0.0, 1.0]]  # joint 2 rotates around z axis
 
-    def _calc_T(self, name, lambdify=True, regenerate=False):
+    def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
         """
 
         if name == 'joint0':
                 T = self.T0org
-            elif name == 'link0':
-                T = self.T0org * self.Tl00
-            elif name == 'joint1':
-                T = self.T0org * self.T10
-            elif name == 'link1':
-                T = self.T0org * self.T10 * self.Tl11
-            elif name == 'joint2':
-                T = self.T0org * self.T10 * self.T21
-            elif name == 'link2':
-                T = self.T0org * self.T10 * self.T21 * self.Tl22
-            elif name == 'EE':
-                T = self.T0org * self.T10 * self.T21 * self.TEE2
-            else:
-                raise Exception('Invalid transformation name: %s' % name)
+        elif name == 'link0':
+            T = self.T0org * self.Tl00
+        elif name == 'joint1':
+            T = self.T0org * self.T10
+        elif name == 'link1':
+            T = self.T0org * self.T10 * self.Tl11
+        elif name == 'joint2':
+            T = self.T0org * self.T10 * self.T21
+        elif name == 'link2':
+            T = self.T0org * self.T10 * self.T21 * self.Tl22
+        elif name == 'EE':
+            T = self.T0org * self.T10 * self.T21 * self.TEE2
+        else:
+            raise Exception('Invalid transformation name: %s' % name)
 
         return T
-
