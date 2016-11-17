@@ -20,7 +20,7 @@ class controller:
         self.obstacles = obstacles
         self.threshold = threshold
 
-    def control(self, q, dq, target_state):
+    def control(self, q, dq, target_state):  # noqa901
         """ Generates the control signal
 
         q np.array: the current joint angles
@@ -86,7 +86,7 @@ class controller:
             if self.robot_config.rest_angles[ii] is not None:
                 q_des[ii] = (
                     ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
-                     (np.pi*2) - np.pi)
+                    (np.pi*2) - np.pi)
                 dq_des[ii] = dq[ii]
         # only compensate for velocity for joints with a control signal
         nkp = self.kp * .1
