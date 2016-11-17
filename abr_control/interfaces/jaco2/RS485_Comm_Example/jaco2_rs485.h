@@ -47,6 +47,7 @@ class Jaco2 {
         bool torqueValidation;
         bool switchValidation;
         int pos[6];
+        int vel[6];
         bool read_input;
         int packets_sent;
         int packets_read;

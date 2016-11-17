@@ -70,7 +70,7 @@ int main()
     j2.Connect(); 
     j2.InitForceMode();
     
-    for (int i = 0; i<5000; i++)
+    for (int i = 0; i<2000; i++)
     {
         //u[5] = 4.0 * sin(2.0*3.14159 * i/3500);
         j2.ApplyU(u);
@@ -418,6 +418,8 @@ void* Jaco2::ApplyU(float us[6])
             ii = ii;
             if (ReceiveInitMessage[ii].SourceAddress == joint[jj]) {
                 pos[jj] = ReceiveInitMessage[ii].DataFloat[1];
+                vel[jj] = ReceiveInitMessage[ii].DataFloat[2];
+                //cout << "vel " << jj << " = " << vel[jj] << endl;
                 //cout << "pos[0]: " << pos[0] << endl;;
                 break;
             }
