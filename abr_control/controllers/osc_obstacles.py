@@ -98,7 +98,6 @@ class controller:
         # add in obstacles avoidance
         for obstacle in self.obstacles:
             # our vertex of interest is the center point of the obstacle
-            print(obstacle)
             v = np.array(obstacle[:3])
 
             # find the closest point of each link to the obstacle
@@ -129,45 +128,10 @@ class controller:
                 dist = np.sqrt(np.sum((v - closest)**2))
                 # account for size of obstacle
                 ro = dist - obstacle[3]
-                print('other dist estimate: ', ro)
-                # import time; time.sleep(.1)
 
                 if ro < self.threshold:
 
-                    # # transform p1, p2, and v into link ii's reference frame
-                    # T_inv = self.robot_config.T_inv('link%i' % ii, q=q)
-                    # p1 = np.dot(T_inv, np.hstack([p1, 1]))[:-1]
-                    # p2 = np.dot(T_inv, np.hstack([p2, 1]))[:-1]
-                    # mv = np.dot(T_inv, np.hstack([v, 1]))[:-1]
-                    # print('p1: ', p1)
-                    # print('p2: ', p2)
-                    # print('mv: ', mv)
-                    #
-                    # # find the nearest point on this segment (eq A1-1)
-                    # l = self.robot_config.L[ii]
-                    # lamb = np.dot(mv * p1, p1 * p2) / l**2
-                    #
-                    # # TODO: CHECK INCORPORATION OF THE OBSTACLE RADIUS
-                    # # calculate distance of each end to the vertex
-                    # ro1 = np.sqrt(np.sum((mv - p1)**2)) - obstacle[3]
-                    # ro2 = np.sqrt(np.sum((mv - p2)**2)) - obstacle[3]
-                    # # calculate m and distance to the vertex (eq A1-2)
-                    # if 0 < lamb and lamb < 1:
-                    #     m = p1 + lamb * (p2 - p1)
-                    #     ro = np.sqrt(ro1**2 - lamb**2 * l**2) - obstacle[3]
-                    # elif lamb < 0:
-                    #     m = p1
-                    #     ro = ro1
-                    # elif lamb > 1:
-                    #     m = p2
-                    #     ro = ro2
-                    #
-                    # print('ro: ', ro)
-                    # drodx = m / ro
-
                     eta = .2  # feel like i saw 4 somewhere in the paper
-                    # Fpsp = (eta * (1.0/ro - 1.0/self.threshold) *
-                    #         1.0/ro**2 * drodx)
                     drodx = (v - closest) / ro
                     Fpsp = (eta * (1.0/ro - 1.0/self.threshold) *
                             1.0/ro**2 * drodx)
@@ -177,9 +141,6 @@ class controller:
                     m = np.dot(T_inv, np.hstack([closest, [1]]))[:-1]
                     # calculate the Jacobian for this point
                     Jpsp = self.robot_config.J('link%i' % ii, x=m, q=q)[:3]
-
-                    # TODO: confirm that i should be calculating Mxpsp and
-                    # not re-using Mx
 
                     # calculate the inertia matrix for the
                     # point subjected to the potential space

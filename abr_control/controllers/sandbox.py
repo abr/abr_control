@@ -50,9 +50,6 @@ try:
         print('error: ', np.sqrt(np.sum((target_xyz - hand_xyz)**2)))
         # apply the control signal, step the sim forward
         interface.apply_u(u)
-        # T_inv = robot_config.T_inv('link1', q=feedback['q'])
-        # interface.set_target(
-        #         np.dot(T_inv, np.hstack([hand_xyz, [1]]))[:-1])
 
         # change target location once hand is within
         # 5mm of the target
