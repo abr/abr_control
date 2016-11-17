@@ -14,47 +14,35 @@ interface.connect()
 # # instantiate the REACH controller
 np.random.seed(17)
 obstacles = [
-    [.5, 2, 0, .3],
+    [.5, 2, 0, .2],
     [-1, .6, 0, .2]]
 for obstacle in obstacles:
     # add obstacle to display
-    interface.display.add_obstacle(
+    interface.display.add_circle(
         xyz=obstacle[:3], radius=obstacle[3])
 
 ctrlr = abr_control.controllers.osc_obstacles.controller(
     robot_config, kp=100, vmax=10, obstacles=obstacles, threshold=.5)
-# instantiate the REACH controller
-# osc_ctrlr = abr_control.controllers.osc.controller(
-#     robot_config, kp=200)
-# traj_ctrlr = abr_control.controllers.trajectory.controller(
-#     osc_ctrlr)
 
 # create a target
-target_xyz = [0, 0, 0]
-
+targets_xyz = [
+    [0, 2, 0],
+    [.5, 2, 0],
+    [-.5, 2, 0]]
+target_xyz = targets_xyz[0]
 
 # set up lists for tracking data
-q_path = []
-dq_path = []
 ee_path = []
 target_path = []
 
-# set seed so we can repeat the target set for
-# various experiment conditions
-# np.random.seed(6)
-# for ii in range(0):
-#     np.random.random()
-
 try:
-    num_targets = 0
-    while num_targets < 30:
+    num_targets = -1
+    while num_targets < len(targets_xyz):
         # get arm feedback from VREP
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('EE', feedback['q'])
+        hand_xyz = robot_config.Tx('joint1', feedback['q'])
         # generate a control signal
         u = ctrlr.control(
-        # u = traj_ctrlr.control(
-        #     n_timesteps=1000,
             q=feedback['q'],
             dq=feedback['dq'],
             target_state=np.hstack(
@@ -63,14 +51,11 @@ try:
         # apply the control signal, step the sim forward
         interface.apply_u(u)
 
-        # randomly change target location once hand is within
+        # change target location once hand is within
         # 5mm of the target
-        if (num_targets == 0 or
+        if (num_targets < 0 or
                 np.sqrt(np.sum((target_xyz - hand_xyz)**2)) < .005):
-            target_xyz = [np.random.random()*4 - 2,
-                          np.random.random()*4,
-                          0]
-                          # np.random.random() - .5]
+            target_xyz = targets_xyz[num_targets]
             # update the position of the target sphere in VREP
             interface.set_target(target_xyz)
             num_targets += 1
@@ -78,8 +63,6 @@ try:
             print(target_xyz)
 
         # track data
-        q_path.append(np.copy(feedback['q']))
-        dq_path.append(np.copy(feedback['dq']))
         ee_path.append(np.copy(hand_xyz))
         target_path.append(np.copy(target_xyz))
 

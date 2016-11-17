@@ -30,7 +30,7 @@ class display():
 
         self.L = L * self.scaling_term
         self.target = None
-        self.obstacles = []
+        self.circles = []
 
         # create transparent arm lines
         self.lines_base = []
@@ -87,15 +87,15 @@ class display():
                                int((len(self.L) - ii) * 10))
             pygame.draw.circle(self.display, self.arm_color, points[ii],
                                int((len(self.L) - ii) * 5))
+        # draw circles
+        for circle in self.circles:
+            pygame.draw.circle(self.display, circle[3:7], # circle color
+                                [int(circle[0]), int(circle[1])],
+                                 int(circle[2]))  # circle size
         # draw target
         if self.target is not None:
             pygame.draw.circle(self.display, self.red,
                                [int(val) for val in self.target], 10)
-        # draw obstacles
-        for obstacle in self.obstacles:
-            pygame.draw.circle(self.display, [0, 0, 100],
-                                [int(obstacle[0]), int(obstacle[1])],
-                                 int(obstacle[2]))  # obstacles size
 
         pygame.display.update()
         self.fpsClock.tick(self.fps)
@@ -112,13 +112,14 @@ class display():
         self.target = (xyz * np.array([1, -1]) *
                        self.scaling_term + self.base_offset)
 
-    def add_obstacle(self, xyz, radius):
+    def add_circle(self, xyz, radius, color=[0, 0, 100]):
         """ Add an obstacle to the list.
 
         xyz np.array: the [x,y,z] center location of the obstacle (in meters)
         size float: the radius of the obstacle (in meters)
         """
-        obstacle = list(xyz[:2] * np.array([1, -1]) *
+        circle = list(xyz[:2] * np.array([1, -1]) *
                         self.scaling_term + self.base_offset)
-        obstacle.append(radius * self.scaling_term)
-        self.obstacles.append(obstacle)
+        circle.append(radius * self.scaling_term)
+        circle += color
+        self.circles.append(circle)

@@ -136,43 +136,30 @@ class robot_config(robot_config.robot_config):
                           the transform. If False returns the Sympy
                           matrix
         """
-        # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, name))):
-            Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
-                                       'rb'))
+
+        if name == 'link0':
+            T = np.eye(4)
+        elif name == 'joint0' or name == 'link1':
+            T = self.T0org
+        elif name == 'joint1':
+            T = self.T0org * self.T10
+        elif name == 'joint2':
+            T = self.T0org * self.T10 * self.T21
+        elif name == 'link2':
+            T = self.T0org * self.T10 * self.Tl21
+        elif name == 'joint3':
+            T = self.T0org * self.T10 * self.T21 * self.T32
+        elif name == 'link3':
+            T = self.T0org * self.T10 * self.T21 * self.Tl32
+        elif name == 'joint4' or name == 'link4':
+            T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43
+        elif name == 'joint5' or name == 'link5':
+            T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
+                    self.T54)
+        elif name == 'link6' or name == 'EE':
+            T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
+                    self.T54 * self.TEE5)
         else:
-            if name == 'link0':
-                T = np.eye(4)
-            if name == 'joint0' or name == 'link1':
-                T = self.T0org
-            elif name == 'joint1':
-                T = self.T0org * self.T10
-            elif name == 'joint2':
-                T = self.T0org * self.T10 * self.T21
-            elif name == 'link2':
-                T = self.T0org * self.T10 * self.Tl21
-            elif name == 'joint3':
-                T = self.T0org * self.T10 * self.T21 * self.T32
-            elif name == 'link3':
-                T = self.T0org * self.T10 * self.T21 * self.Tl32
-            elif name == 'joint4' or name == 'link4':
-                T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43
-            elif name == 'joint5' or name == 'link5':
-                T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
-                     self.T54)
-            elif name == 'link6' or name == 'EE':
-                T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
-                     self.T54 * self.TEE5)
-            else:
-                raise Exception('Invalid transformation name: %s' % name)
-            # convert from transform matrix to (x,y,z)
-            Tx = sp.simplify(T * self.x)
+            raise Exception('Invalid transformation name: %s' % name)
 
-            # save to file
-            cloudpickle.dump(Tx, open('%s/%s.T' % (self.config_folder, name),
-                                      'wb'))
-
-        if lambdify is False:
-            return Tx
-        return sp.lambdify(self.q, Tx)
+        return T

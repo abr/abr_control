@@ -101,51 +101,46 @@ class controller:
             v = np.array(obstacle[:3])
 
             # find the closest point of each link to the obstacle
-            for ii in range(self.robot_config.num_links - 1):
-                # using notation from (Khatib, 1986)
-                m1 = self.robot_config.Tx('joint%i' % ii, q=q)
+            for ii in range(self.robot_config.num_links):
+                # get the start and end-points of the arm segment
+                p1 = self.robot_config.Tx('joint%i' % ii, q=q)
                 if ii == self.robot_config.num_links - 1:
-                    m2 = self.robot_config.Tx('EE', q=q)
+                    p2 = self.robot_config.Tx('EE', q=q)
                 else:
-                    m2 = self.robot_config.Tx('joint%i' % (ii + 1), q=q)
+                    p2 = self.robot_config.Tx('joint%i' % (ii + 1), q=q)
 
-                # transform m1, m2, and v into link ii's reference frame
-                T = self.robot_config.Tx('link%i' % ii, q=q)
-                print('T: \n: ', T)
-                R = T[:3, :3]
-                D = T[-1, :3]
-                Tinv = np.array([R.T, -np.dot(R.T, D)], [np.zeros(3), 1])
-                m1 = np.dot(Tinv, m1)
-                m2 = np.dot(Tinv, m2)
-                v = np.dot(Tinv, v)
-
-                # find the nearest point on this segment (eq A1-1)
-                l = self.robot_config.L[ii]
-                lamb = np.dot(v * m1, m1 * m2) / l**2
-
-                # TODO: INCORPORATE THE RADIUS OF THE OBSTACLE
-
-                # calculate m and distance to the vertex (eq A1-2)
-                if 0 < lamb and lamb < 1:
-                    m = m1 + lamb * (m2 - m1)
-                    # NOTE: subtraction of obstacle[3] is the radius
-                    # of the object
-                    ro = np.sqrt(ro1**2 - lamb**2 * l**2) - obstacle[3]
-                elif lamb < 0:
-                    m = m1
-                    ro = ro1
-                elif lamb > 1:
-                    m = m2
-                    ro = ro2
-
-                drodx = m / ro
+                # calculate minimum distance from arm segment to obstacle
+                # the vector of our line
+                vec_line = p2 - p1
+                # the vector from the obstacle to the first line point
+                vec_ob_line = v - p1
+                # calculate the normalized angle between these two lines
+                angle = np.dot(vec_ob_line, vec_line) / np.sum((vec_line)**2)
+                if angle < 0:
+                    # then closest point is the start of the segment
+                    closest = p1
+                elif angle > 1:
+                    # then closest point is the end of the segment
+                    closest = p2
+                else:
+                    closest = p1 + angle * vec_line
+                # calculate distance from obstacle vertex to the closest point
+                dist = np.sqrt(np.sum((v - closest)**2))
+                # account for size of obstacle
+                ro = dist - obstacle[3]
 
                 if ro < self.threshold:
+
+                    eta = .2  # feel like i saw 4 somewhere in the paper
+                    drodx = (v - closest) / ro
                     Fpsp = (eta * (1.0/ro - 1.0/self.threshold) *
                             1.0/ro**2 * drodx)
 
-                    # get the Jacobian for the closest point
-                    Jpsp = self.robot_config.J('link%i' % i, x=m, q=q)
+                    # get offset of closest point from link's reference frame
+                    T_inv = self.robot_config.T_inv('link%i' % ii, q=q)
+                    m = np.dot(T_inv, np.hstack([closest, [1]]))[:-1]
+                    # calculate the Jacobian for this point
+                    Jpsp = self.robot_config.J('link%i' % ii, x=m, q=q)[:3]
 
                     # calculate the inertia matrix for the
                     # point subjected to the potential space
@@ -160,10 +155,10 @@ class controller:
                     # numpy returns U,S,V.T, so have to transpose both here
                     Mxpsp = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
-                    u += np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
+                    u_psp = -np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
+                    if ro < .01:
+                        u = u_psp
+                    else:
+                        u += u_psp
 
         return u
-
-    def dist_func(self, x):
-        """ From (Khatib, 1986) """
-        return .2 * (1.0/x - 1.0/self.threshold)**2
