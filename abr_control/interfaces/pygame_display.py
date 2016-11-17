@@ -31,6 +31,8 @@ class display():
         self.L = L * self.scaling_term
         self.target = None
         self.circles = []
+        self.mouse_x = 0
+        self.mouse_y = 0
 
         # create transparent arm lines
         self.lines_base = []
@@ -97,6 +99,11 @@ class display():
             pygame.draw.circle(self.display, self.red,
                                [int(val) for val in self.target], 10)
 
+        # check for events
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.mouse_x, self.mouse_y = pygame.mouse.get_pos()
+
         pygame.display.update()
         self.fpsClock.tick(self.fps)
 
@@ -123,3 +130,10 @@ class display():
         circle.append(radius * self.scaling_term)
         circle += color
         self.circles.append(circle)
+
+    def get_mousexy(self):
+        """ Returns the (x,y) position of the mouse over the display.
+        """
+        x = (self.mouse_x - self.base_offset[0]) / self.scaling_term
+        y = (self.mouse_y - self.base_offset[1]) / self.scaling_term * -1
+        return x, y
