@@ -34,4 +34,6 @@ cdef class pyJaco2:
         self.thisptr.Disconnect()
         
     def GetFeedback(self):
-        return np.hstack([self.thisptr.pos, self.thisptr.vel])
+        feedback = {'q': self.thisptr.pos,
+                    'dq': self.thisptr.vel}
+        return feedback

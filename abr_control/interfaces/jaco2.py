@@ -32,4 +32,4 @@ class interface(interface.interface):
         """ Returns a dictionary of relevant feedback to the
         controller. At very least this contains q, dq.
         """
-        return self.jaco2.GetFeedback(self.q, self.dq)
+        return self.jaco2.GetFeedback()
