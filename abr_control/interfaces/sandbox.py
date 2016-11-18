@@ -1,18 +1,19 @@
 import numpy as np
-import sys
 import time
 
 import abr_control
 
-robot_config = abr_control.arms.ur5.config.robot_config(
-    regenerate_functions=False, use_ufuncify=True)
-Mq = robot_config.Mq(q=np.ones(6))
+# initialize our robot config for neural controllers
+robot_config = abr_control.arms.jaco2.config.robot_config()
+# instantiate the REACH controller for the ur5 robot
+#ctrlr = abr_control.controllers.osc_robust.controller(robot_config)
+# create our VREP interface for the ur5
+interface = abr_control.interfaces.jaco2.interface(robot_config)
+interface.connect()
 
-num_trials = 1000
-times = np.empty(num_trials)
-for ii in range(num_trials):
-    start = time.time()
-    Mq = robot_config.Mq(q=np.ones(6))
-    times[ii] = time.time() - start
+try:
+    while 1:
+        interface.apply_u(np.zeros(6, dtype='float32'))
 
-print('Average time: %.5f' % (np.sum(times) / num_trials))
+finally:
+    interface.disconnect()
