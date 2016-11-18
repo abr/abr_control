@@ -42,7 +42,6 @@ Jaco2::Jaco2() {
     //We load the API.
 	commLayer_Handle = dlopen("jaco2_files/kinova-api/Kinova.API.CommLayerUbuntu.so",
 	                          RTLD_NOW|RTLD_GLOBAL);
-	cout << "commLayer_Handle: " << commLayer_Handle << endl;
 
 	//Initialization of the fucntion pointers.
 	fptrInitCommunication = (int (*)()) dlsym(commLayer_Handle,
@@ -88,17 +87,10 @@ void Jaco2::Connect()
 	//Flag used during initialization.
         int result;
 
-        cout << "here in connect" << endl;
-	cout << "fptr: " << (fptrInitCommunication == NULL) << endl;
-	cout << "activate: " << (MyRS485_Activate == NULL) << endl;
-	cout << "read: " << (MyRS485_Read == NULL) << endl;
-	cout << "write: " << (MyRS485_Write == NULL) << endl;
-    
 	//If all functions are loaded correctly.
 	if(fptrInitCommunication != NULL || MyRS485_Activate != NULL ||
 	   MyRS485_Read != NULL || MyRS485_Write != NULL)
 	{
-		cout << "inside if" << endl;
 		//Initialization of the API
 		result = fptrInitCommunication();
 
@@ -290,6 +282,7 @@ void Jaco2::InitForceMode()
 
     cout << "STEP 2: Request Torque Command Verification" << endl;
 
+    // TODO: set a limit on the number of times validation is attempted before exiting
     while (ReadCount != 1 && ActuatorInitialized < 6)
     {
         ActuatorInitialized = 0;
@@ -429,9 +422,9 @@ void Jaco2::ApplyU(float u[6])
             if (ReceiveInitMessage[ii].SourceAddress == joint[jj]) {
                 pos[jj] = ReceiveInitMessage[ii].DataFloat[1];
                 vel[jj] = ReceiveInitMessage[ii].DataFloat[2];
-                cout << "vel " << jj << " = " << vel[jj] << endl;
-                cout << "pos[0]: " << pos[0] << endl;
-                cout << "u[" << ii << "]: " << u[ii] << endl;
+                //cout << "vel " << jj << " = " << vel[jj] << endl;
+                //cout << "pos[0]: " << pos[0] << endl;
+                //cout << "u[" << ii << "]: " << u[ii] << endl;
                 break;
             }
         }
@@ -464,31 +457,18 @@ void Jaco2::Disconnect()
     }
     
     cout << "STEP 5: Waiting for Position Verification" << endl;
-    cout << "here" << endl;
     
     ActuatorInitialized = 0;
 
-    cout << "ReadCount: " << ReadCount << endl;
-
-    cout << "ActuatorInitialized: " << ActuatorInitialized << endl;
     while (ReadCount != 1 && ActuatorInitialized < 6)
     {
-            ActuatorInitialized = 0;
-	    cout << "waiting on reply for mode switch" << endl;
-	    cout << "here1" << endl;
-	    cout << "TrajectoryMessage: " << TrajectoryMessage[0].Command << endl;
-	    cout << "packets_sent: " << packets_sent << endl;
-            cout << "writecount: " <<WriteCount << endl;
+        ActuatorInitialized = 0;
 	    MyRS485_Write(TrajectoryMessage, packets_sent, WriteCount);
-	    cout << "here2" << endl;
 	    usleep(delay);
 	    MyRS485_Read(ReceiveInitMessage, packets_read, ReadCount);
 
-	    cout << "here3" << endl;
-	    
 	    for (int jj=0; jj<6; jj++)
 	    {
-	        cout << "here4" << endl;
 	        for (int ii=0; ii<18; ii++)
 	        {
 	            if (ReceiveInitMessage[ii].SourceAddress == joint[jj] &&

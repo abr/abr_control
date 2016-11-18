@@ -26,19 +26,19 @@ class robot_config(robot_config.robot_config):
         self.rest_angles = np.array([0, 0, 0, 0, 0, 0])
 
         # create the inertia matrices for each link of the kinova jaco2
-        self._M.append(np.diag([0.5, 0.5, 0.5,
+        self._M.append(np.diag([0.64, 0.64, 0.64,
                                 0.01, 0.01, 0.01]))  # link0
-        self._M.append(np.diag([0.5, 0.5, 0.5,
+        self._M.append(np.diag([0.6, 0.6, 0.6,
                                 0.04, 0.04, 0.04]))  # link1
-        self._M.append(np.diag([0.5, 0.5, 0.5,
+        self._M.append(np.diag([0.57, 0.57, 0.57,
                                 0.04, 0.04, 0.04]))  # link2
-        self._M.append(np.diag([0.5, 0.5, 0.5,
+        self._M.append(np.diag([0.6, 0.6, 0.6,
                                 0.04, 0.04, 0.04]))  # link3
-        self._M.append(np.diag([0.5, 0.5, 0.5,
+        self._M.append(np.diag([0.37, 0.37, 0.37,
                                 0.04, 0.04, 0.04]))  # link4
-        self._M.append(np.diag([0.25, 0.25, 0.25,
+        self._M.append(np.diag([0.37, 0.37, 0.37,
                                 0.04, 0.04, 0.04]))  # link5
-        self._M.append(np.diag([0.25, 0.25, 0.25,
+        self._M.append(np.diag([1.05, 1.05, 1.05,
                                 0.04, 0.04, 0.04]))  # link6
 
         # segment lengths associated with each joint [m]

@@ -15,6 +15,7 @@ class interface(interface.interface):
         self.jaco2 = jaco2_rs485.pyJaco2()
 
     def connect(self):
+        # TODO: send arm to home position before calling initforcemode
         """ All initial setup. """
         self.jaco2.Connect()
         self.jaco2.InitForceMode()
@@ -25,7 +26,12 @@ class interface(interface.interface):
         self.jaco2.Disconnect()
 
     def apply_u(self, u):
-        """ Applies the set of torques u to the arm."""
+        """ Applies the set of torques u to the arm.
+
+        NOTE: if a torque is not applied every 200ms then
+        the arm reverts back to position control and the
+        InitForceMode function must be called again.
+        """
         self.jaco2.ApplyU(u)
 
     def get_feedback(self):
