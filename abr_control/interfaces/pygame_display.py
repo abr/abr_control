@@ -103,6 +103,8 @@ class display():
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.mouse_x, self.mouse_y = pygame.mouse.get_pos()
+                self.circles[0][0] = self.mouse_x
+                self.circles[0][1] = self.mouse_y
 
         pygame.display.update()
         self.fpsClock.tick(self.fps)
