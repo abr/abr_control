@@ -13,7 +13,7 @@ class controller:
         self.target_state = None  # for tracking target changes
 
     def control(self, q, target_state, n_timesteps=200,
-                endpoint_name='EE', **kwargs):
+                ee_name='EE', **kwargs):
         """ Generates the control signal.
         The trajectory controller checks to see if the target has changed,
         if it has, it generates a new desired trajectory that moves the system
@@ -32,7 +32,7 @@ class controller:
             # generate a new desired trajectory
             self.trajectory = np.zeros((n_timesteps, 6))
             # generate desired positions
-            xyz = self.controller.robot_config.T(endpoint_name, q)
+            xyz = self.controller.robot_config.T(ee_name, q)
             for ii in range(3):
                 self.trajectory[:, ii] = np.linspace(xyz[ii],
                                                      target_state[ii],

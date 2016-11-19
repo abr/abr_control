@@ -138,7 +138,7 @@ class robot_config(robot_config.robot_config):
         """
 
         if name == 'link0':
-            T = np.eye(4)
+            T = sp.eye(4)
         elif name == 'joint0' or name == 'link1':
             T = self.T0org
         elif name == 'joint1':

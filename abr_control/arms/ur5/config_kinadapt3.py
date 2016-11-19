@@ -103,7 +103,6 @@ class robot_config(config_neural.robot_config):
         regenerate boolean: if True, don't use saved functions
         """
 
-        print('name in calcJ: ', name)
         # get the transform using the cos and sin matrices defined above
         J = super(robot_config, self)._calc_J(
             name=name, x=x, lambdify=False, regenerate=regenerate)

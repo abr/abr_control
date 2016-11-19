@@ -1,9 +1,10 @@
 import numpy as np
+import scipy
 
 try:
     import nengo
 except ImportError:
-    print('Nengo module needs to be installed to use this controller.')
+    print('Nengo module needs to be installed to use adaptive dynamics.')
 
 nengo_ocl = None
 # try:
@@ -11,18 +12,44 @@ nengo_ocl = None
 # except ImportError:
 #     print('Nengo OCL not installed, simulation will be slower.')
 
-from . import osc
-from .keeplearningsolver import KeepLearningSolver
+from abr_control.utils.keeplearningsolver import KeepLearningSolver
+
+class AreaIntercepts(nengo.dists.Distribution):
+    """ A Nengo distribution for distributing intercepts more effectively
+    in high-dimensional spaces, such that they are spread out to be more
+    evenly active throughout the state space. """
+    dimensions = nengo.params.NumberParam('dimensions')
+    base = nengo.dists.DistributionParam('base')
+
+    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
+        super(AreaIntercepts, self).__init__()
+        self.dimensions = dimensions
+        self.base = base
+
+    def __repr(self):
+        return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions, self.base)
+
+    def transform(self, x):
+        sign = 1
+        if x > 0:
+            x = -x
+            sign = -1
+        return sign * np.sqrt(1-scipy.special.betaincinv((self.dimensions+1)/2.0, 0.5, x+1))
+
+    def sample(self, n, d=None, rng=np.random):
+        s = self.base.sample(n=n, d=d, rng=rng)
+        for i in range(len(s)):
+            s[i] = self.transform(s[i])
+        return s
 
 
-class controller(osc.controller):
-    """ Extension of the OSC controller that incorporates dynamics
-    adaptation using a Nengo model
+class Signal():
+    """ An implementation of dynamics adaptation using a Nengo model
     """
 
-    def __init__(self, robot_config,
-                 pes_learning_rate=1e-6, voja_learning_rate=1e-6,
-                 weights_file=None, encoders_file=None, **kwargs):
+    def __init__(self, robot_config, pes_learning_rate=1e-6,
+                 voja_learning_rate=1e-6, weights_file=None,
+                 encoders_file=None):
         """
         pes_learning_rate float: controls the speed of neural adaptation
                                  for training the dynamics compensation term
@@ -33,7 +60,7 @@ class controller(osc.controller):
         encoders_file string: path to file where learned encoders are saved
         """
 
-        super(controller, self).__init__(robot_config, **kwargs)
+        self.robot_config = robot_config
 
         self.u_adapt = np.zeros(self.robot_config.num_joints)
 
@@ -64,8 +91,9 @@ class controller(osc.controller):
 
             adapt_ens = nengo.Ensemble(
                 seed=10,
-                n_neurons=2000,
+                n_neurons=1000,
                 dimensions=self.robot_config.num_joints * 2,
+                intercepts=AreaIntercepts(self.robot_config.num_joints * 2),
                 radius=np.sqrt(self.robot_config.num_joints * 2) * 10)
 
             if encoders_file is not None:
@@ -105,23 +133,20 @@ class controller(osc.controller):
         else:
             self.sim = nengo.Simulator(nengo_model, dt=.001)
 
-    def control(self, q, dq, target_xyz):
+    def generate(self, q, dq, training_signal):
         """ Generates the control signal
 
         q np.array: the current joint angles
         dq np.array: the current joint velocities
-        target_xyz np.array: the current target for the end-effector
+        training_signal np.array: the learning signal to drive adaptation
         """
 
         # store local copies to feed in to the adaptive population
         self.q = q
         self.dq = dq
-
-        # generate the osc signal
-        u = super(controller, self).control(q, dq, target_xyz)
+        self.training_signal = training_signal
 
         # run the simulation to generate the adaptive signal
         self.sim.run(time_in_seconds=.001, progress_bar=False)
 
-        u += self.u_adapt
-        return u
+        return self.u_adapt
