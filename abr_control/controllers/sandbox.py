@@ -50,7 +50,11 @@ try:
         print('error: ', np.sqrt(np.sum((target_xyz - hand_xyz)**2)))
         # apply the control signal, step the sim forward
         interface.apply_u(u)
-        print('(x, y): ', interface.display.get_mousexy())
+        # TODO: THIS IS A SUPER HACK TO GET OBSTACLE POSITION
+        # TO THE CONTROLLER
+        obs_x, obs_y = interface.display.get_mousexy()
+        ctrlr.obstacles[0][0] = obs_x
+        ctrlr.obstacles[0][1] = obs_y
 
         # change target location once hand is within
         # 5mm of the target
