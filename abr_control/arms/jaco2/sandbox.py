@@ -3,7 +3,7 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for neural controllers
-robot_config = abr_control.arms.jaco2.config.robot_config()
+robot_config = abr_control.arms.ur5.config.robot_config()
 # instantiate the REACH controller for the ur5 robot
 ctrlr = abr_control.controllers.osc_robust.controller(robot_config)
 # create our VREP interface for the ur5
