@@ -18,6 +18,8 @@ interface.connect()
 q_track = []
 dq_track = []
 ee_track = []
+targets_track = []
+error_track = []
 count = 0
 target_index = 0
 at_target_count = 0
@@ -58,6 +60,8 @@ try:
         ee_track.append(hand_xyz)
         q_track.append(q)
         dq_track.append(dq)
+        targets_track.append(target_xyz)
+        error_track.append(error)
         count += 1
 
 finally:
@@ -76,6 +80,12 @@ finally:
         plt.plot(dq_track[10:])
         plt.legend(range(6))
         plt.title('Joint velocities')
+
+        plt.figure()
+        plt.plot(error_track)
+        plt.ylabel('Euclidean distance to target (m)')
+        plt.xlabel('Time steps')
+        plt.title('Error over time')
 
         ee_track = np.array(ee_track)
         targets_plot = np.ones(ee_track.shape) * target_xyz
