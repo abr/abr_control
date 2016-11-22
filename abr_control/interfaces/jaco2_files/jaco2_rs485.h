@@ -11,6 +11,8 @@
 #include "kinova-api/Kinova.API.UsbCommandLayerUbuntu.h"
 #include "kinova-api/KinovaTypes.h"
 #include <string.h>
+#include <vector>
+#include <math.h>
 
 using namespace std;
 
@@ -33,21 +35,29 @@ class Jaco2 {
     public:
         // misc variables
         int delay;
+    	int messageReceived;
+    	int messageReceived2; 
     	int ActuatorInitialized;
+    	int updated[6];
+    	int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
+    	int currentJoint;
+    	vector<string> errorMessage;
         	
         // main functions
         void Connect();
         void InitForceMode(float setTorque[6]);
+        void InitPositionMode();
         void ApplyQ(float q_target[6]);
         void ApplyU(float u[6]);
-        //void GetFeedback();//, unsigned char DESTINATION_ADDRESS, float q[6], float dq[6]);
+        void GetFeedback(int messageType);//, unsigned char DESTINATION_ADDRESS, float q[6], float dq[6]);
         void Disconnect();
+        void GetPos();
 
         // read variables
         int flag;
         bool torqueValidation;
         bool switchValidation;
-        float pos[6];
+        float pos[6]; //From Halls sensor
         float vel[6];
         bool read_input;
         int packets_sent;
@@ -76,6 +86,7 @@ class Jaco2 {
 
         // function pointers
         int (*fptrInitCommunication)();
+        int (*fptrCloseCommunication)();
         int (*MyRS485_Activate)();
         int (*MyRS485_Read)(RS485_Message*, int, int&);
         int (*MyRS485_Write)(RS485_Message*, int, int&);

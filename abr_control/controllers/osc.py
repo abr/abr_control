@@ -35,7 +35,7 @@ class controller:
         Mq = self.robot_config.Mq(q)
 
         # calculate the effect of gravity in joint space
-        Mq_g = 1.0 * self.robot_config.Mq_g(q)
+        Mq_g = self.robot_config.Mq_g(q)
 
         Mq_inv = np.linalg.inv(Mq)
         JEE_Mq_inv = np.dot(JEE, Mq_inv)
