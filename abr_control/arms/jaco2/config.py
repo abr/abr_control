@@ -9,25 +9,25 @@ from .. import robot_config
 class robot_config(robot_config.robot_config):
     """ Robot config file for the Kinova Jaco^2 V2"""
 
-    def __init__(self):
+    def __init__(self, **kwargs):
 
         super(robot_config, self).__init__(num_joints=6, num_links=7,
-                                           robot_name='jaco2')
+                                           robot_name='jaco2', **kwargs)
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
-        self.home_position = np.array([275.34, 167.39, 57.59,
-                              240.55, 82.91, 435.32], dtype="float32")
+        # Kinova Home Position
+        #self.home_position = np.array([275.0, 167.0, 57.0,
+        #                      240.0, 82.0, 75.0], dtype="float32")
+        # Straight up
+        self.home_position = np.array([90.0, 180.0, 180.0,
+                              0.0, 0.0, 0.0], dtype="float32")
         self.home_torques = np.array([-0.138, -0.116, 3.339,
                              -0.365, -0.113, 0.061], dtype="float32")
 
-        #Set joint limits
-        #self.limits_upper = None
-        #self.limits_lower = None
-
-        # for the null space controller, keep arm near these angles - currently
-        # set to the center of the limits
-        self.rest_angles = np.array([0, 140, 140, 0, 0, 0])
+        # for the null space controller, keep arm near these angles
+        # currently set to the center of the limits
+        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0, 0.0])
 
         # create the inertia matrices for each link of the kinova jaco2
         self._M.append(np.diag([0.64, 0.64, 0.64,
@@ -45,7 +45,7 @@ class robot_config(robot_config.robot_config):
         self._M.append(np.diag([0.37, 0.37, 0.37,
                                 0.04, 0.04, 0.04]))  # link6
         #self._M.append(np.diag([1.05, 1.05, 1.05,
-        #                        0.04, 0.04, 0.04]))  # link6 with hand                        
+        #                        0.04, 0.04, 0.04]))  # link6 with hand
 
         # segment lengths associated with each joint [m]
         # [x, y, z],  Ignoring lengths < 1e-04
@@ -230,20 +230,20 @@ class robot_config(robot_config.robot_config):
                               [0, 0, 1],  # joint 3 rotates around z axis
                               [0, 0, 1],  # joint 4 rotates around z axis
                               [0, 0, 1]]  # joint 5 rotates around z axis"""
-                              
+
         """self.J_orientation = [[0, 10, 0],  # joint 0 rotates around y axis
                               [0, 0, 8],  # joint 1 rotates around z axis
                               [0, 8, 0],  # joint 2 rotates around y axis
                               [0, 8, 8],  # joint 3 rotates around z axis
                               [0, 8, 8],  # joint 4 rotates around z axis
                               [0, 0, 8]]  # joint 5 rotates around z axis"""
-                              
+
         self.J_orientation = [[0, 0, 1],  # joint 0 rotates around y axis
                               [0, 0, 1],  # joint 1 rotates around z axis
                               [0, 0, 1],  # joint 2 rotates around y axis
                               [0, 0, 1],  # joint 3 rotates around z axis
                               [0, 0, 1],  # joint 4 rotates around z axis
-                              [0, 0, 1]]  # joint 5 rotates around z axis                              
+                              [0, 0, 1]]  # joint 5 rotates around z axis
 
     def _calc_T(self, name, lambdify=True): #, regenerate=False):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
@@ -253,66 +253,46 @@ class robot_config(robot_config.robot_config):
                           matrix
         """
 
+        # ---- Joint Transforms ----
+        if name == 'joint0':
+            T = self.T0org
+        elif name == 'joint1':
+            T = self.T0org * self.T10a * self.T10b
+        elif name == 'joint2':
+            T = self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+        elif name == 'joint3':
+            T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                    * self.T32a * self.T32b)
+        elif name == 'joint4':
+            T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                    * self.T32a * self.T32b * self.T43b * self.T43a)
+        elif name == 'joint5':
+            T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                    * self.T32a * self.T32b * self.T43b * self.T43a * self.T54b
+                    * self.T54a)
+        elif name == 'EE' or name == 'link6':
+            T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                    * self.T32a * self.T32b * self.T43b * self.T43a * self.T54b
+                    * self.T54a * self.TEE5)
 
-        # check to see if we have our transformation saved in file
-        if os.path.isfile('%s/%s.T' % (self.config_folder, name)):
-            Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
-                                       'rb'))
-        #if (regenerate is False and
-        #        os.path.isfile('%s/%s.T' % (self.config_folder, name))):
-        #    Tx = cloudpickle.load(open('%s/%s.T' % (self.config_folder, name),
-        #                               'rb'))
+        # ---- COM Transforms ----
+        elif name == 'link0':
+            T = self.Tl0org
+        elif name == 'link1':
+            T = self.T0org * self.T10a * self.Tl10
+        elif name == 'link2':
+            T = self.T0org * self.T10a * self.T10b * self.T21a * self.Tl21
+        elif name == 'link3':
+            T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                    * self.T32a * self.Tl32)
+        elif name == 'link4':
+            T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                    * self.T32a * self.T32b * self.Tl43)
+        elif name == 'link5':
+            T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                    *self.T32a * self.T32b * self.T43b * self.T43a * self.Tl54)
 
-        # TODO:
         else:
-            # ---- Joint Transforms ----
-            if name == 'joint0':
-                T = self.T0org
-            elif name == 'joint1':
-                T = self.T0org * self.T10a * self.T10b
-            elif name == 'joint2':
-                T = self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
-            elif name == 'joint3':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
-                     * self.T32a * self.T32b)
-            elif name == 'joint4':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
-                     * self.T32a * self.T32b * self.T43b * self.T43a)
-            elif name == 'joint5':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
-                     * self.T32a * self.T32b * self.T43b * self.T43a * self.T54b
-                     * self.T54a)
-            elif name == 'EE' or name == 'link6':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
-                     * self.T32a * self.T32b * self.T43b * self.T43a * self.T54b
-                     * self.T54a * self.TEE5)
+            raise Exception('Invalid transformation name: %s' % name)
 
-            # ---- COM Transforms ----
-            elif name == 'link0':
-                T = self.Tl0org
-            elif name == 'link1':
-                T = self.T0org * self.T10a * self.Tl10
-            elif name == 'link2':
-                T = self.T0org * self.T10a * self.T10b * self.T21a * self.Tl21
-            elif name == 'link3':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
-                     * self.T32a * self.Tl32)
-            elif name == 'link4':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
-                     * self.T32a * self.T32b * self.Tl43)
-            elif name == 'link5':
-                T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
-                     *self.T32a * self.T32b * self.T43b * self.T43a * self.Tl54)
-
-            else:
-                raise Exception('Invalid transformation name: %s' % name)
-            # convert from transform matrix to (x,y,z)
-            Tx = sp.simplify(T * self.x)
-
-            # save to file
-            cloudpickle.dump(Tx, open('%s/%s.T' % (self.config_folder, name),
-                                      'wb'))
-
-        if lambdify is False:
-            return Tx
-        return sp.lambdify(self.q, Tx)
+        return T

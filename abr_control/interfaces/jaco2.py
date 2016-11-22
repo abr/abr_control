@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-import jaco2_files.jaco2_rs485 as jaco2_rs485
+from .jaco2_files import jaco2_rs485
 from abr_control.interfaces import interface
 
 class interface(interface.interface):
@@ -19,13 +19,16 @@ class interface(interface.interface):
         # TODO: send arm to home position before calling initforcemode
         """ All initial setup. """
         self.jaco2.Connect()
-        #self.jaco2.ApplyQ(self.robot_config.home_position)
+        #self.jaco2.Disconnect()
+        #for ii in range(1000):
         #print('Moving to home position')
+        #self.jaco2.ApplyQ(self.robot_config.home_position)
         #time.sleep(5)
         #print('Switching to force mode')
-        self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
+        #self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
         #self.jaco2.InitForceMode(np.array([
-        #    0.95, 11.2, -1.68, -0.18, 0.03, 0.15], dtype="float32")) #self.robot_config.home_torques)
+            #0.0, 0.0, 7, 0.0, 0.0, 0.0], dtype="float32"))
+            #0.95, 11.2, 0.0, -0.18, 0.03, 0.15], dtype="float32")) #self.robot_config.home_torques)
 
     def disconnect(self):
         """ Any socket closing etc that must be done
@@ -45,4 +48,29 @@ class interface(interface.interface):
         """ Returns a dictionary of relevant feedback to the
         controller. At very least this contains q, dq.
         """
+        return self.jaco2.GetFeedback()
+
+    def apply_q(self):
+        # joint control of arm
+        #self.jaco2.ApplyQ(self.robot_config.home_position)
+        self.jaco2.ApplyQ(np.array([250.0, 180.0, 180.0, 270.0, 0.0, 0.0], dtype="float32"))
+
+    def init_force_mode(self):
+        #switch from position to torque mode
+        #self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
+        
+        #2lb weight
+        self.jaco2.InitForceMode(np.array([
+            0.4, -1.8, 4.0, 0.0, 0.0, 0.0], dtype="float32"))
+        
+        #3lb weight
+        #self.jaco2.InitForceMode(np.array([
+        #    0.9, -2.4, 1.9, 0.0, 0.0, 0.0], dtype="float32"))
+
+    def init_position_mode(self):
+        #switch from position to torque mode
+        self.jaco2.InitPositionMode()
+    
+    def get_pos(self):
+        #get position of 6 servos
         return self.jaco2.GetFeedback()
