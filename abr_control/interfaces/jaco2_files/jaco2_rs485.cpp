@@ -70,7 +70,8 @@ int main()
     float us[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
     
     j2.Connect(); 
-    j2.InitForceMode();
+    float setTorque[6] = {-0.138, -0.116, 3.339, -0.365, -0.113, 0.061};
+    j2.InitForceMode(setTorque);
     
     for (int i = 0; i<2000; i++)
     {
@@ -157,7 +158,45 @@ void Jaco2::Connect()
 	}
 }
 
-void Jaco2::InitForceMode()
+void Jaco2::ApplyQ(float q_target[6])
+{
+    // TO DO: FIX THIS
+    // Step 1: set to home position
+    for (int ii=0; ii<6; ii++)
+    {
+        TrajectoryMessage[ii].Command =
+            RS485_MSG_SEND_POSITION_AND_TORQUE_COMMAND;
+        TrajectoryMessage[ii].SourceAddress = SOURCE_ADDRESS;
+        TrajectoryMessage[ii].DestinationAddress = joint[ii];//DESTINATION_ADDRESS;
+        //32F position command [deg]
+        TrajectoryMessage[ii].DataFloat[0] = q_target[ii];
+        TrajectoryMessage[ii].DataFloat[1] = q_target[ii]; //0x00000000; //not used
+        TrajectoryMessage[ii].DataLong[2] = 0x0;//u[ii]; //32F torque command [1Nm]
+        TrajectoryMessage[ii].DataLong[3] = 0x00000000;//((unsigned long) torqueDamping |
+            //((unsigned long) controlMode << 8) |
+            //((unsigned long) torqueKp << 16)); //U16|U8|U8
+    }
+    
+    MyRS485_Write(TrajectoryMessage, packets_sent, WriteCount);
+    usleep(delay);
+    MyRS485_Read(ReceiveInitMessage, packets_read, ReadCount);
+
+    for (int jj = 0; jj < 6; jj++)
+    {
+        for (int ii = 0; ii < packets_read; ii++) {
+            ii = ii;
+            if (ReceiveInitMessage[ii].SourceAddress == joint[jj]) {
+                pos[jj] = ReceiveInitMessage[ii].DataFloat[1];
+                vel[jj] = ReceiveInitMessage[ii].DataFloat[2];
+                //cout << "vel " << jj << " = " << vel[jj] << endl;
+                cout << "pos[0]: " << pos[0] << endl;
+                //cout << "u[" << ii << "]: " << u[ii] << endl;
+                break;
+            }
+        }
+    }
+}
+void Jaco2::InitForceMode(float setTorque[6])
 {
     // ========== BEGIN MAIN COMM ==========
     // STEP 0: Get initial position    
@@ -267,6 +306,7 @@ void Jaco2::InitForceMode()
     // STEP 2: Validate the torque command
 
     torqueValidation = false;
+    //float setTorque[6] = {-0.138, -0.116, 3.339, -0.365, -0.113, 0.061};
     for (int ii=0; ii<6; ii++)
     {
     //send position and torque command
@@ -274,7 +314,7 @@ void Jaco2::InitForceMode()
         TrajectoryMessage[ii].SourceAddress = SOURCE_ADDRESS;
         TrajectoryMessage[ii].DestinationAddress = joint[ii];//DESTINATION_ADDRESS;
         //32F torque command to be tested [Nm]
-        TrajectoryMessage[ii].DataFloat[0] = 0;
+        TrajectoryMessage[ii].DataFloat[0] = setTorque[ii];//0;
         TrajectoryMessage[ii].DataLong[1] = 0x00000000; //not used
         TrajectoryMessage[ii].DataFloat[2] = 0x00000000; //not used
         TrajectoryMessage[ii].DataLong[3] = 0x00000000; //not used

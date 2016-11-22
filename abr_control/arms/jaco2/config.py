@@ -16,6 +16,10 @@ class robot_config(robot_config.robot_config):
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
+        self.home_position = np.array([275.34, 167.39, 57.59,
+                              240.55, 82.91, 435.32], dtype="float32")
+        self.home_torques = np.array([-0.138, -0.116, 3.339,
+                             -0.365, -0.113, 0.061], dtype="float32")
 
         #Set joint limits
         #self.limits_upper = None
@@ -23,7 +27,7 @@ class robot_config(robot_config.robot_config):
 
         # for the null space controller, keep arm near these angles - currently
         # set to the center of the limits
-        self.rest_angles = np.array([0, 0, 0, 0, 0, 0])
+        self.rest_angles = np.array([0, 140, 140, 0, 0, 0])
 
         # create the inertia matrices for each link of the kinova jaco2
         self._M.append(np.diag([0.64, 0.64, 0.64,
@@ -38,8 +42,10 @@ class robot_config(robot_config.robot_config):
                                 0.04, 0.04, 0.04]))  # link4
         self._M.append(np.diag([0.37, 0.37, 0.37,
                                 0.04, 0.04, 0.04]))  # link5
-        self._M.append(np.diag([1.05, 1.05, 1.05,
+        self._M.append(np.diag([0.37, 0.37, 0.37,
                                 0.04, 0.04, 0.04]))  # link6
+        #self._M.append(np.diag([1.05, 1.05, 1.05,
+        #                        0.04, 0.04, 0.04]))  # link6 with hand                        
 
         # segment lengths associated with each joint [m]
         # [x, y, z],  Ignoring lengths < 1e-04
@@ -122,8 +128,11 @@ class robot_config(robot_config.robot_config):
         # Did transform in reverse order to simplify math
         self.T43a = sp.Matrix([
             [1, 0, 0, 0],
-            [0, sp.cos(0.959931), sp.sin(0.959931), 0],
-            [0, -sp.sin(0.959931), sp.cos(0.959931), 0],
+            #[0, sp.cos(0.959931), sp.sin(0.959931), 0],
+            #[0, -sp.sin(0.959931), sp.cos(0.959931), 0],
+            # NOTE: switching from 55 to 60
+            [0, sp.cos(1.047), sp.sin(1.047), 0],
+            [0, -sp.sin(1.047), sp.cos(1.047), 0],
             [0, 0, 0, 1]])
 
         self.T43b = sp.Matrix([
@@ -137,8 +146,11 @@ class robot_config(robot_config.robot_config):
         # transform matrix from joint 4 to joint 5
         self.T54a = sp.Matrix([
             [1, 0, 0, 0],
-            [0, sp.cos(0.959931), sp.sin(0.959931), 0],
-            [0, -sp.sin(0.959931), sp.cos(0.959931), 0],
+            #[0, sp.cos(0.959931), sp.sin(0.959931), 0],
+            #[0, -sp.sin(0.959931), sp.cos(0.959931), 0],
+            # NOTE: switching from 55 to 60
+            [0, sp.cos(1.047), sp.sin(1.047), 0],
+            [0, -sp.sin(1.047), sp.cos(1.047), 0],
             [0, 0, 0, 1]])
 
         self.T54b = sp.Matrix([
@@ -212,12 +224,26 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # orientation part of the Jacobian (compensating for orientations)
-        self.J_orientation = [[0, 1, 0],  # joint 0 rotates around y axis
+        """self.J_orientation = [[0, 1, 0],  # joint 0 rotates around y axis
                               [0, 0, 1],  # joint 1 rotates around z axis
                               [0, 1, 0],  # joint 2 rotates around y axis
                               [0, 0, 1],  # joint 3 rotates around z axis
                               [0, 0, 1],  # joint 4 rotates around z axis
-                              [0, 0, 1]]  # joint 5 rotates around z axis
+                              [0, 0, 1]]  # joint 5 rotates around z axis"""
+                              
+        """self.J_orientation = [[0, 10, 0],  # joint 0 rotates around y axis
+                              [0, 0, 8],  # joint 1 rotates around z axis
+                              [0, 8, 0],  # joint 2 rotates around y axis
+                              [0, 8, 8],  # joint 3 rotates around z axis
+                              [0, 8, 8],  # joint 4 rotates around z axis
+                              [0, 0, 8]]  # joint 5 rotates around z axis"""
+                              
+        self.J_orientation = [[0, 0, 1],  # joint 0 rotates around y axis
+                              [0, 0, 1],  # joint 1 rotates around z axis
+                              [0, 0, 1],  # joint 2 rotates around y axis
+                              [0, 0, 1],  # joint 3 rotates around z axis
+                              [0, 0, 1],  # joint 4 rotates around z axis
+                              [0, 0, 1]]  # joint 5 rotates around z axis                              
 
     def _calc_T(self, name, lambdify=True): #, regenerate=False):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link

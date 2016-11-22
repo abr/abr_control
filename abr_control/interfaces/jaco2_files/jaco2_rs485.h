@@ -37,7 +37,8 @@ class Jaco2 {
         	
         // main functions
         void Connect();
-        void InitForceMode();
+        void InitForceMode(float setTorque[6]);
+        void ApplyQ(float q_target[6]);
         void ApplyU(float u[6]);
         //void GetFeedback();//, unsigned char DESTINATION_ADDRESS, float q[6], float dq[6]);
         void Disconnect();

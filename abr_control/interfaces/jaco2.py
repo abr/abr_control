@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 import jaco2_files.jaco2_rs485 as jaco2_rs485
 from abr_control.interfaces import interface
@@ -18,7 +19,13 @@ class interface(interface.interface):
         # TODO: send arm to home position before calling initforcemode
         """ All initial setup. """
         self.jaco2.Connect()
-        self.jaco2.InitForceMode()
+        #self.jaco2.ApplyQ(self.robot_config.home_position)
+        #print('Moving to home position')
+        #time.sleep(5)
+        #print('Switching to force mode')
+        self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
+        #self.jaco2.InitForceMode(np.array([
+        #    0.95, 11.2, -1.68, -0.18, 0.03, 0.15], dtype="float32")) #self.robot_config.home_torques)
 
     def disconnect(self):
         """ Any socket closing etc that must be done
