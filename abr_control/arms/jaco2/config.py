@@ -16,8 +16,12 @@ class robot_config(robot_config.robot_config):
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
-        self.home_position = np.array([275.34, 167.39, 57.59,
-                              240.55, 82.91, 435.32], dtype="float32")
+        # Kinova Home Position
+        #self.home_position = np.array([275.0, 167.0, 57.0,
+        #                      240.0, 82.0, 75.0], dtype="float32")
+        # Straight up
+        self.home_position = np.array([90.0, 180.0, 180.0,
+                              0.0, 0.0, 0.0], dtype="float32")
         self.home_torques = np.array([-0.138, -0.116, 3.339,
                              -0.365, -0.113, 0.061], dtype="float32")
 

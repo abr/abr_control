@@ -14,6 +14,8 @@ ctrlr.control(np.zeros(6), np.zeros(6), target_state=np.zeros(6))
 # create our VREP interface for the ur5
 interface = abr_control.interfaces.jaco2.interface(robot_config)
 interface.connect()
+interface.apply_q()
+interface.init_force_mode()
 
 q_track = []
 dq_track = []
@@ -66,6 +68,7 @@ try:
 
 finally:
     interface.disconnect()
+    interface.apply_q()
 
     if count > 0:
         import matplotlib.pyplot as plt
