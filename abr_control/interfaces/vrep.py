@@ -57,7 +57,7 @@ class interface(interface.interface):
                               self.robot_config.joint_names]
 
         # get handle for target and set up streaming
-        _, self.target_handle = \
+        _, self.misc_handles['target'] = \
             vrep.simxGetObjectHandle(self.clientID,
                                      'target',
                                      vrep.simx_opmode_blocking)
@@ -192,14 +192,24 @@ class interface(interface.interface):
             vrep.simx_opmode_blocking)
         return xyz
 
-    def set_target(self, xyz):
-        """ Set the position of the target object.
+    def set_xyz(self, name, xyz):
+        """ Set the position of an object in the environment.
 
+        name string: the name of the object
         xyz np.array: the [x,y,z] location of the target (in meters)
         """
+
+        if self.misc_handles.get(name, None) is None:
+            # if we haven't retrieved the handle previously
+            # get the handle and set up streaming
+            _, self.misc_handles[name] = \
+                vrep.simxGetObjectHandle(self.clientID,
+                                         name,
+                                         vrep.simx_opmode_blocking)
+
         vrep.simxSetObjectPosition(
             self.clientID,
-            self.target_handle,
+            self.misc_handles[name],
             -1,  # set absolute, not relative position
             xyz,
             vrep.simx_opmode_blocking)

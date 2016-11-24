@@ -101,10 +101,10 @@ class controller:
             v = np.array(obstacle[:3])
 
             # find the closest point of each link to the obstacle
-            for ii in range(self.robot_config.num_links):
+            for ii in range(self.robot_config.num_joints):
                 # get the start and end-points of the arm segment
                 p1 = self.robot_config.Tx('joint%i' % ii, q=q)
-                if ii == self.robot_config.num_links - 1:
+                if ii == self.robot_config.num_joints - 1:
                     p2 = self.robot_config.Tx('EE', q=q)
                 else:
                     p2 = self.robot_config.Tx('joint%i' % (ii + 1), q=q)
@@ -114,27 +114,27 @@ class controller:
                 vec_line = p2 - p1
                 # the vector from the obstacle to the first line point
                 vec_ob_line = v - p1
-                # calculate the normalized angle between these two lines
-                angle = np.dot(vec_ob_line, vec_line) / np.sum((vec_line)**2)
-                if angle < 0:
+                # calculate the projection normalized by length of arm segment
+                projection = np.dot(vec_ob_line, vec_line) / np.sum((vec_line)**2)
+                if projection < 0:
                     # then closest point is the start of the segment
                     closest = p1
-                elif angle > 1:
+                elif projection > 1:
                     # then closest point is the end of the segment
                     closest = p2
                 else:
-                    closest = p1 + angle * vec_line
+                    closest = p1 + projection * vec_line
                 # calculate distance from obstacle vertex to the closest point
                 dist = np.sqrt(np.sum((v - closest)**2))
                 # account for size of obstacle
-                ro = dist - obstacle[3]
+                rho = dist - obstacle[3]
 
-                if ro < self.threshold:
+                if rho < self.threshold:
 
-                    eta = .2  # feel like i saw 4 somewhere in the paper
-                    drodx = (v - closest) / ro
-                    Fpsp = (eta * (1.0/ro - 1.0/self.threshold) *
-                            1.0/ro**2 * drodx)
+                    eta = .02  # feel like i saw 4 somewhere in the paper
+                    drhodx = (v - closest) / rho
+                    Fpsp = (eta * (1.0/rho - 1.0/self.threshold) *
+                            1.0/rho**2 * drhodx)
 
                     # get offset of closest point from link's reference frame
                     T_inv = self.robot_config.T_inv('link%i' % ii, q=q)
@@ -156,7 +156,7 @@ class controller:
                     Mxpsp = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
                     u_psp = -np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
-                    if ro < .01:
+                    if rho < .01:
                         u = u_psp
                     else:
                         u += u_psp
