@@ -11,61 +11,54 @@ interface = abr_control.interfaces.maplesim.interface(
     robot_config, dt=.001)
 interface.connect()
 
-# # instantiate the REACH controller
-np.random.seed(17)
-obstacles = [
-    [.5, 2, 0, .2],
-    [-1, .6, 0, .2]]
-for obstacle in obstacles:
-    # add obstacle to display
-    interface.display.add_circle(
-        xyz=obstacle[:3], radius=obstacle[3])
+ctrlr = abr_control.controllers.osc.controller(
+    robot_config, kp=100, vmax=10)
+avoid = abr_control.controllers.signals.avoid_obstacles.Signal(
+    robot_config, threshold=1)
 
-ctrlr = abr_control.controllers.osc_obstacles.controller(
-    robot_config, kp=100, vmax=10, obstacles=obstacles, threshold=1)
+# create an obstacle
+interface.display.add_circle(xyz=[0, 0, 0], radius=.2)
 
 # create a target
-targets_xyz = [
-    [0, 2, 0],
-    [.5, 2, 0],
-    [-.5, 2, 0]]
-target_xyz = targets_xyz[0]
+target_xyz = [0, 2, 0]
+interface.set_target(target_xyz)
 
 # set up lists for tracking data
 ee_path = []
 target_path = []
 
+print('Click to move the obstacle.')
 try:
-    num_targets = -1
-    while num_targets < len(targets_xyz):
+    while 1:
         # get arm feedback from VREP
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('joint1', feedback['q'])
-        # generate a control signal
-        u = ctrlr.control(
+        hand_xyz = robot_config.Tx('EE', feedback['q'])
+
+        if target_xyz is not None:
+            # generate an operational space control signal
+            u = ctrlr.control(
+                q=feedback['q'],
+                dq=feedback['dq'],
+                target_state=np.hstack(
+                    [target_xyz, np.zeros(3)]))
+        # add in obstacle avoidance
+        obs_x, obs_y = interface.display.get_mousexy()
+        u += avoid.generate(
             q=feedback['q'],
-            dq=feedback['dq'],
-            target_state=np.hstack(
-                [target_xyz, np.zeros(3)]))
-        print('error: ', np.sqrt(np.sum((target_xyz - hand_xyz)**2)))
+            obstacles=[[obs_x, obs_y, 0, .2]])
+
         # apply the control signal, step the sim forward
         interface.apply_u(u)
-        # TODO: THIS IS A SUPER HACK TO GET OBSTACLE POSITION
-        # TO THE CONTROLLER
-        obs_x, obs_y = interface.display.get_mousexy()
-        ctrlr.obstacles[0][0] = obs_x
-        ctrlr.obstacles[0][1] = obs_y
 
         # change target location once hand is within
         # 5mm of the target
-        if (num_targets < 0 or
-                np.sqrt(np.sum((target_xyz - hand_xyz)**2)) < .005):
-            target_xyz = targets_xyz[num_targets]
+        if (np.sqrt(np.sum((target_xyz - hand_xyz)**2)) < .005):
+            target_xyz = np.array([
+                np.random.random() * 2 - 1,
+                np.random.random() * 2,
+                0])
             # update the position of the target sphere in VREP
             interface.set_target(target_xyz)
-            num_targets += 1
-            print('Reaching to target %i' % num_targets)
-            print(target_xyz)
 
         # track data
         ee_path.append(np.copy(hand_xyz))
@@ -74,14 +67,3 @@ try:
 finally:
     # stop and reset the VREP simulation
     interface.disconnect()
-    # # generate a 3D plot of the trajectory taken
-    # abr_control.utils.plotting.plot_trajectory(
-    #     ee_path=ee_path,
-    #     target_path=target_path)
-    #
-    # import matplotlib.pyplot as plt
-    # plt.plot(np.sqrt(np.sum((np.array(target_path) -
-    #                          np.array(ee_path))**2, axis=1)))
-    # plt.ylabel('Error (m)')
-    # plt.xlabel('Time (ms)')
-    # plt.show()

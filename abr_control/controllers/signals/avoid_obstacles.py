@@ -16,6 +16,8 @@ class Signal():
         q np.array: the current joint angles
         """
 
+        u_psp = np.zeros(self.robot_config.num_joints)
+
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
 
