@@ -1,7 +1,6 @@
 """ This version of the REACH controller uses q and modulo math to
 keep the angles in bounds. """
 
-import itertools
 import numpy as np
 
 try:
@@ -14,8 +13,6 @@ try:
     import nengo_ocl
 except ImportError:
     print('Nengo OCL not installed, simulation will be slower.')
-
-from .keeplearningsolver import KeepLearningSolver
 
 
 class controller:
@@ -31,7 +28,7 @@ class controller:
 
         self.dq = np.zeros(self.robot_config.num_joints)
 
-        self.target = np.zeros(3)
+        self.target_state = np.zeros(6)
 
         dim = self.robot_config.num_joints
         self.model = nengo.Network('REACH', seed=5)
@@ -46,7 +43,7 @@ class controller:
                 q = ((self.q + np.pi) % (np.pi*2)) - np.pi
                 return np.hstack([self.robot_config.scaledown('q', q),
                                   self.robot_config.scaledown('dq', self.dq),
-                                  self.target - self.xyz])
+                                  self.target_state[:3] - self.xyz])
             feedback_node = nengo.Node(output=get_feedback, size_out=dim*2 + 3)
 
             def set_output(t, x):
@@ -54,7 +51,6 @@ class controller:
             output_node = nengo.Node(output=set_output, size_in=dim)
 
             CB = nengo.Ensemble(**self.robot_config.CB)
-            # CB_adapt = nengo.Ensemble(**self.robot_config.CB_adapt)
             M1 = nengo.Ensemble(**self.robot_config.M1)
 
             # create relay
@@ -164,18 +160,6 @@ class controller:
                              function=gen_Mq_g,
                              transform=-1)
 
-            # # ---------------- set up adaptive bias -------------------
-            # print('applying adaptive bias...')
-            # # set up learning, with initial output the zero vector
-            # nengo.Connection(feedback_node[:dim*2], CB_adapt,
-            #                  learning_rule_type=nengo.Voja(learning_rate=1e-3))
-            # CB_adapt_conn = nengo.Connection(CB_adapt, output_node,
-            #                                  function=lambda x: np.zeros(dim),
-            #                                  learning_rule_type=nengo.PES(
-            #                                      learning_rate=1e-4))
-            # nengo.Connection(u_relay, CB_adapt_conn.learning_rule,
-            #                  transform=-1)
-
         print('building REACH model...')
         if nengo_ocl is not None:
             self.sim = nengo_ocl.Simulator(self.model, dt=.001)
@@ -183,18 +167,19 @@ class controller:
             self.sim = nengo.Simulator(self.model, dt=.001)
         print('building complete...')
 
-    def control(self, q, dq, target_xyz):
+    def control(self, q, dq, target_state, ee_name='EE'):
         """ Generates the control signal
         q np.array: the current joint angles
         dq np.array: the current joint velocities
-        target_xyz np.array: the current target for the end-effector
+        target_state np.array: the target (x,y,z) position and
+                               velocity for the end-effector
         """
 
         # store local copies to feed in to the adaptive population
         self.q = q
         self.dq = dq
-        self.target = target_xyz
-        self.xyz = self.robot_config.T('EE', q)
+        self.target_state = target_state
+        self.xyz = self.robot_config.T(ee_name, q)
         # run the simulation to generate the control signal
         self.sim.run(time_in_seconds=.001, progress_bar=False)
 
