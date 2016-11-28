@@ -7,6 +7,7 @@ cdef extern from "jaco2_rs485.h":
         # main functions
         void Connect()
         void InitForceMode(float expected_torques[6])
+        void InitPositionMode()
         void ApplyQ(float target_q[6])
         void ApplyU(float u[6])
         void Disconnect()
@@ -31,6 +32,9 @@ cdef class pyJaco2:
     def InitForceMode(self, np.ndarray[float, mode="c"] expected_torques):
         self.thisptr.InitForceMode(&expected_torques[0])
     
+    def InitPositionMode(self):
+        self.thisptr.InitPositionMode()
+
     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):
         self.thisptr.ApplyQ(&target_q[0])
     

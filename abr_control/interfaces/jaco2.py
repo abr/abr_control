@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-import jaco2_files.jaco2_rs485 as jaco2_rs485
+from .jaco2_files import jaco2_rs485
 from abr_control.interfaces import interface
 
 class interface(interface.interface):
@@ -49,14 +49,19 @@ class interface(interface.interface):
         controller. At very least this contains q, dq.
         """
         return self.jaco2.GetFeedback()
-    
+
     def apply_q(self):
-        # joint control of arm 
+        # joint control of arm
         #self.jaco2.ApplyQ(self.robot_config.home_position)
-        self.jaco2.ApplyQ(np.array([250.0, 180.0, 180.0, 270.0, 0.0, 0.0], dtype="float32")) 
+        self.jaco2.ApplyQ(np.array([250.0, 180.0, 180.0, 270.0, 0.0, 0.0], dtype="float32"))
+
     def init_force_mode(self):
         #switch from position to torque mode
-        self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
-        #self.jaco2.InitForceMode(np.array([
-            #0.0, 0.0, 3.0, 0.0, 0.0, 0.0], dtype="float32"))
+        #self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
+        self.jaco2.InitForceMode(np.array([
+            0.4, -1.8, 4.0, 0.0, 0.0, 0.0], dtype="float32"))
             #0.95, 11.2, 0.0, -0.18, 0.03, 0.15], dtype="float32")) #self.robot_config.home_torques)
+
+    def init_position_mode(self):
+        #switch from position to torque mode
+        self.jaco2.InitPositionMode()

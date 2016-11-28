@@ -63,10 +63,6 @@ class controller:
         u_xyz = -self.kv * (dx - target_state[3:] -
                             np.clip(sat / scale, 0, 1) *
                             -lamb * scale * x_tilde)
-        # u_xyz = -self.kv * (dx - target_state[3:] -
-        #                     np.clip(self.vmax / (lamb * np.abs(x_tilde)),
-        #                             0, 1) * -lamb * x_tilde)
-        # u_xyz = -self.kp * x_tilde - self.kv * dx
         u_xyz = np.dot(Mx, u_xyz)
 
         self.training_signal = np.dot(JEE.T, u_xyz)

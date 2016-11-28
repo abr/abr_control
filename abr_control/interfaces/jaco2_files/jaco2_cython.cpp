@@ -948,7 +948,7 @@ typedef npy_clongdouble __pyx_t_5numpy_clongdouble_t;
  */
 typedef npy_cdouble __pyx_t_5numpy_complex_t;
 
-/* "jaco2_cython.pyx":20
+/* "jaco2_cython.pyx":21
  * # TODO: make position control available
  * 
  * cdef class pyJaco2:             # <<<<<<<<<<<<<<
@@ -1433,10 +1433,11 @@ static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs
 static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_expected_torques); /* proto */
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8ApplyQ(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_target_q); /* proto */
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyU(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_u); /* proto */
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12Disconnect(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14GetFeedback(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8InitPositionMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyQ(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_target_q); /* proto */
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12ApplyU(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_u); /* proto */
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14Disconnect(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_16GetFeedback(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
 static PyObject *__pyx_tp_new_11jaco2_rs485_pyJaco2(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
@@ -1450,7 +1451,7 @@ static PyObject *__pyx_tuple__7;
 static PyObject *__pyx_tuple__8;
 static PyObject *__pyx_tuple__9;
 
-/* "jaco2_cython.pyx":22
+/* "jaco2_cython.pyx":23
  * cdef class pyJaco2:
  *     cdef Jaco2* thisptr # hold a C++ instance
  *     def __cinit__(self):             # <<<<<<<<<<<<<<
@@ -1479,7 +1480,7 @@ static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__cinit__", 0);
 
-  /* "jaco2_cython.pyx":23
+  /* "jaco2_cython.pyx":24
  *     cdef Jaco2* thisptr # hold a C++ instance
  *     def __cinit__(self):
  *         self.thisptr = new Jaco2()             # <<<<<<<<<<<<<<
@@ -1488,7 +1489,7 @@ static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs
  */
   __pyx_v_self->thisptr = new Jaco2();
 
-  /* "jaco2_cython.pyx":22
+  /* "jaco2_cython.pyx":23
  * cdef class pyJaco2:
  *     cdef Jaco2* thisptr # hold a C++ instance
  *     def __cinit__(self):             # <<<<<<<<<<<<<<
@@ -1502,7 +1503,7 @@ static int __pyx_pf_11jaco2_rs485_7pyJaco2___cinit__(struct __pyx_obj_11jaco2_rs
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":25
+/* "jaco2_cython.pyx":26
  *         self.thisptr = new Jaco2()
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -1525,7 +1526,7 @@ static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__dealloc__", 0);
 
-  /* "jaco2_cython.pyx":26
+  /* "jaco2_cython.pyx":27
  * 
  *     def __dealloc__(self):
  *         del self.thisptr             # <<<<<<<<<<<<<<
@@ -1534,7 +1535,7 @@ static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco
  */
   delete __pyx_v_self->thisptr;
 
-  /* "jaco2_cython.pyx":25
+  /* "jaco2_cython.pyx":26
  *         self.thisptr = new Jaco2()
  * 
  *     def __dealloc__(self):             # <<<<<<<<<<<<<<
@@ -1546,7 +1547,7 @@ static void __pyx_pf_11jaco2_rs485_7pyJaco2_2__dealloc__(struct __pyx_obj_11jaco
   __Pyx_RefNannyFinishContext();
 }
 
-/* "jaco2_cython.pyx":28
+/* "jaco2_cython.pyx":29
  *         del self.thisptr
  * 
  *     def Connect(self):             # <<<<<<<<<<<<<<
@@ -1572,7 +1573,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jac
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("Connect", 0);
 
-  /* "jaco2_cython.pyx":29
+  /* "jaco2_cython.pyx":30
  * 
  *     def Connect(self):
  *         self.thisptr.Connect()             # <<<<<<<<<<<<<<
@@ -1581,7 +1582,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jac
  */
   __pyx_v_self->thisptr->Connect();
 
-  /* "jaco2_cython.pyx":28
+  /* "jaco2_cython.pyx":29
  *         del self.thisptr
  * 
  *     def Connect(self):             # <<<<<<<<<<<<<<
@@ -1596,7 +1597,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_4Connect(struct __pyx_obj_11jac
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":31
+/* "jaco2_cython.pyx":32
  *         self.thisptr.Connect()
  * 
  *     def InitForceMode(self, np.ndarray[float, mode="c"] expected_torques):             # <<<<<<<<<<<<<<
@@ -1610,7 +1611,7 @@ static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_7InitForceMode(PyObject *__pyx_
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("InitForceMode (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_expected_torques), __pyx_ptype_5numpy_ndarray, 1, "expected_torques", 0))) __PYX_ERR(0, 31, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_expected_torques), __pyx_ptype_5numpy_ndarray, 1, "expected_torques", 0))) __PYX_ERR(0, 32, __pyx_L1_error)
   __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), ((PyArrayObject *)__pyx_v_expected_torques));
 
   /* function exit code */
@@ -1636,16 +1637,16 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj
   __pyx_pybuffernd_expected_torques.rcbuffer = &__pyx_pybuffer_expected_torques;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_expected_torques.rcbuffer->pybuffer, (PyObject*)__pyx_v_expected_torques, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 31, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_expected_torques.rcbuffer->pybuffer, (PyObject*)__pyx_v_expected_torques, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 32, __pyx_L1_error)
   }
   __pyx_pybuffernd_expected_torques.diminfo[0].strides = __pyx_pybuffernd_expected_torques.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_expected_torques.diminfo[0].shape = __pyx_pybuffernd_expected_torques.rcbuffer->pybuffer.shape[0];
 
-  /* "jaco2_cython.pyx":32
+  /* "jaco2_cython.pyx":33
  * 
  *     def InitForceMode(self, np.ndarray[float, mode="c"] expected_torques):
  *         self.thisptr.InitForceMode(&expected_torques[0])             # <<<<<<<<<<<<<<
  * 
- *     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):
+ *     def InitPositionMode(self):
  */
   __pyx_t_1 = 0;
   __pyx_t_2 = -1;
@@ -1655,11 +1656,11 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj
   } else if (unlikely(__pyx_t_1 >= __pyx_pybuffernd_expected_torques.diminfo[0].shape)) __pyx_t_2 = 0;
   if (unlikely(__pyx_t_2 != -1)) {
     __Pyx_RaiseBufferIndexError(__pyx_t_2);
-    __PYX_ERR(0, 32, __pyx_L1_error)
+    __PYX_ERR(0, 33, __pyx_L1_error)
   }
   __pyx_v_self->thisptr->InitForceMode((&(*__Pyx_BufPtrCContig1d(float *, __pyx_pybuffernd_expected_torques.rcbuffer->pybuffer.buf, __pyx_t_1, __pyx_pybuffernd_expected_torques.diminfo[0].strides))));
 
-  /* "jaco2_cython.pyx":31
+  /* "jaco2_cython.pyx":32
  *         self.thisptr.Connect()
  * 
  *     def InitForceMode(self, np.ndarray[float, mode="c"] expected_torques):             # <<<<<<<<<<<<<<
@@ -1688,8 +1689,58 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":34
+/* "jaco2_cython.pyx":35
  *         self.thisptr.InitForceMode(&expected_torques[0])
+ * 
+ *     def InitPositionMode(self):             # <<<<<<<<<<<<<<
+ *         self.thisptr.InitPositionMode()
+ * 
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_9InitPositionMode(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_9InitPositionMode(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("InitPositionMode (wrapper)", 0);
+  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_8InitPositionMode(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self));
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8InitPositionMode(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("InitPositionMode", 0);
+
+  /* "jaco2_cython.pyx":36
+ * 
+ *     def InitPositionMode(self):
+ *         self.thisptr.InitPositionMode()             # <<<<<<<<<<<<<<
+ * 
+ *     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):
+ */
+  __pyx_v_self->thisptr->InitPositionMode();
+
+  /* "jaco2_cython.pyx":35
+ *         self.thisptr.InitForceMode(&expected_torques[0])
+ * 
+ *     def InitPositionMode(self):             # <<<<<<<<<<<<<<
+ *         self.thisptr.InitPositionMode()
+ * 
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "jaco2_cython.pyx":38
+ *         self.thisptr.InitPositionMode()
  * 
  *     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):             # <<<<<<<<<<<<<<
  *         self.thisptr.ApplyQ(&target_q[0])
@@ -1697,13 +1748,13 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_6InitForceMode(struct __pyx_obj
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_9ApplyQ(PyObject *__pyx_v_self, PyObject *__pyx_v_target_q); /*proto*/
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_9ApplyQ(PyObject *__pyx_v_self, PyObject *__pyx_v_target_q) {
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_11ApplyQ(PyObject *__pyx_v_self, PyObject *__pyx_v_target_q); /*proto*/
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_11ApplyQ(PyObject *__pyx_v_self, PyObject *__pyx_v_target_q) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("ApplyQ (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_target_q), __pyx_ptype_5numpy_ndarray, 1, "target_q", 0))) __PYX_ERR(0, 34, __pyx_L1_error)
-  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_8ApplyQ(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), ((PyArrayObject *)__pyx_v_target_q));
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_target_q), __pyx_ptype_5numpy_ndarray, 1, "target_q", 0))) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyQ(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), ((PyArrayObject *)__pyx_v_target_q));
 
   /* function exit code */
   goto __pyx_L0;
@@ -1714,7 +1765,7 @@ static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_9ApplyQ(PyObject *__pyx_v_self,
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8ApplyQ(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_target_q) {
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyQ(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_target_q) {
   __Pyx_LocalBuf_ND __pyx_pybuffernd_target_q;
   __Pyx_Buffer __pyx_pybuffer_target_q;
   PyObject *__pyx_r = NULL;
@@ -1728,11 +1779,11 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8ApplyQ(struct __pyx_obj_11jaco
   __pyx_pybuffernd_target_q.rcbuffer = &__pyx_pybuffer_target_q;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_target_q.rcbuffer->pybuffer, (PyObject*)__pyx_v_target_q, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 34, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_target_q.rcbuffer->pybuffer, (PyObject*)__pyx_v_target_q, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 38, __pyx_L1_error)
   }
   __pyx_pybuffernd_target_q.diminfo[0].strides = __pyx_pybuffernd_target_q.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_target_q.diminfo[0].shape = __pyx_pybuffernd_target_q.rcbuffer->pybuffer.shape[0];
 
-  /* "jaco2_cython.pyx":35
+  /* "jaco2_cython.pyx":39
  * 
  *     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):
  *         self.thisptr.ApplyQ(&target_q[0])             # <<<<<<<<<<<<<<
@@ -1747,12 +1798,12 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8ApplyQ(struct __pyx_obj_11jaco
   } else if (unlikely(__pyx_t_1 >= __pyx_pybuffernd_target_q.diminfo[0].shape)) __pyx_t_2 = 0;
   if (unlikely(__pyx_t_2 != -1)) {
     __Pyx_RaiseBufferIndexError(__pyx_t_2);
-    __PYX_ERR(0, 35, __pyx_L1_error)
+    __PYX_ERR(0, 39, __pyx_L1_error)
   }
   __pyx_v_self->thisptr->ApplyQ((&(*__Pyx_BufPtrCContig1d(float *, __pyx_pybuffernd_target_q.rcbuffer->pybuffer.buf, __pyx_t_1, __pyx_pybuffernd_target_q.diminfo[0].strides))));
 
-  /* "jaco2_cython.pyx":34
- *         self.thisptr.InitForceMode(&expected_torques[0])
+  /* "jaco2_cython.pyx":38
+ *         self.thisptr.InitPositionMode()
  * 
  *     def ApplyQ(self, np.ndarray[float, mode="c"] target_q):             # <<<<<<<<<<<<<<
  *         self.thisptr.ApplyQ(&target_q[0])
@@ -1780,7 +1831,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8ApplyQ(struct __pyx_obj_11jaco
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":37
+/* "jaco2_cython.pyx":41
  *         self.thisptr.ApplyQ(&target_q[0])
  * 
  *     def ApplyU(self, np.ndarray[float, mode="c"] u):             # <<<<<<<<<<<<<<
@@ -1789,13 +1840,13 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_8ApplyQ(struct __pyx_obj_11jaco
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_11ApplyU(PyObject *__pyx_v_self, PyObject *__pyx_v_u); /*proto*/
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_11ApplyU(PyObject *__pyx_v_self, PyObject *__pyx_v_u) {
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_13ApplyU(PyObject *__pyx_v_self, PyObject *__pyx_v_u); /*proto*/
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_13ApplyU(PyObject *__pyx_v_self, PyObject *__pyx_v_u) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("ApplyU (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_u), __pyx_ptype_5numpy_ndarray, 1, "u", 0))) __PYX_ERR(0, 37, __pyx_L1_error)
-  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyU(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), ((PyArrayObject *)__pyx_v_u));
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_u), __pyx_ptype_5numpy_ndarray, 1, "u", 0))) __PYX_ERR(0, 41, __pyx_L1_error)
+  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_12ApplyU(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self), ((PyArrayObject *)__pyx_v_u));
 
   /* function exit code */
   goto __pyx_L0;
@@ -1806,7 +1857,7 @@ static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_11ApplyU(PyObject *__pyx_v_self
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyU(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_u) {
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12ApplyU(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self, PyArrayObject *__pyx_v_u) {
   __Pyx_LocalBuf_ND __pyx_pybuffernd_u;
   __Pyx_Buffer __pyx_pybuffer_u;
   PyObject *__pyx_r = NULL;
@@ -1820,11 +1871,11 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyU(struct __pyx_obj_11jac
   __pyx_pybuffernd_u.rcbuffer = &__pyx_pybuffer_u;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_u.rcbuffer->pybuffer, (PyObject*)__pyx_v_u, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 37, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_u.rcbuffer->pybuffer, (PyObject*)__pyx_v_u, &__Pyx_TypeInfo_float, PyBUF_FORMAT| PyBUF_C_CONTIGUOUS, 1, 0, __pyx_stack) == -1)) __PYX_ERR(0, 41, __pyx_L1_error)
   }
   __pyx_pybuffernd_u.diminfo[0].strides = __pyx_pybuffernd_u.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_u.diminfo[0].shape = __pyx_pybuffernd_u.rcbuffer->pybuffer.shape[0];
 
-  /* "jaco2_cython.pyx":38
+  /* "jaco2_cython.pyx":42
  * 
  *     def ApplyU(self, np.ndarray[float, mode="c"] u):
  *         self.thisptr.ApplyU(&u[0])             # <<<<<<<<<<<<<<
@@ -1839,11 +1890,11 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyU(struct __pyx_obj_11jac
   } else if (unlikely(__pyx_t_1 >= __pyx_pybuffernd_u.diminfo[0].shape)) __pyx_t_2 = 0;
   if (unlikely(__pyx_t_2 != -1)) {
     __Pyx_RaiseBufferIndexError(__pyx_t_2);
-    __PYX_ERR(0, 38, __pyx_L1_error)
+    __PYX_ERR(0, 42, __pyx_L1_error)
   }
   __pyx_v_self->thisptr->ApplyU((&(*__Pyx_BufPtrCContig1d(float *, __pyx_pybuffernd_u.rcbuffer->pybuffer.buf, __pyx_t_1, __pyx_pybuffernd_u.diminfo[0].strides))));
 
-  /* "jaco2_cython.pyx":37
+  /* "jaco2_cython.pyx":41
  *         self.thisptr.ApplyQ(&target_q[0])
  * 
  *     def ApplyU(self, np.ndarray[float, mode="c"] u):             # <<<<<<<<<<<<<<
@@ -1872,7 +1923,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyU(struct __pyx_obj_11jac
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":40
+/* "jaco2_cython.pyx":44
  *         self.thisptr.ApplyU(&u[0])
  * 
  *     def Disconnect(self):             # <<<<<<<<<<<<<<
@@ -1881,24 +1932,24 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_10ApplyU(struct __pyx_obj_11jac
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_13Disconnect(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_13Disconnect(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_15Disconnect(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_15Disconnect(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("Disconnect (wrapper)", 0);
-  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_12Disconnect(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self));
+  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_14Disconnect(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12Disconnect(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self) {
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14Disconnect(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("Disconnect", 0);
 
-  /* "jaco2_cython.pyx":41
+  /* "jaco2_cython.pyx":45
  * 
  *     def Disconnect(self):
  *         self.thisptr.Disconnect()             # <<<<<<<<<<<<<<
@@ -1907,7 +1958,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12Disconnect(struct __pyx_obj_1
  */
   __pyx_v_self->thisptr->Disconnect();
 
-  /* "jaco2_cython.pyx":40
+  /* "jaco2_cython.pyx":44
  *         self.thisptr.ApplyU(&u[0])
  * 
  *     def Disconnect(self):             # <<<<<<<<<<<<<<
@@ -1922,7 +1973,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12Disconnect(struct __pyx_obj_1
   return __pyx_r;
 }
 
-/* "jaco2_cython.pyx":43
+/* "jaco2_cython.pyx":47
  *         self.thisptr.Disconnect()
  * 
  *     def GetFeedback(self):             # <<<<<<<<<<<<<<
@@ -1931,19 +1982,19 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_12Disconnect(struct __pyx_obj_1
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_15GetFeedback(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_15GetFeedback(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_17GetFeedback(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_11jaco2_rs485_7pyJaco2_17GetFeedback(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("GetFeedback (wrapper)", 0);
-  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_14GetFeedback(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self));
+  __pyx_r = __pyx_pf_11jaco2_rs485_7pyJaco2_16GetFeedback(((struct __pyx_obj_11jaco2_rs485_pyJaco2 *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14GetFeedback(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self) {
+static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_16GetFeedback(struct __pyx_obj_11jaco2_rs485_pyJaco2 *__pyx_v_self) {
   PyObject *__pyx_v_feedback = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -1951,34 +2002,34 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14GetFeedback(struct __pyx_obj_
   PyObject *__pyx_t_2 = NULL;
   __Pyx_RefNannySetupContext("GetFeedback", 0);
 
-  /* "jaco2_cython.pyx":44
+  /* "jaco2_cython.pyx":48
  * 
  *     def GetFeedback(self):
  *         feedback = {'q': self.thisptr.pos,             # <<<<<<<<<<<<<<
  *                     'dq': self.thisptr.vel}
  *         return feedback
  */
-  __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_t_1 = PyDict_New(); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->pos, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->pos, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_q, __pyx_t_2) < 0) __PYX_ERR(0, 44, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_q, __pyx_t_2) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "jaco2_cython.pyx":45
+  /* "jaco2_cython.pyx":49
  *     def GetFeedback(self):
  *         feedback = {'q': self.thisptr.pos,
  *                     'dq': self.thisptr.vel}             # <<<<<<<<<<<<<<
  *         return feedback
  */
-  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->vel, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 45, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_carray_to_py_float(__pyx_v_self->thisptr->vel, 6); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dq, __pyx_t_2) < 0) __PYX_ERR(0, 44, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dq, __pyx_t_2) < 0) __PYX_ERR(0, 48, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_v_feedback = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "jaco2_cython.pyx":46
+  /* "jaco2_cython.pyx":50
  *         feedback = {'q': self.thisptr.pos,
  *                     'dq': self.thisptr.vel}
  *         return feedback             # <<<<<<<<<<<<<<
@@ -1988,7 +2039,7 @@ static PyObject *__pyx_pf_11jaco2_rs485_7pyJaco2_14GetFeedback(struct __pyx_obj_
   __pyx_r = __pyx_v_feedback;
   goto __pyx_L0;
 
-  /* "jaco2_cython.pyx":43
+  /* "jaco2_cython.pyx":47
  *         self.thisptr.Disconnect()
  * 
  *     def GetFeedback(self):             # <<<<<<<<<<<<<<
@@ -4767,10 +4818,11 @@ static void __pyx_tp_dealloc_11jaco2_rs485_pyJaco2(PyObject *o) {
 static PyMethodDef __pyx_methods_11jaco2_rs485_pyJaco2[] = {
   {"Connect", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_5Connect, METH_NOARGS, 0},
   {"InitForceMode", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_7InitForceMode, METH_O, 0},
-  {"ApplyQ", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_9ApplyQ, METH_O, 0},
-  {"ApplyU", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_11ApplyU, METH_O, 0},
-  {"Disconnect", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_13Disconnect, METH_NOARGS, 0},
-  {"GetFeedback", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_15GetFeedback, METH_NOARGS, 0},
+  {"InitPositionMode", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_9InitPositionMode, METH_NOARGS, 0},
+  {"ApplyQ", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_11ApplyQ, METH_O, 0},
+  {"ApplyU", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_13ApplyU, METH_O, 0},
+  {"Disconnect", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_15Disconnect, METH_NOARGS, 0},
+  {"GetFeedback", (PyCFunction)__pyx_pw_11jaco2_rs485_7pyJaco2_17GetFeedback, METH_NOARGS, 0},
   {0, 0, 0, 0}
 };
 
@@ -5084,9 +5136,9 @@ PyMODINIT_FUNC PyInit_jaco2_rs485(void)
   /*--- Variable export code ---*/
   /*--- Function export code ---*/
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_11jaco2_rs485_pyJaco2) < 0) __PYX_ERR(0, 20, __pyx_L1_error)
+  if (PyType_Ready(&__pyx_type_11jaco2_rs485_pyJaco2) < 0) __PYX_ERR(0, 21, __pyx_L1_error)
   __pyx_type_11jaco2_rs485_pyJaco2.tp_print = 0;
-  if (PyObject_SetAttrString(__pyx_m, "pyJaco2", (PyObject *)&__pyx_type_11jaco2_rs485_pyJaco2) < 0) __PYX_ERR(0, 20, __pyx_L1_error)
+  if (PyObject_SetAttrString(__pyx_m, "pyJaco2", (PyObject *)&__pyx_type_11jaco2_rs485_pyJaco2) < 0) __PYX_ERR(0, 21, __pyx_L1_error)
   __pyx_ptype_11jaco2_rs485_pyJaco2 = &__pyx_type_11jaco2_rs485_pyJaco2;
   /*--- Type import code ---*/
   __pyx_ptype_7cpython_4type_type = __Pyx_ImportType(__Pyx_BUILTIN_MODULE_NAME, "type", 
@@ -5118,7 +5170,7 @@ PyMODINIT_FUNC PyInit_jaco2_rs485(void)
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "jaco2_cython.pyx":43
+  /* "jaco2_cython.pyx":47
  *         self.thisptr.Disconnect()
  * 
  *     def GetFeedback(self):             # <<<<<<<<<<<<<<
