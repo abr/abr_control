@@ -240,7 +240,7 @@ class robot_config():
             # sum together the effects of arm segments' inertia on each motor
             Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
-                Mq += J[ii].T * self._M[ii] * J[ii]
+                Mq += sp.simplify(J[ii].T * self._M[ii] * J[ii])
             Mq = sp.simplify(Mq)
 
             # save to file
@@ -274,7 +274,7 @@ class robot_config():
             # sum together the effects of arm segments' inertia on each motor
             Mq_g = sp.zeros(self.num_joints, 1)
             for ii in range(self.num_joints):
-                Mq_g += J[ii].T * self._M[ii] * self.gravity
+                Mq_g += sp.simplify(J[ii].T * self._M[ii] * self.gravity)
             Mq_g = sp.simplify(Mq_g)
 
             # save to file
