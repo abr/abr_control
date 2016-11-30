@@ -58,10 +58,19 @@ class interface(interface.interface):
     def init_force_mode(self):
         #switch from position to torque mode
         #self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
+        
+        #2lb weight
         self.jaco2.InitForceMode(np.array([
             0.4, -1.8, 4.0, 0.0, 0.0, 0.0], dtype="float32"))
-            #0.95, 11.2, 0.0, -0.18, 0.03, 0.15], dtype="float32")) #self.robot_config.home_torques)
+        
+        #3lb weight
+        #self.jaco2.InitForceMode(np.array([
+        #    0.9, -2.4, 1.9, 0.0, 0.0, 0.0], dtype="float32"))
 
     def init_position_mode(self):
         #switch from position to torque mode
         self.jaco2.InitPositionMode()
+    
+    def get_pos(self):
+        #get position of 6 servos
+        return self.jaco2.GetFeedback()

@@ -40,6 +40,8 @@ class Jaco2 {
     	int ActuatorInitialized;
     	int updated[6];
     	int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
+    	int currentJoint;
+    	vector<string> errorMessage;
         	
         // main functions
         void Connect();
@@ -49,6 +51,7 @@ class Jaco2 {
         void ApplyU(float u[6]);
         void GetFeedback(int messageType);//, unsigned char DESTINATION_ADDRESS, float q[6], float dq[6]);
         void Disconnect();
+        void GetPos();
 
         // read variables
         int flag;

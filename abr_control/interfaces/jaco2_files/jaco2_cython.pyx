@@ -11,6 +11,7 @@ cdef extern from "jaco2_rs485.h":
         void ApplyQ(float target_q[6])
         void ApplyU(float u[6])
         void Disconnect()
+        void GetPos()
 
         float pos[6]
         float vel[6]
@@ -43,6 +44,9 @@ cdef class pyJaco2:
     
     def Disconnect(self):
         self.thisptr.Disconnect()
+        
+    def GetPos(self):
+        self.thisptr.GetPos()
         
     def GetFeedback(self):
         feedback = {'q': self.thisptr.pos,
