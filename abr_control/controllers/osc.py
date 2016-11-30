@@ -49,20 +49,26 @@ class controller:
 
         # calculate desired force in (x,y,z) space
         dx = np.dot(JEE, dq)
-        # implement velocity limiting
-        lamb = self.kp / self.kv
-        x_tilde = xyz - target_state[:3]
-        sat = self.vmax / (lamb * np.abs(x_tilde))
-        scale = np.ones(3)
-        if np.any(sat < 1):
-            index = np.argmin(sat)
-            unclipped = self.kp * x_tilde[index]
-            clipped = self.kv * self.vmax * np.sign(x_tilde[index])
-            scale = np.ones(3) * clipped / unclipped
-            scale[index] = 1
-        u_xyz = -self.kv * (dx - target_state[3:] -
-                            np.clip(sat / scale, 0, 1) *
-                            -lamb * scale * x_tilde)
+        if self.vmax is not None:
+            # implement velocity limiting
+            lamb = self.kp / self.kv
+            x_tilde = xyz - target_state[:3]
+            sat = self.vmax / (lamb * np.abs(x_tilde))
+            scale = np.ones(3)
+            if np.any(sat < 1):
+                index = np.argmin(sat)
+                unclipped = self.kp * x_tilde[index]
+                clipped = self.kv * self.vmax * np.sign(x_tilde[index])
+                scale = np.ones(3) * clipped / unclipped
+                scale[index] = 1
+            u_xyz = -self.kv * (dx - target_state[3:] -
+                                np.clip(sat / scale, 0, 1) *
+                                -lamb * scale * x_tilde)
+        else:
+            # generate (x,y,z) force without velocity limiting)
+            u_xyz = (self.kp * (target_state[:3] - xyz) +
+                     self.kv * (target_state[3:] - dx))
+
         u_xyz = np.dot(Mx, u_xyz)
 
         # TODO: This is really awkward, but how else to get out
