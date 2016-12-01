@@ -11,11 +11,20 @@ class interface(interface.interface):
     in PyGame.
     """
 
-    def __init__(self, robot_config, dt=.001):
+    def __init__(self, robot_config, dt=.001, q_init=None):
         super(interface, self).__init__(robot_config)
 
         self.q = np.zeros(self.robot_config.num_joints)  # joint angles
         self.dq = np.zeros(self.robot_config.num_joints)  # joint_velocities
+
+
+        if q_init is not None:
+            self.q_init = np.zeros(self.robot_config.num_joints*2)
+            self.q_init[::2] = q_init
+            # TODO: add in ability to set starting velocity, if useful
+            # self.q_init[1::2] = dq_init
+        else:
+            self.q_init = None
 
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times apply_u has been called
@@ -32,7 +41,7 @@ class interface(interface.interface):
         # maplesim arm simulation
         self.sim = py3LinkArm.pySim(dt=1e-5)
 
-        self.sim.reset(self.state)
+        self.sim.reset(self.state, self.q_init)
         self._update_state()
         print('Connected to MapleSim model')
 

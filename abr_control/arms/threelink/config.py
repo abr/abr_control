@@ -15,9 +15,12 @@ class robot_config(robot_config.robot_config):
                                            robot_name='threelink', **kwargs)
 
         # for the null space controller, keep arm near these angles
-        self.rest_angles = np.array([np.pi/4.0,
-                                     np.pi/4.0,
-                                     np.pi/4.0])
+        # self.rest_angles = np.array([np.pi/4.0,
+        #                              np.pi/4.0,
+        #                              np.pi/4.0])
+        self.rest_angles = np.array([0,
+                                     np.pi/2,
+                                     np.pi])
 
         # create the inertia matrices for each link of the threelink
         # TODO: confirm that these are actually the right values
