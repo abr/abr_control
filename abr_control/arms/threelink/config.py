@@ -17,7 +17,7 @@ class robot_config(robot_config.robot_config):
         # for the null space controller, keep arm near these angles
         self.rest_angles = np.array([np.pi/4.0,
                                      np.pi/4.0,
-                                     np.pi/4.0])
+                                     np.pi/4.0], dtype='float32')
 
         # create the inertia matrices for each link of the threelink
         # TODO: confirm that these are actually the right values
@@ -37,7 +37,7 @@ class robot_config(robot_config.robot_config):
         # segment lengths associated with each joint
         # self.L = np.array([0.31, 0.27, 0.15])
         # self.L_links = np.array([0.165, 0.135, 0.075])
-        self.L = np.array([2.0, 1.2, 0.7])
+        self.L = np.array([2.0, 1.2, 0.7], dtype='float32')
         self.L_links = self.L / 2.0
 
         # transform matrix from origin to joint 0 reference frame

@@ -23,7 +23,7 @@ class robot_config(robot_config.robot_config):
                                      -np.pi/2.0,
                                      np.pi/4.0,
                                      np.pi/2.0,
-                                     np.pi/2.0])
+                                     np.pi/2.0], dtype='float32')
 
         # create the inertia matrices for each link of the ur5
         self._M.append(np.diag([1.0, 1.0, 1.0,
@@ -41,7 +41,8 @@ class robot_config(robot_config.robot_config):
 
         # segment lengths associated with each joint
         self.L = np.array([0.0935, 0.13453, 0.4251,
-                           0.12, 0.3921, 0.0935, 0.0935, 0.0935])
+                           0.12, 0.3921, 0.0935, 0.0935, 0.0935],
+                          dtype='float32')
 
         # transform matrix from origin to joint 0 reference frame
         # link 0 reference frame is the same as joint 0
