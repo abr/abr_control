@@ -81,6 +81,6 @@ class Signal():
                     # numpy returns U,S,V.T, so have to transpose both here
                     Mxpsp = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
 
-                    u_psp = -np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
+                    u_psp += -np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
 
         return u_psp
