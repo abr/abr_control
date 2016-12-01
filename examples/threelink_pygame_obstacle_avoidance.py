@@ -34,13 +34,12 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
-        if target_xyz is not None:
-            # generate an operational space control signal
-            u = ctrlr.control(
-                q=feedback['q'],
-                dq=feedback['dq'],
-                target_state=np.hstack(
-                    [target_xyz, np.zeros(3)]))
+        # generate an operational space control signal
+        u = ctrlr.control(
+            q=feedback['q'],
+            dq=feedback['dq'],
+            target_state=np.hstack(
+                [target_xyz, np.zeros(3)]))
         # add in obstacle avoidance
         obs_x, obs_y = interface.display.get_mousexy()
         u += avoid.generate(

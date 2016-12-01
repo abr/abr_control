@@ -60,7 +60,7 @@ class robot_config():
             self._J[name] = self._calc_J(
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
-        return np.array(self._J[name](*parameters))
+        return np.array(self._J[name](*parameters), dtype='float32')
 
     def dJ(self, name, q, x=[0, 0, 0]):
         """ Calculates the derivative of a Jacobian for a joint or link
@@ -77,7 +77,7 @@ class robot_config():
             self._dJ[name] = self._calc_dJ(
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
-        return np.array(self._dJ[name](*parameters))
+        return np.array(self._dJ[name](*parameters), dtype='float32')
 
     def Mq(self, q):
         """ Calculates the joint space inertia matrix for the ur5
@@ -89,7 +89,7 @@ class robot_config():
             print('Generating inertia matrix function')
             self._Mq = self._calc_Mq(regenerate=self.regenerate_functions)
         parameters = tuple(q) + (0, 0, 0)
-        return np.array(self._Mq(*parameters))
+        return np.array(self._Mq(*parameters), dtype='float32')
 
     def Mq_g(self, q):
         """ Calculates the force of gravity in joint space for the ur5
@@ -101,7 +101,7 @@ class robot_config():
             print('Generating gravity effects function')
             self._Mq_g = self._calc_Mq_g(regenerate=self.regenerate_functions)
         parameters = tuple(q) + (0, 0, 0)
-        return np.array(self._Mq_g(*parameters)).flatten()
+        return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
@@ -145,14 +145,15 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
 
+        filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
-                os.path.isfile('%s/%s.dJ' % (self.config_folder, name))):
+                os.path.isfile('%s/%s.dJ' % (self.config_folder, filename))):
             dJ = cloudpickle.load(open('%s/%s.dJ' %
-                                       (self.config_folder, name), 'rb'))
+                                       (self.config_folder, filename), 'rb'))
         else:
             J = self._calc_J(name, x=x, lambdify=False)
-            dJ = sp.Matrix(np.zeros(J.shape))
+            dJ = sp.Matrix(np.zeros(J.shape, dtype='float32'))
             # calculate derivative of (x,y,z) wrt to time
             # which each joint is dependent on
             for ii in range(J.shape[0]):
@@ -164,12 +165,12 @@ class robot_config():
 
             # save to file
             cloudpickle.dump(dJ, open('%s/%s.dJ' %
-                                      (self.config_folder, name), 'wb'))
+                                      (self.config_folder, filename), 'wb'))
 
         dJ = sp.Matrix(dJ).T  # correct the orientation of J
         if lambdify is False:
             return dJ
-        return sp.lambdify(self.q + self.x, dJ)
+        return sp.lambdify(self.q + self.x, dJ, "numpy")
 
     def _calc_J(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the Jacobian for a joint or link
@@ -182,11 +183,12 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
 
+        filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
-                os.path.isfile('%s/%s.J' % (self.config_folder, name))):
+                os.path.isfile('%s/%s.J' % (self.config_folder, filename))):
             J = cloudpickle.load(open('%s/%s.J' %
-                                      (self.config_folder, name), 'rb'))
+                                      (self.config_folder, filename), 'rb'))
         else:
             Tx = self._calc_Tx(name, x=x, lambdify=False)
             J = []
@@ -210,12 +212,12 @@ class robot_config():
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
-                                     (self.config_folder, name), 'wb'))
+                                     (self.config_folder, filename), 'wb'))
 
         J = sp.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
             return J
-        return sp.lambdify(self.q + self.x, J)
+        return sp.lambdify(self.q + self.x, J, "numpy")
 
     def _calc_Mq(self, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the inertia matrix in
@@ -248,7 +250,7 @@ class robot_config():
 
         if lambdify is False:
             return Mq
-        return sp.lambdify(self.q + self.x, Mq)
+        return sp.lambdify(self.q + self.x, Mq, "numpy")
 
     def _calc_Mq_g(self, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the force of gravity in
@@ -282,7 +284,7 @@ class robot_config():
 
         if lambdify is False:
             return Mq_g
-        return sp.lambdify(self.q + self.x, Mq_g)
+        return sp.lambdify(self.q + self.x, Mq_g, "numpy")
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
@@ -291,7 +293,7 @@ class robot_config():
         """
         raise NotImplementedError("_calc_T function not implemented")
 
-    def _calc_Tx(self, name, x, lambdify=True, regenerate=False):  # noqa C907
+    def _calc_Tx(self, name, x=None, lambdify=True, regenerate=False):  # noqa C907
         """ Uses Sympy to transform x from the reference frame of a joint
         or link to the origin (world) coordinates.
 
@@ -302,23 +304,31 @@ class robot_config():
                           matrix
         """
 
+        filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
         if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, name))):
+                os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
             Tx = cloudpickle.load(open('%s/%s.T' %
-                                       (self.config_folder, name), 'rb'))
+                                       (self.config_folder, filename), 'rb'))
         else:
             T = self._calc_T(name=name)
             # transform x into world coordinates
-            Tx = sp.simplify(T * sp.Matrix(self.x + [1]))
+            if np.allclose(x, 0):
+                # if we're only interested in the origin, not including
+                # the x variables significantly speeds things up
+                Tx = sp.simplify(T * sp.Matrix([0, 0, 0, 1]))
+            else:
+                # if we're interested in other points in the given frame
+                # of reference, calculate transform with x variables
+                Tx = sp.simplify(T * sp.Matrix(self.x + [1]))
 
             # save to file
             cloudpickle.dump(Tx, open('%s/%s.T' %
-                                      (self.config_folder, name), 'wb'))
+                                      (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
             return Tx
-        return sp.lambdify(self.q + self.x, Tx)
+        return sp.lambdify(self.q + self.x, Tx, "numpy")
 
     def _calc_T_inv(self, name, x, lambdify=True, regenerate=False):
         """ Return the inverse transform matrix, which converts from
@@ -332,12 +342,14 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
 
+        filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.T_inv' % (self.config_folder,
-                                                name))):
+                                                filename))):
             T_inv = cloudpickle.load(open('%s/%s.T_inv' %
-                                          (self.config_folder, name), 'rb'))
+                                          (self.config_folder,
+                                           filename), 'rb'))
         else:
             T = self._calc_T(name=name)
             rotation_inv = T[:3, :3].T
@@ -347,8 +359,9 @@ class robot_config():
 
             # save to file
             cloudpickle.dump(T_inv, open('%s/%s.T_inv' %
-                                         (self.config_folder, name), 'wb'))
+                                         (self.config_folder,
+                                          filename), 'wb'))
 
         if lambdify is False:
             return T_inv
-        return sp.lambdify(self.q + self.x, T_inv)
+        return sp.lambdify(self.q + self.x, T_inv, "numpy")
