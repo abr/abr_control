@@ -16,7 +16,7 @@ class Signal():
         q np.array: the current joint angles
         """
 
-        u_psp = np.zeros(self.robot_config.num_joints)
+        u_psp = np.zeros(self.robot_config.num_joints, dtype='float32')
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
@@ -24,7 +24,7 @@ class Signal():
         # add in obstacles avoidance
         for obstacle in obstacles:
             # our vertex of interest is the center point of the obstacle
-            v = np.array(obstacle[:3])
+            v = np.array(obstacle[:3], dtype='float32')
 
             # find the closest point of each link to the obstacle
             for ii in range(self.robot_config.num_joints):
@@ -70,16 +70,10 @@ class Signal():
 
                     # calculate the inertia matrix for the
                     # point subjected to the potential space
-                    Mxpsp_inv = np.dot(Jpsp,
-                                       np.dot(np.linalg.pinv(Mq), Jpsp.T))
-                    svd_u, svd_s, svd_v = np.linalg.svd(Mxpsp_inv)
-                    # cut off singular values that could cause problems
-                    singularity_thresh = .00025
-                    for ii in range(len(svd_s)):
-                        svd_s[ii] = 0 if svd_s[ii] < singularity_thresh else \
-                            1./float(svd_s[ii])
-                    # numpy returns U,S,V.T, so have to transpose both here
-                    Mxpsp = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
+                    Mxpsp_inv = np.dot(Jpsp, np.dot(np.linalg.inv(Mq), Jpsp.T))
+                    # using the rcond to set singular values < thresh to 0
+                    # is slightly faster than doing it manually with svd
+                    Mxpsp = np.linalg.pinv(Mxpsp_inv, rcond=.01)
 
                     u_psp += -np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
 
