@@ -54,13 +54,14 @@ class robot_config():
         q list: set of joint angles to pass in to the Jacobian function
         x list: the [x,y,z] position of interest in "name"'s reference frame
         """
+        funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
-        if self._J.get(name, None) is None:
+        if self._J.get(funcname, None) is None:
             print('Generating Jacobian function for %s' % name)
-            self._J[name] = self._calc_J(
+            self._J[funcname] = self._calc_J(
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
-        return np.array(self._J[name](*parameters), dtype='float32')
+        return np.array(self._J[funcname](*parameters), dtype='float32')
 
     def dJ(self, name, q, x=[0, 0, 0]):
         """ Calculates the derivative of a Jacobian for a joint or link
@@ -70,14 +71,15 @@ class robot_config():
         q list: set of joint angles to pass in to the Jacobian function
         x list: the [x,y,z] position of interest in "name"'s reference frame
         """
+        funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
-        if self._dJ.get(name, None) is None:
+        if self._dJ.get(funcname, None) is None:
             print('Generating derivative of Jacobian ',
-                  'function for %s' % name)
-            self._dJ[name] = self._calc_dJ(
+                  'function for %s' % funcname)
+            self._dJ[funcname] = self._calc_dJ(
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
-        return np.array(self._dJ[name](*parameters), dtype='float32')
+        return np.array(self._dJ[funcname](*parameters), dtype='float32')
 
     def Mq(self, q):
         """ Calculates the joint space inertia matrix for the ur5
@@ -88,7 +90,7 @@ class robot_config():
         if self._Mq is None:
             print('Generating inertia matrix function')
             self._Mq = self._calc_Mq(regenerate=self.regenerate_functions)
-        parameters = tuple(q) + (0, 0, 0)
+        parameters = tuple(q)
         return np.array(self._Mq(*parameters), dtype='float32')
 
     def Mq_g(self, q):
@@ -100,7 +102,7 @@ class robot_config():
         if self._Mq_g is None:
             print('Generating gravity effects function')
             self._Mq_g = self._calc_Mq_g(regenerate=self.regenerate_functions)
-        parameters = tuple(q) + (0, 0, 0)
+        parameters = tuple(q)
         return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
 
     def Tx(self, name, q, x=[0, 0, 0]):
@@ -110,28 +112,30 @@ class robot_config():
         q list: set of joint angles to pass in to the T function
         x list: the [x,y,z] position of interest in "name"'s reference frame
         """
+        funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
-        if self._Tx.get(name, None) is None:
+        if self._Tx.get(funcname, None) is None:
             print('Generating transform function for %s' % name)
             # TODO: link0 and joint0 share a transform, but will
             # both have their own transform calculated with this check
-            self._Tx[name] = self._calc_Tx(
+            self._Tx[funcname] = self._calc_Tx(
                 name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
-        return self._Tx[name](*parameters)[:-1].flatten()
+        return self._Tx[funcname](*parameters)[:-1].flatten()
 
     def T_inv(self, name, q, x=[0, 0, 0]):
         """ Calculates the inverse transform for a joint or link
 
         q list: set of joint angles to pass in to the T function
         """
+        funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
-        if self._T_inv.get(name, None) is None:
-            print('Generating inverse transform function for % s' % name)
-            self._T_inv[name] = self._calc_T_inv(
+        if self._T_inv.get(funcname, None) is None:
+            print('Generating inverse transform function for % s' % funcname)
+            self._T_inv[funcname] = self._calc_T_inv(
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
-        return self._T_inv[name](*parameters)
+        return self._T_inv[funcname](*parameters)
 
     def _calc_dJ(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the derivative of the Jacobian
@@ -242,7 +246,7 @@ class robot_config():
             # sum together the effects of arm segments' inertia on each motor
             Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
-                Mq += sp.simplify(J[ii].T * self._M[ii] * J[ii])
+                Mq += (J[ii].T * self._M[ii] * J[ii])
             Mq = sp.simplify(Mq)
 
             # save to file
@@ -250,7 +254,7 @@ class robot_config():
 
         if lambdify is False:
             return Mq
-        return sp.lambdify(self.q + self.x, Mq, "numpy")
+        return sp.lambdify(self.q, Mq, "numpy")
 
     def _calc_Mq_g(self, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the force of gravity in
@@ -284,7 +288,7 @@ class robot_config():
 
         if lambdify is False:
             return Mq_g
-        return sp.lambdify(self.q + self.x, Mq_g, "numpy")
+        return sp.lambdify(self.q, Mq_g, "numpy")
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
@@ -321,6 +325,7 @@ class robot_config():
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
                 Tx = sp.simplify(T * sp.Matrix(self.x + [1]))
+                print('what are you doing here')
 
             # save to file
             cloudpickle.dump(Tx, open('%s/%s.T' %
