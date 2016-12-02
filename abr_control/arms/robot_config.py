@@ -170,7 +170,7 @@ class robot_config():
         dJ = sp.Matrix(dJ).T  # correct the orientation of J
         if lambdify is False:
             return dJ
-        return sp.lambdify(self.q + self.x, dJ)
+        return sp.lambdify(self.q + self.x, dJ, "numpy")
 
     def _calc_J(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the Jacobian for a joint or link
@@ -217,7 +217,7 @@ class robot_config():
         J = sp.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
             return J
-        return sp.lambdify(self.q + self.x, J)
+        return sp.lambdify(self.q + self.x, J, "numpy")
 
     def _calc_Mq(self, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the inertia matrix in
@@ -250,7 +250,7 @@ class robot_config():
 
         if lambdify is False:
             return Mq
-        return sp.lambdify(self.q + self.x, Mq)
+        return sp.lambdify(self.q + self.x, Mq, "numpy")
 
     def _calc_Mq_g(self, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the force of gravity in
@@ -284,7 +284,7 @@ class robot_config():
 
         if lambdify is False:
             return Mq_g
-        return sp.lambdify(self.q + self.x, Mq_g)
+        return sp.lambdify(self.q + self.x, Mq_g, "numpy")
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
@@ -328,7 +328,7 @@ class robot_config():
 
         if lambdify is False:
             return Tx
-        return sp.lambdify(self.q + self.x, Tx)
+        return sp.lambdify(self.q + self.x, Tx, "numpy")
 
     def _calc_T_inv(self, name, x, lambdify=True, regenerate=False):
         """ Return the inverse transform matrix, which converts from
@@ -364,4 +364,4 @@ class robot_config():
 
         if lambdify is False:
             return T_inv
-        return sp.lambdify(self.q + self.x, T_inv)
+        return sp.lambdify(self.q + self.x, T_inv, "numpy")
