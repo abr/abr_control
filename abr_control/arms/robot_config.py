@@ -165,9 +165,9 @@ class robot_config():
             for ii in range(J.shape[0]):
                 for jj in range(J.shape[1]):
                     for kk in range(self.num_joints):
-                        dJ[ii, jj] += sp.simplify(
+                        dJ[ii, jj] += self.simplify(
                             J[ii, jj].diff(self.q[kk]))
-            dJ = sp.simplify(dJ)
+            dJ = self.simplify(dJ)
 
             # save to file
             cloudpickle.dump(dJ, open('%s/%s.dJ' %
@@ -203,9 +203,9 @@ class robot_config():
             # calculate derivative of (x,y,z) wrt to each joint
             for ii in range(self.num_joints):
                 J.append([])
-                J[ii].append(sp.simplify(Tx[0].diff(self.q[ii])))  # dx/dq[ii]
-                J[ii].append(sp.simplify(Tx[1].diff(self.q[ii])))  # dy/dq[ii]
-                J[ii].append(sp.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
+                J[ii].append(self.simplify(Tx[0].diff(self.q[ii])))  # dx/dq[ii]
+                J[ii].append(self.simplify(Tx[1].diff(self.q[ii])))  # dy/dq[ii]
+                J[ii].append(self.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
             if 'EE' not in end_point:
@@ -216,7 +216,7 @@ class robot_config():
                 # fill in the rest of the joints orientation info with 0
                 for ii in range(end_point, self.num_joints):
                     J[ii] = J[ii] + [0, 0, 0]
-            J = sp.simplify(J)
+            J = self.simplify(J)
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
@@ -252,8 +252,8 @@ class robot_config():
             # sum together the effects of arm segments' inertia on each motor
             Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
-                Mq += sp.simplify(J[ii].T * self._M[ii] * J[ii])
-            Mq = sp.simplify(Mq)
+                Mq += self.simplify(J[ii].T * self._M[ii] * J[ii])
+            Mq = self.simplify(Mq)
 
             # save to file
             cloudpickle.dump(Mq, open('%s/Mq' % self.config_folder, 'wb'))
@@ -288,8 +288,8 @@ class robot_config():
             # sum together the effects of arm segments' inertia on each motor
             Mq_g = sp.zeros(self.num_joints, 1)
             for ii in range(self.num_joints):
-                Mq_g += sp.simplify(J[ii].T * self._M[ii] * self.gravity)
-            Mq_g = sp.simplify(Mq_g)
+                Mq_g += self.simplify(J[ii].T * self._M[ii] * self.gravity)
+            Mq_g = self.simplify(Mq_g)
 
             # save to file
             cloudpickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder, 'wb'))
@@ -330,12 +330,12 @@ class robot_config():
             if np.allclose(x, 0):
                 # if we're only interested in the origin, not including
                 # the x variables significantly speeds things up
-                Tx = sp.simplify(T * sp.Matrix([0, 0, 0, 1]))
+                Tx = T * sp.Matrix([0, 0, 0, 1])
             else:
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
-                Tx = sp.simplify(T * sp.Matrix(self.x + [1]))
-                print('what are you doing here')
+                Tx = T * sp.Matrix(self.x + [1])
+            Tx = self.simplify(Tx)
 
             # save to file
             cloudpickle.dump(Tx, open('%s/%s.T' %
@@ -373,6 +373,7 @@ class robot_config():
             translation_inv = -rotation_inv * T[:3, 3]
             T_inv = rotation_inv.row_join(translation_inv).col_join(
                 sp.Matrix([[0, 0, 0, 1]]))
+            T_inv = self.simplify(T_inv)
 
             # save to file
             cloudpickle.dump(T_inv, open('%s/%s.T_inv' %
