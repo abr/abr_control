@@ -164,10 +164,7 @@ class Signal():
         self.dq = dq
         self.training_signal = training_signal
 
-        if sim_neurons is True:
-            # run the simulation t generate the adaptive signal
-            start_time = time.time()
-            self.sim.run(time_in_seconds=.001, progress_bar=False)
-            u += self.u_adapt
+        # run the simulation t generate the adaptive signal
+        self.sim.run(time_in_seconds=.001, progress_bar=False)
 
         return self.u_adapt

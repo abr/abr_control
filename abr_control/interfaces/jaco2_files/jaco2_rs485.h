@@ -35,14 +35,14 @@ class Jaco2 {
     public:
         // misc variables
         int delay;
-    	int messageReceived;
-    	int messageReceived2; 
-    	int ActuatorInitialized;
-    	int updated[6];
-    	int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
-    	int currentJoint;
-    	vector<string> errorMessage;
-        	
+        int messageReceived;
+        int messageReceived2;
+        int ActuatorInitialized;
+        int updated[6];
+        int updated2[6]; // for switching to position mode since updated is used to switch to torque mode
+        int currentJoint;
+        vector<string> errorMessage;
+
         // main functions
         void Connect();
         void InitForceMode(float setTorque[6]);
@@ -62,24 +62,30 @@ class Jaco2 {
         bool read_input;
         int packets_sent;
         int packets_read;
-        
+
         // torque variables
         unsigned char torqueDamping;
         unsigned char controlMode;
         unsigned short torqueKp;
         float maxT[6];
 
-    	// variables used during the communication process.
-    	int WriteCount;
-    	int ReadCount;
-    	unsigned char joint[6];
+        // variables used during the communication process.
+        int WriteCount;
+        int ReadCount;
+        unsigned char joint[6];
 
-        // RS485 Structs
-        RS485_Message InitMessage[6];
-        RS485_Message SafetyMessage[6];
-        RS485_Message ReceiveInitMessage[18];
-        RS485_Message TrajectoryMessage[6];
+        // RS485 arrays of structs
+        RS485_Message ApplyQMessage[6];
         RS485_Message ForceMessage[6];
+        RS485_Message GetPositionMessage[6];
+        RS485_Message InitMessage[6];
+        RS485_Message InitPositionMessage[6];
+        RS485_Message InitTorqueMessage[6];
+        RS485_Message MessageListIn [50];
+        RS485_Message ReceivedInitMessage[18];
+        RS485_Message SafetyMessage[6];
+        RS485_Message TestTorquesMessage[6];
+        RS485_Message ValidateTorquesMessage[6];
 
         // A handle needed to open the API(library).
         void *commLayer_Handle;
