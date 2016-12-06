@@ -4,13 +4,20 @@ import scipy
 try:
     import nengo
 except ImportError:
-    print('Nengo module needs to be installed to use adaptive dynamics.')
+    raise Exception('Nengo module needs to be installed to ' +
+                    'use adaptive dynamics.')
 
 nengo_ocl = None
 # try:
 #     import nengo_ocl
 # except ImportError:
 #     print('Nengo OCL not installed, simulation will be slower.')
+
+nengolib = None
+try:
+    import nengolib
+except ImportError:
+    print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
 from abr_control.utils.keeplearningsolver import KeepLearningSolver
 
@@ -93,8 +100,8 @@ class Signal():
                 seed=10,
                 n_neurons=1000,
                 dimensions=self.robot_config.num_joints * 2,
-                intercepts=AreaIntercepts(self.robot_config.num_joints * 2),
-                radius=np.sqrt(self.robot_config.num_joints * 2) * 10)
+                encoders=nengolib.stats.ScatteredHypersphere(surface=True),
+                intercepts=AreaIntercepts(self.robot_config.num_joints * 2))
 
             if encoders_file is not None:
                 try:
