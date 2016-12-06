@@ -2,6 +2,7 @@ import cloudpickle
 import numpy as np
 import os
 import sympy as sp
+from sympy.utilities.autowrap import ufuncify
 
 import abr_control.arms
 
@@ -14,7 +15,7 @@ class robot_config():
     """
 
     def __init__(self, num_joints, num_links, robot_name="robot",
-                 regenerate_functions=False):
+                 regenerate_functions=False, use_ufuncify=False):
         """
         num_joints int: number of joints in robot
         num_links int: number of arm segments in robot
@@ -30,6 +31,7 @@ class robot_config():
                               '/%s/saved_functions' % robot_name)
 
         self.regenerate_functions = regenerate_functions
+        self.use_ufuncify = use_ufuncify
 
         # create function dictionaries
         self._Tx = {}  # for transform calculations
@@ -174,6 +176,8 @@ class robot_config():
         dJ = sp.Matrix(dJ).T  # correct the orientation of J
         if lambdify is False:
             return dJ
+        if self.use_ufuncify is True:
+            return ufuncify(self.q + self.x, dJ)
         return sp.lambdify(self.q + self.x, dJ, "numpy")
 
     def _calc_J(self, name, x, lambdify=True, regenerate=False):
@@ -221,6 +225,8 @@ class robot_config():
         J = sp.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
             return J
+        if self.use_ufuncify is True:
+            return ufuncify(self.q + self.x, J)
         return sp.lambdify(self.q + self.x, J, "numpy")
 
     def _calc_Mq(self, lambdify=True, regenerate=False):
@@ -254,7 +260,9 @@ class robot_config():
 
         if lambdify is False:
             return Mq
-        return sp.lambdify(self.q, Mq, "numpy")
+        if self.use_ufuncify is True:
+            return ufuncify(self.q, Mq[0], backend='cython')
+        return sp.lambdify(self.q, Mq[0], "numpy")
 
     def _calc_Mq_g(self, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the force of gravity in
@@ -288,6 +296,8 @@ class robot_config():
 
         if lambdify is False:
             return Mq_g
+        if self.use_ufuncify is True:
+            return ufuncify(self.q, Mq_g)
         return sp.lambdify(self.q, Mq_g, "numpy")
 
     def _calc_T(self, name):
@@ -333,6 +343,8 @@ class robot_config():
 
         if lambdify is False:
             return Tx
+        if self.use_ufuncify is True:
+            return ufuncify(self.q + self.x, Tx)
         return sp.lambdify(self.q + self.x, Tx, "numpy")
 
     def _calc_T_inv(self, name, x, lambdify=True, regenerate=False):
@@ -369,4 +381,6 @@ class robot_config():
 
         if lambdify is False:
             return T_inv
+        if self.use_ufuncify is True:
+            return ufuncify(self.q + self.x, T_inv)
         return sp.lambdify(self.q + self.x, T_inv, "numpy")
