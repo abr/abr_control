@@ -57,7 +57,8 @@ class robot_config(robot_config.robot_config):
             [0.0, 0.410, 0.000000014901],
             [0.0, -0.207, -0.00980],
             [0.0, 0.0342, -0.0658],
-            [0.0, 0.0343, -0.0659]])
+            [0.0, 0.0343, -0.0659],
+            [0.0, 0.06, -0.05]])
 
         self.L_com = np.array([
             [-0.0000327, -0.0000173, 0.081581],
@@ -168,6 +169,13 @@ class robot_config(robot_config.robot_config):
             [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0,  0],
             [0, 0, 1, self.L_com[6, 2]],
             [0, 0, 0, 1]])
+        
+        # transform from EE to camera
+        self.TEEcamera = sp.Matrix([
+            [1, 0, 0, self.L[6,0]],
+            [0, 1, 0, self.L[6,1]],
+            [0, 0, 1, self.L[6,2]],
+            [0, 0, 0, 1]])
 
 
         # ---- COM Transform Matrices ----
@@ -274,6 +282,10 @@ class robot_config(robot_config.robot_config):
             T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
                     * self.T32a * self.T32b * self.T43b * self.T43a * self.T54b
                     * self.T54a * self.TEE5)
+        elif name == 'camera':
+            T = (self.T0org * self.T10a * self.T10b * self.T21a * self.T21b
+                    * self.T32a * self.T32b * self.T43b * self.T43a * self.T54b
+                    * self.T54a * self.TEE5 * self.TEEcamera)
 
         # ---- COM Transforms ----
         elif name == 'link0':
