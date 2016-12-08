@@ -8,10 +8,10 @@ except ImportError:
                     'use adaptive dynamics.')
 
 nengo_ocl = None
-# try:
-#     import nengo_ocl
-# except ImportError:
-#     print('Nengo OCL not installed, simulation will be slower.')
+try:
+    import nengo_ocl
+except ImportError:
+    print('Nengo OCL not installed, simulation will be slower.')
 
 nengolib = None
 try:
@@ -96,32 +96,40 @@ class Signal():
                 self.u_adapt = np.copy(x)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
 
+            eval_points = (nengolib.stats.ScatteredHypersphere(surface=False) if
+                nengolib is not None else None)
+            encoders = (nengolib.stats.ScatteredHypersphere(surface=True) if
+                nengolib is not None else None)
             adapt_ens = nengo.Ensemble(
                 seed=10,
-                n_neurons=1000,
+                n_neurons=10000,
                 dimensions=self.robot_config.num_joints * 2,
-                encoders=nengolib.stats.ScatteredHypersphere(surface=True),
-                intercepts=AreaIntercepts(self.robot_config.num_joints * 2))
+                encoders=encoders,
+                eval_points=eval_points,
+                intercepts=AreaIntercepts(
+                    self.robot_config.num_joints * 2,
+                    nengo.dists.Uniform(-.2, 1)),
+                radius=np.sqrt(self.robot_config.num_joints * 2))
 
             if encoders_file is not None:
                 try:
                     encoders = np.load(encoders_file)['encoders'][-1]
                     adapt_ens.encoders = encoders
-                    print('Loaded encoders from %s' % encoders_file)
+                    print('\nLoaded encoders from %s\n' % encoders_file)
                 except Exception:
-                    print('No encoders file found, generating normally')
+                    print('\nNo encoders file found, generating normally\n')
                     pass
 
             # connect input to CB with Voja so that encoders shift to
             # most commonly explored areas of state space
             conn_in = nengo.Connection(
                 qdq_input,
-                adapt_ens,
-                learning_rule_type=nengo.Voja(voja_learning_rate))
+                adapt_ens[:self.robot_config.num_joints * 2],)
+                # learning_rule_type=nengo.Voja(voja_learning_rate))
 
             conn_learn = \
                 nengo.Connection(
-                    adapt_ens, output,
+                    adapt_ens[:self.robot_config.num_joints * 2], output,
                     # start with outputting just zero
                     function=lambda x: np.zeros(dim),
                     learning_rule_type=nengo.PES(pes_learning_rate),
@@ -133,7 +141,8 @@ class Signal():
                              transform=-1, synapse=.01)
 
             self.probe_weights = nengo.Probe(conn_learn, 'weights')
-            self.probe_encoders = nengo.Probe(conn_in.learning_rule, 'scaled_encoders')
+            # self.probe_encoders = nengo.Probe(conn_in.learning_rule, 'scaled_encoders')
+            # self.probe_neurons = nengo.Probe(adapt_ens.neurons, sample_every=.002)
 
         if nengo_ocl is not None:
             self.sim = nengo_ocl.Simulator(nengo_model, dt=.001)
