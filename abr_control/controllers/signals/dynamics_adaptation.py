@@ -54,8 +54,10 @@ class Signal():
     """ An implementation of dynamics adaptation using a Nengo model
     """
 
-    def __init__(self, robot_config, pes_learning_rate=1e-6,
-                 voja_learning_rate=1e-6, weights_file=None,
+    def __init__(self, robot_config, n_neurons=1000,
+                 pes_learning_rate=1e-6,
+                 voja_learning_rate=1e-6,
+                 weights_file=None,
                  encoders_file=None):
         """
         pes_learning_rate float: controls the speed of neural adaptation
@@ -102,7 +104,7 @@ class Signal():
                 nengolib is not None else None)
             adapt_ens = nengo.Ensemble(
                 seed=10,
-                n_neurons=10000,
+                n_neurons=n_neurons,
                 dimensions=self.robot_config.num_joints * 2,
                 encoders=encoders,
                 eval_points=eval_points,
