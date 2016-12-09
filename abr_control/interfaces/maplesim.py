@@ -11,12 +11,14 @@ class interface(interface.interface):
     in PyGame.
     """
 
-    def __init__(self, robot_config, dt=.001, q_init=None):
+    def __init__(self, robot_config, dt=.001, q_init=None, **kwargs):
+
+        self.kwargs = kwargs
+
         super(interface, self).__init__(robot_config)
 
         self.q = np.zeros(self.robot_config.num_joints)  # joint angles
         self.dq = np.zeros(self.robot_config.num_joints)  # joint_velocities
-
 
         if q_init is not None:
             self.q_init = np.zeros(self.robot_config.num_joints*2)
@@ -34,7 +36,8 @@ class interface(interface.interface):
         """
 
         # create the PyGame display
-        self.display = pygame_display.display(L=self.robot_config.L)
+        self.display = pygame_display.display(L=self.robot_config.L,
+                                              **self.kwargs)
 
         # stores information returned from maplesim
         self.state = np.zeros(7)

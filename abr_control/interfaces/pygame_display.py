@@ -5,10 +5,11 @@ import pygame.locals
 
 class display():
 
-    def __init__(self, L):
+    def __init__(self, L, on_click_move=None):
         """ Set up the PyGame visualization window.
 
         L np.array: the length of the arm segments
+        on_click_move string: on mouse click: [target, obstacle, None]
         """
         # set up size of pygame window
         self.width = 642
@@ -27,6 +28,8 @@ class display():
         self.black = (0, 0, 0)
         self.arm_color = (75, 75, 75)
         line_color = (50, 50, 50, 200)  # fourth value is transparency
+
+        self.on_click_move = on_click_move
 
         self.L = L * self.scaling_term
         self.target = None
@@ -103,8 +106,13 @@ class display():
         for event in pygame.event.get():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.mouse_x, self.mouse_y = pygame.mouse.get_pos()
-                self.circles[0][0] = self.mouse_x
-                self.circles[0][1] = self.mouse_y
+
+                if self.on_click_move == 'target':
+                    self.target[0] = self.mouse_x
+                    self.target[1] = self.mouse_y
+                elif self.on_click_move == 'obstacle':
+                    self.circles[0][0] = self.mouse_x
+                    self.circles[0][1] = self.mouse_y
 
         pygame.display.update()
         self.fpsClock.tick(self.fps)
@@ -120,6 +128,10 @@ class display():
         """
         self.target = (xyz * np.array([1, -1]) *
                        self.scaling_term + self.base_offset)
+
+        if self.on_click_move == 'target':
+            self.mouse_x = self.target[0]
+            self.mouse_y = self.target[1]
 
     def add_circle(self, xyz, radius, color=[0, 0, 100]):
         """ Add an obstacle to the list.
