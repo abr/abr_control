@@ -6,7 +6,6 @@ try:
 except ImportError:
     raise Exception('Nengo module needs to be installed to ' +
                     'use adaptive dynamics.')
-
 nengo_ocl = None
 try:
     import nengo_ocl
@@ -57,8 +56,8 @@ class Signal():
     def __init__(self, robot_config, n_neurons=1000,
                  pes_learning_rate=1e-6,
                  voja_learning_rate=1e-6,
-                 weights_file=None,
-                 encoders_file=None):
+                 weights_file=None, encoders_file=None,
+                 backend='nengo'):
         """
         pes_learning_rate float: controls the speed of neural adaptation
                                  for training the dynamics compensation term
@@ -146,10 +145,25 @@ class Signal():
             # self.probe_encoders = nengo.Probe(conn_in.learning_rule, 'scaled_encoders')
             # self.probe_neurons = nengo.Probe(adapt_ens.neurons, sample_every=.002)
 
-        if nengo_ocl is not None:
-            self.sim = nengo_ocl.Simulator(nengo_model, dt=.001)
-        else:
+        if backend == 'nengo':
             self.sim = nengo.Simulator(nengo_model, dt=.001)
+        elif backend == 'nengo_ocl':
+            try:
+                import nengo_ocl
+            except ImportError:
+                raise Exception('Nengo OCL not installed, ' +
+                                'simulation will be slower.')
+            self.sim = nengo_ocl.Simulator(nengo_model, dt=.001)
+        elif backend == 'nengo_spinnaker':
+            try:
+                import nengo_spinnaker
+            except ImportError:
+                raise Exception('Nengo SpiNNaker not installed, ' +
+                                  'simulation will be slower.')
+            self.sim = nengo_spinnaker.Simulator(nengo_model)
+        else:
+            raise Exception('Invalid backend specified')
+        self.backend = backend
 
     def generate(self, q, dq, training_signal):
         """ Generates the control signal
@@ -165,6 +179,9 @@ class Signal():
         self.training_signal = training_signal
 
         # run the simulation t generate the adaptive signal
-        self.sim.run(time_in_seconds=.001, progress_bar=False)
+        if self.backend == 'nengo' or self.backend == 'nengo_ocl':
+            self.sim.run(time_in_seconds=.001, progress_bar=False)
+        else:
+            self.sim.run(time_in_seconds=.001)
 
         return self.u_adapt
