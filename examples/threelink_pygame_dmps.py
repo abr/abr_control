@@ -36,6 +36,7 @@ try:
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
+        error = np.sqrt(np.sum((target_xyz - hand_xyz)**2))
 
         # generate an operational space control signal
         u = ctrlr.control(
@@ -45,7 +46,8 @@ try:
                 [target_xyz, np.zeros(3)]))
 
         # get the next point in the target trajectory from the dmp
-        target_xyz[0], target_xyz[1] = dmps.step()[0]
+        target_xyz[0], target_xyz[1] = dmps.step(
+            error=error*1e2)[0]
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward

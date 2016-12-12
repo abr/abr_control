@@ -60,6 +60,7 @@ class controller:
                 scale[index] = 1
             else:
                 scale = np.ones(3, dtype='float32')
+
             u_xyz = -self.kv * (dx - target_state[3:] -
                                 np.clip(sat / scale, 0, 1) *
                                 -self.lamb * scale * x_tilde)
