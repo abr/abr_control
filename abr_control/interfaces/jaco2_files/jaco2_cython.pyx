@@ -17,8 +17,6 @@ cdef extern from "jaco2_rs485.h":
         float vel[6]
 
 
-# TODO: make position control available
-
 cdef class pyJaco2:
     cdef Jaco2* thisptr # hold a C++ instance
     def __cinit__(self):

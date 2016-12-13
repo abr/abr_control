@@ -32,5 +32,3 @@ class KeepLearningSolver(nengo.solvers.Lstsq):
                 super(KeepLearningSolver, self).__call__(A, Y)
 
         return weights, info
-
-

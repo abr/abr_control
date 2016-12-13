@@ -1,8 +1,8 @@
 import numpy as np
-import time
 
 from .jaco2_files import jaco2_rs485
 from abr_control.interfaces import interface
+
 
 class interface(interface.interface):
     """ Base class for interfaces.
@@ -19,16 +19,6 @@ class interface(interface.interface):
         # TODO: send arm to home position before calling initforcemode
         """ All initial setup. """
         self.jaco2.Connect()
-        #self.jaco2.Disconnect()
-        #for ii in range(1000):
-        #print('Moving to home position')
-        #self.jaco2.ApplyQ(self.robot_config.home_position)
-        #time.sleep(5)
-        #print('Switching to force mode')
-        #self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
-        #self.jaco2.InitForceMode(np.array([
-            #0.0, 0.0, 7, 0.0, 0.0, 0.0], dtype="float32"))
-            #0.95, 11.2, 0.0, -0.18, 0.03, 0.15], dtype="float32")) #self.robot_config.home_torques)
 
     def disconnect(self):
         """ Any socket closing etc that must be done
@@ -50,27 +40,42 @@ class interface(interface.interface):
         """
         return self.jaco2.GetFeedback()
 
-    def apply_q(self):
-        # joint control of arm
-        #self.jaco2.ApplyQ(self.robot_config.home_position)
-        self.jaco2.ApplyQ(np.array([250.0, 180.0, 180.0, 270.0, 0.0, 0.0], dtype="float32"))
+    def apply_q(self, q):
+        """ Moves the arm to the specified joint angles using
+        the on-board PD controller.
 
-    def init_force_mode(self):
-        #switch from position to torque mode
-        #self.jaco2.InitForceMode(np.zeros(6, dtype="float32")) #self.robot_config.home_torques)
-        
-        #2lb weight
-        self.jaco2.InitForceMode(np.array([
-            0.4, -1.8, 4.0, 0.0, 0.0, 0.0], dtype="float32"))
-        
-        #3lb weight
-        #self.jaco2.InitForceMode(np.array([
-        #    0.9, -2.4, 1.9, 0.0, 0.0, 0.0], dtype="float32"))
+        """
+        self.jaco2.ApplyQ(q)
+
+    def init_force_mode(self, expected_torque=None):
+        """ Changes the arm to torque control mode, where forces
+        can be sent in specifying what torque to apply at each joint.
+
+        expected_torque np.array: the torque expected at each motor
+                                  in the current position
+        """
+
+        if expected_torque is None:
+            # 2lb weight + hand
+            expected_torque = np.array(
+                [1.0, -0.8, 0.9, 0.0, 0.0, 0.0],
+                dtype="float32")
+            # 3lb weight + hand
+            # expected_torque = np.array(
+            #     [0.9, -2.4, 1.9, 0.0, 0.0, 0.0],
+            #     dtype="float32"))
+
+        self.jaco2.InitForceMode(expected_torque)
 
     def init_position_mode(self):
-        #switch from position to torque mode
+        """ Changes the arm into position control mode, where
+        target joint angles can be provided, and the on-board PD
+        controller will move the arm.
+        """
         self.jaco2.InitPositionMode()
-    
+
     def get_pos(self):
-        #get position of 6 servos
+        """ Returns the last set of joint angles and velocities
+        read in from the arm as a dictionary, with keys 'q' and 'dq'.
+        """
         return self.jaco2.GetFeedback()
