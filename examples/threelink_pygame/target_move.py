@@ -1,13 +1,11 @@
+"""
+Running the threelink arm with the pygame display. The arm will
+move the end-effector to the target, which can be moved by
+clicking on the background.
+"""
 import numpy as np
 
 import abr_control
-import pydmps
-
-# create a dmp that traces a circle
-x = np.linspace(0, np.pi*2, 100)
-dmps_traj = np.array([np.cos(x)*.5, np.sin(x)*.5 + 2])
-dmps = pydmps.DMPs_rhythmic(n_dmps=2, n_bfs=50, dt=.01)
-dmps.imitate_path(dmps_traj)
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.config.robot_config(
@@ -15,11 +13,11 @@ robot_config = abr_control.arms.threelink.config.robot_config(
 
 # create an operational space controller
 ctrlr = abr_control.controllers.osc.controller(
-    robot_config, kp=500, vmax=None)
+    robot_config, kp=100, vmax=10)
 
 # create our interface
 interface = abr_control.interfaces.maplesim.interface(
-    robot_config, dt=.001)
+    robot_config, dt=.001, on_click_move='target')
 interface.connect()
 
 # create a target
@@ -31,12 +29,12 @@ interface.set_target(target_xyz)
 ee_path = []
 target_path = []
 
+print('\nClick to move the target.\n')
 try:
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
-        error = np.sqrt(np.sum((target_xyz - hand_xyz)**2))
 
         # generate an operational space control signal
         u = ctrlr.control(
@@ -45,9 +43,7 @@ try:
             target_state=np.hstack(
                 [target_xyz, np.zeros(3)]))
 
-        # get the next point in the target trajectory from the dmp
-        target_xyz[0], target_xyz[1] = dmps.step(
-            error=error*1e2)[0]
+        target_xyz[0], target_xyz[1] = interface.display.get_mousexy()
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward
