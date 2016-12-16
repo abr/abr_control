@@ -31,7 +31,7 @@ class interface(interface.interface):
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times apply_u has been called
         self.misc_handles = {}  # for tracking miscellaneous object handles
-
+    
     def connect(self):
         """ Connect to the current scene open in VREP,
         find the VREP references to the joints of the robot,
@@ -72,11 +72,13 @@ class interface(interface.interface):
             vrep.sim_floatparam_simulation_time_step,
             self.dt,  # specify a simulation time step
             vrep.simx_opmode_oneshot)
-
+            
+        vrep.simxSetBooleanParameter(self.clientID, vrep.sim_boolparam_display_enabled, True, vrep.simx_opmode_oneshot)
+        
         # start our simulation in lockstep with our code
         vrep.simxStartSimulation(self.clientID,
                                  vrep.simx_opmode_blocking)
-
+        
         print('Connected to remote API server')
 
     def disconnect(self):
@@ -91,7 +93,7 @@ class interface(interface.interface):
         # Now close the connection to V-REP:
         vrep.simxFinish(self.clientID)
         print('connection closed...')
-
+    @profile
     def apply_u(self, u):
         """ Apply the specified torque to the robot joints,
         move the simulation one time step forward, and update
@@ -146,7 +148,7 @@ class interface(interface.interface):
         # move simulation ahead one time step
         vrep.simxSynchronousTrigger(self.clientID)
         self.count += self.dt
-
+    
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller. """
         for ii, joint_handle in enumerate(self.joint_handles):
@@ -170,7 +172,7 @@ class interface(interface.interface):
 
         return {'q': self.q,
                 'dq': self.dq}
-
+    
     def get_xyz(self, name):
         """ Returns the xyz position of the specified object
 
@@ -191,7 +193,7 @@ class interface(interface.interface):
             -1,  # get absolute, not relative position
             vrep.simx_opmode_blocking)
         return xyz
-
+    
     def set_xyz(self, name, xyz):
         """ Set the position of an object in the environment.
 
