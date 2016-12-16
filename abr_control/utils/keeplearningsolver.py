@@ -18,9 +18,9 @@ class KeepLearningSolver(nengo.solvers.Lstsq):
             print('Loading weights from %s' % self.filename)
             tstart = time.time()
             weights = np.load(self.filename)['weights'][-1].T
-            print('weights shape: ', weights.shape)
             info = {'rmses': None,
                     'time': time.time() - tstart}
+
             if (weights.shape[0] != A.shape[1] or
                     weights.shape[1] != Y.shape[1]):
                 raise Exception('Stored weights are not ' +
