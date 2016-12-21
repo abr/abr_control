@@ -16,10 +16,7 @@ class robot_config(robot_config.robot_config):
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
-        # Kinova Home Position
-        #self.home_position = np.array([275.0, 167.0, 57.0,
-        #                      240.0, 82.0, 75.0], dtype="float32")
-        # Straight up
+        # Kinova Home Position - straight up
         self.home_position = np.array([90.0, 180.0, 180.0,
                               0.0, 0.0, 0.0], dtype="float32")
         self.home_torques = np.array([-0.138, -0.116, 3.339,
@@ -232,20 +229,6 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # orientation part of the Jacobian (compensating for orientations)
-        """self.J_orientation = [[0, 1, 0],  # joint 0 rotates around y axis
-                              [0, 0, 1],  # joint 1 rotates around z axis
-                              [0, 1, 0],  # joint 2 rotates around y axis
-                              [0, 0, 1],  # joint 3 rotates around z axis
-                              [0, 0, 1],  # joint 4 rotates around z axis
-                              [0, 0, 1]]  # joint 5 rotates around z axis"""
-
-        """self.J_orientation = [[0, 10, 0],  # joint 0 rotates around y axis
-                              [0, 0, 8],  # joint 1 rotates around z axis
-                              [0, 8, 0],  # joint 2 rotates around y axis
-                              [0, 8, 8],  # joint 3 rotates around z axis
-                              [0, 8, 8],  # joint 4 rotates around z axis
-                              [0, 0, 8]]  # joint 5 rotates around z axis"""
-
         self.J_orientation = [[0, 0, 1],  # joint 0 rotates around y axis
                               [0, 0, 1],  # joint 1 rotates around z axis
                               [0, 0, 1],  # joint 2 rotates around y axis

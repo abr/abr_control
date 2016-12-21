@@ -1,17 +1,11 @@
 import numpy as np
 import scipy
-import pyopencl as cl
 
 try:
     import nengo
 except ImportError:
     raise Exception('Nengo module needs to be installed to ' +
                     'use adaptive dynamics.')
-nengo_ocl = None
-try:
-    import nengo_ocl
-except ImportError:
-    print('Nengo OCL not installed, simulation will be slower.')
 
 nengolib = None
 try:
@@ -20,41 +14,15 @@ except ImportError:
     print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
 from abr_control.utils.keeplearningsolver import KeepLearningSolver
-
-class AreaIntercepts(nengo.dists.Distribution):
-    """ A Nengo distribution for distributing intercepts more effectively
-    in high-dimensional spaces, such that they are spread out to be more
-    evenly active throughout the state space. """
-    dimensions = nengo.params.NumberParam('dimensions')
-    base = nengo.dists.DistributionParam('base')
-
-    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
-        super(AreaIntercepts, self).__init__()
-        self.dimensions = dimensions
-        self.base = base
-
-    def __repr(self):
-        return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions, self.base)
-
-    def transform(self, x):
-        sign = 1
-        if x > 0:
-            x = -x
-            sign = -1
-        return sign * np.sqrt(1-scipy.special.betaincinv((self.dimensions+1)/2.0, 0.5, x+1))
-
-    def sample(self, n, d=None, rng=np.random):
-        s = self.base.sample(n=n, d=d, rng=rng)
-        for i in range(len(s)):
-            s[i] = self.transform(s[i])
-        return s
+from abr_control.utils.areaintercepts import AreaIntercepts
 
 
 class Signal():
     """ An implementation of dynamics adaptation using a Nengo model
     """
 
-    def __init__(self, robot_config, n_neurons=1000,
+    def __init__(self, robot_config,
+                 n_neurons=1000,
                  n_adapt_pop=1,
                  pes_learning_rate=1e-6,
                  voja_learning_rate=1e-6,
@@ -69,15 +37,15 @@ class Signal():
         weights_file string: path to file where learned weights are saved
         encoders_file string: path to file where learned encoders are saved
         """
-        # Here, the context would be to use all devices from platform [0]
-        ctx = cl.Context(cl.get_platforms()[0].get_devices())
-
         self.robot_config = robot_config
 
         self.u_adapt = np.zeros(self.robot_config.num_joints)
 
+        weights_file = (['']*n_adapt_pop if
+            weights_file is None else weights_file)
+
         dim = self.robot_config.num_joints
-        nengo_model = nengo.Network()
+        nengo_model = nengo.Network(seed=10)
         with nengo_model:
 
             def qdq_input(t):
@@ -101,88 +69,31 @@ class Signal():
                 self.u_adapt = np.copy(x)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
 
-            eval_points = (nengolib.stats.ScatteredHypersphere(surface=False) if
-                nengolib is not None else None)
-            encoders = (nengolib.stats.ScatteredHypersphere(surface=True) if
-                nengolib is not None else None)
-            adapt_ens = nengo.Ensemble(
-                seed=10,
-                n_neurons=n_neurons,
-                dimensions=self.robot_config.num_joints * 2,
-                encoders=encoders,
-                eval_points=eval_points,
-                intercepts=AreaIntercepts(
-                    self.robot_config.num_joints * 2,
-                    nengo.dists.Uniform(-.2, 1)),
-                radius=np.sqrt(self.robot_config.num_joints * 2))
-
-            if encoders_file is not None:
-                try:
-                    encoders = np.load(encoders_file)['encoders'][-1]
-                    adapt_ens.encoders = encoders
-                    print('\nLoaded encoders from %s\n' % encoders_file)
-                except Exception:
-                    print('\nNo encoders file found, generating normally\n')
-                    pass
-
-            # connect input to CB with Voja so that encoders shift to
-            # most commonly explored areas of state space
-            conn_in = nengo.Connection(
-                qdq_input,
-                adapt_ens[:self.robot_config.num_joints * 2],)
-                # learning_rule_type=nengo.Voja(voja_learning_rate))
-
-            conn_learn = \
-                nengo.Connection(
-                    adapt_ens[:self.robot_config.num_joints * 2], output,
-                    # start with outputting just zero
-                    function=lambda x: np.zeros(dim),
-                    learning_rule_type=nengo.PES(pes_learning_rate),
-                    # use the weights solver that lets you keep
-                    # learning from the what's saved to file
-                    solver=KeepLearningSolver(filename=weights_file))
-            nengo.Connection(u_input, conn_learn.learning_rule,
-                             # invert because we're providing error not reward
-                             transform=-1, synapse=.01)
-
-            #self.probe_weights = nengo.Probe(conn_learn, 'weights')
-            # self.probe_encoders = nengo.Probe(conn_in.learning_rule, 'scaled_encoders')"""
             adapt_ens=[]
             conn_learn=[]
             self.probe_weights=[]
             for ii in range(n_adapt_pop):
                 adapt_ens.append(nengo.Ensemble(
-                    seed=10,
                     n_neurons=n_neurons,
                     dimensions=self.robot_config.num_joints * 2,
-                    encoders=nengolib.stats.ScatteredHypersphere(surface=True),
-                    eval_points=nengolib.stats.ScatteredHypersphere(surface=False),
-                    intercepts=AreaIntercepts(
-                        self.robot_config.num_joints * 2,
-                        nengo.dists.Uniform(-.2, 1)),
-                    radius=np.sqrt(self.robot_config.num_joints * 2)))
-
-                if encoders_file is not None:
-                    try:
-                        encoders = np.load(encoders_file)['encoders'][-1]
-                        adapt_ens[ii].encoders = encoders
-                        print('\nLoaded encoders from %s\n' % encoders_file)
-                    except Exception:
-                        print('\nNo encoders file found, generating normally\n')
-                        pass
+                    encoders = nengolib.stats.ScatteredHypersphere(
+                        surface=True),
+                    eval_points = nengolib.stats.ScatteredHypersphere(
+                        surface=False),
+                    intercepts=nengo.dists.Uniform(-.1,1)))
 
                 # connect input to CB with Voja so that encoders shift to
                 # most commonly explored areas of state space
                 conn_in = nengo.Connection(
                     qdq_input,
-                    adapt_ens[ii][:self.robot_config.num_joints * 2],)
-                    # learning_rule_type=nengo.Voja(voja_learning_rate))
+                    adapt_ens[ii][:self.robot_config.num_joints * 2],
+                    function=lambda x: x / np.linalg.norm(x))
 
                 conn_learn.append(
                     nengo.Connection(
                         adapt_ens[ii][:self.robot_config.num_joints * 2], output,
                         # start with outputting just zero
-                        function=lambda x: np.zeros(dim),
+                        function=lambda x, ii=ii: np.zeros(dim),
                         learning_rule_type=nengo.PES(pes_learning_rate),
                         # use the weights solver that lets you keep
                         # learning from the what's saved to file
@@ -201,6 +112,9 @@ class Signal():
             except ImportError:
                 raise Exception('Nengo OCL not installed, ' +
                                 'simulation will be slower.')
+            import pyopencl as cl
+            # Here, the context would be to use all devices from platform [0]
+            ctx = cl.Context(cl.get_platforms()[0].get_devices())
             self.sim = nengo_ocl.Simulator(nengo_model, context=ctx, dt=.001)
         elif backend == 'nengo_spinnaker':
             try:
