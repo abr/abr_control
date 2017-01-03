@@ -15,8 +15,8 @@ class robot_config(robot_config.robot_config):
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
         # Kinova Home Position - straight up
-        self.home_position = np.array([90.0, 180.0, 180.0,
-                                       0.0, 0.0, 0.0], dtype="float32")
+        self.home_position = np.array([250.0, 180.0, 180.0,
+                                       270.0, 0.0, 0.0], dtype="float32")
         self.home_torques = np.array([-0.138, -0.116, 3.339,
                                       -0.365, -0.113, 0.061], dtype="float32")
 
@@ -125,13 +125,10 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : joint 3 -> joint 4
         # NOTE: reference frame is rotated by 55 degrees (0.959931rad)
-        # NOTE: Did transform in reverse order to simplify math
         # transformation due to rotation in reference frame
         self.T34a = sp.Matrix([
             [1, 0, 0, 0],
-            # [0, sp.cos(0.959931), sp.sin(0.959931), 0],
-            # [0, -sp.sin(0.959931), sp.cos(0.959931), 0],
-            # NOTE: switching from 55 to 60
+            # NOTE: actual arm is 60 degrees, but VREP might be 55
             [0, sp.cos(1.047), sp.sin(1.047), 0],
             [0, -sp.sin(1.047), sp.cos(1.047), 0],
             [0, 0, 0, 1]])
@@ -148,9 +145,7 @@ class robot_config(robot_config.robot_config):
         # transformation due to rotation in reference frame
         self.T45a = sp.Matrix([
             [1, 0, 0, 0],
-            # [0, sp.cos(0.959931), sp.sin(0.959931), 0],
-            # [0, -sp.sin(0.959931), sp.cos(0.959931), 0],
-            # NOTE: switching from 55 to 60
+            # NOTE: actual arm is 60 degrees, but VREP might be 55
             [0, sp.cos(1.047), sp.sin(1.047), 0],
             [0, -sp.sin(1.047), sp.cos(1.047), 0],
             [0, 0, 0, 1]])
@@ -164,7 +159,6 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # Transform matrix : joint 6 -> end-effector
-        # NOTE: might need to flip y and z rotation
         self.T5EE = sp.Matrix([
             [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
             [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],

@@ -24,7 +24,7 @@ interface = abr_control.interfaces.jaco2.interface(robot_config)
 # connect to the jaco
 interface.connect()
 # move to the home position
-interface.apply_q()
+interface.apply_q(robot_config.home_position)
 # switch to torque control mode
 interface.init_force_mode()
 
@@ -81,7 +81,7 @@ except Exception as e:
 finally:
     # return back to home position
     interface.init_position_mode()
-    interface.apply_q()
+    interface.apply_q(robot_config.home_position)
     # close the connection to the arm
     interface.disconnect()
 

@@ -3,8 +3,8 @@ from .vrep_files import vrep
 
 from . import interface
 
-## TODO: add ability to load models files so that vrep only has to be open
-## TODO: add ability to set initial position of robot
+# TODO: add ability to load models files so that vrep only has to be open
+# TODO: add ability to set initial position of robot
 
 
 class interface(interface.interface):
@@ -73,7 +73,11 @@ class interface(interface.interface):
             self.dt,  # specify a simulation time step
             vrep.simx_opmode_oneshot)
 
-        vrep.simxSetBooleanParameter(self.clientID, vrep.sim_boolparam_display_enabled, True, vrep.simx_opmode_oneshot)
+        vrep.simxSetBooleanParameter(
+            self.clientID,
+            vrep.sim_boolparam_display_enabled,
+            True,
+            vrep.simx_opmode_oneshot)
 
         # start our simulation in lockstep with our code
         vrep.simxStartSimulation(self.clientID,
