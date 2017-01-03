@@ -15,7 +15,7 @@ class robot_config():
     """
 
     def __init__(self, num_joints, num_links, robot_name="robot",
-                 regenerate_functions=False, use_cython=True):
+                 regenerate_functions=False, use_cython=False):
         """
         num_joints int: number of joints in robot
         num_links int: number of arm segments in robot
