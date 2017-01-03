@@ -26,7 +26,7 @@ class Signal():
                  n_adapt_pop=1,
                  pes_learning_rate=1e-6,
                  voja_learning_rate=1e-6,
-                 weights_file=None, encoders_file=None,
+                 weights_file=None,
                  backend='nengo'):
         """
         pes_learning_rate float: controls the speed of neural adaptation
@@ -35,7 +35,6 @@ class Signal():
                                   for shifting the sensitivity of the CB
                                   encoders towards areas most often explored
         weights_file string: path to file where learned weights are saved
-        encoders_file string: path to file where learned encoders are saved
         """
         self.robot_config = robot_config
 
@@ -111,7 +110,7 @@ class Signal():
                 import nengo_ocl
             except ImportError:
                 raise Exception('Nengo OCL not installed, ' +
-                                'simulation will be slower.')
+                                'cannot use this backend.')
             import pyopencl as cl
             # Here, the context would be to use all devices from platform [0]
             ctx = cl.Context(cl.get_platforms()[0].get_devices())
@@ -121,7 +120,7 @@ class Signal():
                 import nengo_spinnaker
             except ImportError:
                 raise Exception('Nengo SpiNNaker not installed, ' +
-                                  'simulation will be slower.')
+                                'cannot use this backend.')
             self.sim = nengo_spinnaker.Simulator(nengo_model)
         else:
             raise Exception('Invalid backend specified')

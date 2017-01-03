@@ -1,3 +1,8 @@
+"""
+Running the threelink arm with the pygame display, using the
+obstacle avoidance signal. The obstacle location can be moved
+by clicking on the background.
+"""
 import numpy as np
 
 import abr_control

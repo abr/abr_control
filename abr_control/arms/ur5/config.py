@@ -1,5 +1,3 @@
-import cloudpickle
-import os
 import numpy as np
 import sympy as sp
 
@@ -40,86 +38,103 @@ class robot_config(robot_config.robot_config):
                                 0.01, 0.01, 0.01]))  # link6
 
         # segment lengths associated with each joint
-        self.L = np.array([0.0935, 0.13453, 0.4251,
-                           0.12, 0.3921, 0.0935, 0.0935, 0.0935],
-                          dtype='float32')
+        self.L = np.array([
+            [0.0, 0.0, 0.0935],
+            [0.13453, 0.0, 0.0],
+            [0.0, 0.4251, 0.0],
+            [0.12, 0.3921, 0.0],
+            [0.0935, 0.0, 0.0],
+            [0.0, 0.0, 0.0935],
+            [0.0935, 0.0, 0.0]],
+            dtype='float32')
 
-        # transform matrix from origin to joint 0 reference frame
+        # ---- Joint Transform Matrices ----
+
+        # Transform matrix : origin -> joint 0
         # link 0 reference frame is the same as joint 0
-        self.T0org = sp.Matrix([
+        self.Torg0 = sp.Matrix([
             [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0, 0],
             [sp.sin(self.q[0]), sp.cos(self.q[0]), 0, 0],
-            [0, 0, 1, self.L[0]],
+            [0, 0, 1, self.L[0, 2]],
             [0, 0, 0, 1]])
 
-        # transform matrix from joint 0 to joint 1 reference frame
-        # link 1 reference frame is the same as joint 1
-        self.T10 = sp.Matrix([
-            [1, 0, 0, -self.L[1]],
+        # Transform matrix : joint 0 -> joint 1
+        self.T01 = sp.Matrix([
+            [1, 0, 0, -self.L[1, 0]],
             [0, sp.cos(-self.q[1] + sp.pi/2),
              -sp.sin(-self.q[1] + sp.pi/2), 0],
             [0, sp.sin(-self.q[1] + sp.pi/2),
              sp.cos(-self.q[1] + sp.pi/2), 0],
             [0, 0, 0, 1]])
 
-        # transform matrix from joint 1 to joint 2 reference frame
-        self.T21 = sp.Matrix([
+        # Transform matrix : joint 1 -> joint 2
+        self.T12 = sp.Matrix([
             [1, 0, 0, 0],
             [0, sp.cos(-self.q[2]),
-             -sp.sin(-self.q[2]), self.L[2]],
+             -sp.sin(-self.q[2]), self.L[2, 1]],
             [0, sp.sin(-self.q[2]),
              sp.cos(-self.q[2]), 0],
             [0, 0, 0, 1]])
 
-        # transform matrix from joint 1  to link 2
-        self.Tl21 = sp.Matrix([
-            [1, 0, 0, 0],
-            [0, sp.cos(-self.q[2]),
-             -sp.sin(-self.q[2]), self.L[2] / 2],
-            [0, sp.sin(-self.q[2]),
-             sp.cos(-self.q[2]), 0],
-            [0, 0, 0, 1]])
-
-        # transform matrix from joint 2 to joint 3
-        self.T32 = sp.Matrix([
-            [1, 0, 0, self.L[3]],
+        # Transform matrix : joint 2 -> joint 3
+        self.T23 = sp.Matrix([
+            [1, 0, 0, self.L[3, 0]],
             [0, sp.cos(-self.q[3] - sp.pi/2),
-             -sp.sin(-self.q[3] - sp.pi/2), self.L[4]],
+             -sp.sin(-self.q[3] - sp.pi/2), self.L[3, 1]],
             [0, sp.sin(-self.q[3] - sp.pi/2),
              sp.cos(-self.q[3] - sp.pi/2), 0],
             [0, 0, 0, 1]])
 
-        # transform matrix from joint 2 to link 3
-        self.Tl32 = sp.Matrix([
-            [1, 0, 0, self.L[3]],
-            [0, sp.cos(-self.q[3] - sp.pi/2),
-             -sp.sin(-self.q[3] - sp.pi/2), self.L[4] / 2],
-            [0, sp.sin(-self.q[3] - sp.pi/2),
-             sp.cos(-self.q[3] - sp.pi/2), 0],
-            [0, 0, 0, 1]])
-
-        # transform matrix from joint 3 to joint 4
-        self.T43 = sp.Matrix([
+        # Transform matrix : joint 3 -> joint 4
+        self.T34 = sp.Matrix([
             [sp.sin(-self.q[4] - sp.pi/2),
-             sp.cos(-self.q[4] - sp.pi/2), 0, -self.L[5]],
+             sp.cos(-self.q[4] - sp.pi/2), 0, -self.L[4, 0]],
             [sp.cos(-self.q[4] - sp.pi/2),
              -sp.sin(-self.q[4] - sp.pi/2), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
-        # transform matrix from joint 4 to joint 5
-        self.T54 = sp.Matrix([
+        # Transform matrix : joint 4 -> joint 5
+        self.T45 = sp.Matrix([
             [1, 0, 0, 0],
             [0, sp.cos(-self.q[5]), -sp.sin(-self.q[5]), 0],
-            [0, sp.sin(-self.q[5]), sp.cos(-self.q[5]), self.L[6]],
+            [0, sp.sin(-self.q[5]), sp.cos(-self.q[5]), self.L[5, 2]],
             [0, 0, 0, 1]])
 
-        # transform matrix from joint 5 to end-effector
-        self.TEE5 = sp.Matrix([
-            [1, 0, 0, self.L[7]],
+        # Transform matrix : joint 5 -> end-effector
+        self.T5EE = sp.Matrix([
+            [1, 0, 0, self.L[6, 0]],
             [0, 1, 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
+
+        # ---- COM Transform Matrices ----
+
+        # NOTE: link 1 reference frame is the same as joint 1
+
+        # Transform matrix : joint 1 -> link 2
+        self.Tl21 = sp.Matrix([
+            [1, 0, 0, 0],
+            [0, sp.cos(-self.q[2]),
+             -sp.sin(-self.q[2]), self.L[2, 1] / 2],
+            [0, sp.sin(-self.q[2]),
+             sp.cos(-self.q[2]), 0],
+            [0, 0, 0, 1]])
+
+        # Transform matrix : joint 2 -> link 3
+        self.Tl23 = sp.Matrix([
+            [1, 0, 0, self.L[3, 0]],
+            [0, sp.cos(-self.q[3] - sp.pi/2),
+             -sp.sin(-self.q[3] - sp.pi/2), self.L[3, 1] / 2],
+            [0, sp.sin(-self.q[3] - sp.pi/2),
+             sp.cos(-self.q[3] - sp.pi/2), 0],
+            [0, 0, 0, 1]])
+
+        # NOTE: link 4 reference frame is the same as joint 4
+
+        # NOTE: link 5 reference frame is the same as joint 5
+
+        # NOTE: link 6 reference frame is the same as EE
 
         # orientation part of the Jacobian (compensating for orientations)
         self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
@@ -129,37 +144,34 @@ class robot_config(robot_config.robot_config):
                               [0, 0, 10],  # joint 4 rotates around z axis
                               [1, 0, 0]]  # joint 5 rotates around x axis
 
-    def _calc_T(self, name, lambdify=True, regenerate=False):  # noqa C907
+    def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
         """
 
         if name == 'link0':
             T = sp.eye(4)
         elif name == 'joint0' or name == 'link1':
-            T = self.T0org
+            T = self.Torg0
         elif name == 'joint1':
-            T = self.T0org * self.T10
+            T = self.Torg0 * self.T01
         elif name == 'joint2':
-            T = self.T0org * self.T10 * self.T21
+            T = self.Torg0 * self.T01 * self.T12
         elif name == 'link2':
-            T = self.T0org * self.T10 * self.Tl21
+            T = self.Torg0 * self.T01 * self.Tl21
         elif name == 'joint3':
-            T = self.T0org * self.T10 * self.T21 * self.T32
+            T = self.Torg0 * self.T01 * self.T12 * self.T23
         elif name == 'link3':
-            T = self.T0org * self.T10 * self.T21 * self.Tl32
+            T = self.Torg0 * self.T01 * self.T12 * self.Tl23
         elif name == 'joint4' or name == 'link4':
-            T = self.T0org * self.T10 * self.T21 * self.T32 * self.T43
+            T = self.Torg0 * self.T01 * self.T12 * self.T23 * self.T34
         elif name == 'joint5' or name == 'link5':
-            T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
-                    self.T54)
-        elif name == 'link6' or name == 'EE':
-            T = (self.T0org * self.T10 * self.T21 * self.T32 * self.T43 *
-                    self.T54 * self.TEE5)
+            T = (self.Torg0 * self.T01 * self.T12 * self.T23 * self.T34 *
+                 self.T45)
+        elif name == 'EE' or name == 'link6':
+            T = (self.Torg0 * self.T01 * self.T12 * self.T23 * self.T34 *
+                 self.T45 * self.T5EE)
         else:
             raise Exception('Invalid transformation name: %s' % name)
 

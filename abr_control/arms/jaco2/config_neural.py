@@ -1,7 +1,4 @@
 import numpy as np
-import sympy as sp
-
-import nengo
 
 from . import config
 

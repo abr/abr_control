@@ -10,9 +10,9 @@ interface = abr_control.interfaces.jaco2.interface(robot_config)
 
 try:
     interface.connect()
-        
+
 except Exception as e:
     print(e)
-        
+
 finally:
     interface.disconnect()

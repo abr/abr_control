@@ -101,7 +101,7 @@ class interface(interface.interface):
         q0 = self.q[0]
         q1 = self.q[1]
         q2 = self.q[2]
-        L = self.robot_config.L
+        L = self.robot_config.L[1:, 0]
 
         self.joints_x = np.cumsum([
             0,
