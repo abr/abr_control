@@ -1,5 +1,5 @@
 """
-A basic script for connecting and moving the arm to 4 targets.
+A basic script for connecting and moving the arm to several target.
 The end-effector and target postions are recorded and plotted
 once the final target is reached, and the arm has moved back
 to its default resting position.
@@ -9,23 +9,19 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for neural controllers
-robot_config = abr_control.arms.jaco2.config.robot_config()
-# instantiate the REACH controller for the jaco2 robot
+robot_config = abr_control.arms.onelink.config.robot_config()
+# instantiate the REACH controller for the onelink robot
 ctrlr = abr_control.controllers.osc.controller(
-    robot_config, kp=600, vmax=0.35)
+    robot_config, kp=600)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(6), np.zeros(6), target_state=np.zeros(6))
+ctrlr.control(np.zeros(1), np.zeros(1), target_state=np.zeros(6))
 
-# create our interface for the jaco2
-interface = abr_control.interfaces.jaco2.interface(robot_config)
+# create our VREP interface for the onelink arm
+interface = abr_control.interfaces.vrep.interface(robot_config)
 # connect to the jaco
 interface.connect()
-# move to the home position
-interface.apply_q(robot_config.home_position)
-# switch to torque control mode
-interface.init_force_mode()
 
 # set up arrays for tracking end-effector and target position
 ee_track = []
@@ -36,19 +32,24 @@ target_index = 0
 at_target_count = 0
 
 # list of targets to move to
-targets = [[-.467, .22, .78],
-           [-.467, -.22, .78],
-           [.467, -.22, .78],
-           [.467, .22, .78],
-           [-.467, .22, .78]]
-target_xyz = targets[0]
+targets = [[.3, 0.0, .375],
+           [-.3, 0.0, .375]]
+
+def set_target(xyz):
+    # normalize target position to lie on path of arm's end-effector
+    xyz = xyz / np.linalg.norm(xyz) * robot_config.L[0, 0]
+    interface.set_xyz('target', xyz)
+    return xyz
+
+# normalize target position to lie on path of arm's end-effector
+target_xyz = set_target(targets[0])
 print('Moving to first target: ', target_xyz)
 
 try:
     while 1:
         feedback = interface.get_feedback()
-        q = (np.array(feedback['q']) % 360) * np.pi / 180.0
-        dq = np.array(feedback['dq']) * np.pi / 180.0
+        q = feedback['q']
+        dq = feedback['dq']
         u = ctrlr.control(q=q, dq=dq,
                           target_state=np.hstack([target_xyz,
                                                  np.zeros(3)]))
@@ -65,7 +66,7 @@ try:
                 if target_index > len(targets):
                     break
                 else:
-                    target_xyz = targets[target_index]
+                    target_xyz = set_target(targets[target_index])
                     print('Moving to next target: ', target_xyz)
                 at_target_count = 0
 
@@ -77,9 +78,6 @@ except Exception as e:
     print(e)
 
 finally:
-    # return back to home position
-    interface.init_position_mode()
-    interface.apply_q(robot_config.home_position)
     # close the connection to the arm
     interface.disconnect()
 

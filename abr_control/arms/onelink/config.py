@@ -20,7 +20,7 @@ class robot_config(robot_config.robot_config):
                                 0.02, 0.02, 0.02]))  # link0
 
         # segment lengths associated with each joint
-        L = np.array([
+        self.L = np.array([
             [0.37, 0.0, 0.0]],
             dtype='float32')
 
@@ -35,7 +35,7 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # Transform matrix : joint 0 -> EE
-        self.T0EE = sp.Matrix([[1, 0, 0, L[0, 0]],
+        self.T0EE = sp.Matrix([[1, 0, 0, self.L[0, 0]],
                                [0, 1, 0, 0],
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]])
@@ -43,7 +43,7 @@ class robot_config(robot_config.robot_config):
         # ---- COM Transform Matrices ----
 
         # Transform matrix : joint 0 to link1
-        self.Tl01 = sp.Matrix([[1, 0, 0, L[0, 0] / 2],
+        self.Tl01 = sp.Matrix([[1, 0, 0, self.L[0, 0] / 2],
                                [0, 1, 0, 0],
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]])
