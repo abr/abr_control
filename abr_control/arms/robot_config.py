@@ -49,7 +49,7 @@ class robot_config():
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
-    def J(self, name, q, x=[0, 0, 0]):
+    def J(self, name, q, x=[0, 0, 0], mask=None):
         """ Calculates the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -61,7 +61,8 @@ class robot_config():
         if self._J.get(funcname, None) is None:
             print('Generating Jacobian function for %s' % name)
             self._J[funcname] = self._calc_J(
-                name=name, x=x, regenerate=self.regenerate_functions)
+                name=name, x=x, regenerate=self.regenerate_functions,
+                mask=mask)
         parameters = tuple(q) + tuple(x)
         return np.array(self._J[funcname](*parameters), dtype='float32')
 
@@ -180,7 +181,8 @@ class robot_config():
             return autowrap(dJ, backend="cython", args=self.q+self.x)
         return sp.lambdify(self.q + self.x, dJ, "numpy")
 
-    def _calc_J(self, name, x, lambdify=True, regenerate=False):
+    def _calc_J(self, name, x, lambdify=True, regenerate=False,
+                mask=None):
         """ Uses Sympy to generate the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -189,6 +191,8 @@ class robot_config():
                           the Jacobian. If False returns the Sympy
                           matrix
         regenerate boolean: if True, don't use saved functions
+        mask list: indicates the [x, y, z, roll, pitch, yaw] dimensions
+                   to be controlled
         """
 
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -208,15 +212,27 @@ class robot_config():
                 J[ii].append(sp.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
-            if 'EE' not in end_point:
-                end_point = min(int(end_point) + 1, self.num_joints)
-                # add on the orientation information up to the last joint
-                for ii in range(end_point):
-                    J[ii] = J[ii] + self.J_orientation[ii]
-                # fill in the rest of the joints orientation info with 0
-                for ii in range(end_point, self.num_joints):
-                    J[ii] = J[ii] + [0, 0, 0]
+            end_point = self.num_joints if 'EE' in end_point else end_point
+
+            # if 'EE' not in end_point:
+
+            end_point = min(int(end_point) + 1, self.num_joints)
+            # add on the orientation information up to the last joint
+            for ii in range(end_point):
+                J[ii] = J[ii] + self.J_orientation[ii]
+            # fill in the rest of the joints orientation info with 0
+            for ii in range(end_point, self.num_joints):
+                J[ii] = J[ii] + [0, 0, 0]
             J = sp.simplify(J)
+
+            if mask is not None:
+                # if we're generating the Jacobian for control
+                # then also apply the mask, only passing on dimensions
+                # of the state space which are being controlled
+                for ii in range(len(mask)):
+                    if mask[ii] == 0:
+                        for jj in range(len(J)):
+                            del J[jj][ii]
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
