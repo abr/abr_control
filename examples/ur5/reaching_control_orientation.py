@@ -9,7 +9,7 @@ import abr_control
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.ur5.config_neural.robot_config(
-    regenerate_functions=True)
+    regenerate_functions=False)
 
 # instantiate controller
 ctrlr = abr_control.controllers.osc.controller(
@@ -50,8 +50,7 @@ try:
             dq=feedback['dq'],
             target_state=np.hstack((
                 target_xyz,
-                [0, 0, 0])),
-            mask=[1, 1, 0, 1, 0, 0])
+                [0, 0, 0])))
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
