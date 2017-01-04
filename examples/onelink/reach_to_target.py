@@ -37,7 +37,8 @@ targets = [[.3, 0.0, .375],
 
 def set_target(xyz):
     # normalize target position to lie on path of arm's end-effector
-    xyz = xyz / np.linalg.norm(xyz) * robot_config.L[0, 0]
+    xyz = xyz / np.linalg.norm(xyz) * robot_config.L[1, 0] + robot_config.L[0]
+    print('target xyz: ', xyz)
     interface.set_xyz('target', xyz)
     return xyz
 

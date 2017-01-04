@@ -3,8 +3,11 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.threelink.config.robot_config(
-    regenerate_functions=False)
+# robot_config = abr_control.arms.ur5.config.robot_config(
+
+
+robot_config = abr_control.arms.onelink.config.robot_config(
+    regenerate_functions=True)
 
 # create our VREP interface
 interface = abr_control.interfaces.maplesim.interface(
@@ -36,52 +39,51 @@ ee_path = []
 target_path = []
 
 try:
-    num_targets = -1
-    while num_targets < len(targets_xyz):
-        # get arm feedback from VREP
+    # test out our orientation calculations
+    while 1:
+        name = 'EE'
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('joint1', feedback['q'])
-        # generate a control signal
-        u = ctrlr.control(
-            q=feedback['q'],
-            dq=feedback['dq'],
-            target_state=np.hstack(
-                [target_xyz, np.zeros(3)]))
-        print('error: ', np.sqrt(np.sum((target_xyz - hand_xyz)**2)))
-        # apply the control signal, step the sim forward
-        interface.apply_u(u)
-        # TODO: THIS IS A SUPER HACK TO GET OBSTACLE POSITION
-        # TO THE CONTROLLER
-        obs_x, obs_y = interface.display.get_mousexy()
-        ctrlr.obstacles[0][0] = obs_x
-        ctrlr.obstacles[0][1] = obs_y
+        print(feedback['q'])
+        xyz = robot_config.Tx(name, q=feedback['q'],
+                              x=[.025, .12, -.1])
 
-        # change target location once hand is within
-        # 5mm of the target
-        if (num_targets < 0 or
-                np.sqrt(np.sum((target_xyz - hand_xyz)**2)) < .005):
-            target_xyz = targets_xyz[num_targets]
-            # update the position of the target sphere in VREP
-            interface.set_target(target_xyz)
-            num_targets += 1
-            print('Reaching to target %i' % num_targets)
-            print(target_xyz)
+        print('xyz: ', xyz)
+        angles = robot_config.orientation(name, q=feedback['q'])
+        print('angles: ', np.array(angles).T * 180 / np.pi)
+        # angles = np.array([0, 80, 90]) * np.pi / 180
 
-        # track data
-        ee_path.append(np.copy(hand_xyz))
-        target_path.append(np.copy(target_xyz))
+        interface.set_xyz('hand', xyz)
+        interface.set_orientation('hand', angles)
+        # print(interface.get_orientation('hand'))
+        # interface.set_orientation('hand', interface.get_orientation('Disc')[1])
+        time.sleep(1)
 
 finally:
     # stop and reset the VREP simulation
     interface.disconnect()
-    # # generate a 3D plot of the trajectory taken
-    # abr_control.utils.plotting.plot_trajectory(
-    #     ee_path=ee_path,
-    #     target_path=target_path)
-    #
-    # import matplotlib.pyplot as plt
-    # plt.plot(np.sqrt(np.sum((np.array(target_path) -
-    #                          np.array(ee_path))**2, axis=1)))
-    # plt.ylabel('Error (m)')
-    # plt.xlabel('Time (ms)')
-    # plt.show()
+
+# # # alpha = 180 * np.pi / 180.0
+# # # beta = -90 * np.pi / 180.0
+# # # gamma = -90 * np.pi / 180.0
+# alpha = 0 * np.pi / 180.0
+# beta = 0 * np.pi / 180.0
+# gamma = 90 * np.pi / 180.0
+#
+# Rx = np.array([
+#     [np.cos(alpha), -np.sin(alpha), 0],
+#     [np.sin(alpha), np.cos(alpha), 0],
+#     [0, 0, 1]])
+#
+# Ry = np.array([
+#     [np.cos(beta), 0, -np.sin(beta)],
+#     [0, 1, 0],
+#     [np.sin(beta), 0, np.cos(beta)]])
+#
+# Rz = np.array([
+#     [1, 0, 0],
+#     [0, np.cos(gamma), -np.sin(gamma)],
+#     [0, np.sin(gamma), np.cos(gamma)]])
+#
+# ans = np.dot(Rz, np.dot(Ry, Rx))
+# ans[ans < 1e-5] = 0
+# print(ans)
