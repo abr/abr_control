@@ -1,3 +1,8 @@
+"""
+Move the UR5 VREP arm to a target position while avoiding an obstacle.
+The simulation ends after 1.5 simulated seconds, and the trajectory
+of the end-effector is plotted in 3D.
+"""
 import numpy as np
 
 import abr_control
