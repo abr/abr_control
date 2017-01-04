@@ -49,7 +49,7 @@ class robot_config():
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
-    def J(self, name, q, x=[0, 0, 0]):
+    def J(self, name, q, x=[0, 0, 0], mask=None):
         """ Calculates the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -61,7 +61,8 @@ class robot_config():
         if self._J.get(funcname, None) is None:
             print('Generating Jacobian function for %s' % name)
             self._J[funcname] = self._calc_J(
-                name=name, x=x, regenerate=self.regenerate_functions)
+                name=name, x=x, regenerate=self.regenerate_functions,
+                mask=mask)
         parameters = tuple(q) + tuple(x)
         return np.array(self._J[funcname](*parameters), dtype='float32')
 
@@ -106,6 +107,67 @@ class robot_config():
             self._Mq_g = self._calc_Mq_g(regenerate=self.regenerate_functions)
         parameters = tuple(q)
         return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
+
+    def orientation(self, name, q, permutation='xyz'):
+        """ Calculates the Euler angles alpha, beta, and gamma for a
+        joint or link.
+
+        name string: name of the joint or link, or end-effector
+        q list: set of joint angles, configuration of arm
+        permutation string: order rotation matrices are applied for
+                            desired Euler angles. 'xyz' matches VREP
+                            which applies Rx(alpha) * Ry(beta) * Rz(gamma)
+                            to construct the rotation matrix given angles.
+        """
+        T = self._calc_T(name=name)
+        if self.use_cython is True:
+            T_func = autowrap(T, backend="cython", args=self.q)
+        else:
+            T_func = sp.lambdify(self.q, T, "numpy")
+        parameters = tuple(q)
+        T = T_func(*parameters)
+        print('T: \n', T)
+
+        # TODO: move this all into _calc_orientation and generate functions
+        # and then compare time
+
+        # TODO: Transfer over all the calculations for each permutation
+        # of the Rx, Ry, and Rz multiplication
+
+        if permutation == 'xyz':
+            # This generates angles for Rx(alpha) * Ry(beta) * Rz(gamma)
+            # NOTE parameter order different than the excell sheet
+            theta_x = np.arctan2(-T[1, 2], T[2, 2])
+            theta_y = np.arctan2(
+                T[0, 2],
+                T[2, 2] * np.cos(theta_x) - T[1, 2] * np.sin(theta_x))
+            theta_z = np.arctan2(
+                T[1, 0] * np.cos(theta_x),
+                T[1, 1] * np.cos(theta_x) + T[2, 1] * np.sin(theta_x))
+        elif permutation == 'zyx':
+            # This generates angles for Rz(gamma) * Ry(beta) * Rx(alpha)
+            # NOTE parameter order different than the excell sheet
+            theta_z = np.arctan2(T[1, 0], T[0, 0])
+            theta_x = np.arctan2(
+                T[0, 2] * np.sin(theta_z) - T[1, 2] * np.cos(theta_z),
+                T[1, 1]*np.cos(theta_z) - T[0, 1] * np.sin(theta_z))
+            theta_y = np.arctan2(
+                -T[2, 0],
+                T[0, 0] * np.cos(theta_z) + T[1, 0] * np.sin(theta_z))
+        else:
+            raise Exception('Invalid rotation matrix permutation.')
+
+        orientation = [theta_x, theta_y, theta_z]
+
+        return orientation
+
+        # # check for function in dictionary
+        # if self._orientation.get(name, None) is None:
+        #     print('Generating orientation function for %s' % name)
+        #     self._orientation[name] = self._calc_orientation(
+        #         name, regenerate=self.regenerate_functions)
+        # parameters = tuple(q)
+        # return np.array(self._orientation[name](*parameters), dtype='float32')
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
@@ -180,7 +242,8 @@ class robot_config():
             return autowrap(dJ, backend="cython", args=self.q+self.x)
         return sp.lambdify(self.q + self.x, dJ, "numpy")
 
-    def _calc_J(self, name, x, lambdify=True, regenerate=False):
+    def _calc_J(self, name, x, lambdify=True, regenerate=False,
+                mask=None):
         """ Uses Sympy to generate the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -189,6 +252,8 @@ class robot_config():
                           the Jacobian. If False returns the Sympy
                           matrix
         regenerate boolean: if True, don't use saved functions
+        mask list: indicates the [x, y, z, roll, pitch, yaw] dimensions
+                   to be controlled
         """
 
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -208,15 +273,27 @@ class robot_config():
                 J[ii].append(sp.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
-            if 'EE' not in end_point:
-                end_point = min(int(end_point) + 1, self.num_joints)
-                # add on the orientation information up to the last joint
-                for ii in range(end_point):
-                    J[ii] = J[ii] + self.J_orientation[ii]
-                # fill in the rest of the joints orientation info with 0
-                for ii in range(end_point, self.num_joints):
-                    J[ii] = J[ii] + [0, 0, 0]
+            end_point = self.num_joints if 'EE' in end_point else end_point
+
+            # if 'EE' not in end_point:
+
+            end_point = min(int(end_point) + 1, self.num_joints)
+            # add on the orientation information up to the last joint
+            for ii in range(end_point):
+                J[ii] = J[ii] + self.J_orientation[ii]
+            # fill in the rest of the joints orientation info with 0
+            for ii in range(end_point, self.num_joints):
+                J[ii] = J[ii] + [0, 0, 0]
             J = sp.simplify(J)
+
+            if mask is not None:
+                # if we're generating the Jacobian for control
+                # then also apply the mask, only passing on dimensions
+                # of the state space which are being controlled
+                for ii in range(len(mask)):
+                    if mask[ii] == 0:
+                        for jj in range(len(J)):
+                            del J[jj][ii]
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
@@ -299,6 +376,41 @@ class robot_config():
         if self.use_cython is True:
             return autowrap(Mq_g, backend="cython", args=self.q)
         return sp.lambdify(self.q, Mq_g, "numpy")
+
+    def _calc_orientation(self, name, lambdify=True, regenerate=False):
+        """ Uses Sympy to generate the orientation for a joint or link
+        calculated in order of [yaw, pitch, roll]
+
+        name string: name of the joint or link, or end-effector
+        lambdify boolean: if True returns a function to calculate
+                          the transform. If False returns the Sympy
+                          matrix
+        regenerate boolean: if True, don't use saved functions
+        """
+        # check to see if we have our transformation saved in file
+        if (regenerate is False and
+                os.path.isfile('%s/%s.T' % (self.config_folder, name))):
+            orientation = cloudpickle.load(open('%s/%s.T' %
+                                                (self.config_folder, name),
+                                                'rb'))
+        else:
+            T = self._calc_T(name=name)
+            alpha = sp.atan2(T[2, 1], T[2, 2])
+            beta = sp.atan2(-T[2, 0], sp.sqrt(T[2, 1]**2 + T[2, 2]**2))
+            gamma = sp.atan2(T[1, 0], T[0, 0])
+            orientation = sp.Matrix([alpha, beta, gamma])
+            # orientation = sp.simplify(orientation)
+
+            # save to file
+            cloudpickle.dump(orientation,
+                             open('%s/%s.orientation' %
+                                  (self.config_folder, name), 'wb'))
+
+        if lambdify is False:
+            return orientation
+        if self.use_cython is True:
+            return autowrap(orientation, backend="cython", args=self.q)
+        return sp.lambdify(self.q, orientation, "numpy")
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
