@@ -17,19 +17,26 @@ class controller:
         self.vmax = vmax
         self.lamb = self.kp / self.kv
 
-    def control(self, q, dq, target_state, x=[0, 0, 0], ee_name='EE'):
+    def control(self, q, dq, target_state,
+                x=[0, 0, 0], ee_name='EE',
+                mask=[1, 1, 1, 0, 0, 0]):
         """ Generates the control signal
 
         q np.array: the current joint angles
         dq np.array: the current joint velocities
         target_state np.array: the target [pos, vel] for the end-effector
+        x list: offset of the point of interest from the frame of reference
+        ee_name string: name of end-effector to control, passed into config
+        mask list: indicates the [x, y, z, roll, pitch, yaw] dimensions
+                   to be controlled
         """
 
         # calculate position of the end-effector
         xyz = self.robot_config.Tx(ee_name, q, x=x)
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J(ee_name, q, x=x)
+        JEE = self.robot_config.J(ee_name, q, x=x,
+                                  mask=mask)
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)

@@ -98,6 +98,40 @@ class interface(interface.interface):
         vrep.simxFinish(self.clientID)
         print('connection closed...')
 
+    def get_orientation(self, name):
+
+        if self.misc_handles.get(name, None) is None:
+            # if we haven't retrieved the handle previously
+            # get the handle and set up streaming
+            _, self.misc_handles[name] = \
+                vrep.simxGetObjectHandle(self.clientID,
+                                         name,
+                                         vrep.simx_opmode_blocking)
+        orientation = \
+            vrep.simxGetObjectOrientation(
+                self.clientID,
+                self.misc_handles[name],
+                -1,  # orientation relative to world
+                vrep.simx_opmode_blocking)
+        return orientation
+
+    def set_orientation(self, name, angles):
+        # expecting [alpha, beta, gamma]
+
+        if self.misc_handles.get(name, None) is None:
+            # if we haven't retrieved the handle previously
+            # get the handle and set up streaming
+            _, self.misc_handles[name] = \
+                vrep.simxGetObjectHandle(self.clientID,
+                                         name,
+                                         vrep.simx_opmode_blocking)
+        vrep.simxSetObjectOrientation(
+            self.clientID,
+            self.misc_handles[name],
+            -1,  # orientation relative to world
+            angles,
+            vrep.simx_opmode_blocking)
+
     def apply_u(self, u):
         """ Apply the specified torque to the robot joints,
         move the simulation one time step forward, and update
