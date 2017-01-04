@@ -17,7 +17,7 @@ class controller:
         self.vmax = vmax
         self.lamb = self.kp / self.kv
 
-    def control(self, q, dq, target_state, ee_name='EE'):
+    def control(self, q, dq, target_state, x=[0, 0, 0], ee_name='EE'):
         """ Generates the control signal
 
         q np.array: the current joint angles
@@ -26,10 +26,10 @@ class controller:
         """
 
         # calculate position of the end-effector
-        xyz = self.robot_config.Tx(ee_name, q)
+        xyz = self.robot_config.Tx(ee_name, q, x=x)
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J(ee_name, q)
+        JEE = self.robot_config.J(ee_name, q, x=x)
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
