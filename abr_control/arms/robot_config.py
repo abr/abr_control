@@ -34,12 +34,13 @@ class robot_config():
         self.use_cython = use_cython
 
         # create function dictionaries
-        self._Tx = {}  # for transform calculations
-        self._T_inv = {}  # for inverse transform calculations
         self._J = {}  # for Jacobian calculations
         self._M = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
         self._Mq_g = None  # placeholder for joint space gravity term function
+        self._orientation = {} # placeholder for orientation functions
+        self._T_inv = {}  # for inverse transform calculations
+        self._Tx = {}  # for transform calculations
 
         # set up our joint angle symbols
         self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
@@ -108,6 +109,43 @@ class robot_config():
         parameters = tuple(q)
         return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
 
+    def orientation(self, name, q):
+        """ Calculates the yaw, pitch, and roll for a joint or link.
+
+        name string: name of the joint or link, or end-effector
+        q list: set of joint angles, configuration of arm
+        """
+        # T = self._calc_T(name=name)
+        # if self.use_cython is True:
+        #     T_func = autowrap(T, backend="cython", args=self.q)
+        # else:
+        #     T_func = sp.lambdify(self.q, T, "numpy")
+        #
+        # parameters = tuple(q)
+        # T = T_func(*parameters)
+        # sy = np.sqrt(T[0,0] * T[0,0] +  T[1,0] * T[1,0])
+        # singular = sy < 1e-6
+        #
+        # if not singular:
+        #     alpha = np.arctan2(T[2,1] , T[2,2])
+        #     beta = np.arctan2(-T[2,0], sy)
+        #     gamma  = np.arctan2(T[1,0], T[0,0])
+        # else :
+        #     alpha = np.arctan2(-T[1,2], T[1,1])
+        #     beta = np.arctan2(-T[2,0], sy)
+        #     gamma = 0
+        #
+        # orientation = sp.Matrix([alpha, beta, gamma])
+        # return orientation
+
+        # check for function in dictionary
+        if self._orientation.get(name, None) is None:
+            print('Generating orientation function for %s' % name)
+            self._orientation[name] = self._calc_orientation(
+                name, regenerate=self.regenerate_functions)
+        parameters = tuple(q)
+        return np.array(self._orientation[name](*parameters), dtype='float32')
+
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
 
@@ -119,8 +157,6 @@ class robot_config():
         # check for function in dictionary
         if self._Tx.get(funcname, None) is None:
             print('Generating transform function for %s' % name)
-            # TODO: link0 and joint0 share a transform, but will
-            # both have their own transform calculated with this check
             self._Tx[funcname] = self._calc_Tx(
                 name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
@@ -159,6 +195,9 @@ class robot_config():
             dJ = cloudpickle.load(open('%s/%s.dJ' %
                                        (self.config_folder, filename), 'rb'))
         else:
+            # TODO: make sure that we're not regenerating all these
+            # Jacobians again here if they've already been regenerated
+            # once, but that they are actually regenerated if only this is called
             J = self._calc_J(name, x=x, lambdify=False)
             dJ = sp.Matrix(np.zeros(J.shape, dtype='float32'))
             # calculate derivative of (x,y,z) wrt to time
@@ -202,6 +241,9 @@ class robot_config():
             J = cloudpickle.load(open('%s/%s.J' %
                                       (self.config_folder, filename), 'rb'))
         else:
+            # TODO: make sure that we're not regenerating all these
+            # Transforms again here if they've already been regenerated
+            # once, but that they are actually regenerated if only this is called
             Tx = self._calc_Tx(name, x=x, lambdify=False)
             J = []
             # calculate derivative of (x,y,z) wrt to each joint
@@ -225,14 +267,19 @@ class robot_config():
                 J[ii] = J[ii] + [0, 0, 0]
             J = sp.simplify(J)
 
+            # TODO: add the mask into the saved functions name
             if mask is not None:
                 # if we're generating the Jacobian for control
                 # then also apply the mask, only passing on dimensions
                 # of the state space which are being controlled
+                offset = 0
                 for ii in range(len(mask)):
                     if mask[ii] == 0:
+                        print('ii: ', ii)
                         for jj in range(len(J)):
-                            del J[jj][ii]
+                            del J[jj][ii - offset]
+                        print('J: \n ', J)
+                        offset += 1
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
@@ -261,6 +308,9 @@ class robot_config():
             Mq = cloudpickle.load(open('%s/Mq' % self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
+            # TODO: make sure that we're not regenerating all these
+            # Jacobians again here if they've already been regenerated
+            # once, but that they are actually regenerated if only this is called
             J = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
                  for ii in range(self.num_links)]
 
@@ -297,6 +347,9 @@ class robot_config():
                                          self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
+            # TODO: make sure that we're not regenerating all these
+            # Jacobians again here if they've already been regenerated
+            # once, but that they are actually regenerated if only this is called
             J = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
                  for ii in range(self.num_links)]
 
@@ -316,6 +369,41 @@ class robot_config():
             return autowrap(Mq_g, backend="cython", args=self.q)
         return sp.lambdify(self.q, Mq_g, "numpy")
 
+    def _calc_orientation(self, name, lambdify=True, regenerate=False):
+        """ Uses Sympy to generate the orientation for a joint or link
+        calculated in order of [yaw, pitch, roll]
+
+        name string: name of the joint or link, or end-effector
+        lambdify boolean: if True returns a function to calculate
+                          the transform. If False returns the Sympy
+                          matrix
+        regenerate boolean: if True, don't use saved functions
+        """
+        # check to see if we have our transformation saved in file
+        if (regenerate is False and
+                os.path.isfile('%s/%s.T' % (self.config_folder, name))):
+            orientation = cloudpickle.load(open('%s/%s.T' %
+                                                (self.config_folder, name),
+                                                'rb'))
+        else:
+            T = self._calc_T(name=name)
+            alpha = sp.atan2(T[1, 0], T[0, 0])
+            beta = sp.atan2(-T[2, 0], sp.sqrt(T[2, 1]**2 + T[2, 2]**2))
+            gamma = sp.atan2(T[2, 1], T[2, 2])
+            orientation = sp.Matrix([alpha, beta, gamma])
+            orientation = sp.simplify(orientation)
+
+            # save to file
+            cloudpickle.dump(orientation,
+                             open('%s/%s.orientation' %
+                                  (self.config_folder, name), 'wb'))
+
+        if lambdify is False:
+            return orientation
+        if self.use_cython is True:
+            return autowrap(orientation, backend="cython", args=self.q)
+        return sp.lambdify(self.q, orientation, "numpy")
+
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
 
@@ -332,6 +420,7 @@ class robot_config():
         lambdify boolean: if True returns a function to calculate
                           the transform. If False returns the Sympy
                           matrix
+        regenerate boolean: if True, don't use saved functions
         """
 
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name

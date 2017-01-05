@@ -30,13 +30,18 @@ class controller:
         mask list: indicates the [x, y, z, roll, pitch, yaw] dimensions
                    to be controlled
         """
+        # the number of dimensions controlled
+        dim = np.sum(mask)
 
+        # TODO: find the orientation information as well and
+        # apply the mask to this, also rename to 'position'
         # calculate position of the end-effector
         xyz = self.robot_config.Tx(ee_name, q, x=x)
 
         # calculate the Jacobian for the end effector
         JEE = self.robot_config.J(ee_name, q, x=x,
                                   mask=mask)
+        print('JEE shape: ', JEE.shape)
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
@@ -55,26 +60,28 @@ class controller:
 
         # calculate desired force in (x,y,z) space
         dx = np.dot(JEE, dq)
+        print('dx: ', dx)
         if self.vmax is not None:
             # implement velocity limiting
-            x_tilde = xyz - target_state[:3]
+            x_tilde = xyz - target_state[:dim]
             sat = self.vmax / (self.lamb * np.abs(x_tilde))
             if np.any(sat < 1):
                 index = np.argmin(sat)
                 unclipped = self.kp * x_tilde[index]
                 clipped = self.kv * self.vmax * np.sign(x_tilde[index])
-                scale = np.ones(3, dtype='float32') * clipped / unclipped
+                scale = np.ones(dim, dtype='float32') * clipped / unclipped
                 scale[index] = 1
             else:
-                scale = np.ones(3, dtype='float32')
+                scale = np.ones(dim, dtype='float32')
 
-            u_xyz = -self.kv * (dx - target_state[3:] -
+            u_xyz = -self.kv * (dx - target_state[dim:] -
                                 np.clip(sat / scale, 0, 1) *
                                 -self.lamb * scale * x_tilde)
         else:
             # generate (x,y,z) force without velocity limiting)
-            u_xyz = (self.kp * (target_state[:3] - xyz) +
-                     self.kv * (target_state[3:] - dx))
+            u_xyz = (self.kp * (target_state[:dim] - xyz) +
+                     self.kv * (target_state[dim:] - dx))
+        print('u_xyz: ', u_xyz)
 
         u_xyz = np.dot(Mx, u_xyz)
 

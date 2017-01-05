@@ -9,11 +9,11 @@ import abr_control
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.ur5.config_neural.robot_config(
-    regenerate_functions=True)
+    regenerate_functions=False)
 
 # instantiate controller
 ctrlr = abr_control.controllers.osc.controller(
-    robot_config, kp=200, vmax=0.5)
+    robot_config, kp=600, vmax=None)
 
 # create our VREP interface
 interface = abr_control.interfaces.vrep.interface(
@@ -33,7 +33,7 @@ try:
     # set up the values to be used by the Jacobian for the object end effector
     start = robot_config.Tx('EE', q=feedback['q'])
 
-    target_xyz = start + np.array([.25, -.25, 0.0])
+    target_xyz = start + np.array([.25])#, -.25, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
@@ -50,8 +50,8 @@ try:
             dq=feedback['dq'],
             target_state=np.hstack((
                 target_xyz,
-                [0, 0, 0])),
-            mask=[1, 1, 0, 1, 0, 0])
+                [0])),#, 0, 0])),
+            mask=[1, 0, 0, 0, 0, 0])
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
