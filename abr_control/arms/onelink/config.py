@@ -41,21 +41,13 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # transform to move to end-effector position
-        self.T0EEa = sp.Matrix([
-            [sp.sin(sp.pi - self.q[0]), sp.cos(sp.pi - self.q[0]), 0,
-             self.L[1, 0] * sp.cos(sp.pi - self.q[0])],
-            [sp.cos(sp.pi - self.q[0]), -sp.sin(sp.pi - self.q[0]), 0,
-             self.L[1, 0] * sp.sin(sp.pi - self.q[0])],
+        self.T0EE = sp.Matrix([
+            [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0,
+             self.L[1, 0] * sp.cos(self.q[0])],
+            [sp.sin(self.q[0]), sp.cos(self.q[0]), 0,
+             self.L[1, 0] * sp.sin(self.q[0])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
-        # transform to match orientation to link 1
-        self.T0EEb = sp.Matrix([
-            [0, 0, 1, 0],
-            [0, 1, 0, 0],
-            [-1, 0, 0, 0],
-            [0, 0, 0, 1]])
-
-        self.T0EE = self.T0EEa * self.T0EEb
 
         # ---- COM Transform Matrices ----
 
@@ -65,13 +57,20 @@ class robot_config(robot_config.robot_config):
             [0, 0, 1, self.L_com[0, 2]],
             [0, 0, 0, 1]])
 
-        self.Tl01 = sp.Matrix([
+        self.Tl01a = sp.Matrix([
             [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0,
              self.L_com[1, 0] * sp.cos(self.q[0])],
             [sp.sin(self.q[0]), sp.cos(self.q[0]), 0,
              self.L_com[1, 0] * sp.sin(self.q[0])],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
+        # transform to match orientation to link 1
+        self.Tl01b = sp.Matrix([
+            [0, 0, 1, 0],
+            [0, 1, 0, 0],
+            [-1, 0, 0, 0],
+            [0, 0, 0, 1]])
+        self.Tl01 = self.Tl01a * self.Tl01b
 
         # orientation part of the Jacobian (compensating for orientations)
         self.J_orientation = [[0, 0, 1]]  # joint 0 rotates around z axis

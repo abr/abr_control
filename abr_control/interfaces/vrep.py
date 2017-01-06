@@ -113,7 +113,7 @@ class interface(interface.interface):
                 self.misc_handles[name],
                 -1,  # orientation relative to world
                 vrep.simx_opmode_blocking)
-        print('orientation: ', orientation)
+        return orientation
 
     def set_orientation(self, name, angles):
         # expecting [alpha, beta, gamma]
