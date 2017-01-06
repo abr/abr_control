@@ -423,6 +423,7 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
 
+        print('x: ', x)
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
         if (regenerate is False and
