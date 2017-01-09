@@ -387,11 +387,11 @@ class robot_config():
                                                 'rb'))
         else:
             T = self._calc_T(name=name)
-            alpha = sp.atan2(T[1, 0], T[0, 0])
+            alpha = sp.atan2(T[2, 1], T[2, 2])
             beta = sp.atan2(-T[2, 0], sp.sqrt(T[2, 1]**2 + T[2, 2]**2))
-            gamma = sp.atan2(T[2, 1], T[2, 2])
+            gamma = sp.atan2(T[1, 0], T[0, 0])
             orientation = sp.Matrix([alpha, beta, gamma])
-            orientation = sp.simplify(orientation)
+            # orientation = sp.simplify(orientation)
 
             # save to file
             cloudpickle.dump(orientation,

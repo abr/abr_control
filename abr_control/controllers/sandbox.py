@@ -32,14 +32,14 @@ try:
                               x=[.025, .12, -.1])
 
         print('xyz: ', xyz)
-        # angles = robot_config.orientation(name, q=feedback['q'])
-        angles = np.array([90, 80, .0014])# * np.pi / 180
+        angles = robot_config.orientation(name, q=feedback['q'])
         print('angles: ', np.array(angles).T * 180 / np.pi)
+        # angles = np.array([0, 80, 90]) * np.pi / 180
 
         interface.set_xyz('hand', xyz)
-        # interface.set_orientation('hand', angles)
+        interface.set_orientation('hand', angles)
         # print(interface.get_orientation('hand'))
-        interface.set_orientation('hand', interface.get_orientation('Disc')[1])
+        # interface.set_orientation('hand', interface.get_orientation('Disc')[1])
         time.sleep(1)
 
 finally:
