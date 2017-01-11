@@ -115,36 +115,51 @@ class robot_config():
         name string: name of the joint or link, or end-effector
         q list: set of joint angles, configuration of arm
         """
-        # T = self._calc_T(name=name)
-        # if self.use_cython is True:
-        #     T_func = autowrap(T, backend="cython", args=self.q)
-        # else:
-        #     T_func = sp.lambdify(self.q, T, "numpy")
-        #
-        # parameters = tuple(q)
-        # T = T_func(*parameters)
-        # sy = np.sqrt(T[0,0] * T[0,0] +  T[1,0] * T[1,0])
-        # singular = sy < 1e-6
-        #
-        # if not singular:
-        #     alpha = np.arctan2(T[2,1] , T[2,2])
-        #     beta = np.arctan2(-T[2,0], sy)
-        #     gamma  = np.arctan2(T[1,0], T[0,0])
-        # else :
-        #     alpha = np.arctan2(-T[1,2], T[1,1])
-        #     beta = np.arctan2(-T[2,0], sy)
-        #     gamma = 0
-        #
-        # orientation = sp.Matrix([alpha, beta, gamma])
-        # return orientation
-
-        # check for function in dictionary
-        if self._orientation.get(name, None) is None:
-            print('Generating orientation function for %s' % name)
-            self._orientation[name] = self._calc_orientation(
-                name, regenerate=self.regenerate_functions)
+        T = self._calc_T(name=name)
+        if self.use_cython is True:
+            T_func = autowrap(T, backend="cython", args=self.q)
+        else:
+            T_func = sp.lambdify(self.q, T, "numpy")
         parameters = tuple(q)
-        return np.array(self._orientation[name](*parameters), dtype='float32')
+        T = T_func(*parameters)
+        print('T: \n', T)
+
+        # TODO: Transfer over all the calculations for each permutation
+        # of the Rx, Ry, and Rz multiplication
+
+        # This generates angles for Rx(alpha) * Ry(beta) * Rz(gamma)
+        # NOTE changed arguments order because excell has backwards parameters
+        theta_x = np.arctan2(-T[1, 2], T[2, 2])
+        theta_y = np.arctan2(
+            T[0, 2],
+            T[2, 2] * np.cos(theta_x) - T[1, 2] * np.sin(theta_x))
+        theta_z = np.arctan2(
+            T[1, 0] * np.cos(theta_x),
+            T[1, 1] * np.cos(theta_x) + T[2, 1] * np.sin(theta_x))
+
+        # This generates angles for Rz(gamma) * Ry(beta) * Rx(alpha)
+        # NOTE changed arguments order because excell has backwards parameters
+        # theta_z = np.arctan2(T[1, 0], T[0, 0])
+        #
+        # theta_x = np.arctan2(
+        #     T[0, 2] * np.sin(theta_z) - T[1, 2] * np.cos(theta_z),
+        #     T[1, 1]*np.cos(theta_z) - T[0, 1] * np.sin(theta_z))
+        #
+        # theta_y = np.arctan2(
+        #     -T[2, 0],
+        #     T[0, 0] * np.cos(theta_z) + T[1, 0] * np.sin(theta_z))
+
+        orientation = [theta_x, theta_y, theta_z]
+
+        return orientation
+
+        # # check for function in dictionary
+        # if self._orientation.get(name, None) is None:
+        #     print('Generating orientation function for %s' % name)
+        #     self._orientation[name] = self._calc_orientation(
+        #         name, regenerate=self.regenerate_functions)
+        # parameters = tuple(q)
+        # return np.array(self._orientation[name](*parameters), dtype='float32')
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
