@@ -41,11 +41,12 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # transform to move to end-effector position
+        q0 = self.q[0]
         self.T0EE = sp.Matrix([
-            [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0,
-             self.L[1, 0] * sp.cos(self.q[0])],
-            [sp.sin(self.q[0]), sp.cos(self.q[0]), 0,
-             self.L[1, 0] * sp.sin(self.q[0])],
+            [sp.cos(q0), -sp.sin(q0), 0,
+             self.L[1, 0] * sp.cos(q0)],
+            [sp.sin(q0), sp.cos(q0), 0,
+             self.L[1, 0] * sp.sin(q0)],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
@@ -66,11 +67,13 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         # transform to match orientation to link 1
         self.Tl01b = sp.Matrix([
-            [0, 0, 1, 0],
-            [0, 1, 0, 0],
+            [0, 0, 1,
+             self.L_com[1, 0] * sp.cos(self.q[0])],
+            [0, 1, 0,
+             self.L_com[1, 0] * sp.sin(self.q[0])],
             [-1, 0, 0, 0],
             [0, 0, 0, 1]])
-        self.Tl01 = self.Tl01a * self.Tl01b
+        self.Tl01 = self.Tl01b #self.Tl01a * self.Tl01b
 
         # orientation part of the Jacobian (compensating for orientations)
         self.J_orientation = [[0, 0, 1]]  # joint 0 rotates around z axis

@@ -108,6 +108,67 @@ class robot_config():
         parameters = tuple(q)
         return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
 
+    def orientation(self, name, q, permutation='xyz'):
+        """ Calculates the Euler angles alpha, beta, and gamma for a
+        joint or link.
+
+        name string: name of the joint or link, or end-effector
+        q list: set of joint angles, configuration of arm
+        permutation string: order rotation matrices are applied for
+                            desired Euler angles. 'xyz' matches VREP
+                            which applies Rx(alpha) * Ry(beta) * Rz(gamma)
+                            to construct the rotation matrix given angles.
+        """
+        T = self._calc_T(name=name)
+        if self.use_cython is True:
+            T_func = autowrap(T, backend="cython", args=self.q)
+        else:
+            T_func = sp.lambdify(self.q, T, "numpy")
+        parameters = tuple(q)
+        T = T_func(*parameters)
+        print('T: \n', T)
+
+        # TODO: move this all into _calc_orientation and generate functions
+        # and then compare time
+
+        # TODO: Transfer over all the calculations for each permutation
+        # of the Rx, Ry, and Rz multiplication
+
+        if permutation == 'xyz':
+            # This generates angles for Rx(alpha) * Ry(beta) * Rz(gamma)
+            # NOTE parameter order different than the excell sheet
+            theta_x = np.arctan2(-T[1, 2], T[2, 2])
+            theta_y = np.arctan2(
+                T[0, 2],
+                T[2, 2] * np.cos(theta_x) - T[1, 2] * np.sin(theta_x))
+            theta_z = np.arctan2(
+                T[1, 0] * np.cos(theta_x),
+                T[1, 1] * np.cos(theta_x) + T[2, 1] * np.sin(theta_x))
+        elif permutation == 'zyx':
+            # This generates angles for Rz(gamma) * Ry(beta) * Rx(alpha)
+            # NOTE parameter order different than the excell sheet
+            theta_z = np.arctan2(T[1, 0], T[0, 0])
+            theta_x = np.arctan2(
+                T[0, 2] * np.sin(theta_z) - T[1, 2] * np.cos(theta_z),
+                T[1, 1]*np.cos(theta_z) - T[0, 1] * np.sin(theta_z))
+            theta_y = np.arctan2(
+                -T[2, 0],
+                T[0, 0] * np.cos(theta_z) + T[1, 0] * np.sin(theta_z))
+        else:
+            raise Exception('Invalid rotation matrix permutation.')
+
+        orientation = [theta_x, theta_y, theta_z]
+
+        return orientation
+
+        # # check for function in dictionary
+        # if self._orientation.get(name, None) is None:
+        #     print('Generating orientation function for %s' % name)
+        #     self._orientation[name] = self._calc_orientation(
+        #         name, regenerate=self.regenerate_functions)
+        # parameters = tuple(q)
+        # return np.array(self._orientation[name](*parameters), dtype='float32')
+
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
 
