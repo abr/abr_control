@@ -1,2 +1,2 @@
-from . import avoid_obstacles
-from . import dynamics_adaptation
+from .avoid_obstacles import Signal as avoid_obstacles
+from .dynamics_adaptation import Signal as dynamics_adaptation

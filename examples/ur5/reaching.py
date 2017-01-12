@@ -8,11 +8,11 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.ur5.config_neural.robot_config(
+robot_config = abr_control.arms.ur5.config(
     regenerate_functions=False)
 
 # instantiate controller
-ctrlr = abr_control.controllers.osc.controller(
+ctrlr = abr_control.controllers.osc(
     robot_config, kp=600, vmax=None)
 
 # create our VREP interface
