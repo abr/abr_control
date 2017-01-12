@@ -82,6 +82,9 @@ finally:
             target_track[:, 1],
             target_track[:, 2],
             'rx', mew=10)
+    ax.set_xlim3d(-1, 1)
+    ax.set_ylim3d(-1, 1)
+    ax.set_zlim3d(0, 1.5)
 
     plt.figure()
     plt.plot(np.sqrt(np.sum((np.array(target_track) -

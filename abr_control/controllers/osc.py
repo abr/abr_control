@@ -17,20 +17,19 @@ class controller:
         self.vmax = vmax
         self.lamb = self.kp / self.kv
 
-    def control(self, q, dq,
-                target_x, target_dx=np.zeros(6),
-                x=[0, 0, 0], ee_name='EE',
-                mask=[1, 1, 1, 0, 0, 0]):
+    def control(self, q, dq, target_x, target_dx=np.zeros(6),
+                mask=[1, 1, 1, 0, 0, 0],
+                ref_frame='EE', offset=[0, 0, 0]):
         """ Generates the control signal
 
         q np.array: the current joint angles
         dq np.array: the current joint velocities
-        target_x np.array: the target end-effector position and orientation
-        target_dx np.array: the target end-effector velocity
-        x list: offset of the point of interest from the frame of reference
-        ee_name string: name of end-effector to control, passed into config
-        mask list: indicates the [x, y, z, roll, pitch, yaw] dimensions
-                   to be controlled
+        target_x np.array: the target end-effector position values, post-mask
+        target_dx np.array: the target end-effector velocity, post-mask
+        mask list: indicates the [x, y, z, alpha, beta, gamma] values
+                   to be controlled, 1 = control, 0 = ignore
+        ref_frame string: the frame of reference of control point
+        offset list: point of interest from the frame of reference
         """
         # TODO: rework so only have to provide as many target values
         # as there are 1s in the mask
@@ -39,18 +38,17 @@ class controller:
         dim = np.sum(mask)
 
         # calculate the end-effector position information
-        xyz = self.robot_config.Tx(ee_name, q, x=x)
-        orientation = self.robot_config.orientation(ee_name, q)
+        xyz = self.robot_config.Tx(ref_frame, q, x=offset)
+        orientation = self.robot_config.orientation(ref_frame, q)
         x = np.hstack([xyz, orientation])
         # apply mask to isolate position variables of interest
-        x = [x[ii] for ii in range(6) if mask[ii] == 1]
-        print('x: ', x)
+        x = np.array([x[ii] for ii in range(6) if mask[ii] == 1])
+        print('x  ', x)
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J(ee_name, q, x=x)
+        JEE = self.robot_config.J(ref_frame, q, x=offset)
         # apply mask to isolate DOF of interest
         JEE = np.array([JEE[ii] for ii in range(6) if mask[ii] == 1])
-
         # calculate the end-effector orientation information
         dx = np.dot(JEE, dq)
         print('dx: ', dx)
@@ -89,7 +87,7 @@ class controller:
                                 -self.lamb * scale * x_tilde)
         else:
             # generate (x,y,z) force without velocity limiting)
-            u_xyz = (self.kp * (target_x - x) +
+            u_xyz = (self.kp * (target_x - x)  +
                      self.kv * (target_dx - dx))
         print('u_xyz: ', u_xyz)
 
