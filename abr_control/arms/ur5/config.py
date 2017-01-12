@@ -23,6 +23,8 @@ class robot_config(robot_config.robot_config):
                                      np.pi/2.0,
                                      np.pi/2.0], dtype='float32')
 
+        # TODO: automate getting all this information from VREP
+
         # create the inertia matrices for each link of the ur5
         self._M.append(np.diag([1.0, 1.0, 1.0,
                                 0.02, 0.02, 0.02]))  # link0
@@ -65,7 +67,7 @@ class robot_config(robot_config.robot_config):
             [0, 0, 1, self.L[0, 2]],
             [0, 0, 0, 1]])
 
-        # Transform matrix : origin -> joint 0
+        # Transform matrix : link 0 -> joint 0
         # no change of axes, account for offsets
         self.Tl0j0 = sp.Matrix([
             [1, 0, 0, self.L[1, 0]],

@@ -9,9 +9,9 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for neural controllers
-robot_config = abr_control.arms.onelink.config.robot_config()
+robot_config = abr_control.arms.onelink.config()
 # instantiate the REACH controller for the onelink robot
-ctrlr = abr_control.controllers.osc.controller(
+ctrlr = abr_control.controllers.osc(
     robot_config, kp=600)
 
 # run controller once to generate functions / take care of overhead
@@ -19,7 +19,7 @@ ctrlr = abr_control.controllers.osc.controller(
 ctrlr.control(np.zeros(1), np.zeros(1), target_state=np.zeros(6))
 
 # create our VREP interface for the onelink arm
-interface = abr_control.interfaces.vrep.interface(robot_config)
+interface = abr_control.interfaces.vrep(robot_config)
 # connect to the jaco
 interface.connect()
 
