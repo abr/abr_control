@@ -208,11 +208,11 @@ class robot_config(robot_config.robot_config):
 
         # orientation part of the Jacobian (compensating for orientations)
         self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
-                              [10, 0, 0],  # joint 1 rotates around x axis
-                              [10, 0, 0],  # joint 2 rotates around x axis
-                              [10, 0, 0],  # joint 3 rotates around x axis
+                              [0, 0, 10],  # joint 1 rotates around x axis
+                              [0, 0, 10],  # joint 2 rotates around x axis
+                              [0, 0, 10],  # joint 3 rotates around x axis
                               [0, 0, 10],  # joint 4 rotates around z axis
-                              [1, 0, 0]]  # joint 5 rotates around x axis
+                              [0, 0, 1]]  # joint 5 rotates around x axis
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
@@ -263,7 +263,5 @@ class robot_config(robot_config.robot_config):
                  self.Tj5l6)
         else:
             raise Exception('Invalid transformation name: %s' % name)
-
-        print(T)
 
         return T

@@ -49,7 +49,7 @@ class robot_config():
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
-    def J(self, name, q, x=[0, 0, 0], mask=None):
+    def J(self, name, q, x=[0, 0, 0]):
         """ Calculates the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -61,8 +61,7 @@ class robot_config():
         if self._J.get(funcname, None) is None:
             print('Generating Jacobian function for %s' % name)
             self._J[funcname] = self._calc_J(
-                name=name, x=x, regenerate=self.regenerate_functions,
-                mask=mask)
+                name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
         return np.array(self._J[funcname](*parameters), dtype='float32')
 
@@ -122,13 +121,14 @@ class robot_config():
         funcname = name + permutation
         # check for function in dictionary
         if self._orientation.get(funcname, None) is None:
-            print('Generating orientation function for %s' % funcname)
+            print('Generating orientation function for %s permutation %s' %
+                  (name, permutation))
             self._orientation[funcname] = self._calc_orientation(
                 name, permutation=permutation,
                 regenerate=self.regenerate_functions)
         parameters = tuple(q)
         return np.array(self._orientation[funcname](*parameters),
-                        dtype='float32')
+                        dtype='float32').T[0]
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
@@ -203,8 +203,7 @@ class robot_config():
             return autowrap(dJ, backend="cython", args=self.q+self.x)
         return sp.lambdify(self.q + self.x, dJ, "numpy")
 
-    def _calc_J(self, name, x, lambdify=True, regenerate=False,
-                mask=None):
+    def _calc_J(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -213,8 +212,6 @@ class robot_config():
                           the Jacobian. If False returns the Sympy
                           matrix
         regenerate boolean: if True, don't use saved functions
-        mask list: indicates the [x, y, z, roll, pitch, yaw] dimensions
-                   to be controlled
         """
 
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -247,14 +244,18 @@ class robot_config():
                 J[ii] = J[ii] + [0, 0, 0]
             J = sp.simplify(J)
 
-            if mask is not None:
-                # if we're generating the Jacobian for control
-                # then also apply the mask, only passing on dimensions
-                # of the state space which are being controlled
-                for ii in range(len(mask)):
-                    if mask[ii] == 0:
-                        for jj in range(len(J)):
-                            del J[jj][ii]
+            # TODO: investigate applying mask here for speed
+            # # TODO: add the mask into the saved functions name
+            # if mask is not None:
+            #     # if we're generating the Jacobian for control
+            #     # then also apply the mask, only passing on dimensions
+            #     # of the state space which are being controlled
+            #     offset = 0
+            #     for ii in range(len(mask)):
+            #         if mask[ii] == 0:
+            #             for jj in range(len(J)):
+            #                 del J[jj][ii - offset]
+            #             offset += 1
 
             # save to file
             cloudpickle.dump(J, open('%s/%s.J' %
@@ -366,6 +367,7 @@ class robot_config():
             T = self._calc_T(name=name) + sp.diag(*([eps, eps, eps, 0]))
 
             # NOTE: equations from this excell sheet http://bit.ly/2ihkNkz
+            # TODO: add in the rest of the permutation equations
             if permutation == 'xyz':
                 # This generates angles for Rx(alpha) * Ry(beta) * Rz(gamma)
                 # NOTE parameter order different than the excell sheet
