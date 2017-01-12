@@ -129,7 +129,7 @@ class robot_config():
         print('T: \n', T)
 
         # TODO: move this all into _calc_orientation and generate functions
-        # and then compare time
+        # and then compare time for generation
 
         # TODO: Transfer over all the calculations for each permutation
         # of the Rx, Ry, and Rz multiplication
