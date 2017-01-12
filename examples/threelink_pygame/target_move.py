@@ -8,15 +8,15 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.threelink.config.robot_config(
+robot_config = abr_control.arms.threelink.config(
     regenerate_functions=False)
 
 # create an operational space controller
-ctrlr = abr_control.controllers.osc.controller(
+ctrlr = abr_control.controllers.osc(
     robot_config, kp=100, vmax=10)
 
 # create our interface
-interface = abr_control.interfaces.maplesim.interface(
+interface = abr_control.interfaces.maplesim(
     robot_config, dt=.001, on_click_move='target')
 interface.connect()
 

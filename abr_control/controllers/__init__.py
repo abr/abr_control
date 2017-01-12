@@ -1,5 +1,4 @@
-from . import osc
-# from . import reach
-from . import trajectory
+from .osc import controller as osc
+from .trajectory import controller as trajectory
 
 from . import signals
