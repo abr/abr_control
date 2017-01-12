@@ -28,11 +28,9 @@ try:
     num_targets = 0
     back_to_start = False
 
-    # get visual position of end point of object
+    # create a target based off initial arm position
     feedback = interface.get_feedback()
-    # set up the values to be used by the Jacobian for the object end effector
     start = robot_config.Tx('EE', q=feedback['q'])
-
     target_xyz = start + np.array([.25, -.25, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
 
@@ -43,6 +41,7 @@ try:
 
         # use visual feedback to get object endpoint position
         ee_xyz = robot_config.Tx('EE', q=feedback['q'])
+        ee_orientation = robot_config.orientation('EE', q=feedback['q'])
 
         # generate control signal
         u = ctrlr.control(
@@ -50,7 +49,8 @@ try:
             dq=feedback['dq'],
             target_state=np.hstack((
                 target_xyz,
-                [0, 0, 0])))
+                [0, 0, 0])),
+            mask=[1, 0, 1, 1, 0, 0])
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
