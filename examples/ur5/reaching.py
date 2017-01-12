@@ -13,10 +13,10 @@ robot_config = abr_control.arms.ur5.config(
 
 # instantiate controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=600, vmax=None)
+    robot_config, kp=200, vmax=0.5)
 
 # create our VREP interface
-interface = abr_control.interfaces.vrep.interface(
+interface = abr_control.interfaces.vrep(
     robot_config, dt=.001)
 interface.connect()
 
@@ -46,7 +46,7 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_state=np.hstack((
+            target_x=np.hstack((
                 target_xyz,
                 [0, 0, 0])))
 
