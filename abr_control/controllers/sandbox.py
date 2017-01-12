@@ -35,8 +35,7 @@ def gen_rotation_matrix(angles):
 # gen_rotation_matrix([0, 0, -np.pi])
 
 
-# robot_config = abr_control.arms.onelink.config(
-robot_config = abr_control.arms.ur5.config(
+robot_config = abr_control.arms.jaco2.config(
     regenerate_functions=True)
 
 interface = abr_control.interfaces.vrep(
