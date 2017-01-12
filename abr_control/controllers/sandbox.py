@@ -32,17 +32,19 @@ def gen_rotation_matrix(angles):
     ans[abs(ans) < 1e-5] = 0
     print('Regenerated: \n', ans)
 
-# gen_rotation_matrix([-5.1867e-2, -1.4868e-02, 1.4883e-1])
+# gen_rotation_matrix([0, 0, -np.pi])
 
 
-# robot_config = abr_control.arms.onelink.config.robot_config(
-robot_config = abr_control.arms.ur5.config.robot_config(
+# robot_config = abr_control.arms.onelink.config(
+robot_config = abr_control.arms.ur5.config(
     regenerate_functions=True)
 
-# create our VREP interface
-interface = abr_control.interfaces.maplesim.interface(
-    robot_config, dt=.001)
+interface = abr_control.interfaces.vrep(
+    robot_config=robot_config, dt=.001)
 interface.connect()
+
+# ctrlr = abr_control.controllers.osc(
+#     robot_config=robot_config)
 
 name = 'link6'
 try:
