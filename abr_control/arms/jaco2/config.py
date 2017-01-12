@@ -27,17 +27,17 @@ class robot_config(robot_config.robot_config):
         self.L = np.array([
             [0.0, 0.0, 7.8369e-02],  # link 0 offset
             [-3.2712e-05, -1.7324e-05, 7.8381e-02],  # joint 0 offset
-            [-2.2084e-05, 1.3257e-04, -7.9887e-02],  # link 1 offset
+            [2.1217e-05, 4.8455e-05, -7.9515e-02],  # link 1 offset
             [-2.2042e-05, 1.3245e-04, -3.8863e-02],  # joint 1 offset
-            [-1.0869e-06, 2.0499e-01, -2.3228e-02],  # link 2 offset
+            [-1.9519e-03, 2.0902e-01, -2.8839e-02],  # link 2 offset
             [-2.3094e-02, -1.0980e-06, 2.0503e-01],  # joint 2 offset
-            [-1.5273e-03, -8.3337e-02, -1.2206e-02],  # link 3 offset
+            [-4.8786e-04, -8.1945e-02, -1.2931e-02],  # link 3 offset
             [2.5923e-04, -3.8935e-03, -1.2393e-01],  # joint 3 offset
-            [-4.7767e-04, 1.2373e-02, -3.5387e-02],  # link 4 offset
+            [-4.0053e-04, 1.2581e-02, -3.5270e-02],  # link 4 offset
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
-            [-5.3939e-04, 1.2305e-02, -3.5455e-02],  # link 5 offset
+            [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02],  # joint 5 offset
-            [-3.8644e-05, 7.3135e-05, 3.2783e-07]],  # link 6 offset
+            [-3.6363e-05, 7.5728e-05, -1.2875e-05]],  # link 6 offset
             dtype='float32')
 
         # ---- Joint Transform Matrices ----
@@ -50,7 +50,7 @@ class robot_config(robot_config.robot_config):
             [0, 0, 1, self.L[0, 2]],
             [0, 0, 0, 1]])
 
-        # Transform matrix : origin -> joint 0
+        # Transform matrix : link0 -> joint 0
         # account for change of axes and offsets
         self.Tl0j0 = sp.Matrix([
             [1, 0, 0, self.L[1, 0]],
@@ -76,9 +76,9 @@ class robot_config(robot_config.robot_config):
         # Transform matrix : link 1 -> joint 1
         # account for axes rotation and offset
         self.Tl1j1 = sp.Matrix([
-            [0, 0, -1, self.L[3, 0]],
-            [0, 1, 0, self.L[3, 1]],
-            [1, 0, 0, self.L[3, 2]],
+            [1, 0, 0, self.L[3, 0]],
+            [0, 0, -1, self.L[3, 1]],
+            [0, 1, 0, self.L[3, 2]],
             [0, 0, 0, 1]])
 
         # Transform matrix : joint 1 -> link 2
@@ -90,8 +90,8 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         # account for axes rotation and offsets
         self.Tj1l2b = sp.Matrix([
-            [0, 0, 1, self.L[4, 0]],
-            [0, 1, 0, self.L[4, 1]],
+            [0, -1, 0, self.L[4, 0]],
+            [0, 0, 1, self.L[4, 1]],
             [-1, 0, 0, self.L[4, 2]],
             [0, 0, 0, 1]])
         self.Tj1l2 = self.Tj1l2a * self.Tj1l2b
@@ -99,9 +99,9 @@ class robot_config(robot_config.robot_config):
         # Transform matrix : link 2 -> joint 2
         # account for axes rotation and offsets
         self.Tl2j2 = sp.Matrix([
-            [0, 0, -1, self.L[5, 0]],
-            [0, 1, 0, self.L[5, 1]],
-            [1, 0, 0, self.L[5, 2]],
+            [0, 0, 1, self.L[5, 0]],
+            [1, 0, 0, self.L[5, 1]],
+            [0, 1, 0, self.L[5, 2]],
             [0, 0, 0, 1]])
 
         # Transform matrix : joint 2 -> link 3
@@ -113,18 +113,18 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         # account for axes rotation and offsets
         self.Tj2l3b = sp.Matrix([
-            [0, 0, 1, self.L[6, 0]],
-            [0, 1, 0, self.L[6, 1]],
-            [-1, 0, 0, self.L[6, 2]],
+            [0.14262926, -0.98977618, 0, self.L[6, 0]],
+            [0, 0, 1, self.L[6, 1]],
+            [-0.98977618, -0.14262926, 0, self.L[6, 2]],
             [0, 0, 0, 1]])
         self.Tj2l3 = self.Tj2l3a * self.Tj2l3b
 
         # Transform matrix : link 3 -> joint 3
         # account for axes change and offsets
         self.Tl3j3 = sp.Matrix([
-            [0, 0, -1, self.L[7, 0]],
-            [0, 1, 0, self.L[7, 1]],
-            [1, 0, 0, self.L[7, 2]],
+            [-0.14262861, -0.98977628, 0, self.L[7, 0]],
+            [0.98977628, -0.14262861, 0, self.L[7, 1]],
+            [0, 0, 1, self.L[7, 2]],
             [0, 0, 0, 1]])
 
         # Transform matrix: joint 3 -> link 4
@@ -136,18 +136,18 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         # account for axes and rotation and offsets
         self.Tj3l4b = sp.Matrix([
-            [0, 0, 1, self.L[8, 0]],
-            [0, 1, 0, self.L[8, 1]],
-            [-1, 0, 0, self.L[8, 2]],
+            [0.85536427, -0.51802699, 0, self.L[8, 0]],
+            [-0.45991232, -0.75940555,  0.46019982, self.L[8, 1]],
+            [-0.23839593, -0.39363848, -0.88781537, self.L[8, 2]],
             [0, 0, 0, 1]])
         self.Tj3l4 = self.Tj3l4a * self.Tj3l4b
 
         # Transform matrix: link 4 -> joint 4
         # no axes change, account for offsets
         self.Tl4j4 = sp.Matrix([
-            [1, 0, 0, self.L[9, 0]],
-            [0, 1, 0, self.L[9, 1]],
-            [0, 0, 1, self.L[9, 2]],
+            [-0.855753802, 0.458851168, 0.239041914, self.L[9, 0]],
+            [0.517383113, 0.758601438, 0.396028500, self.L[9, 1]],
+            [0, 0.462579144, -0.886577910, self.L[9, 2]],
             [0, 0, 0, 1]])
 
         # Transform matrix: joint 4 -> link 5
@@ -160,18 +160,18 @@ class robot_config(robot_config.robot_config):
         # account for axes and rotation and offsets
         # no axes change, account for offsets
         self.Tj4l5b = sp.Matrix([
-            [1, 0, 0, self.L[10, 0]],
-            [0, 1, 0, self.L[10, 1]],
-            [0, 0, 1, self.L[10, 2]],
+            [0.89059413, 0.45479896, 0, self.L[10, 0]],
+            [-0.40329059, 0.78972966, -0.46225942, self.L[10, 1]],
+            [-0.2102351, 0.41168552, 0.88674474, self.L[10, 2]],
             [0, 0, 0, 1]])
         self.Tj4l5 = self.Tj4l5a * self.Tj4l5b
 
         # Transform matrix : link 5 -> joint 5
         # account for axes change and offsets
         self.Tl5j5 = sp.Matrix([
-            [0, 0, -1, self.L[11, 0]],
-            [0, 1, 0, self.L[11, 1]],
-            [1, 0, 0, self.L[11, 2]],
+            [-0.890598824, 0.403618758, 0.209584432, self.L[11, 0]],
+            [-0.454789710, -0.790154512, -0.410879747, self.L[11, 1]],
+            [0, -0.461245863, 0.887272337, self.L[11, 2]],
             [0, 0, 0, 1]])
 
         # Transform matrix: joint 5 -> link 6
@@ -183,19 +183,19 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         # no axes change, account for offsets
         self.Tj5l6b = sp.Matrix([
-            [1, 0, 0, self.L[12, 0]],
-            [0, 1, 0, self.L[12, 1]],
+            [-1, 0, 0, self.L[12, 0]],
+            [0, -1, 0, self.L[12, 1]],
             [0, 0, 1, self.L[12, 2]],
             [0, 0, 0, 1]])
         self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for orientations)
-        self.J_orientation = [[0, 0, 10],  # joint 0 rotates around z axis
-                              [10, 0, 0],  # joint 1 rotates around x axis
-                              [10, 0, 0],  # joint 2 rotates around x axis
-                              [10, 0, 0],  # joint 3 rotates around x axis
-                              [0, 0, 10],  # joint 4 rotates around z axis
-                              [1, 0, 0]]  # joint 5 rotates around x axis
+        self.J_orientation = [[0, 0, 1],  # joint 0 rotates around z axis
+                              [0, 0, 1],  # joint 1 rotates around z axis
+                              [0, 0, 1],  # joint 2 rotates around z axis
+                              [0, 0, 1],  # joint 3 rotates around z axis
+                              [0, 0, 1],  # joint 4 rotates around z axis
+                              [0, 0, 1]]  # joint 5 rotates around z axis
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
