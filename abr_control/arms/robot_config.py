@@ -361,7 +361,9 @@ class robot_config():
                                                 (self.config_folder, filename),
                                                 'rb'))
         else:
-            T = self._calc_T(name=name)
+            # get transform, add small offset to prevent NaN errors
+            eps = 1e-8
+            T = self._calc_T(name=name) + sp.diag(*([eps, eps, eps, 0]))
 
             # NOTE: equations from this excell sheet http://bit.ly/2ihkNkz
             if permutation == 'xyz':
