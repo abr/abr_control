@@ -17,26 +17,43 @@ class controller:
         self.vmax = vmax
         self.lamb = self.kp / self.kv
 
-    def control(self, q, dq, target_state,
+    def control(self, q, dq,
+                target_x, target_dx=np.zeros(6),
                 x=[0, 0, 0], ee_name='EE',
                 mask=[1, 1, 1, 0, 0, 0]):
         """ Generates the control signal
 
         q np.array: the current joint angles
         dq np.array: the current joint velocities
-        target_state np.array: the target [pos, vel] for the end-effector
+        target_x np.array: the target end-effector position and orientation
+        target_dx np.array: the target end-effector velocity
         x list: offset of the point of interest from the frame of reference
         ee_name string: name of end-effector to control, passed into config
         mask list: indicates the [x, y, z, roll, pitch, yaw] dimensions
                    to be controlled
         """
+        # TODO: rework so only have to provide as many target values
+        # as there are 1s in the mask
 
-        # calculate position of the end-effector
+        # the number of dimensions controlled
+        dim = np.sum(mask)
+
+        # calculate the end-effector position information
         xyz = self.robot_config.Tx(ee_name, q, x=x)
+        orientation = self.robot_config.orientation(ee_name, q)
+        x = np.hstack([xyz, orientation])
+        # apply mask to isolate position variables of interest
+        x = [x[ii] for ii in range(6) if mask[ii] == 1]
+        print('x: ', x)
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J(ee_name, q, x=x,
-                                  mask=mask)
+        JEE = self.robot_config.J(ee_name, q, x=x)
+        # apply mask to isolate DOF of interest
+        JEE = np.array([JEE[ii] for ii in range(6) if mask[ii] == 1])
+
+        # calculate the end-effector orientation information
+        dx = np.dot(JEE, dq)
+        print('dx: ', dx)
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
@@ -54,10 +71,9 @@ class controller:
         Mx = np.linalg.pinv(Mx_inv, rcond=.01)
 
         # calculate desired force in (x,y,z) space
-        dx = np.dot(JEE, dq)
         if self.vmax is not None:
             # implement velocity limiting
-            x_tilde = xyz - target_state[:3]
+            x_tilde = x - target_x
             sat = self.vmax / (self.lamb * np.abs(x_tilde))
             if np.any(sat < 1):
                 index = np.argmin(sat)
@@ -68,13 +84,14 @@ class controller:
             else:
                 scale = np.ones(3, dtype='float32')
 
-            u_xyz = -self.kv * (dx - target_state[3:] -
+            u_xyz = -self.kv * (dx - target_dx -
                                 np.clip(sat / scale, 0, 1) *
                                 -self.lamb * scale * x_tilde)
         else:
             # generate (x,y,z) force without velocity limiting)
-            u_xyz = (self.kp * (target_state[:3] - xyz) +
-                     self.kv * (target_state[3:] - dx))
+            u_xyz = (self.kp * (target_x - x) +
+                     self.kv * (target_dx - dx))
+        print('u_xyz: ', u_xyz)
 
         u_xyz = np.dot(Mx, u_xyz)
 
