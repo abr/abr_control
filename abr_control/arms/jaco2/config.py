@@ -1,3 +1,4 @@
+# Config filefor Jaco 2 in VREP
 import numpy as np
 import sympy as sp
 
@@ -11,16 +12,44 @@ class robot_config(robot_config.robot_config):
 
         super(robot_config, self).__init__(num_joints=6, num_links=7,
                                            robot_name='jaco2', **kwargs)
-
+                                           
+        #self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
+        #                      '/saved_functions')
+                              
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
 
+        # Kinova Home Position - straight up
+        self.home_position = np.array([250.0, 180.0, 180.0,
+                                       270.0, 0.0, 0.0], dtype="float32")
+        self.home_torques = np.array([-0.138, -0.116, 3.339,
+                                      -0.365, -0.113, 0.061], dtype="float32")
+                                 
+        # for the null space controller, keep arm near these angles
+        # currently set to the center of the limits
+        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0, 0.0],
+                                    dtype='float32')
+                                                                          
         # for the null space controller, keep arm near these angles
         # TODO: fill in rest angles
 
         # create the inertia matrices for each link of the ur5
-        self._M.append(np.diag([0.5, 0.5, 0.5,
+        self._M.append(np.diag([0.64, 0.64, 0.64,
                                 0.01, 0.01, 0.01]))  # link0
+        self._M.append(np.diag([0.6, 0.6, 0.6,
+                                0.04, 0.04, 0.04]))  # link1
+        self._M.append(np.diag([0.57, 0.57, 0.57,
+                                0.04, 0.04, 0.04]))  # link2
+        self._M.append(np.diag([0.6, 0.6, 0.6,
+                                0.04, 0.04, 0.04]))  # link3
+        self._M.append(np.diag([0.37, 0.37, 0.37,
+                                0.04, 0.04, 0.04]))  # link4
+        self._M.append(np.diag([1.37, 1.37, 1.37,
+                                0.04, 0.04, 0.04]))  # link5 with hand
+        self._M.append(np.diag([0.37, 0.37, 0.37,
+                                0.04, 0.04, 0.04]))  # link6
+        #self._M.append(np.diag([1.05, 1.05, 1.05,
+        #                        0.04, 0.04, 0.04]))  # link6 with hand
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
