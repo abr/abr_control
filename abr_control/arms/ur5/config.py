@@ -25,19 +25,22 @@ class robot_config(robot_config.robot_config):
 
         # TODO: automate getting all this information from VREP
 
+        # TODO: DOES IT MATTER IF THESE ARE SYMPY MATRICES OR NOT?   <----------
         # create the inertia matrices for each link of the ur5
-        self._M.append(np.diag([1.0, 1.0, 1.0,
-                                0.02, 0.02, 0.02]))  # link0
-        self._M.append(np.diag([2.5, 2.5, 2.5,
-                                0.04, 0.04, 0.04]))  # link1
-        self._M.append(np.diag([5.7, 5.7, 5.7,
-                                0.06, 0.06, 0.04]))  # link2
-        self._M.append(np.diag([3.9, 3.9, 3.9,
-                                0.055, 0.055, 0.04]))  # link3
-        self._M.append(np.copy(self._M[1]))  # link4
-        self._M.append(np.copy(self._M[1]))  # link5
-        self._M.append(np.diag([0.7, 0.7, 0.7,
-                                0.01, 0.01, 0.01]))  # link6
+        self._M.append(sp.diag(1.0, 1.0, 1.0,
+                               0.02, 0.02, 0.02))  # link0
+        self._M.append(sp.diag(2.5, 2.5, 2.5,
+                               0.04, 0.04, 0.04))  # link1
+        self._M.append(sp.diag(5.7, 5.7, 5.7,
+                               0.06, 0.06, 0.04))  # link2
+        self._M.append(sp.diag(3.9, 3.9, 3.9,
+                               0.055, 0.055, 0.04))  # link3
+        self._M.append(sp.diag(2.5, 2.5, 2.5,
+                               0.04, 0.04, 0.04))  # link4
+        self._M.append(sp.diag(2.5, 2.5, 2.5,
+                               0.04, 0.04, 0.04))  # link5
+        self._M.append(sp.diag(0.7, 0.7, 0.7,
+                               0.01, 0.01, 0.01))  # link6
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
@@ -54,8 +57,8 @@ class robot_config(robot_config.robot_config):
             [-6.8700e-03, 4.5318e-05, 5.3076e-02],  # joint 4 offset
             [3.6091e-03, 5.0090e-05, 4.2340e-02],  # link 5 offset
             [1.0824e-02, -4.5293e-05, 6.8700e-03],  # joint 5 offset
-            [0, 0, 7.6645e-02]],  # link 6 offset
-            dtype='float32')
+            [0, 0, 7.6645e-02]])  # link 6 offset
+            # dtype='float32')
 
         # ---- Joint Transform Matrices ----
 
@@ -220,6 +223,8 @@ class robot_config(robot_config.robot_config):
         name string: name of the joint or link, or end-effector
         """
 
+        import time
+        start_time = time.time()
         if name == 'link0':
             T = self.Torgl0
         elif name == 'joint0':
@@ -263,5 +268,6 @@ class robot_config(robot_config.robot_config):
                  self.Tj5l6)
         else:
             raise Exception('Invalid transformation name: %s' % name)
+        print('T gen time: %.5f: ' % (time.time() - start_time))
 
         return T
