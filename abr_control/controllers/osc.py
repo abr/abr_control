@@ -1,5 +1,7 @@
 import numpy as np
 
+import abr_control
+
 
 class controller:
     """ Implements an operational space controller (OSC)
@@ -18,42 +20,38 @@ class controller:
         self.lamb = self.kp / self.kv
 
     def control(self, q, dq,
-                target_x, target_dx=np.zeros(6),
-                x=[0, 0, 0], ee_name='EE',
-                mask=[1, 1, 1, 0, 0, 0]):
+                target_x, target_dx=np.zeros(3),
+                target_w=None, target_dw=None, w_axes='sxyz',
+                mask=[1, 1, 1, 0, 0, 0],
+                ref_frame='EE', offset=[0, 0, 0]):
         """ Generates the control signal
 
         q np.array: the current joint angles
         dq np.array: the current joint velocities
-        target_x np.array: the target end-effector position and orientation
-        target_dx np.array: the target end-effector velocity
-        x list: offset of the point of interest from the frame of reference
-        ee_name string: name of end-effector to control, passed into config
-        mask list: indicates the [x, y, z, roll, pitch, yaw] dimensions
-                   to be controlled
+        target_x np.array: the target end-effector position values, post-mask
+        target_dx np.array: the target end-effector velocity, post-mask
+        target_w np.array: the target Euler angles
+        target_dw np.array: the target angular velocities
+        w_axes string: the order of rotation of the Euler angles with
+                       rotation matrices. Default matches VREP.
+                       First character is either s for static or
+                       r for relative.
+        mask list: indicates the [x, y, z, alpha, beta, gamma] values
+                   to be controlled, 1 = control, 0 = ignore
+        ref_frame string: the frame of reference of control point
+        offset list: point of interest from the frame of reference
         """
-        # TODO: rework so only have to provide as many target values
-        # as there are 1s in the mask
-
-        # the number of dimensions controlled
-        dim = np.sum(mask)
-
         # calculate the end-effector position information
-        xyz = self.robot_config.Tx(ee_name, q, x=x)
-        orientation = self.robot_config.orientation(ee_name, q)
-        x = np.hstack([xyz, orientation])
-        # apply mask to isolate position variables of interest
-        x = [x[ii] for ii in range(6) if mask[ii] == 1]
-        print('x: ', x)
+        xyz = self.robot_config.Tx(ref_frame, q, x=offset)
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J(ee_name, q, x=x)
-        # apply mask to isolate DOF of interest
+        JEE = self.robot_config.J(ref_frame, q, x=offset)
+
+        # apply mask to isolate DOFs of interest
         JEE = np.array([JEE[ii] for ii in range(6) if mask[ii] == 1])
 
-        # calculate the end-effector orientation information
+        # calculate the end-effector velocity information
         dx = np.dot(JEE, dq)
-        print('dx: ', dx)
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
@@ -61,10 +59,9 @@ class controller:
         # calculate the effect of gravity in joint space
         Mq_g = self.robot_config.Mq_g(q)
 
+        # calculate the inertia matrix in task space
         Mq_inv = np.linalg.inv(Mq)
-        JEE_Mq_inv = np.dot(JEE, Mq_inv)
-
-        # convert the mass compensation into end effector space
+        JEE_Mq_inv = np.dot(JEE, Mq_inv)  # save for use again below
         Mx_inv = np.dot(JEE_Mq_inv, JEE.T)
         # using the rcond to set singular values < thresh to 0
         # is slightly faster than doing it manually with svd
@@ -73,7 +70,7 @@ class controller:
         # calculate desired force in (x,y,z) space
         if self.vmax is not None:
             # implement velocity limiting
-            x_tilde = x - target_x
+            x_tilde = xyz - target_x
             sat = self.vmax / (self.lamb * np.abs(x_tilde))
             if np.any(sat < 1):
                 index = np.argmin(sat)
@@ -89,11 +86,37 @@ class controller:
                                 -self.lamb * scale * x_tilde)
         else:
             # generate (x,y,z) force without velocity limiting)
-            u_xyz = (self.kp * (target_x - x) +
+            u_xyz = (self.kp * (target_x - xyz)  +
                      self.kv * (target_dx - dx))
         print('u_xyz: ', u_xyz)
 
         u_xyz = np.dot(Mx, u_xyz)
+
+        # if target_w is not None:
+        #     # if a target orientation was provided, generate control
+        #     # signal for the orientation of the ref_frame
+        #     target_dw = np.zeros(3) if target_dw is None else target_dw
+        #
+        #     # convert target_w into a quaternion
+        #     print('target_w: ', target_w)
+        #     target_quat = (
+        #         abr_control.utils.transformations.quaternion_from_euler(
+        #             target_w[0], target_w[1], target_w[2], axes=w_axes))
+        #
+        #     # get the quaternion describing orientation of ref_frame
+        #     quat = self.robot_config.orientation(ref_frame, q)
+        #
+        #     # calculate the error between the two quaternions as
+        #     # described in (Nakanishi et al, 2008)
+        #     target_e = np.array([
+        #         [0, -target_quat[3], target_quat[2]],
+        #         [target_quat[3], 0, -target_quat[1]],
+        #         [-target_quat[2], target_quat[1], 0]])
+        #     error_quat = (target_quat[0] * quat[1:] -
+        #                   quat[0] * target_quat[1:] +
+        #                   np.dot(target_e, quat[1:]))
+
+        print('Mq_g: ', Mq_g)
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
@@ -105,6 +128,8 @@ class controller:
         # as a signal to be added in if chosen? -----------------
 
         # calculate the null space filter
+        nkp = self.kp * .1
+        nkv = np.sqrt(nkp)
         Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
         null_filter = (np.eye(self.robot_config.num_joints) -
                        np.dot(JEE.T, Jdyn_inv))
@@ -119,9 +144,6 @@ class controller:
                     ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
                      (np.pi*2) - np.pi)
                 dq_des[ii] = dq[ii]
-        # only compensate for velocity for joints with a control signal
-        nkp = self.kp * .1
-        nkv = np.sqrt(nkp)
         u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
 
         u += np.dot(null_filter, u_null)
