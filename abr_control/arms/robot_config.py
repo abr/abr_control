@@ -1,11 +1,16 @@
-import cloudpickle
+import pickle
 import numpy as np
 import os
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
 
+import abr_control
 import abr_control.arms
 
+
+# TODO : store both the lambdified and unlambdified versions of everything
+
+# TODO : check to see how long it takes to load T from file vs recompute
 
 class robot_config():
     """ Class defines a bunch of useful functions for controlling
@@ -15,13 +20,20 @@ class robot_config():
     """
 
     def __init__(self, num_joints, num_links, robot_name="robot",
-                 regenerate_functions=False, use_cython=False):
+                 regenerate_functions=False,
+                 use_simplify=False, use_cython=False):
         """
         num_joints int: number of joints in robot
         num_links int: number of arm segments in robot
         robot_name string: used for saving/loading functions to file
         regenerate_functions boolean: if True, don't look to saved files
                                       regenerate all transforms and Jacobians
+        use_simplify boolean: if True, symbolic representations are simplified
+                              useful when execution time is more important 
+                              than generation time
+        use_cython boolean: if True, a more efficient function is generated
+                            useful when execution time is more important than
+                            generation time
         """
 
         self.num_joints = num_joints
@@ -32,6 +44,7 @@ class robot_config():
 
         self.regenerate_functions = regenerate_functions
         self.use_cython = use_cython
+        self.simplify = sp.simplify if use_simplify is True else lambda x: x
 
         # create function dictionaries
         self._Tx = {}  # for transform calculations
@@ -40,6 +53,10 @@ class robot_config():
         self._M = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
         self._Mq_g = None  # placeholder for joint space gravity term function
+        self._orientation = {} # placeholder for orientation functions
+        self._T_inv = {}  # for inverse transform calculations
+        self._Tx = {}  # for point transform calculations
+        self._T = {}  # for transform matrix calculations
 
         # set up our joint angle symbols
         self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
@@ -107,28 +124,38 @@ class robot_config():
         parameters = tuple(q)
         return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
 
-    def orientation(self, name, q, permutation='xyz'):
-        """ Calculates the Euler angles alpha, beta, and gamma for a
-        joint or link.
+    def orientation(self, name, q):
+        """ Uses Sympy to generate the orientation for a joint or link
+        calculated as a quaternion.
 
         name string: name of the joint or link, or end-effector
-        q list: set of joint angles, configuration of arm
-        permutation string: order rotation matrices are applied for
-                            desired Euler angles. 'xyz' matches VREP
-                            which applies Rx(alpha) * Ry(beta) * Rz(gamma)
-                            to construct the rotation matrix given angles.
+        q list: set of joint angles to pass in to the Mq_g function
+        regenerate boolean: if True, don't use saved functions
         """
-        funcname = name + permutation
-        # check for function in dictionary
-        if self._orientation.get(funcname, None) is None:
-            print('Generating orientation function for %s permutation %s' %
-                  (name, permutation))
-            self._orientation[funcname] = self._calc_orientation(
-                name, permutation=permutation,
-                regenerate=self.regenerate_functions)
-        parameters = tuple(q)
-        return np.array(self._orientation[funcname](*parameters),
-                        dtype='float32').T[0]
+        # get transform matrix for reference frame of interest
+        if self._T.get(name, None) is None:
+            # check to see if we have our transformation saved in file
+            if (self.regenerate_functions is False and
+                    os.path.isfile('%s/%s.T' % (self.config_folder, name))):
+                T = pickle.load(open('%s/%s.T' %
+                                          (self.config_folder, name),
+                                          'rb'))
+            else:
+                T = self._calc_T(name=name)
+
+                # save to file
+                pickle.dump(sp.Matrix(T), open(
+                    '%s/%s.T' % (self.config_folder, name), 'wb'))
+            if self.use_cython is True:
+                T_func = autowrap(T, backend="cython", args=self.q)
+            else:
+                T_func = sp.lambdify(self.q, T, "numpy")
+            self._T[name] = T_func
+
+        T = self._T[name](*q)
+        print('Transformation matrix: \n', T)
+
+        return abr_control.utils.transformations.quaternion_from_matrix(T)
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
@@ -178,7 +205,7 @@ class robot_config():
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.dJ' % (self.config_folder, filename))):
-            dJ = cloudpickle.load(open('%s/%s.dJ' %
+            dJ = pickle.load(open('%s/%s.dJ' %
                                        (self.config_folder, filename), 'rb'))
         else:
             J = self._calc_J(name, x=x, lambdify=False)
@@ -188,15 +215,14 @@ class robot_config():
             for ii in range(J.shape[0]):
                 for jj in range(J.shape[1]):
                     for kk in range(self.num_joints):
-                        dJ[ii, jj] += sp.simplify(
+                        dJ[ii, jj] += self.simplify(
                             J[ii, jj].diff(self.q[kk]))
-            dJ = sp.simplify(dJ)
+            dJ = sp.Matrix(dJ).T
 
             # save to file
-            cloudpickle.dump(dJ, open('%s/%s.dJ' %
-                                      (self.config_folder, filename), 'wb'))
+            pickle.dump(dJ, open(
+                '%s/%s.dJ' % (self.config_folder, filename), 'wb'))
 
-        dJ = sp.Matrix(dJ).T  # correct the orientation of J
         if lambdify is False:
             return dJ
         if self.use_cython is True:
@@ -218,22 +244,24 @@ class robot_config():
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.J' % (self.config_folder, filename))):
-            J = cloudpickle.load(open('%s/%s.J' %
+            J = pickle.load(open('%s/%s.J' %
                                       (self.config_folder, filename), 'rb'))
         else:
             Tx = self._calc_Tx(name, x=x, lambdify=False)
+            # NOTE: calculating the Jacobian this way doesn't incur any
+            # real computational cost (maybe 30ms) and it simplifies adding
+            # the orientation information below (as opposed to using
+            # sympy's Tx.jacobian method)
             J = []
             # calculate derivative of (x,y,z) wrt to each joint
             for ii in range(self.num_joints):
                 J.append([])
-                J[ii].append(sp.simplify(Tx[0].diff(self.q[ii])))  # dx/dq[ii]
-                J[ii].append(sp.simplify(Tx[1].diff(self.q[ii])))  # dy/dq[ii]
-                J[ii].append(sp.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
+                J[ii].append(self.simplify(Tx[0].diff(self.q[ii])))  # dx/dq[ii]
+                J[ii].append(self.simplify(Tx[1].diff(self.q[ii])))  # dy/dq[ii]
+                J[ii].append(self.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
             end_point = self.num_joints if 'EE' in end_point else end_point
-
-            # if 'EE' not in end_point:
 
             end_point = min(int(end_point) + 1, self.num_joints)
             # add on the orientation information up to the last joint
@@ -242,24 +270,10 @@ class robot_config():
             # fill in the rest of the joints orientation info with 0
             for ii in range(end_point, self.num_joints):
                 J[ii] = J[ii] + [0, 0, 0]
-            J = sp.simplify(J)
-
-            # TODO: investigate applying mask here for speed
-            # # TODO: add the mask into the saved functions name
-            # if mask is not None:
-            #     # if we're generating the Jacobian for control
-            #     # then also apply the mask, only passing on dimensions
-            #     # of the state space which are being controlled
-            #     offset = 0
-            #     for ii in range(len(mask)):
-            #         if mask[ii] == 0:
-            #             for jj in range(len(J)):
-            #                 del J[jj][ii - offset]
-            #             offset += 1
 
             # save to file
-            cloudpickle.dump(J, open('%s/%s.J' %
-                                     (self.config_folder, filename), 'wb'))
+            pickle.dump(sp.Matrix(J), open(
+                '%s/%s.J' % (self.config_folder, filename), 'wb'))
 
         J = sp.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
@@ -281,7 +295,7 @@ class robot_config():
         # check to see if we have our inertia matrix saved in file
         if (regenerate is False and
                 os.path.isfile('%s/Mq' % self.config_folder)):
-            Mq = cloudpickle.load(open('%s/Mq' % self.config_folder, 'rb'))
+            Mq = pickle.load(open('%s/Mq' % self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
             J = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
@@ -289,13 +303,16 @@ class robot_config():
 
             # transform each inertia matrix into joint space
             # sum together the effects of arm segments' inertia on each motor
+            print(self.num_joints)
             Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
-                Mq += sp.simplify(J[ii].T * self._M[ii] * J[ii])
-            Mq = sp.simplify(Mq)
+                Mq += (J[ii].T * self._M[ii] * J[ii])
+            Mq = self.simplify(Mq)
+            Mq = sp.Matrix(Mq)
 
             # save to file
-            cloudpickle.dump(Mq, open('%s/Mq' % self.config_folder, 'wb'))
+            pickle.dump(Mq, open(
+                '%s/Mq' % self.config_folder, 'wb'))
 
         if lambdify is False:
             return Mq
@@ -316,7 +333,7 @@ class robot_config():
         # check to see if we have our gravity term saved in file
         if (regenerate is False and
                 os.path.isfile('%s/Mq_g' % self.config_folder)):
-            Mq_g = cloudpickle.load(open('%s/Mq_g' %
+            Mq_g = pickle.load(open('%s/Mq_g' %
                                          self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
@@ -327,82 +344,21 @@ class robot_config():
             # sum together the effects of arm segments' inertia on each motor
             Mq_g = sp.zeros(self.num_joints, 1)
             for ii in range(self.num_joints):
-                Mq_g += sp.simplify(J[ii].T * self._M[ii] * self.gravity)
-            Mq_g = sp.simplify(Mq_g)
+                # TODO: is it more efficient to have a simplify here too?
+                Mq_g += J[ii].T * self._M[ii] * self.gravity
+            Mq_g = self.simplify(Mq_g)
+            Mq_g = sp.Matrix(Mq_g)
 
             # save to file
-            cloudpickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder, 'wb'))
+            pickle.dump(Mq_g, open(
+                '%s/Mq_g' % self.config_folder, 'wb'))
 
         if lambdify is False:
             return Mq_g
         if self.use_cython is True:
-            return autowrap(Mq_g, backend="cython", args=self.q)
+            return autowrap(Mq_g, backend="cython",
+                            args=self.q)
         return sp.lambdify(self.q, Mq_g, "numpy")
-
-    def _calc_orientation(self, name, permutation='xyz', lambdify=True,
-                          regenerate=False):
-        """ Uses Sympy to generate the orientation for a joint or link
-        calculated in order of [yaw, pitch, roll]
-
-        name string: name of the joint or link, or end-effector
-        permutation string: order rotation matrices are applied for
-                            desired Euler angles. 'xyz' matches VREP
-                            which applies Rx(alpha) * Ry(beta) * Rz(gamma)
-                            to construct the rotation matrix given angles.
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
-        regenerate boolean: if True, don't use saved functions
-        """
-        filename = name + permutation
-        # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
-            orientation = cloudpickle.load(open('%s/%s.T' %
-                                                (self.config_folder, filename),
-                                                'rb'))
-        else:
-            # get transform, add small offset to prevent NaN errors
-            eps = 1e-8
-            T = self._calc_T(name=name) + sp.diag(*([eps, eps, eps, 0]))
-
-            # NOTE: equations from this excell sheet http://bit.ly/2ihkNkz
-            # TODO: add in the rest of the permutation equations
-            if permutation == 'xyz':
-                # This generates angles for Rx(alpha) * Ry(beta) * Rz(gamma)
-                # NOTE parameter order different than the excell sheet
-                theta_x = sp.atan2(-T[1, 2], T[2, 2])
-                theta_y = sp.atan2(
-                    T[0, 2],
-                    T[2, 2] * sp.cos(theta_x) - T[1, 2] * sp.sin(theta_x))
-                theta_z = sp.atan2(
-                    T[1, 0] * sp.cos(theta_x),
-                    T[1, 1] * sp.cos(theta_x) + T[2, 1] * sp.sin(theta_x))
-            elif permutation == 'zyx':
-                # This generates angles for Rz(gamma) * Ry(beta) * Rx(alpha)
-                # NOTE parameter order different than the excell sheet
-                theta_z = sp.atan2(T[1, 0], T[0, 0])
-                theta_x = sp.atan2(
-                    T[0, 2] * sp.sin(theta_z) - T[1, 2] * sp.cos(theta_z),
-                    T[1, 1] * sp.cos(theta_z) - T[0, 1] * sp.sin(theta_z))
-                theta_y = sp.atan2(
-                    -T[2, 0],
-                    T[0, 0] * sp.cos(theta_z) + T[1, 0] * sp.sin(theta_z))
-            else:
-                raise Exception('Invalid rotation matrix permutation.')
-
-            orientation = sp.Matrix([theta_x, theta_y, theta_z])
-
-            # save to file
-            cloudpickle.dump(orientation,
-                             open('%s/%s.orientation' %
-                                  (self.config_folder, filename), 'wb'))
-
-        if lambdify is False:
-            return orientation
-        if self.use_cython is True:
-            return autowrap(orientation, backend="cython", args=self.q)
-        return sp.lambdify(self.q, orientation, "numpy")
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
@@ -426,7 +382,7 @@ class robot_config():
         # check to see if we have our transformation saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
-            Tx = cloudpickle.load(open('%s/%s.T' %
+            Tx = pickle.load(open('%s/%s.T' %
                                        (self.config_folder, filename), 'rb'))
         else:
             T = self._calc_T(name=name)
@@ -439,16 +395,19 @@ class robot_config():
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
                 Tx = T * sp.Matrix(self.x + [1])
-            Tx = sp.simplify(Tx)
+            Tx = self.simplify(Tx)
+            Tx = sp.Matrix(Tx)
 
             # save to file
-            cloudpickle.dump(Tx, open('%s/%s.T' %
-                                      (self.config_folder, filename), 'wb'))
+            pickle.dump(sp.Matrix(Tx), open(
+                '%s/%s.T' % (self.config_folder, filename), 'wb'))
+
 
         if lambdify is False:
             return Tx
         if self.use_cython is True:
-            return autowrap(Tx, backend="cython", args=self.q+self.x)
+            return autowrap(Tx, backend="cython",
+                            args=self.q+self.x)
         return sp.lambdify(self.q + self.x, Tx, "numpy")
 
     def _calc_T_inv(self, name, x, lambdify=True, regenerate=False):
@@ -468,7 +427,7 @@ class robot_config():
         if (regenerate is False and
                 os.path.isfile('%s/%s.T_inv' % (self.config_folder,
                                                 filename))):
-            T_inv = cloudpickle.load(open('%s/%s.T_inv' %
+            T_inv = pickle.load(open('%s/%s.T_inv' %
                                           (self.config_folder,
                                            filename), 'rb'))
         else:
@@ -477,15 +436,15 @@ class robot_config():
             translation_inv = -rotation_inv * T[:3, 3]
             T_inv = rotation_inv.row_join(translation_inv).col_join(
                 sp.Matrix([[0, 0, 0, 1]]))
-            T_inv = sp.simplify(T_inv)
+            T_inv = sp.Matrix(T_inv)
 
             # save to file
-            cloudpickle.dump(T_inv, open('%s/%s.T_inv' %
-                                         (self.config_folder,
-                                          filename), 'wb'))
+            pickle.dump(T_inv, open(
+                '%s/%s.T_inv' % (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
             return T_inv
         if self.use_cython is True:
-            return autowrap(T_inv, backend="cython", args=self.q+self.x)
+            return autowrap(T_inv, backend="cython",
+                            args=self.q+self.x)
         return sp.lambdify(self.q + self.x, T_inv, "numpy")

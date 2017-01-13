@@ -31,7 +31,7 @@ try:
     # create a target based on initial arm position
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', q=feedback['q'])
-    target_xyz = start + np.array([.25])
+    target_xyz = start + np.array([-.25, .25, 0])
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
@@ -46,9 +46,8 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_x=np.hstack((
-                target_xyz,
-                [0, 0, 0])))
+            target_x=target_xyz,
+            target_dx=np.zeros(3))
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
@@ -85,10 +84,14 @@ finally:
             target_track[:, 1],
             target_track[:, 2],
             'rx', mew=10)
+    ax.set_xlim3d(-1, 1)
+    ax.set_ylim3d(-1, 1)
+    ax.set_zlim3d(0, 1.5)
 
     plt.figure()
     plt.plot(np.sqrt(np.sum((np.array(target_track) -
                              np.array(ee_track))**2, axis=1)))
+
     plt.ylabel('Error (m)')
     plt.xlabel('Time (ms)')
     plt.show()

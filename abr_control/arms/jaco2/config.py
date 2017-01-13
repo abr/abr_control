@@ -1,5 +1,11 @@
+# Config filefor Jaco 2 in VREP
 import numpy as np
 import sympy as sp
+try:
+    import symengine as se
+except ImportError:
+    # already printed warning in arms/robot_config.py
+    import sympy as se
 
 from .. import robot_config
 
@@ -15,12 +21,35 @@ class robot_config(robot_config.robot_config):
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
 
-        # for the null space controller, keep arm near these angles
-        # TODO: fill in rest angles
+        # Kinova Home Position - straight up
+        self.home_position = np.array([250.0, 180.0, 180.0,
+                                       270.0, 0.0, 0.0], dtype="float32")
+        self.home_torques = np.array([-0.138, -0.116, 3.339,
+                                      -0.365, -0.113, 0.061], dtype="float32")
 
+        # for the null space controller, keep arm near these angles
+        # currently set to the center of the limits
+        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0, 0.0],
+                                    dtype='float32')
+
+        # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
-        self._M.append(np.diag([0.5, 0.5, 0.5,
-                                0.01, 0.01, 0.01]))  # link0
+        self._M.append(sp.diag(0.64, 0.64, 0.64,
+                                0.01, 0.01, 0.01))  # link0
+        self._M.append(sp.diag(0.6, 0.6, 0.6,
+                                0.04, 0.04, 0.04))  # link1
+        self._M.append(sp.diag(0.57, 0.57, 0.57,
+                                0.04, 0.04, 0.04))  # link2
+        self._M.append(sp.diag(0.6, 0.6, 0.6,
+                                0.04, 0.04, 0.04))  # link3
+        self._M.append(sp.diag(0.37, 0.37, 0.37,
+                                0.04, 0.04, 0.04))  # link4
+        self._M.append(sp.diag(1.37, 1.37, 1.37,
+                                0.04, 0.04, 0.04))  # link5 with hand
+        self._M.append(sp.diag(0.37, 0.37, 0.37,
+                                0.04, 0.04, 0.04))  # link6
+        #self._M.append(sp.diag(1.05, 1.05, 1.05,
+        #                        0.04, 0.04, 0.04))  # link6 with hand
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
@@ -37,8 +66,8 @@ class robot_config(robot_config.robot_config):
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02],  # joint 5 offset
-            [-3.6363e-05, 7.5728e-05, -1.2875e-05]],  # link 6 offset
-            dtype='float32')
+            [-3.6363e-05, 7.5728e-05, -1.2875e-05]])  # link 6 offset
+            # dtype='float32')
 
         # ---- Joint Transform Matrices ----
 
@@ -246,7 +275,5 @@ class robot_config(robot_config.robot_config):
                  self.Tj5l6)
         else:
             raise Exception('Invalid transformation name: %s' % name)
-
-        print(T)
 
         return T
