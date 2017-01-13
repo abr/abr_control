@@ -42,10 +42,9 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_state=np.hstack((
-                target_xyz,
-                [0, 0, 0])),
-            mask=[1, 1, 1, 0, 0, 0])
+            target_x=[target_xyz[0], target_xyz[1], 0],
+            target_dx=[0, 0, 0],
+            mask=[1, 0, 1, 0, 1, 0])
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward

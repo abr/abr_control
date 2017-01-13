@@ -32,7 +32,7 @@ def gen_rotation_matrix(angles):
     ans[abs(ans) < 1e-5] = 0
     print('Regenerated: \n', ans)
 
-# gen_rotation_matrix([0, 0, -np.pi])
+gen_rotation_matrix([0, np.pi/2, np.pi/2])
 
 
 robot_config = abr_control.arms.jaco2.config(
@@ -45,18 +45,26 @@ interface.connect()
 # ctrlr = abr_control.controllers.osc(
 #     robot_config=robot_config)
 
-name = 'link6'
+name = 'joint2'
 try:
     # test out our orientation calculations
     while 1:
         feedback = interface.get_feedback()
         print('q: ', feedback['q'])
         xyz = robot_config.Tx(name, q=feedback['q'])
+
+        import sympy as sp
+        T = robot_config._calc_T(name=name)
+        T_func = sp.lambdify(robot_config.q, T, "numpy")
+        T = T_func(*feedback['q'])
+        print('T: \n', T)
+
+
         print('xyz: ', xyz)
         angles = robot_config.orientation(name, q=feedback['q'])
 
         print('angles: ', np.array(angles).T * 180 / np.pi)
-        # angles = np.array([0, -10, 90]) * np.pi / 180
+        # angles = np.array([90, 30, 30]) * np.pi / 180
 
         interface.set_xyz('hand', xyz)
         interface.set_orientation('hand', angles)

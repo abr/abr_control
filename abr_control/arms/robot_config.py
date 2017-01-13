@@ -375,7 +375,7 @@ class robot_config():
         else:
             # get transform, add small offset to prevent NaN errors
             eps = 1e-8
-            T = self._calc_T(name=name) + sp.diag(*([eps, eps, eps, 0]))
+            T = self._calc_T(name=name) - sp.diag(*([eps, eps, eps, 0]))
 
             # NOTE: equations from this excell sheet http://bit.ly/2ihkNkz
             # TODO: add in the rest of the permutation equations
@@ -386,8 +386,8 @@ class robot_config():
                 theta_y = sp.atan2(
                     T[0, 2],
                     T[2, 2] * sp.cos(theta_x) - T[1, 2] * sp.sin(theta_x))
-                theta_z = sp.atan2(
-                    T[1, 0] * sp.cos(theta_x),
+                theta_z = sp.atan(
+                    T[1, 0] * sp.cos(theta_x)/
                     T[1, 1] * sp.cos(theta_x) + T[2, 1] * sp.sin(theta_x))
             elif permutation == 'zyx':
                 # This generates angles for Rz(gamma) * Ry(beta) * Rx(alpha)

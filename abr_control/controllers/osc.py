@@ -17,7 +17,7 @@ class controller:
         self.vmax = vmax
         self.lamb = self.kp / self.kv
 
-    def control(self, q, dq, target_x, target_dx=np.zeros(6),
+    def control(self, q, dq, target_x, target_dx=None,
                 mask=[1, 1, 1, 0, 0, 0],
                 ref_frame='EE', offset=[0, 0, 0]):
         """ Generates the control signal
@@ -31,11 +31,12 @@ class controller:
         ref_frame string: the frame of reference of control point
         offset list: point of interest from the frame of reference
         """
-        # TODO: rework so only have to provide as many target values
-        # as there are 1s in the mask
-
         # the number of dimensions controlled
         dim = np.sum(mask)
+        target_dx = np.zeros(dim) if target_dx is None else target_dx
+        # make sure the targets are appropriate for the mask
+        assert(len(target_x) == dim)
+        assert(len(target_dx) == dim)
 
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
