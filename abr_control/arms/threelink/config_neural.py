@@ -6,7 +6,7 @@ import nengo
 from . import config
 
 
-class robot_config(config.robot_config):
+class robot_config(config):
     """ Robot config file for the UR5 arm """
 
     def __init__(self, **kwargs):
