@@ -23,9 +23,11 @@ target_xyz = start + np.array([-.25, .25, 0])
 import time
 start_time = time.time()
 # generate control signal
-u = ctrlr.control(
-    q=q,
-    dq=np.zeros(6),
-    target_x=target_xyz,
-    target_dx=np.zeros(3))
+# u = ctrlr.control(
+#     q=q,
+#     dq=np.zeros(6),
+#     target_x=target_xyz,
+#     target_dx=np.zeros(3))
+x = robot_config.Tx('EE', q=np.random.random(6))
+J = robot_config.J('EE', robot_config, q=np.random.random(6))
 print('time: %.6f' % (time.time() - start_time))
