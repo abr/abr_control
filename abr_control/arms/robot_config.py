@@ -122,12 +122,12 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
         # get transform matrix for reference frame of interest
-        if self._T.get([name], None) is None:
+        if self._T.get(name, None) is None:
             # check to see if we have our transformation saved in file
             if (regenerate is False and
-                    os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
+                    os.path.isfile('%s/%s.T' % (self.config_folder, name))):
                 T = cloudpickle.load(open('%s/%s.T' %
-                                          (self.config_folder, filename),
+                                          (self.config_folder, name),
                                           'rb'))
             else:
                 # get transform, add small offset to prevent NaN errors
@@ -141,27 +141,27 @@ class robot_config():
 
         # convert the rotation matrix of T into a quaternion
         # TODO: replace this with code not just ganked from Gohlke
-        q = numpy.empty((4,))
-        t = numpy.trace(T)
-        if t > T[3, 3]:
-            q[0] = t
-            q[3] = T[1, 0] - T[0, 1]
-            q[2] = T[0, 2] - T[2, 0]
-            q[1] = T[2, 1] - T[1, 2]
-        else:
-            i, j, k = 1, 2, 3
-            if T[1, 1] > T[0, 0]:
-                i, j, k = 2, 3, 1
-            if T[2, 2] > T[i, i]:
-                i, j, k = 3, 1, 2
-            t = T[i, i] - (T[j, j] + T[k, k]) + T[3, 3]
-            q[i] = t
-            q[j] = T[i, j] + T[j, i]
-            q[k] = T[k, i] + T[i, k]
-            q[3] = T[k, j] - T[j, k]
-        q *= 0.5 / math.sqrt(t * T[3, 3])
-        if q[0] < 0.0:
-            numpy.negative(q, q)
+        q = np.empty((4,))
+        # t = np.trace(T)
+        # if t > T[3, 3]:
+        #     q[0] = t
+        #     q[3] = T[1, 0] - T[0, 1]
+        #     q[2] = T[0, 2] - T[2, 0]
+        #     q[1] = T[2, 1] - T[1, 2]
+        # else:
+        #     i, j, k = 1, 2, 3
+        #     if T[1, 1] > T[0, 0]:
+        #         i, j, k = 2, 3, 1
+        #     if T[2, 2] > T[i, i]:
+        #         i, j, k = 3, 1, 2
+        #     t = T[i, i] - (T[j, j] + T[k, k]) + T[3, 3]
+        #     q[i] = t
+        #     q[j] = T[i, j] + T[j, i]
+        #     q[k] = T[k, i] + T[i, k]
+        #     q[3] = T[k, j] - T[j, k]
+        # q *= 0.5 / np.sqrt(t * T[3, 3])
+        # if q[0] < 0.0:
+        #     np.negative(q, q)
 
         return q
 
