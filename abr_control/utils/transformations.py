@@ -1910,11 +1910,13 @@ def _import_module(name, package=None, warn=True, prefix='_py_', ignore='_'):
         return True
 
 
-_import_module('_transformations')
-
 if __name__ == "__main__":
-    import doctest
-    import random  # used in doctests
-    numpy.set_printoptions(suppress=True, precision=5)
-    doctest.testmod()
-
+    import numpy as np
+    angles = np.array([16.07, -25.68, -56.32]) * np.pi / 180.0
+    print(angles)
+    order = 'sxyz'
+    q = quaternion_from_euler(angles[0], angles[1], angles[2],
+                              axes=order)
+    print(q)
+    angles2 = euler_from_quaternion(q, order)
+    print(angles2)
