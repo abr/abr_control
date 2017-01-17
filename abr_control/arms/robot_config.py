@@ -40,6 +40,10 @@ class robot_config():
         self._M = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
         self._Mq_g = None  # placeholder for joint space gravity term function
+        self._orientation = {} # placeholder for orientation functions
+        self._T_inv = {}  # for inverse transform calculations
+        self._Tx = {}  # for point transform calculations
+        self._T = {}  # for transform matrix calculations
 
         # set up our joint angle symbols
         self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
@@ -107,28 +111,59 @@ class robot_config():
         parameters = tuple(q)
         return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
 
-    def orientation(self, name, q, permutation='xyz'):
-        """ Calculates the Euler angles alpha, beta, and gamma for a
-        joint or link.
+    def orientation(self, name, lambdify=True, regenerate=False):
+        """ Uses Sympy to generate the orientation for a joint or link
+        calculated as a quaternion.
 
         name string: name of the joint or link, or end-effector
-        q list: set of joint angles, configuration of arm
-        permutation string: order rotation matrices are applied for
-                            desired Euler angles. 'xyz' matches VREP
-                            which applies Rx(alpha) * Ry(beta) * Rz(gamma)
-                            to construct the rotation matrix given angles.
+        lambdify boolean: if True returns a function to calculate
+                          the transform. If False returns the Sympy
+                          matrix
+        regenerate boolean: if True, don't use saved functions
         """
-        funcname = name + permutation
-        # check for function in dictionary
-        if self._orientation.get(funcname, None) is None:
-            print('Generating orientation function for %s permutation %s' %
-                  (name, permutation))
-            self._orientation[funcname] = self._calc_orientation(
-                name, permutation=permutation,
-                regenerate=self.regenerate_functions)
-        parameters = tuple(q)
-        return np.array(self._orientation[funcname](*parameters),
-                        dtype='float32').T[0]
+        # get transform matrix for reference frame of interest
+        if self._T.get([name], None) is None:
+            # check to see if we have our transformation saved in file
+            if (regenerate is False and
+                    os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
+                T = cloudpickle.load(open('%s/%s.T' %
+                                          (self.config_folder, filename),
+                                          'rb'))
+            else:
+                # get transform, add small offset to prevent NaN errors
+                eps = 1e-8
+                T = self._calc_T(name=name) - sp.diag(*([eps, eps, eps, 0]))
+
+                # save to file
+                cloudpickle.dump(T, open('%s/%s.T' %
+                                        (self.config_folder, filename), 'wb'))
+            self._T[name] = T
+
+        # convert the rotation matrix of T into a quaternion
+        # TODO: replace this with code not just ganked from Gohlke
+        q = numpy.empty((4,))
+        t = numpy.trace(T)
+        if t > T[3, 3]:
+            q[0] = t
+            q[3] = T[1, 0] - T[0, 1]
+            q[2] = T[0, 2] - T[2, 0]
+            q[1] = T[2, 1] - T[1, 2]
+        else:
+            i, j, k = 1, 2, 3
+            if T[1, 1] > T[0, 0]:
+                i, j, k = 2, 3, 1
+            if T[2, 2] > T[i, i]:
+                i, j, k = 3, 1, 2
+            t = T[i, i] - (T[j, j] + T[k, k]) + T[3, 3]
+            q[i] = t
+            q[j] = T[i, j] + T[j, i]
+            q[k] = T[k, i] + T[i, k]
+            q[3] = T[k, j] - T[j, k]
+        q *= 0.5 / math.sqrt(t * T[3, 3])
+        if q[0] < 0.0:
+            numpy.negative(q, q)
+
+        return q
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
@@ -338,71 +373,6 @@ class robot_config():
         if self.use_cython is True:
             return autowrap(Mq_g, backend="cython", args=self.q)
         return sp.lambdify(self.q, Mq_g, "numpy")
-
-    def _calc_orientation(self, name, permutation='xyz', lambdify=True,
-                          regenerate=False):
-        """ Uses Sympy to generate the orientation for a joint or link
-        calculated in order of [yaw, pitch, roll]
-
-        name string: name of the joint or link, or end-effector
-        permutation string: order rotation matrices are applied for
-                            desired Euler angles. 'xyz' matches VREP
-                            which applies Rx(alpha) * Ry(beta) * Rz(gamma)
-                            to construct the rotation matrix given angles.
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
-        regenerate boolean: if True, don't use saved functions
-        """
-        filename = name + permutation
-        # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
-            orientation = cloudpickle.load(open('%s/%s.T' %
-                                                (self.config_folder, filename),
-                                                'rb'))
-        else:
-            # get transform, add small offset to prevent NaN errors
-            eps = 1e-8
-            T = self._calc_T(name=name) - sp.diag(*([eps, eps, eps, 0]))
-
-            # NOTE: equations from this excell sheet http://bit.ly/2ihkNkz
-            # TODO: add in the rest of the permutation equations
-            if permutation == 'xyz':
-                # This generates angles for Rx(alpha) * Ry(beta) * Rz(gamma)
-                # NOTE parameter order different than the excell sheet
-                theta_x = sp.atan2(-T[1, 2], T[2, 2])
-                theta_y = sp.atan2(
-                    T[0, 2],
-                    T[2, 2] * sp.cos(theta_x) - T[1, 2] * sp.sin(theta_x))
-                theta_z = sp.atan(
-                    T[1, 0] * sp.cos(theta_x)/
-                    T[1, 1] * sp.cos(theta_x) + T[2, 1] * sp.sin(theta_x))
-            elif permutation == 'zyx':
-                # This generates angles for Rz(gamma) * Ry(beta) * Rx(alpha)
-                # NOTE parameter order different than the excell sheet
-                theta_z = sp.atan2(T[1, 0], T[0, 0])
-                theta_x = sp.atan2(
-                    T[0, 2] * sp.sin(theta_z) - T[1, 2] * sp.cos(theta_z),
-                    T[1, 1] * sp.cos(theta_z) - T[0, 1] * sp.sin(theta_z))
-                theta_y = sp.atan2(
-                    -T[2, 0],
-                    T[0, 0] * sp.cos(theta_z) + T[1, 0] * sp.sin(theta_z))
-            else:
-                raise Exception('Invalid rotation matrix permutation.')
-
-            orientation = sp.Matrix([theta_x, theta_y, theta_z])
-
-            # save to file
-            cloudpickle.dump(orientation,
-                             open('%s/%s.orientation' %
-                                  (self.config_folder, filename), 'wb'))
-
-        if lambdify is False:
-            return orientation
-        if self.use_cython is True:
-            return autowrap(orientation, backend="cython", args=self.q)
-        return sp.lambdify(self.q, orientation, "numpy")
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
