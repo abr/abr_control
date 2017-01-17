@@ -29,5 +29,8 @@ start_time = time.time()
 #     target_x=target_xyz,
 #     target_dx=np.zeros(3))
 x = robot_config.Tx('EE', q=np.random.random(6))
-J = robot_config.J('EE', robot_config, q=np.random.random(6))
-print('time: %.6f' % (time.time() - start_time))
+print('Tx time: %.6f' % (time.time() - start_time))
+
+start_time = time.time()
+J = robot_config.J('EE', q=np.random.random(6))
+print('J time: %.6f' % (time.time() - start_time))
