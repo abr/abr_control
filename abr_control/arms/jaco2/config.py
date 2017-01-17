@@ -12,10 +12,10 @@ class robot_config(robot_config.robot_config):
 
         super(robot_config, self).__init__(num_joints=6, num_links=7,
                                            robot_name='jaco2', **kwargs)
-                                           
+
         #self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
         #                      '/saved_functions')
-                              
+
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
 
@@ -24,12 +24,12 @@ class robot_config(robot_config.robot_config):
                                        270.0, 0.0, 0.0], dtype="float32")
         self.home_torques = np.array([-0.138, -0.116, 3.339,
                                       -0.365, -0.113, 0.061], dtype="float32")
-                                 
+
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
         self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0, 0.0],
                                     dtype='float32')
-                                                                          
+
         # for the null space controller, keep arm near these angles
         # TODO: fill in rest angles
 
@@ -275,7 +275,5 @@ class robot_config(robot_config.robot_config):
                  self.Tj5l6)
         else:
             raise Exception('Invalid transformation name: %s' % name)
-
-        print(T)
 
         return T
