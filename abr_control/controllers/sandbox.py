@@ -4,76 +4,38 @@ import time
 
 import abr_control
 
-def gen_rotation_matrix(angles):
-    print(np.cos(1.0))
-    alpha = angles[0]
-    print('alpha: ', alpha)
-    beta = angles[1]
-    print('beta: ', beta)
-    gamma = angles[2]
-    print('gamma: ', gamma)
-
-    print(np.cos(alpha))
-
-    Rx = np.array([
-        [1, 0, 0],
-        [0, np.cos(alpha), -np.sin(alpha)],
-        [0, np.sin(alpha), np.cos(alpha)]])
-    Ry = np.array([
-        [np.cos(beta), 0, np.sin(beta)],
-        [0, 1, 0],
-        [-np.sin(beta), 0, np.cos(beta)]])
-    Rz = np.array([
-        [np.cos(gamma), -np.sin(gamma), 0],
-        [np.sin(gamma), np.cos(gamma), 0],
-        [0, 0, 1]])
-
-    ans = np.dot(Rx, np.dot(Ry, Rz))
-    ans[abs(ans) < 1e-5] = 0
-    print('Regenerated: \n', ans)
-
-gen_rotation_matrix([0, np.pi/2, np.pi/2])
-
+import os; os.environ["SYMPY_CACHE_SIZE"] = "None"
 
 robot_config = abr_control.arms.jaco2.config(
     regenerate_functions=True)
 
-interface = abr_control.interfaces.vrep(
-    robot_config=robot_config, dt=.001)
-interface.connect()
+start_time = time.time()
+print('Calculating inertia matrix')
+robot_config.Mq(q=np.zeros(6))
+print('done in: %.6f seconds' % (time.time() - start_time))
 
-# ctrlr = abr_control.controllers.osc(
-#     robot_config=robot_config)
-
-name = 'joint2'
-try:
-    # test out our orientation calculations
-    while 1:
-        feedback = interface.get_feedback()
-        print('q: ', feedback['q'])
-        xyz = robot_config.Tx(name, q=feedback['q'])
-
-        import sympy as sp
-        T = robot_config._calc_T(name=name)
-        T_func = sp.lambdify(robot_config.q, T, "numpy")
-        T = T_func(*feedback['q'])
-        print('T: \n', T)
-
-
-        print('xyz: ', xyz)
-        angles = robot_config.orientation(name, q=feedback['q'])
-
-        print('angles: ', np.array(angles).T * 180 / np.pi)
-        # angles = np.array([90, 30, 30]) * np.pi / 180
-
-        interface.set_xyz('hand', xyz)
-        interface.set_orientation('hand', angles)
-        # print(T_func(*tuple(feedback['q'])))
-        gen_rotation_matrix(angles)
-        # print(interface.get_orientation('hand'))
-        # interface.set_orientation('hand', interface.get_orientation('Disc')[1])
-        time.sleep(1)
-
-finally:
-    # stop and reset the VREP simulation
-    interface.disconnect()
+# # ctrlr = abr_control.controllers.osc(
+# #     robot_config=robot_config)
+#
+# name = 'EE'
+# try:
+#     # test out our orientation calculations
+#     while 1:
+#         feedback = interface.get_feedback()
+#         print('q: ', feedback['q'])
+#         xyz = robot_config.Tx(name, q=feedback['q'])
+#
+#         quaternion = robot_config.orientation(name, q=feedback['q'])
+#         # the s means it's a static frame
+#         angles = abr_control.utils.transformations.euler_from_quaternion(
+#             quaternion, axes='sxyz')
+#         print('angles: ', np.array(angles) * 180.0 / np.pi)
+#
+#         interface.set_xyz('hand', xyz)
+#         interface.set_orientation('hand', angles)
+#
+#         time.sleep(1)
+#
+# finally:
+#     # stop and reset the VREP simulation
+#     interface.disconnect()

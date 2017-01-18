@@ -7,6 +7,10 @@ import numpy as np
 
 import abr_control
 
+import os;
+# os.environ["SYMPY_USE_CACHE"] = "yes"
+# os.environ["SYMPY_CACHE_SIZE"] = "None"
+
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.jaco2.config(
     regenerate_functions=True)
@@ -17,20 +21,20 @@ ctrlr = abr_control.controllers.osc(
 
 # create a target based on initial arm position
 q = np.zeros(6)
-start = robot_config.Tx('EE', q=q)
-target_xyz = start + np.array([-.25, .25, 0])
 
 import time
 start_time = time.time()
 # generate control signal
-# u = ctrlr.control(
-#     q=q,
-#     dq=np.zeros(6),
-#     target_x=target_xyz,
-#     target_dx=np.zeros(3))
-x = robot_config.Tx('EE', q=np.random.random(6))
+u = ctrlr.control(
+    q=q,
+    dq=np.zeros(6),
+    target_x=np.zeros(3),
+    target_dx=np.zeros(3))
+print('control time: %.6f' % (time.time() - start_time))
+# name = 'link5'
+# x = robot_config.Tx(name, q=np.random.random(6))
 print('Tx time: %.6f' % (time.time() - start_time))
 
-start_time = time.time()
-J = robot_config.J('EE', q=np.random.random(6))
-print('J time: %.6f' % (time.time() - start_time))
+# start_time = time.time()
+# J = robot_config.J(name, q=np.random.random(6))
+# print('J time: %.6f' % (time.time() - start_time))

@@ -4,6 +4,7 @@ import os
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
 
+import abr_control
 import abr_control.arms
 
 
@@ -109,59 +110,38 @@ class robot_config():
         parameters = tuple(q)
         return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
 
-    def orientation(self, name, lambdify=True, regenerate=False):
+    def orientation(self, name, q):
         """ Uses Sympy to generate the orientation for a joint or link
         calculated as a quaternion.
 
         name string: name of the joint or link, or end-effector
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
+        q list: set of joint angles to pass in to the Mq_g function
         regenerate boolean: if True, don't use saved functions
         """
         # get transform matrix for reference frame of interest
         if self._T.get(name, None) is None:
             # check to see if we have our transformation saved in file
-            if (regenerate is False and
+            if (self.regenerate_functions is False and
                     os.path.isfile('%s/%s.T' % (self.config_folder, name))):
                 T = cloudpickle.load(open('%s/%s.T' %
                                           (self.config_folder, name),
                                           'rb'))
             else:
-                # get transform, add small offset to prevent NaN errors
-                eps = 1e-8
-                T = self._calc_T(name=name) - sp.diag(*([eps, eps, eps, 0]))
+                T = self._calc_T(name=name)
 
                 # save to file
                 cloudpickle.dump(T, open('%s/%s.T' %
-                                        (self.config_folder, filename), 'wb'))
-            self._T[name] = T
+                                        (self.config_folder, name), 'wb'))
+            if self.use_cython is True:
+                T_func = autowrap(T, backend="cython", args=self.q)
+            else:
+                T_func = sp.lambdify(self.q, T, "numpy")
+            self._T[name] = T_func
 
-        # convert the rotation matrix of T into a quaternion
-        # TODO: replace this with code not just ganked from Gohlke
-        q = np.empty((4,))
-        # t = np.trace(T)
-        # if t > T[3, 3]:
-        #     q[0] = t
-        #     q[3] = T[1, 0] - T[0, 1]
-        #     q[2] = T[0, 2] - T[2, 0]
-        #     q[1] = T[2, 1] - T[1, 2]
-        # else:
-        #     i, j, k = 1, 2, 3
-        #     if T[1, 1] > T[0, 0]:
-        #         i, j, k = 2, 3, 1
-        #     if T[2, 2] > T[i, i]:
-        #         i, j, k = 3, 1, 2
-        #     t = T[i, i] - (T[j, j] + T[k, k]) + T[3, 3]
-        #     q[i] = t
-        #     q[j] = T[i, j] + T[j, i]
-        #     q[k] = T[k, i] + T[i, k]
-        #     q[3] = T[k, j] - T[j, k]
-        # q *= 0.5 / np.sqrt(t * T[3, 3])
-        # if q[0] < 0.0:
-        #     np.negative(q, q)
+        T = self._T[name](*q)
+        print('Transformation matrix: \n', T)
 
-        return q
+        return abr_control.utils.transformations.quaternion_from_matrix(T)
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
@@ -330,8 +310,11 @@ class robot_config():
             # transform each inertia matrix into joint space
             # sum together the effects of arm segments' inertia on each motor
             Mq = sp.zeros(self.num_joints)
+            import time
             for ii in range(self.num_links):
+                start_time = time.time()
                 Mq += sp.simplify(J[ii].T * self._M[ii] * J[ii])
+                print('ii: %i, gen time: %.6f' % (ii, time.time() - start_time))
             Mq = sp.simplify(Mq)
 
             # save to file
@@ -403,7 +386,7 @@ class robot_config():
 
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
-        if (regenerate is False and
+        if (regenerate is False and False and
                 os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
             Tx = cloudpickle.load(open('%s/%s.T' %
                                        (self.config_folder, filename), 'rb'))
