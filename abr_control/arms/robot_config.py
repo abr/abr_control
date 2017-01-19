@@ -230,7 +230,8 @@ class robot_config():
         if lambdify is False:
             return dJ
         if self.use_cython is True:
-            return autowrap(dJ, backend="cython", args=self.q+self.x)
+            return autowrap(sp.Matrix(dJ), backend="cython",
+                            args=self.q+self.x)
         return sp.lambdify(self.q + self.x, dJ, "numpy")
 
     def _calc_J(self, name, x, lambdify=True, regenerate=False):
@@ -318,15 +319,16 @@ class robot_config():
                 # TODO: is it more efficient to have a simplify here too?
                 Mq += (J[ii].T * self._M[ii] * J[ii])
             Mq = self.simplify(Mq)
+            Mq = sp.Matrix(Mq)
 
             # save to file
-            pickle.dump(sp.Matrix(Mq), open(
+            pickle.dump(Mq, open(
                 '%s/Mq' % self.config_folder, 'wb'))
 
         if lambdify is False:
-            return Mq
+            return se.Matrix(Mq)
         if self.use_cython is True:
-            return autowrap(Mq, backend='cython', args=self.q)
+            return autowrap(sp.Matrix(Mq), backend='cython', args=self.q)
         return sp.lambdify(self.q, Mq, "numpy")
 
     def _calc_Mq_g(self, lambdify=True, regenerate=False):
@@ -359,15 +361,17 @@ class robot_config():
                 # TODO: is it more efficient to have a simplify here too?
                 Mq_g += (J[ii].T * self._M[ii] * self.gravity)
             Mq_g = self.simplify(Mq_g)
+            Mq_g = sp.Matrix(Mq_g)
 
             # save to file
-            pickle.dump(sp.Matrix(Mq_g), open(
+            pickle.dump(Mq_g, open(
                 '%s/Mq_g' % self.config_folder, 'wb'))
 
         if lambdify is False:
-            return Mq_g
+            return se.Matrix(Mq_g)
         if self.use_cython is True:
-            return autowrap(Mq_g, backend="cython", args=self.q)
+            return autowrap(sp.Matrix(Mq_g), backend="cython",
+                            args=self.q)
         return sp.lambdify(self.q, Mq_g, "numpy")
 
     def _calc_T(self, name):
@@ -407,15 +411,18 @@ class robot_config():
                 # of reference, calculate transform with x variables
                 Tx = T * se.Matrix(self.x + [1])
             Tx = self.simplify(Tx)
+            Tx = sp.Matrix(Tx)
 
             # save to file
-            pickle.dump(sp.Matrix(Tx), open(
+            pickle.dump(Tx, open(
                 '%s/%s.T' % (self.config_folder, filename), 'wb'))
 
+
         if lambdify is False:
-            return Tx
+            return se.Matrix(Tx)
         if self.use_cython is True:
-            return autowrap(Tx, backend="cython", args=self.q+self.x)
+            return autowrap(sp.Matrix(Tx), backend="cython",
+                            args=self.q+self.x)
         return sp.lambdify(self.q + self.x, Tx, "numpy")
 
     def _calc_T_inv(self, name, x, lambdify=True, regenerate=False):
@@ -445,13 +452,15 @@ class robot_config():
             T_inv = rotation_inv.row_join(translation_inv).col_join(
                 se.Matrix([[0, 0, 0, 1]]))
             T_inv = self.simplify(T_inv)
+            T_inv = sp.Matrix(T_inv)
 
             # save to file
-            pickle.dump(sp.Matrix(T_inv), open(
+            pickle.dump(T_inv, open(
                 '%s/%s.T_inv' % (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
-            return T_inv
+            return se.Matrix(T_inv)
         if self.use_cython is True:
-            return autowrap(T_inv, backend="cython", args=self.q+self.x)
+            return autowrap(sp.Matrix(T_inv), backend="cython",
+                            args=self.q+self.x)
         return sp.lambdify(self.q + self.x, T_inv, "numpy")
