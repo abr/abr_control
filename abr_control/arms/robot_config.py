@@ -1,13 +1,21 @@
 import pickle
 import numpy as np
 import os
-import sympy as se
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
+try:
+    import symengine as se
+except ImportError:
+    print('SymEngine not found, installation speeds up function generation.')
+    import sympy as se
 
 import abr_control
 import abr_control.arms
 
+
+# TODO : store both the lambdified and unlambdified versions of everything
+
+# TODO : check to see how long it takes to load T from file vs recompute
 
 class robot_config():
     """ Class defines a bunch of useful functions for controlling
@@ -17,13 +25,20 @@ class robot_config():
     """
 
     def __init__(self, num_joints, num_links, robot_name="robot",
-                 regenerate_functions=False, use_cython=False):
+                 regenerate_functions=False,
+                 use_simplify=False, use_cython=False):
         """
         num_joints int: number of joints in robot
         num_links int: number of arm segments in robot
         robot_name string: used for saving/loading functions to file
         regenerate_functions boolean: if True, don't look to saved files
                                       regenerate all transforms and Jacobians
+        use_simplify boolean: if True, symbolic representations are simplified
+                              useful when execution time is more important 
+                              than generation time
+        use_cython boolean: if True, a more efficient function is generated
+                            useful when execution time is more important than
+                            generation time
         """
 
         self.num_joints = num_joints
@@ -34,6 +49,7 @@ class robot_config():
 
         self.regenerate_functions = regenerate_functions
         self.use_cython = use_cython
+        self.simplify = sp.simplify if use_simplify is True else lambda x: x
 
         # create function dictionaries
         self._J = {}  # for Jacobian calculations
@@ -200,13 +216,11 @@ class robot_config():
             dJ = se.Matrix(np.zeros(J.shape, dtype='float32'))
             # calculate derivative of (x,y,z) wrt to time
             # which each joint is dependent on
-            # for ii in range(J.shape[0]):
-            #     for jj in range(J.shape[1]):
-            #         for kk in range(self.num_joints):
-            #             dJ[ii, jj] += sp.simplify(
-            #                 J[ii, jj].diff(self.q[kk]))
-            dJ = J.jacobian(q)
-            dJ = sp.simplify(dJ)
+            for ii in range(J.shape[0]):
+                for jj in range(J.shape[1]):
+                    for kk in range(self.num_joints):
+                        dJ[ii, jj] += self.simplify(
+                            J[ii, jj].diff(self.q[kk]))
 
             # save to file
             pickle.dump(dJ, open('%s/%s.dJ' %
@@ -241,18 +255,20 @@ class robot_config():
             # Transforms again here if they've already been regenerated
             # once, but that they are actually regenerated if only this is called
             Tx = self._calc_Tx(name, x=x, lambdify=False)
+            # NOTE: calculating the Jacobian this way doesn't incur any
+            # real computational cost (maybe 30ms) and it simplifies adding
+            # the orientation information below (as opposed to using
+            # sympy's Tx.jacobian method)
             J = []
             # calculate derivative of (x,y,z) wrt to each joint
             for ii in range(self.num_joints):
                 J.append([])
-                J[ii].append(sp.simplify(Tx[0].diff(self.q[ii])))  # dx/dq[ii]
-                J[ii].append(sp.simplify(Tx[1].diff(self.q[ii])))  # dy/dq[ii]
-                J[ii].append(sp.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
+                J[ii].append(self.simplify(Tx[0].diff(self.q[ii])))  # dx/dq[ii]
+                J[ii].append(self.simplify(Tx[1].diff(self.q[ii])))  # dy/dq[ii]
+                J[ii].append(self.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
             end_point = self.num_joints if 'EE' in end_point else end_point
-
-            # if 'EE' not in end_point:
 
             end_point = min(int(end_point) + 1, self.num_joints)
             # add on the orientation information up to the last joint
@@ -261,20 +277,6 @@ class robot_config():
             # fill in the rest of the joints orientation info with 0
             for ii in range(end_point, self.num_joints):
                 J[ii] = J[ii] + [0, 0, 0]
-            J = sp.simplify(J)
-
-            # TODO: investigate applying mask here for speed
-            # # TODO: add the mask into the saved functions name
-            # if mask is not None:
-            #     # if we're generating the Jacobian for control
-            #     # then also apply the mask, only passing on dimensions
-            #     # of the state space which are being controlled
-            #     offset = 0
-            #     for ii in range(len(mask)):
-            #         if mask[ii] == 0:
-            #             for jj in range(len(J)):
-            #                 del J[jj][ii - offset]
-            #             offset += 1
 
             # save to file
             pickle.dump(J, open('%s/%s.J' %
@@ -314,10 +316,10 @@ class robot_config():
             Mq = se.zeros(self.num_joints)
             import time
             for ii in range(self.num_links):
-                start_time = time.time()
-                Mq += sp.simplify(J[ii].T * self._M[ii] * J[ii])
+                # TODO: is it more efficient to have a simplify here too?
+                Mq += (J[ii].T * self._M[ii] * J[ii])
                 print('ii: %i, gen time: %.6f' % (ii, time.time() - start_time))
-            Mq = sp.simplify(Mq)
+            Mq = self.simplify(Mq)
 
             # save to file
             pickle.dump(Mq, open('%s/Mq' % self.config_folder, 'wb'))
@@ -355,8 +357,9 @@ class robot_config():
             # sum together the effects of arm segments' inertia on each motor
             Mq_g = se.zeros(self.num_joints, 1)
             for ii in range(self.num_joints):
-                Mq_g += sp.simplify(J[ii].T * self._M[ii] * self.gravity)
-            Mq_g = sp.simplify(Mq_g)
+                # TODO: is it more efficient to have a simplify here too?
+                Mq_g += (J[ii].T * self._M[ii] * self.gravity)
+            Mq_g = self.simplify(Mq_g)
 
             # save to file
             pickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder, 'wb'))
@@ -403,7 +406,7 @@ class robot_config():
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
                 Tx = T * se.Matrix(self.x + [1])
-            Tx = sp.simplify(Tx)
+            Tx = self.simplify(Tx)
 
             # save to file
             pickle.dump(Tx, open('%s/%s.T' %
@@ -441,7 +444,7 @@ class robot_config():
             translation_inv = -rotation_inv * T[:3, 3]
             T_inv = rotation_inv.row_join(translation_inv).col_join(
                 se.Matrix([[0, 0, 0, 1]]))
-            T_inv = sp.simplify(T_inv)
+            T_inv = self.simplify(T_inv)
 
             # save to file
             pickle.dump(T_inv, open('%s/%s.T_inv' %

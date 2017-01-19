@@ -1,7 +1,11 @@
 # Config filefor Jaco 2 in VREP
 import numpy as np
-import sympy as se
 import sympy as sp
+try:
+    import symengine as se
+except ImportError:
+    # already printed warning in arms/robot_config.py
+    import sympy as se
 
 from .. import robot_config
 
@@ -31,26 +35,24 @@ class robot_config(robot_config.robot_config):
         self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0, 0.0],
                                     dtype='float32')
 
-        # for the null space controller, keep arm near these angles
-        # TODO: fill in rest angles
-
+        # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
-        self._M.append(np.diag([0.64, 0.64, 0.64,
-                                0.01, 0.01, 0.01]))  # link0
-        self._M.append(np.diag([0.6, 0.6, 0.6,
-                                0.04, 0.04, 0.04]))  # link1
-        self._M.append(np.diag([0.57, 0.57, 0.57,
-                                0.04, 0.04, 0.04]))  # link2
-        self._M.append(np.diag([0.6, 0.6, 0.6,
-                                0.04, 0.04, 0.04]))  # link3
-        self._M.append(np.diag([0.37, 0.37, 0.37,
-                                0.04, 0.04, 0.04]))  # link4
-        self._M.append(np.diag([1.37, 1.37, 1.37,
-                                0.04, 0.04, 0.04]))  # link5 with hand
-        self._M.append(np.diag([0.37, 0.37, 0.37,
-                                0.04, 0.04, 0.04]))  # link6
-        #self._M.append(np.diag([1.05, 1.05, 1.05,
-        #                        0.04, 0.04, 0.04]))  # link6 with hand
+        self._M.append(se.diag(0.64, 0.64, 0.64,
+                                0.01, 0.01, 0.01))  # link0
+        self._M.append(se.diag(0.6, 0.6, 0.6,
+                                0.04, 0.04, 0.04))  # link1
+        self._M.append(se.diag(0.57, 0.57, 0.57,
+                                0.04, 0.04, 0.04))  # link2
+        self._M.append(se.diag(0.6, 0.6, 0.6,
+                                0.04, 0.04, 0.04))  # link3
+        self._M.append(se.diag(0.37, 0.37, 0.37,
+                                0.04, 0.04, 0.04))  # link4
+        self._M.append(se.diag(1.37, 1.37, 1.37,
+                                0.04, 0.04, 0.04))  # link5 with hand
+        self._M.append(se.diag(0.37, 0.37, 0.37,
+                                0.04, 0.04, 0.04))  # link6
+        #self._M.append(se.diag(1.05, 1.05, 1.05,
+        #                        0.04, 0.04, 0.04))  # link6 with hand
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
@@ -233,8 +235,6 @@ class robot_config(robot_config.robot_config):
         name string: name of the joint or link, or end-effector
         """
 
-        import time
-        start_time = time.time()
         if name == 'link0':
             T = self.Torgl0
         elif name == 'joint0':
@@ -278,6 +278,5 @@ class robot_config(robot_config.robot_config):
                  self.Tj5l6)
         else:
             raise Exception('Invalid transformation name: %s' % name)
-        print('T gen time: %.5f: ' % (time.time() - start_time))
 
         return T
