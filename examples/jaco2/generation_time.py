@@ -25,14 +25,15 @@ q = np.zeros(6)
 import time
 start_time = time.time()
 # generate control signal
-u = ctrlr.control(
-    q=q,
-    dq=np.zeros(6),
-    target_x=np.zeros(3),
-    target_dx=np.zeros(3))
-print('control time: %.6f' % (time.time() - start_time))
-# name = 'link5'
-# x = robot_config.Tx(name, q=np.random.random(6))
+# u = ctrlr.control(
+#     q=q,
+#     dq=np.zeros(6),
+#     target_x=np.zeros(3),
+#     target_dx=np.zeros(3))
+# print('control time: %.6f' % (time.time() - start_time))
+name = 'EE'
+x = robot_config.Tx(name, q=np.random.random(6),
+                    x=[.1, .1, .1])
 print('Tx time: %.6f' % (time.time() - start_time))
 
 # start_time = time.time()

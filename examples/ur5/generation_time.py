@@ -11,6 +11,8 @@ import abr_control
 robot_config = abr_control.arms.ur5.config(
     regenerate_functions=True)
 
+robot_config.J('EE', q=np.zeros(6))
+
 # instantiate controller
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=200, vmax=0.5)
@@ -22,10 +24,18 @@ target_xyz = start + np.array([-.25, .25, 0])
 
 import time
 start_time = time.time()
-# generate control signal
-u = ctrlr.control(
-    q=q,
-    dq=np.zeros(6),
-    target_x=target_xyz,
-    target_dx=np.zeros(3))
-print('time: %.6f' % (time.time() - start_time))
+# # generate control signal
+# u = ctrlr.control(
+#     q=q,
+#     dq=np.zeros(6),
+#     target_x=target_xyz,
+#     target_dx=np.zeros(3))
+# print('time: %.6f' % (time.time() - start_time))
+name = 'EE'
+x = robot_config.Tx(name, q=np.random.random(6),
+                    x=[.1, .1, .1])
+print('Tx time: %.6f' % (time.time() - start_time))
+
+# start_time = time.time()
+# J = robot_config.J(name, q=np.random.random(6))
+# print('J time: %.6f' % (time.time() - start_time))

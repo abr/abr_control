@@ -1,6 +1,7 @@
-import cloudpickle
+import pickle
 import numpy as np
 import os
+import sympy as se
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
 
@@ -45,12 +46,12 @@ class robot_config():
         self._T = {}  # for transform matrix calculations
 
         # set up our joint angle symbols
-        self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
-        self.dq = [sp.Symbol('dq%i' % ii) for ii in range(self.num_joints)]
+        self.q = [se.Symbol('q%i' % ii) for ii in range(self.num_joints)]
+        self.dq = [se.Symbol('dq%i' % ii) for ii in range(self.num_joints)]
         # set up an (x,y,z) offset
-        self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
+        self.x = [se.Symbol('x'), se.Symbol('y'), se.Symbol('z')]
 
-        self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
+        self.gravity = se.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
     def J(self, name, q, x=[0, 0, 0]):
         """ Calculates the Jacobian for a joint or link
@@ -123,14 +124,14 @@ class robot_config():
             # check to see if we have our transformation saved in file
             if (self.regenerate_functions is False and
                     os.path.isfile('%s/%s.T' % (self.config_folder, name))):
-                T = cloudpickle.load(open('%s/%s.T' %
+                T = pickle.load(open('%s/%s.T' %
                                           (self.config_folder, name),
                                           'rb'))
             else:
                 T = self._calc_T(name=name)
 
                 # save to file
-                cloudpickle.dump(T, open('%s/%s.T' %
+                pickle.dump(T, open('%s/%s.T' %
                                         (self.config_folder, name), 'wb'))
             if self.use_cython is True:
                 T_func = autowrap(T, backend="cython", args=self.q)
@@ -189,28 +190,29 @@ class robot_config():
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.dJ' % (self.config_folder, filename))):
-            dJ = cloudpickle.load(open('%s/%s.dJ' %
+            dJ = pickle.load(open('%s/%s.dJ' %
                                        (self.config_folder, filename), 'rb'))
         else:
             # TODO: make sure that we're not regenerating all these
             # Jacobians again here if they've already been regenerated
             # once, but that they are actually regenerated if only this is called
             J = self._calc_J(name, x=x, lambdify=False)
-            dJ = sp.Matrix(np.zeros(J.shape, dtype='float32'))
+            dJ = se.Matrix(np.zeros(J.shape, dtype='float32'))
             # calculate derivative of (x,y,z) wrt to time
             # which each joint is dependent on
-            for ii in range(J.shape[0]):
-                for jj in range(J.shape[1]):
-                    for kk in range(self.num_joints):
-                        dJ[ii, jj] += sp.simplify(
-                            J[ii, jj].diff(self.q[kk]))
+            # for ii in range(J.shape[0]):
+            #     for jj in range(J.shape[1]):
+            #         for kk in range(self.num_joints):
+            #             dJ[ii, jj] += sp.simplify(
+            #                 J[ii, jj].diff(self.q[kk]))
+            dJ = J.jacobian(q)
             dJ = sp.simplify(dJ)
 
             # save to file
-            cloudpickle.dump(dJ, open('%s/%s.dJ' %
+            pickle.dump(dJ, open('%s/%s.dJ' %
                                       (self.config_folder, filename), 'wb'))
 
-        dJ = sp.Matrix(dJ).T  # correct the orientation of J
+        dJ = se.Matrix(dJ).T  # correct the orientation of J
         if lambdify is False:
             return dJ
         if self.use_cython is True:
@@ -232,7 +234,7 @@ class robot_config():
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.J' % (self.config_folder, filename))):
-            J = cloudpickle.load(open('%s/%s.J' %
+            J = pickle.load(open('%s/%s.J' %
                                       (self.config_folder, filename), 'rb'))
         else:
             # TODO: make sure that we're not regenerating all these
@@ -275,10 +277,10 @@ class robot_config():
             #             offset += 1
 
             # save to file
-            cloudpickle.dump(J, open('%s/%s.J' %
+            pickle.dump(J, open('%s/%s.J' %
                                      (self.config_folder, filename), 'wb'))
 
-        J = sp.Matrix(J).T  # correct the orientation of J
+        J = se.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
             return J
         if self.use_cython is True:
@@ -298,7 +300,7 @@ class robot_config():
         # check to see if we have our inertia matrix saved in file
         if (regenerate is False and
                 os.path.isfile('%s/Mq' % self.config_folder)):
-            Mq = cloudpickle.load(open('%s/Mq' % self.config_folder, 'rb'))
+            Mq = pickle.load(open('%s/Mq' % self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
             # TODO: make sure that we're not regenerating all these
@@ -309,7 +311,7 @@ class robot_config():
 
             # transform each inertia matrix into joint space
             # sum together the effects of arm segments' inertia on each motor
-            Mq = sp.zeros(self.num_joints)
+            Mq = se.zeros(self.num_joints)
             import time
             for ii in range(self.num_links):
                 start_time = time.time()
@@ -318,7 +320,7 @@ class robot_config():
             Mq = sp.simplify(Mq)
 
             # save to file
-            cloudpickle.dump(Mq, open('%s/Mq' % self.config_folder, 'wb'))
+            pickle.dump(Mq, open('%s/Mq' % self.config_folder, 'wb'))
 
         if lambdify is False:
             return Mq
@@ -339,7 +341,7 @@ class robot_config():
         # check to see if we have our gravity term saved in file
         if (regenerate is False and
                 os.path.isfile('%s/Mq_g' % self.config_folder)):
-            Mq_g = cloudpickle.load(open('%s/Mq_g' %
+            Mq_g = pickle.load(open('%s/Mq_g' %
                                          self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
@@ -351,13 +353,13 @@ class robot_config():
 
             # transform each inertia matrix into joint space and
             # sum together the effects of arm segments' inertia on each motor
-            Mq_g = sp.zeros(self.num_joints, 1)
+            Mq_g = se.zeros(self.num_joints, 1)
             for ii in range(self.num_joints):
                 Mq_g += sp.simplify(J[ii].T * self._M[ii] * self.gravity)
             Mq_g = sp.simplify(Mq_g)
 
             # save to file
-            cloudpickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder, 'wb'))
+            pickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder, 'wb'))
 
         if lambdify is False:
             return Mq_g
@@ -388,7 +390,7 @@ class robot_config():
         # check to see if we have our transformation saved in file
         if (regenerate is False and False and
                 os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
-            Tx = cloudpickle.load(open('%s/%s.T' %
+            Tx = pickle.load(open('%s/%s.T' %
                                        (self.config_folder, filename), 'rb'))
         else:
             T = self._calc_T(name=name)
@@ -396,15 +398,15 @@ class robot_config():
             if np.allclose(x, 0):
                 # if we're only interested in the origin, not including
                 # the x variables significantly speeds things up
-                Tx = T * sp.Matrix([0, 0, 0, 1])
+                Tx = T * se.Matrix([0, 0, 0, 1])
             else:
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
-                Tx = T * sp.Matrix(self.x + [1])
+                Tx = T * se.Matrix(self.x + [1])
             Tx = sp.simplify(Tx)
 
             # save to file
-            cloudpickle.dump(Tx, open('%s/%s.T' %
+            pickle.dump(Tx, open('%s/%s.T' %
                                       (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
@@ -430,7 +432,7 @@ class robot_config():
         if (regenerate is False and
                 os.path.isfile('%s/%s.T_inv' % (self.config_folder,
                                                 filename))):
-            T_inv = cloudpickle.load(open('%s/%s.T_inv' %
+            T_inv = pickle.load(open('%s/%s.T_inv' %
                                           (self.config_folder,
                                            filename), 'rb'))
         else:
@@ -438,11 +440,11 @@ class robot_config():
             rotation_inv = T[:3, :3].T
             translation_inv = -rotation_inv * T[:3, 3]
             T_inv = rotation_inv.row_join(translation_inv).col_join(
-                sp.Matrix([[0, 0, 0, 1]]))
+                se.Matrix([[0, 0, 0, 1]]))
             T_inv = sp.simplify(T_inv)
 
             # save to file
-            cloudpickle.dump(T_inv, open('%s/%s.T_inv' %
+            pickle.dump(T_inv, open('%s/%s.T_inv' %
                                          (self.config_folder,
                                           filename), 'wb'))
 
