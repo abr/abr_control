@@ -62,10 +62,10 @@ class robot_config():
         self._T = {}  # for transform matrix calculations
 
         # set up our joint angle symbols
-        self.q = [se.Symbol('q%i' % ii) for ii in range(self.num_joints)]
-        self.dq = [se.Symbol('dq%i' % ii) for ii in range(self.num_joints)]
+        self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
+        self.dq = [sp.Symbol('dq%i' % ii) for ii in range(self.num_joints)]
         # set up an (x,y,z) offset
-        self.x = [se.Symbol('x'), se.Symbol('y'), se.Symbol('z')]
+        self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
 
         self.gravity = se.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
@@ -147,8 +147,8 @@ class robot_config():
                 T = self._calc_T(name=name)
 
                 # save to file
-                pickle.dump(T, open('%s/%s.T' %
-                                        (self.config_folder, name), 'wb'))
+                pickle.dump(sp.Matrix(T), open(
+                    '%s/%s.T' % (self.config_folder, name), 'wb'))
             if self.use_cython is True:
                 T_func = autowrap(T, backend="cython", args=self.q)
             else:
@@ -223,8 +223,8 @@ class robot_config():
                             J[ii, jj].diff(self.q[kk]))
 
             # save to file
-            pickle.dump(dJ, open('%s/%s.dJ' %
-                                      (self.config_folder, filename), 'wb'))
+            pickle.dump(sp.Matrix(dJ), open(
+                '%s/%s.dJ' % (self.config_folder, filename), 'wb'))
 
         dJ = se.Matrix(dJ).T  # correct the orientation of J
         if lambdify is False:
@@ -279,14 +279,14 @@ class robot_config():
                 J[ii] = J[ii] + [0, 0, 0]
 
             # save to file
-            pickle.dump(J, open('%s/%s.J' %
-                                     (self.config_folder, filename), 'wb'))
+            pickle.dump(sp.Matrix(J), open(
+                '%s/%s.J' % (self.config_folder, filename), 'wb'))
 
         J = se.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
             return J
         if self.use_cython is True:
-            return autowrap(J, backend="cython", args=self.q+self.x)
+            return autowrap(sp.Matrix(J), backend="cython", args=self.q+self.x)
         return sp.lambdify(self.q + self.x, J, "numpy")
 
     def _calc_Mq(self, lambdify=True, regenerate=False):
@@ -314,15 +314,14 @@ class robot_config():
             # transform each inertia matrix into joint space
             # sum together the effects of arm segments' inertia on each motor
             Mq = se.zeros(self.num_joints)
-            import time
             for ii in range(self.num_links):
                 # TODO: is it more efficient to have a simplify here too?
                 Mq += (J[ii].T * self._M[ii] * J[ii])
-                print('ii: %i, gen time: %.6f' % (ii, time.time() - start_time))
             Mq = self.simplify(Mq)
 
             # save to file
-            pickle.dump(Mq, open('%s/Mq' % self.config_folder, 'wb'))
+            pickle.dump(sp.Matrix(Mq), open(
+                '%s/Mq' % self.config_folder, 'wb'))
 
         if lambdify is False:
             return Mq
@@ -362,7 +361,8 @@ class robot_config():
             Mq_g = self.simplify(Mq_g)
 
             # save to file
-            pickle.dump(Mq_g, open('%s/Mq_g' % self.config_folder, 'wb'))
+            pickle.dump(sp.Matrix(Mq_g), open(
+                '%s/Mq_g' % self.config_folder, 'wb'))
 
         if lambdify is False:
             return Mq_g
@@ -391,7 +391,7 @@ class robot_config():
 
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
-        if (regenerate is False and False and
+        if (regenerate is False and
                 os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
             Tx = pickle.load(open('%s/%s.T' %
                                        (self.config_folder, filename), 'rb'))
@@ -409,8 +409,8 @@ class robot_config():
             Tx = self.simplify(Tx)
 
             # save to file
-            pickle.dump(Tx, open('%s/%s.T' %
-                                      (self.config_folder, filename), 'wb'))
+            pickle.dump(sp.Matrix(Tx), open(
+                '%s/%s.T' % (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
             return Tx
@@ -447,9 +447,8 @@ class robot_config():
             T_inv = self.simplify(T_inv)
 
             # save to file
-            pickle.dump(T_inv, open('%s/%s.T_inv' %
-                                         (self.config_folder,
-                                          filename), 'wb'))
+            pickle.dump(sp.Matrix(T_inv), open(
+                '%s/%s.T_inv' % (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
             return T_inv

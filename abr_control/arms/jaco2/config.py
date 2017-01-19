@@ -18,9 +18,6 @@ class robot_config(robot_config.robot_config):
         super(robot_config, self).__init__(num_joints=6, num_links=7,
                                            robot_name='jaco2', **kwargs)
 
-        #self.config_folder = (os.path.dirname(abr_jaco2.config.__file__) +
-        #                      '/saved_functions')
-
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
 

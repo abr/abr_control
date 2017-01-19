@@ -1910,8 +1910,6 @@ def _import_module(name, package=None, warn=True, prefix='_py_', ignore='_'):
         return True
 
 
-_import_module('_transformations')
-
 if __name__ == "__main__":
     import numpy as np
     angles = np.array([16.07, -25.68, -56.32]) * np.pi / 180.0
