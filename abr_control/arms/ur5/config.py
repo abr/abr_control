@@ -1,5 +1,4 @@
 import numpy as np
-import sympy as se
 import sympy as sp
 
 from .. import robot_config
@@ -28,18 +27,20 @@ class robot_config(robot_config.robot_config):
 
         # TODO: DOES IT MATTER IF THESE ARE SYMPY MATRICES OR NOT?   <----------
         # create the inertia matrices for each link of the ur5
-        self._M.append(np.diag([1.0, 1.0, 1.0,
-                                0.02, 0.02, 0.02]))  # link0
-        self._M.append(np.diag([2.5, 2.5, 2.5,
-                                0.04, 0.04, 0.04]))  # link1
-        self._M.append(np.diag([5.7, 5.7, 5.7,
-                                0.06, 0.06, 0.04]))  # link2
-        self._M.append(np.diag([3.9, 3.9, 3.9,
-                                0.055, 0.055, 0.04]))  # link3
-        self._M.append(np.copy(self._M[1]))  # link4
-        self._M.append(np.copy(self._M[1]))  # link5
-        self._M.append(np.diag([0.7, 0.7, 0.7,
-                                0.01, 0.01, 0.01]))  # link6
+        self._M.append(sp.diag(1.0, 1.0, 1.0,
+                               0.02, 0.02, 0.02))  # link0
+        self._M.append(sp.diag(2.5, 2.5, 2.5,
+                               0.04, 0.04, 0.04))  # link1
+        self._M.append(sp.diag(5.7, 5.7, 5.7,
+                               0.06, 0.06, 0.04))  # link2
+        self._M.append(sp.diag(3.9, 3.9, 3.9,
+                               0.055, 0.055, 0.04))  # link3
+        self._M.append(sp.diag(2.5, 2.5, 2.5,
+                               0.04, 0.04, 0.04))  # link4
+        self._M.append(sp.diag(2.5, 2.5, 2.5,
+                               0.04, 0.04, 0.04))  # link5
+        self._M.append(sp.diag(0.7, 0.7, 0.7,
+                               0.01, 0.01, 0.01))  # link6
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
@@ -63,7 +64,7 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : origin -> link 0
         # no change of axes, account for offsets
-        self.Torgl0 = se.Matrix([
+        self.Torgl0 = sp.Matrix([
             [1, 0, 0, self.L[0, 0]],
             [0, 1, 0, self.L[0, 1]],
             [0, 0, 1, self.L[0, 2]],
@@ -71,7 +72,7 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : link 0 -> joint 0
         # no change of axes, account for offsets
-        self.Tl0j0 = se.Matrix([
+        self.Tl0j0 = sp.Matrix([
             [1, 0, 0, self.L[1, 0]],
             [0, 1, 0, self.L[1, 1]],
             [0, 0, 1, self.L[1, 2]],
@@ -79,13 +80,13 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : joint 0 -> link 1
         # account for rotations due to q
-        self.Tj0l1a = se.Matrix([
-            [se.cos(self.q[0]), -se.sin(self.q[0]), 0, 0],
-            [se.sin(self.q[0]), se.cos(self.q[0]), 0, 0],
+        self.Tj0l1a = sp.Matrix([
+            [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0, 0],
+            [sp.sin(self.q[0]), sp.cos(self.q[0]), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
         # no change of axes, account for offsets
-        self.Tj0l1b = se.Matrix([
+        self.Tj0l1b = sp.Matrix([
             [1, 0, 0, self.L[2, 0]],
             [0, 1, 0, self.L[2, 1]],
             [0, 0, 1, self.L[2, 2]],
@@ -94,7 +95,7 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : link 1 -> joint 1
         # account for axes rotation and offset
-        self.Tl1j1 = se.Matrix([
+        self.Tl1j1 = sp.Matrix([
             [0, 0, -1, self.L[3, 0]],
             [0, 1, 0, self.L[3, 1]],
             [1, 0, 0, self.L[3, 2]],
@@ -102,13 +103,13 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : joint 1 -> link 2
         # account for rotations due to q
-        self.Tj1l2a = se.Matrix([
-            [se.cos(self.q[1]), -se.sin(self.q[1]), 0, 0],
-            [se.sin(self.q[1]), se.cos(self.q[1]), 0, 0],
+        self.Tj1l2a = sp.Matrix([
+            [sp.cos(self.q[1]), -sp.sin(self.q[1]), 0, 0],
+            [sp.sin(self.q[1]), sp.cos(self.q[1]), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
         # account for axes rotation and offsets
-        self.Tj1l2b = se.Matrix([
+        self.Tj1l2b = sp.Matrix([
             [0, 0, 1, self.L[4, 0]],
             [0, 1, 0, self.L[4, 1]],
             [-1, 0, 0, self.L[4, 2]],
@@ -117,7 +118,7 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : link 2 -> joint 2
         # account for axes rotation and offsets
-        self.Tl2j2 = se.Matrix([
+        self.Tl2j2 = sp.Matrix([
             [0, 0, -1, self.L[5, 0]],
             [0, 1, 0, self.L[5, 1]],
             [1, 0, 0, self.L[5, 2]],
@@ -125,13 +126,13 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : joint 2 -> link 3
         # account for rotations due to q
-        self.Tj2l3a = se.Matrix([
-            [se.cos(self.q[2]), -se.sin(self.q[2]), 0, 0],
-            [se.sin(self.q[2]), se.cos(self.q[2]), 0, 0],
+        self.Tj2l3a = sp.Matrix([
+            [sp.cos(self.q[2]), -sp.sin(self.q[2]), 0, 0],
+            [sp.sin(self.q[2]), sp.cos(self.q[2]), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
         # account for axes rotation and offsets
-        self.Tj2l3b = se.Matrix([
+        self.Tj2l3b = sp.Matrix([
             [0, 0, 1, self.L[6, 0]],
             [0, 1, 0, self.L[6, 1]],
             [-1, 0, 0, self.L[6, 2]],
@@ -140,7 +141,7 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : link 3 -> joint 3
         # account for axes change and offsets
-        self.Tl3j3 = se.Matrix([
+        self.Tl3j3 = sp.Matrix([
             [0, 0, -1, self.L[7, 0]],
             [0, 1, 0, self.L[7, 1]],
             [1, 0, 0, self.L[7, 2]],
@@ -148,13 +149,13 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix: joint 3 -> link 4
         # account for rotations due to q
-        self.Tj3l4a = se.Matrix([
-            [se.cos(self.q[3]), -se.sin(self.q[3]), 0, 0],
-            [se.sin(self.q[3]), se.cos(self.q[3]), 0, 0],
+        self.Tj3l4a = sp.Matrix([
+            [sp.cos(self.q[3]), -sp.sin(self.q[3]), 0, 0],
+            [sp.sin(self.q[3]), sp.cos(self.q[3]), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
         # account for axes and rotation and offsets
-        self.Tj3l4b = se.Matrix([
+        self.Tj3l4b = sp.Matrix([
             [0, 0, 1, self.L[8, 0]],
             [0, 1, 0, self.L[8, 1]],
             [-1, 0, 0, self.L[8, 2]],
@@ -163,7 +164,7 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix: link 4 -> joint 4
         # no axes change, account for offsets
-        self.Tl4j4 = se.Matrix([
+        self.Tl4j4 = sp.Matrix([
             [1, 0, 0, self.L[9, 0]],
             [0, 1, 0, self.L[9, 1]],
             [0, 0, 1, self.L[9, 2]],
@@ -171,14 +172,14 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix: joint 4 -> link 5
         # account for rotations due to q
-        self.Tj4l5a = se.Matrix([
-            [se.cos(self.q[4]), -se.sin(self.q[4]), 0, 0],
-            [se.sin(self.q[4]), se.cos(self.q[4]), 0, 0],
+        self.Tj4l5a = sp.Matrix([
+            [sp.cos(self.q[4]), -sp.sin(self.q[4]), 0, 0],
+            [sp.sin(self.q[4]), sp.cos(self.q[4]), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
         # account for axes and rotation and offsets
         # no axes change, account for offsets
-        self.Tj4l5b = se.Matrix([
+        self.Tj4l5b = sp.Matrix([
             [1, 0, 0, self.L[10, 0]],
             [0, 1, 0, self.L[10, 1]],
             [0, 0, 1, self.L[10, 2]],
@@ -187,7 +188,7 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix : link 5 -> joint 5
         # account for axes change and offsets
-        self.Tl5j5 = se.Matrix([
+        self.Tl5j5 = sp.Matrix([
             [0, 0, -1, self.L[11, 0]],
             [0, 1, 0, self.L[11, 1]],
             [1, 0, 0, self.L[11, 2]],
@@ -195,13 +196,13 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix: joint 5 -> link 6
         # account for rotations due to q
-        self.Tj5l6a = se.Matrix([
-            [se.cos(self.q[5]), -se.sin(self.q[5]), 0, 0],
-            [se.sin(self.q[5]), se.cos(self.q[5]), 0, 0],
+        self.Tj5l6a = sp.Matrix([
+            [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
+            [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
         # no axes change, account for offsets
-        self.Tj5l6b = se.Matrix([
+        self.Tj5l6b = sp.Matrix([
             [1, 0, 0, self.L[12, 0]],
             [0, 1, 0, self.L[12, 1]],
             [0, 0, 1, self.L[12, 2]],

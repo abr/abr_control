@@ -3,11 +3,6 @@ import numpy as np
 import os
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
-try:
-    import symengine as se
-except ImportError:
-    print('SymEngine not found, installation speeds up function generation.')
-    import sympy as se
 
 import abr_control
 import abr_control.arms
@@ -67,7 +62,7 @@ class robot_config():
         # set up an (x,y,z) offset
         self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
 
-        self.gravity = se.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
+        self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
     def J(self, name, q, x=[0, 0, 0]):
         """ Calculates the Jacobian for a joint or link
@@ -213,7 +208,7 @@ class robot_config():
             # Jacobians again here if they've already been regenerated
             # once, but that they are actually regenerated if only this is called
             J = self._calc_J(name, x=x, lambdify=False)
-            dJ = se.Matrix(np.zeros(J.shape, dtype='float32'))
+            dJ = sp.Matrix(np.zeros(J.shape, dtype='float32'))
             # calculate derivative of (x,y,z) wrt to time
             # which each joint is dependent on
             for ii in range(J.shape[0]):
@@ -221,17 +216,16 @@ class robot_config():
                     for kk in range(self.num_joints):
                         dJ[ii, jj] += self.simplify(
                             J[ii, jj].diff(self.q[kk]))
+            dJ = sp.Matrix(dJ).T
 
             # save to file
-            pickle.dump(sp.Matrix(dJ), open(
+            pickle.dump(dJ, open(
                 '%s/%s.dJ' % (self.config_folder, filename), 'wb'))
 
-        dJ = se.Matrix(dJ).T  # correct the orientation of J
         if lambdify is False:
             return dJ
         if self.use_cython is True:
-            return autowrap(sp.Matrix(dJ), backend="cython",
-                            args=self.q+self.x)
+            return autowrap(dJ, backend="cython", args=self.q+self.x)
         return sp.lambdify(self.q + self.x, dJ, "numpy")
 
     def _calc_J(self, name, x, lambdify=True, regenerate=False):
@@ -283,11 +277,11 @@ class robot_config():
             pickle.dump(sp.Matrix(J), open(
                 '%s/%s.J' % (self.config_folder, filename), 'wb'))
 
-        J = se.Matrix(J).T  # correct the orientation of J
+        J = sp.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
             return J
         if self.use_cython is True:
-            return autowrap(sp.Matrix(J), backend="cython", args=self.q+self.x)
+            return autowrap(J, backend="cython", args=self.q+self.x)
         return sp.lambdify(self.q + self.x, J, "numpy")
 
     def _calc_Mq(self, lambdify=True, regenerate=False):
@@ -314,9 +308,9 @@ class robot_config():
 
             # transform each inertia matrix into joint space
             # sum together the effects of arm segments' inertia on each motor
-            Mq = se.zeros(self.num_joints)
+            print(self.num_joints)
+            Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
-                # TODO: is it more efficient to have a simplify here too?
                 Mq += (J[ii].T * self._M[ii] * J[ii])
             Mq = self.simplify(Mq)
             Mq = sp.Matrix(Mq)
@@ -326,9 +320,9 @@ class robot_config():
                 '%s/Mq' % self.config_folder, 'wb'))
 
         if lambdify is False:
-            return se.Matrix(Mq)
+            return Mq
         if self.use_cython is True:
-            return autowrap(sp.Matrix(Mq), backend='cython', args=self.q)
+            return autowrap(Mq, backend='cython', args=self.q)
         return sp.lambdify(self.q, Mq, "numpy")
 
     def _calc_Mq_g(self, lambdify=True, regenerate=False):
@@ -356,10 +350,10 @@ class robot_config():
 
             # transform each inertia matrix into joint space and
             # sum together the effects of arm segments' inertia on each motor
-            Mq_g = se.zeros(self.num_joints, 1)
+            Mq_g = sp.zeros(self.num_joints, 1)
             for ii in range(self.num_joints):
                 # TODO: is it more efficient to have a simplify here too?
-                Mq_g += (J[ii].T * self._M[ii] * self.gravity)
+                Mq_g += J[ii].T * self._M[ii] * self.gravity
             Mq_g = self.simplify(Mq_g)
             Mq_g = sp.Matrix(Mq_g)
 
@@ -368,9 +362,9 @@ class robot_config():
                 '%s/Mq_g' % self.config_folder, 'wb'))
 
         if lambdify is False:
-            return se.Matrix(Mq_g)
+            return Mq_g
         if self.use_cython is True:
-            return autowrap(sp.Matrix(Mq_g), backend="cython",
+            return autowrap(Mq_g, backend="cython",
                             args=self.q)
         return sp.lambdify(self.q, Mq_g, "numpy")
 
@@ -405,23 +399,23 @@ class robot_config():
             if np.allclose(x, 0):
                 # if we're only interested in the origin, not including
                 # the x variables significantly speeds things up
-                Tx = T * se.Matrix([0, 0, 0, 1])
+                Tx = T * sp.Matrix([0, 0, 0, 1])
             else:
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
-                Tx = T * se.Matrix(self.x + [1])
+                Tx = T * sp.Matrix(self.x + [1])
             Tx = self.simplify(Tx)
             Tx = sp.Matrix(Tx)
 
             # save to file
-            pickle.dump(Tx, open(
+            pickle.dump(sp.Matrix(Tx), open(
                 '%s/%s.T' % (self.config_folder, filename), 'wb'))
 
 
         if lambdify is False:
-            return se.Matrix(Tx)
+            return Tx
         if self.use_cython is True:
-            return autowrap(sp.Matrix(Tx), backend="cython",
+            return autowrap(Tx, backend="cython",
                             args=self.q+self.x)
         return sp.lambdify(self.q + self.x, Tx, "numpy")
 
@@ -450,8 +444,7 @@ class robot_config():
             rotation_inv = T[:3, :3].T
             translation_inv = -rotation_inv * T[:3, 3]
             T_inv = rotation_inv.row_join(translation_inv).col_join(
-                se.Matrix([[0, 0, 0, 1]]))
-            T_inv = self.simplify(T_inv)
+                sp.Matrix([[0, 0, 0, 1]]))
             T_inv = sp.Matrix(T_inv)
 
             # save to file
@@ -459,8 +452,8 @@ class robot_config():
                 '%s/%s.T_inv' % (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
-            return se.Matrix(T_inv)
+            return T_inv
         if self.use_cython is True:
-            return autowrap(sp.Matrix(T_inv), backend="cython",
+            return autowrap(T_inv, backend="cython",
                             args=self.q+self.x)
         return sp.lambdify(self.q + self.x, T_inv, "numpy")
