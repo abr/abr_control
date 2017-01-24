@@ -40,8 +40,7 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_state=np.hstack(
-                [target_xyz, np.zeros(3)]))
+            target_x=target_xyz)
 
         target_xyz[0], target_xyz[1] = interface.display.get_mousexy()
         interface.set_target(target_xyz)
