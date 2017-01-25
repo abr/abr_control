@@ -56,7 +56,7 @@ class robot_config():
         self._orientation = {} # placeholder for orientation functions
         self._T_inv = {}  # for inverse transform calculations
         self._Tx = {}  # for point transform calculations
-        self._T = {}  # for transform matrix calculations
+        self._T_func = {}  # for transform matrix calculations
 
         # set up our joint angle symbols
         self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
@@ -133,7 +133,7 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
         # get transform matrix for reference frame of interest
-        if self._T.get(name, None) is None:
+        if self._T_func.get(name, None) is None:
             # check to see if we have our transformation saved in file
             if (self.regenerate_functions is False and
                     os.path.isfile('%s/%s.T' % (self.config_folder, name))):
@@ -150,10 +150,8 @@ class robot_config():
                 T_func = autowrap(T, backend="cython", args=self.q)
             else:
                 T_func = sp.lambdify(self.q, T, "numpy")
-            self._T[name] = T_func
-
-        T = self._T[name](*q)
-        print('Transformation matrix: \n', T)
+            self._T_func[name] = T_func
+        T = self._T_func[name](*q)
 
         return abr_control.utils.transformations.quaternion_from_matrix(T)
 
@@ -266,7 +264,7 @@ class robot_config():
             end_point = min(int(end_point) + 1, self.num_joints)
             # add on the orientation information up to the last joint
             for ii in range(end_point):
-                J[ii] = J[ii] + self.J_orientation[ii]
+                J[ii] = J[ii] + list(self.J_orientation[ii])
             # fill in the rest of the joints orientation info with 0
             for ii in range(end_point, self.num_joints):
                 J[ii] = J[ii] + [0, 0, 0]
@@ -298,15 +296,24 @@ class robot_config():
             Mq = pickle.load(open('%s/Mq' % self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
-            J = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
+            # TODO: make sure that we're not regenerating all these
+            # Jacobians again here if they've already been regenerated
+            # once, but that they are actually regenerated if only this is called
+            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
                  for ii in range(self.num_links)]
+            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0], lambdify=False)
+                 for ii in range(self.num_joints)]
 
-            # transform each inertia matrix into joint space
-            # sum together the effects of arm segments' inertia on each motor
+            # sum together the effects of each arm segment's inertia
             print(self.num_joints)
             Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
-                Mq += (J[ii].T * self._M[ii] * J[ii])
+                # transform each inertia matrix into joint space
+                Mq += (J_links[ii].T * self._M_links[ii] * J_links[ii])
+            # sum together the effects of each joint's inertia on each motor
+            for ii in range(self.num_joints):
+                # transform each inertia matrix into joint space
+                Mq += (J_joints[ii].T * self._M_joints[ii] * J_joints[ii])
             Mq = self.simplify(Mq)
             Mq = sp.Matrix(Mq)
 
@@ -337,15 +344,24 @@ class robot_config():
                                          self.config_folder, 'rb'))
         else:
             # get the Jacobians for each link's COM
-            J = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
+            # TODO: make sure that we're not regenerating all these
+            # Jacobians again here if they've already been regenerated
+            # once, but that they are actually regenerated if only this is called
+            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
                  for ii in range(self.num_links)]
+            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0], lambdify=False)
+                 for ii in range(self.num_joints)]
 
-            # transform each inertia matrix into joint space and
-            # sum together the effects of arm segments' inertia on each motor
+            # sum together the effects of each arm segment's inertia
+            print(self.num_joints)
             Mq_g = sp.zeros(self.num_joints, 1)
+            for ii in range(self.num_links):
+                # transform each inertia matrix into joint space
+                Mq_g += (J_links[ii].T * self._M_links[ii] * self.gravity)
+            # sum together the effects of each joint's inertia on each motor
             for ii in range(self.num_joints):
-                # TODO: is it more efficient to have a simplify here too?
-                Mq_g += J[ii].T * self._M[ii] * self.gravity
+                # transform each inertia matrix into joint space
+                Mq_g += (J_joints[ii].T * self._M_joints[ii] * self.gravity)
             Mq_g = self.simplify(Mq_g)
             Mq_g = sp.Matrix(Mq_g)
 

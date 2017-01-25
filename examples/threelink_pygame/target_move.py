@@ -7,13 +7,15 @@ import numpy as np
 
 import abr_control
 
+print('\nClick to move the target.\n')
+
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.config(
-    regenerate_functions=False)
+    regenerate_functions=True)
 
 # create an operational space controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=100, vmax=10)
+    robot_config, kp=100, vmax=None)
 
 # create our interface
 interface = abr_control.interfaces.maplesim(
@@ -29,7 +31,6 @@ interface.set_target(target_xyz)
 ee_path = []
 target_path = []
 
-print('\nClick to move the target.\n')
 try:
     while 1:
         # get arm feedback
