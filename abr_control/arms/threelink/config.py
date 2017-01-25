@@ -12,6 +12,8 @@ class robot_config(robot_config.robot_config):
         super(robot_config, self).__init__(num_joints=3, num_links=3,
                                            robot_name='threelink', **kwargs)
 
+        self._T = {}  # dictionary for storing calculated transforms
+
         # for the null space controller, keep arm near these angles
         self.rest_angles = np.array([np.pi/4.0, np.pi/4.0, np.pi/4.0],
                                     dtype='float32')
@@ -43,6 +45,7 @@ class robot_config(robot_config.robot_config):
         self.L_com = self.L / 2.0
 
         # ---- Joint Transform Matrices ----
+        # TODO: Rework these to be in same form as UR5 and Jaco2
 
         # Transform matrix : origin -> joint 0
         self.Torg0 = sp.Matrix([
@@ -104,10 +107,12 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # orientation part of the Jacobian
-        # accounting for which axis is rotated around at each joint
-        self.J_orientation = [[0.0, 0.0, 1.0],  # joint 0 rotates around z axis
-                              [0.0, 0.0, 1.0],  # joint 1 rotates around z axis
-                              [0.0, 0.0, 1.0]]  # joint 2 rotates around z axis
+        kz = sp.Matrix([0, 0, 1])  # all joints rotate around their z axis
+        self.J_orientation = [
+            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 angular velocity
+            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 angular velocity
+            self._calc_T('joint2')[:3, :3] * kz]  # joint 2 angular velocity
+
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
@@ -115,28 +120,24 @@ class robot_config(robot_config.robot_config):
         name string: name of the joint or link, or end-effector
         """
 
-        # ---- Joint Transforms ----
+        if self._T.get(name, None) is None:
+            if name == 'joint0':
+                self._T[name] = self.Torg0
+            elif name == 'link0':
+                self._T[name] = self.Tlorg0
+            elif name == 'joint1':
+                self._T[name] = self.Torg0 * self.T01
+            elif name == 'link1':
+                self._T[name] = self.Torg0 * self.Tl01
+            elif name == 'joint2':
+                self._T[name] = self.Torg0 * self.T01 * self.T12
+            elif name == 'link2':
+                self._T[name] = self.Torg0 * self.T01 * self.Tl12
+            elif name == 'link3':
+                self._T[name] = self.Torg0 * self.T01 * self.T12 * self.Tl23
+            elif name == 'EE':
+                self._T[name] = self.Torg0 * self.T01 * self.T12 * self.T2EE
+            else:
+                raise Exception('Invalid transformation name: %s' % name)
 
-        if name == 'joint0':
-            T = self.Torg0
-        elif name == 'joint1':
-            T = self.Torg0 * self.T01
-        elif name == 'joint2':
-            T = self.Torg0 * self.T01 * self.T12
-        elif name == 'EE':
-            T = self.Torg0 * self.T01 * self.T12 * self.T2EE
-
-        # ---- COM Transforms ----
-
-        elif name == 'link0':
-            T = self.Tlorg0
-        elif name == 'link1':
-            T = self.Torg0 * self.Tl01
-        elif name == 'link2':
-            T = self.Torg0 * self.T01 * self.Tl12
-        elif name == 'link3':
-            T = self.Torg0 * self.T01 * self.T12 * self.Tl23
-        else:
-            raise Exception('Invalid transformation name: %s' % name)
-
-        return T
+        return self._T[name]

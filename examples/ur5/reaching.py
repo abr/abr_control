@@ -4,16 +4,18 @@ The simulation ends after 1.5 simulated seconds, and the
 trajectory of the end-effector is plotted in 3D.
 """
 import numpy as np
+import signal
+import sys
 
 import abr_control
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.ur5.config(
-    regenerate_functions=False)
+    regenerate_functions=True)
 
 # instantiate controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=200, vmax=0.5)
+    robot_config, kp=20, vmax=0.5)
 
 # create our VREP interface
 interface = abr_control.interfaces.vrep(
@@ -23,6 +25,37 @@ interface.connect()
 # set up lists for tracking data
 ee_track = []
 target_track = []
+
+def on_exit(signal, frame):
+    """ A function for plotting the end-effector trajectory and error """
+    global ee_track, target_track
+    ee_track = np.array(ee_track)
+    target_track = np.array(target_track)
+
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+
+    # plot start point of hand
+    ax.plot(*ee_track, 'bx', mew=10)
+    # plot trajectory of hand
+    ax.plot(*ee_track[:, 0])
+    # plot trajectory of target
+    ax.plot(*target_track, 'rx', mew=10)
+    ax.set_xlim3d(-1, 1)
+    ax.set_ylim3d(-1, 1)
+    ax.set_zlim3d(0, 1.5)
+
+    plt.figure()
+    plt.plot(np.sqrt(np.sum((np.array(target_track) -
+                             np.array(ee_track))**2, axis=1)))
+    plt.ylabel('Error (m)')
+    plt.xlabel('Time (ms)')
+    plt.show()
+    sys.exit()
+
+# call on_exit when ctrl-c is pressed
+signal.signal(signal.SIGINT, on_exit)
 
 try:
     num_targets = 0
@@ -62,36 +95,3 @@ try:
 finally:
     # stop and reset the VREP simulation
     interface.disconnect()
-
-    ee_track = np.array(ee_track)
-    target_track = np.array(target_track)
-
-    import matplotlib.pyplot as plt
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-
-    # plot start point of hand
-    ax.plot([ee_track[0, 0]],
-            [ee_track[0, 1]],
-            [ee_track[0, 2]],
-            'bx', mew=10)
-    # plot trajectory of hand
-    ax.plot(ee_track[:, 0],
-            ee_track[:, 1],
-            ee_track[:, 2])
-    # plot trajectory of target
-    ax.plot(target_track[:, 0],
-            target_track[:, 1],
-            target_track[:, 2],
-            'rx', mew=10)
-    ax.set_xlim3d(-1, 1)
-    ax.set_ylim3d(-1, 1)
-    ax.set_zlim3d(0, 1.5)
-
-    plt.figure()
-    plt.plot(np.sqrt(np.sum((np.array(target_track) -
-                             np.array(ee_track))**2, axis=1)))
-
-    plt.ylabel('Error (m)')
-    plt.xlabel('Time (ms)')
-    plt.show()
