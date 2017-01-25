@@ -15,7 +15,7 @@ robot_config = abr_control.arms.ur5.config(
 
 # instantiate controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=200, vmax=0.5)
+    robot_config, kp=20, vmax=0.5)
 
 # create our VREP interface
 interface = abr_control.interfaces.vrep(
