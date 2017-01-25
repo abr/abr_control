@@ -27,22 +27,18 @@ class robot_config(robot_config.robot_config):
 
         # TODO: automate getting all this information from VREP
 
-        # TODO: DOES IT MATTER IF THESE ARE SYMPY MATRICES OR NOT?   <----------
         # create the inertia matrices for each link of the ur5
-        self._M.append(sp.diag(1.0, 1.0, 1.0,
-                               0.02, 0.02, 0.02))  # link0
-        self._M.append(sp.diag(2.5, 2.5, 2.5,
-                               0.04, 0.04, 0.04))  # link1
-        self._M.append(sp.diag(5.7, 5.7, 5.7,
-                               0.06, 0.06, 0.04))  # link2
-        self._M.append(sp.diag(3.9, 3.9, 3.9,
-                               0.055, 0.055, 0.04))  # link3
-        self._M.append(sp.diag(2.5, 2.5, 2.5,
-                               0.04, 0.04, 0.04))  # link4
-        self._M.append(sp.diag(2.5, 2.5, 2.5,
-                               0.04, 0.04, 0.04))  # link5
-        self._M.append(sp.diag(0.7, 0.7, 0.7,
-                               0.01, 0.01, 0.01))  # link6
+        self._M_links = [
+            sp.diag(1.0, 1.0, 1.0, 0.02, 0.02, 0.02),  # link0
+            sp.diag(2.5, 2.5, 2.5, 0.04, 0.04, 0.04),  # link1
+            sp.diag(5.7, 5.7, 5.7, 0.06, 0.06, 0.04),  # link2
+            sp.diag(3.9, 3.9, 3.9, 0.055, 0.055, 0.04),  # link3
+            sp.diag(2.5, 2.5, 2.5, 0.04, 0.04, 0.04),  # link4
+            sp.diag(2.5, 2.5, 2.5, 0.04, 0.04, 0.04),  # link5
+            sp.diag(0.7, 0.7, 0.7, 0.01, 0.01, 0.01)]  # link6
+
+        # the joints don't weigh anything in VREP
+        self._M_joints = [sp.zeros(6,6) for ii in range(self.num_joints)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
