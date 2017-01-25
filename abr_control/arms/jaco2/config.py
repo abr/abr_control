@@ -221,7 +221,7 @@ class robot_config(robot_config.robot_config):
         self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for orientations)
-        kz = sp.Matrix([0, 0, 1]).T
+        kz = sp.Matrix([0, 0, 1])
         self.J_orientation = [
             self._calc_T('joint0')[:3, :3] * kz,  # joint 0 angular velocity
             self._calc_T('joint1')[:3, :3] * kz,  # joint 1 angular velocity
@@ -229,8 +229,6 @@ class robot_config(robot_config.robot_config):
             self._calc_T('joint3')[:3, :3] * kz,  # joint 3 angular velocity
             self._calc_T('joint4')[:3, :3] * kz,  # joint 4 angular velocity
             self._calc_T('joint5')[:3, :3] * kz]  # joint 5 angular velocity
-
-        print('orientation: ', self.J_orientation)
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
