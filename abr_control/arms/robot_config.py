@@ -54,7 +54,7 @@ class robot_config():
         self._orientation = {} # placeholder for orientation functions
         self._T_inv = {}  # for inverse transform calculations
         self._Tx = {}  # for point transform calculations
-        self._T = {}  # for transform matrix calculations
+        self._T_func = {}  # for transform matrix calculations
 
         # set up our joint angle symbols
         self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
@@ -131,7 +131,7 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
         # get transform matrix for reference frame of interest
-        if self._T.get(name, None) is None:
+        if self._T_func.get(name, None) is None:
             # check to see if we have our transformation saved in file
             if (self.regenerate_functions is False and
                     os.path.isfile('%s/%s.T' % (self.config_folder, name))):
@@ -148,10 +148,8 @@ class robot_config():
                 T_func = autowrap(T, backend="cython", args=self.q)
             else:
                 T_func = sp.lambdify(self.q, T, "numpy")
-            self._T[name] = T_func
-
-        T = self._T[name](*q)
-        print('Transformation matrix: \n', T)
+            self._T_func[name] = T_func
+        T = self._T_func[name](*q)
 
         return abr_control.utils.transformations.quaternion_from_matrix(T)
 
@@ -268,7 +266,7 @@ class robot_config():
             end_point = min(int(end_point) + 1, self.num_joints)
             # add on the orientation information up to the last joint
             for ii in range(end_point):
-                J[ii] = J[ii] + self.J_orientation[ii]
+                J[ii] = J[ii] + list(self.J_orientation[ii])
             # fill in the rest of the joints orientation info with 0
             for ii in range(end_point, self.num_joints):
                 J[ii] = J[ii] + [0, 0, 0]

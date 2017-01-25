@@ -99,6 +99,11 @@ class interface(interface.interface):
         print('connection closed...')
 
     def get_orientation(self, name):
+        """ Returns the orientation of an object in VREP, the Euler
+        angles (radians) are returned in the relative xyz frame.
+
+        name string: the name of the object of interest
+        """
 
         if self.misc_handles.get(name, None) is None:
             # if we haven't retrieved the handle previously
@@ -107,7 +112,7 @@ class interface(interface.interface):
                 vrep.simxGetObjectHandle(self.clientID,
                                          name,
                                          vrep.simx_opmode_blocking)
-        orientation = \
+        _, orientation = \
             vrep.simxGetObjectOrientation(
                 self.clientID,
                 self.misc_handles[name],
@@ -116,7 +121,13 @@ class interface(interface.interface):
         return orientation
 
     def set_orientation(self, name, angles):
-        # expecting [alpha, beta, gamma]
+        """ Sets the orientation of an object in VREP,
+        using the provided Euler angles .
+
+        name string: the name of the object of interest
+        angles np.array: the [alpha, beta, gamma] Euler angles (radians)
+                         for the object, specified in relative xyz axes.
+        """
 
         if self.misc_handles.get(name, None) is None:
             # if we haven't retrieved the handle previously
