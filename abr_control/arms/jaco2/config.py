@@ -223,12 +223,12 @@ class robot_config(robot_config.robot_config):
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1]).T
         self.J_orientation = [
-            self._calc_T('joint0') * kz,  # joint 0 angular velocity
-            self._calc_T('joint1') * kz,  # joint 1 angular velocity
-            self._calc_T('joint2') * kz,  # joint 2 angular velocity
-            self._calc_T('joint3') * kz,  # joint 3 angular velocity
-            self._calc_T('joint4') * kz,  # joint 4 angular velocity
-            self._calc_T('joint5') * kz]  # joint 5 angular velocity
+            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 angular velocity
+            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 angular velocity
+            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 angular velocity
+            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 angular velocity
+            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 angular velocity
+            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 angular velocity
 
         print('orientation: ', self.J_orientation)
 

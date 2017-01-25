@@ -221,8 +221,6 @@ class robot_config(robot_config.robot_config):
             self._calc_T('joint4')[:3, :3] * kz,  # joint 4 angular velocity
             self._calc_T('joint5')[:3, :3] * kz]  # joint 5 angular velocity
 
-        print('orientation: ', self.J_orientation)
-
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 
