@@ -9,11 +9,11 @@ import abr_jaco2
 # ---------- INITIALIZATION ----------
 # initialize our robot config for the ur5
 robot_config = abr_jaco2.robot_config(
-    regenerate_functions=True, use_cython=True, use_simplify=False)
+    regenerate_functions=True, use_cython=True, use_simplify=False, hand_attached=False)
 
 # instantiate the REACH controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=20, kv=5, vmax=None)
+    robot_config, kp=20, kv=5, vmax=0.5)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop (so the torque mode isn't exited)
