@@ -1,5 +1,5 @@
 import numpy as np
-
+import pdb
 import abr_control
 
 
@@ -7,7 +7,7 @@ class controller:
     """ Implements an operational space controller (OSC)
     """
 
-    def __init__(self, robot_config, kp=100, kv=None, vmax=0.5):
+    def __init__(self, robot_config, kp=1, kv=None, vmax=0.5):
 
         self.robot_config = robot_config
 
@@ -71,13 +71,15 @@ class controller:
         # position was provided, and the mask includes positions
         if target_x is not None and np.sum(mask[:3]) > 0:
             # calculate the position error
-            x_tilde = xyz - target_x
+            x_tilde = np.array(xyz - target_x)
+            #x_tilde = np.array([0, 0, 0.05])
 
             if self.vmax is not None:
                 # implement velocity limiting
                 sat = self.vmax / (self.lamb * np.abs(x_tilde))
                 if np.any(sat < 1):
                     index = np.argmin(sat)
+                    #pdb.set_trace()
                     unclipped = self.kp * x_tilde[index]
                     clipped = self.kv * self.vmax * np.sign(x_tilde[index])
                     scale = np.ones(3, dtype='float32') * clipped / unclipped
@@ -108,7 +110,7 @@ class controller:
                           quat[0] * target_quat[1:] +
                           np.dot(target_e, quat[1:]))
 
-            ko = 300
+            ko = self.kp
             ka = np.sqrt(ko)
             u_task[3:] = (ka * (target_w - w) - ko * error_quat)
         # apply mask
@@ -126,25 +128,25 @@ class controller:
         # NOTE: Should the null space controller be separated out
         # as a signal to be added in if chosen? -----------------
 
-        # calculate the null space filter
-        nkp = self.kp * .1
-        nkv = np.sqrt(nkp)
-        Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
-        null_filter = (np.eye(self.robot_config.num_joints) -
-                       np.dot(JEE.T, Jdyn_inv))
-
-        q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
-        dq_des = np.zeros(self.robot_config.num_joints, dtype='float32')
-
-        # calculated desired joint angle acceleration using rest angles
-        for ii in range(1, self.robot_config.num_joints):
-            if self.robot_config.rest_angles[ii] is not None:
-                q_des[ii] = (
-                    ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
-                     (np.pi*2) - np.pi)
-                dq_des[ii] = dq[ii]
-        u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
-
-        u += np.dot(null_filter, u_null)
+        # # calculate the null space filter
+        # nkp = self.kp * .1
+        # nkv = np.sqrt(nkp)
+        # Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
+        # null_filter = (np.eye(self.robot_config.num_joints) -
+        #                np.dot(JEE.T, Jdyn_inv))
+        #
+        # q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
+        # dq_des = np.zeros(self.robot_config.num_joints, dtype='float32')
+        #
+        # # calculated desired joint angle acceleration using rest angles
+        # for ii in range(1, self.robot_config.num_joints):
+        #     if self.robot_config.rest_angles[ii] is not None:
+        #         q_des[ii] = (
+        #             ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
+        #              (np.pi*2) - np.pi)
+        #         dq_des[ii] = dq[ii]
+        # u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
+        #
+        # u += np.dot(null_filter, u_null)
 
         return u
