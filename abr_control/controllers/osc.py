@@ -1,5 +1,5 @@
 import numpy as np
-
+import pdb
 import abr_control
 
 
@@ -71,13 +71,14 @@ class controller:
         # position was provided, and the mask includes positions
         if target_x is not None and np.sum(mask[:3]) > 0:
             # calculate the position error
-            x_tilde = xyz - target_x
+            x_tilde = np.array(xyz - target_x)
 
             if self.vmax is not None:
                 # implement velocity limiting
                 sat = self.vmax / (self.lamb * np.abs(x_tilde))
                 if np.any(sat < 1):
                     index = np.argmin(sat)
+                    #pdb.set_trace()
                     unclipped = self.kp * x_tilde[index]
                     clipped = self.kv * self.vmax * np.sign(x_tilde[index])
                     scale = np.ones(3, dtype='float32') * clipped / unclipped

@@ -21,6 +21,6 @@ class controller:
 
         # calculate the effect of gravity in joint space
         Mq_g = self.robot_config.Mq_g(q)
-        u = -Mq_g
+        u = - Mq_g
 
         return u

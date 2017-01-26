@@ -50,7 +50,8 @@ class robot_config():
         self._Tx = {}  # for transform calculations
         self._T_inv = {}  # for inverse transform calculations
         self._J = {}  # for Jacobian calculations
-        self._M = []  # placeholder for (x,y,z) inertia matrices
+        self._M_links = []  # placeholder for (x,y,z) inertia matrices
+        self._M_joints = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
         self._Mq_g = None  # placeholder for joint space gravity term function
         self._orientation = {} # placeholder for orientation functions
