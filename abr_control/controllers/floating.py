@@ -12,7 +12,7 @@ class controller:
 
         self.robot_config = robot_config
 
-    def control(self, q, dq)
+    def control(self, q, dq):
         """ Generates the control signal
 
         q np.array: the current joint angles
