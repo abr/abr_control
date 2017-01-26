@@ -110,7 +110,7 @@ class controller:
                           quat[0] * target_quat[1:] +
                           np.dot(target_e, quat[1:]))
 
-            ko = 300
+            ko = self.kp
             ka = np.sqrt(ko)
             u_task[3:] = (ka * (target_w - w) - ko * error_quat)
         # apply mask
@@ -128,25 +128,25 @@ class controller:
         # NOTE: Should the null space controller be separated out
         # as a signal to be added in if chosen? -----------------
 
-        # calculate the null space filter
-        """nkp = self.kp * .1
-        nkv = np.sqrt(nkp)
-        Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
-        null_filter = (np.eye(self.robot_config.num_joints) -
-                       np.dot(JEE.T, Jdyn_inv))
-
-        q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
-        dq_des = np.zeros(self.robot_config.num_joints, dtype='float32')
-
-        # calculated desired joint angle acceleration using rest angles
-        for ii in range(1, self.robot_config.num_joints):
-            if self.robot_config.rest_angles[ii] is not None:
-                q_des[ii] = (
-                    ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
-                     (np.pi*2) - np.pi)
-                dq_des[ii] = dq[ii]
-        u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
-
-        u += np.dot(null_filter, u_null)"""
+        # # calculate the null space filter
+        # nkp = self.kp * .1
+        # nkv = np.sqrt(nkp)
+        # Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
+        # null_filter = (np.eye(self.robot_config.num_joints) -
+        #                np.dot(JEE.T, Jdyn_inv))
+        #
+        # q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
+        # dq_des = np.zeros(self.robot_config.num_joints, dtype='float32')
+        #
+        # # calculated desired joint angle acceleration using rest angles
+        # for ii in range(1, self.robot_config.num_joints):
+        #     if self.robot_config.rest_angles[ii] is not None:
+        #         q_des[ii] = (
+        #             ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
+        #              (np.pi*2) - np.pi)
+        #         dq_des[ii] = dq[ii]
+        # u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
+        #
+        # u += np.dot(null_filter, u_null)
 
         return u

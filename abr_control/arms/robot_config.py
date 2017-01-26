@@ -308,7 +308,6 @@ class robot_config():
                  for ii in range(self.num_joints)]
 
             # sum together the effects of each arm segment's inertia
-            print(self.num_joints)
             Mq = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
                 # transform each inertia matrix into joint space
@@ -356,7 +355,6 @@ class robot_config():
                  for ii in range(self.num_joints)]
 
             # sum together the effects of each arm segment's inertia
-            print(self.num_joints)
             Mq_g = sp.zeros(self.num_joints, 1)
             for ii in range(self.num_links):
                 # transform each inertia matrix into joint space

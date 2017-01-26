@@ -12,7 +12,7 @@ import abr_control
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.ur5.config(regenerate_functions=True)
 # instantiate controller
-ctrlr = abr_control.controllers.osc(robot_config, kp=1000, vmax=None)
+ctrlr = abr_control.controllers.osc(robot_config, kp=200, vmax=None)
 # create our VREP interface
 interface = abr_control.interfaces.vrep(robot_config, dt=.001)
 interface.connect()
@@ -63,7 +63,7 @@ try:
     target_xyz = start + np.array([.25, -.25, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
     # get the target orientation to match
-    target_angles = interface.get_orientation(name='target')
+    target_angles = np.array(interface.get_orientation(name='target'))
     target_quat = abr_control.utils.transformations.quaternion_from_euler(
         target_angles[0], target_angles[1], target_angles[2], 'rxyz')
 
@@ -78,22 +78,21 @@ try:
             dq=feedback['dq'],
             target_x=target_xyz,
             target_quat=target_quat,
-            mask=[0, 0, 0, 1, 1, 1])
+            mask=[1, 1, 1, 1, 1, 1])
 
         # apply the control signal, step the sim forward
         interface.apply_u(u)
 
         ee_xyz = interface.get_xyz('hand')
         angles = interface.get_orientation('UR5_link6')
-        quat_from_vrep = abr_control.utils.transformations.quaternion_from_euler(
-            angles[0], angles[1], angles[2], 'rxyz')
-        print('quat_from_vrep: ', quat_from_vrep)
-        print('quat from config: ', robot_config.orientation('EE', feedback['q']))
-        print('target quat: ', target_quat)
+        print('angles error: ', target_angles - np.array(angles))
+        # quat_from_vrep = abr_control.utils.transformations.quaternion_from_euler(
+        #     angles[0], angles[1], angles[2], 'rxyz')
+        # print('orientation error: ', target_quat - robot_config.orientation('EE', feedback['q']))
         # print('orientation: ', angles)
         # print('target orientation: ', target_angles)
         interface.set_orientation('hand', angles)
-        print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
+        print('xyz error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # track data
         ee_track.append(np.copy(ee_xyz))
         target_track.append(np.copy(target_xyz))
