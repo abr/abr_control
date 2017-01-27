@@ -78,7 +78,7 @@ try:
             dq=feedback['dq'],
             target_x=target_xyz,
             target_quat=target_quat,
-            mask=[1, 1, 1, 1, 1, 1])
+            mask=[0, 0, 0, 1, 1, 1])
 
         # apply the control signal, step the sim forward
         interface.apply_u(u)
