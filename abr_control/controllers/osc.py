@@ -7,7 +7,7 @@ class controller:
     """ Implements an operational space controller (OSC)
     """
 
-    def __init__(self, robot_config, kp=100, kv=None, vmax=0.5):
+    def __init__(self, robot_config, kp=1, kv=None, vmax=0.5):
 
         self.robot_config = robot_config
 
@@ -71,7 +71,8 @@ class controller:
         # position was provided, and the mask includes positions
         if target_x is not None and np.sum(mask[:3]) > 0:
             # calculate the position error
-            x_tilde = np.array(xyz - target_x)
+            #x_tilde = np.array(xyz - target_x)
+            x_tilde = np.array([0, 0, 0.05])
 
             if self.vmax is not None:
                 # implement velocity limiting
@@ -128,7 +129,7 @@ class controller:
         # as a signal to be added in if chosen? -----------------
 
         # calculate the null space filter
-        nkp = self.kp * .1
+        """nkp = self.kp * .1
         nkv = np.sqrt(nkp)
         Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
         null_filter = (np.eye(self.robot_config.num_joints) -
@@ -146,6 +147,6 @@ class controller:
                 dq_des[ii] = dq[ii]
         u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
 
-        u += np.dot(null_filter, u_null)
+        u += np.dot(null_filter, u_null)"""
 
         return u
