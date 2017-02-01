@@ -10,11 +10,16 @@ import sys
 import abr_control
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.ur5.config(regenerate_functions=True)
+robot_config = abr_control.arms.jaco2.config(
+    regenerate_functions=True)
+
 # instantiate controller
-ctrlr = abr_control.controllers.osc(robot_config, kp=200, vmax=None)
+ctrlr = abr_control.controllers.osc(
+    robot_config, kp=100, vmax=None)
+
 # create our VREP interface
-interface = abr_control.interfaces.vrep(robot_config, dt=.001)
+interface = abr_control.interfaces.vrep(
+    robot_config, dt=.001)
 interface.connect()
 
 # set up lists for tracking data
@@ -28,14 +33,13 @@ def on_exit(signal, frame):
     target_track = np.array(target_track)
 
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax = fig.gca(projection='3d')
 
     # plot start point of hand
-    ax.plot(*ee_track[0], 'bx', mew=10)
+    ax.plot(*ee_track, 'bx', mew=10)
     # plot trajectory of hand
-    ax.plot(*ee_track)
+    ax.plot(*ee_track[:, 0])
     # plot trajectory of target
     ax.plot(*target_track, 'rx', mew=10)
     ax.set_xlim3d(-1, 1)
@@ -57,42 +61,31 @@ try:
     num_targets = 0
     back_to_start = False
 
-    # create a target based off initial arm position
+    # create a target based on initial arm position
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', q=feedback['q'])
-    target_xyz = start + np.array([.25, -.25, 0.0])
+    target_xyz = start + np.array([-.25, .25, 0])
     interface.set_xyz(name='target', xyz=target_xyz)
-    # get the target orientation to match
-    target_angles = np.array(interface.get_orientation(name='target'))
-    target_quat = abr_control.utils.transformations.quaternion_from_euler(
-        target_angles[0], target_angles[1], target_angles[2], 'rxyz')
 
     count = 0.0
-    while 1:
+    while count < 1500:
         # get arm feedback from VREP
         feedback = interface.get_feedback()
+
+        # use visual feedback to get object endpoint position
+        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
 
         # generate control signal
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
             target_x=target_xyz,
-            target_quat=target_quat,
-            mask=[0, 0, 0, 1, 1, 1])
+            target_dx=np.zeros(3))
 
+        print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
-        interface.apply_u(u)
+        interface.apply_u(-u)
 
-        ee_xyz = interface.get_xyz('hand')
-        angles = interface.get_orientation('UR5_link6')
-        print('angles error: ', target_angles - np.array(angles))
-        # quat_from_vrep = abr_control.utils.transformations.quaternion_from_euler(
-        #     angles[0], angles[1], angles[2], 'rxyz')
-        # print('orientation error: ', target_quat - robot_config.orientation('EE', feedback['q']))
-        # print('orientation: ', angles)
-        # print('target orientation: ', target_angles)
-        interface.set_orientation('hand', angles)
-        print('xyz error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # track data
         ee_track.append(np.copy(ee_xyz))
         target_track.append(np.copy(target_xyz))
@@ -102,5 +95,3 @@ try:
 finally:
     # stop and reset the VREP simulation
     interface.disconnect()
-
-on_exit()

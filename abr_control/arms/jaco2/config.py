@@ -1,21 +1,18 @@
 # Config filefor Jaco 2 in VREP
 import numpy as np
 import sympy as sp
-try:
-    import symengine as se
-except ImportError:
-    # already printed warning in arms/robot_config.py
-    import sympy as se
 
 from .. import robot_config
 
 
 class robot_config(robot_config.robot_config):
-    """ Robot config file for the UR5 arm """
+    """ Robot config file for the Kinova Jaco^2 V2"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, hand_attached=False, **kwargs):
 
-        super(robot_config, self).__init__(num_joints=6, num_links=7,
+        self.hand_attached = hand_attached
+        num_links = 7 if hand_attached is True else 6
+        super(robot_config, self).__init__(num_joints=6, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
@@ -46,7 +43,7 @@ class robot_config(robot_config.robot_config):
             sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04)]  # link6
 
         # the joints don't weigh anything in VREP
-        self._M_joints = [sp.zeros(6,6) for ii in range(self.num_joints)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
@@ -64,7 +61,6 @@ class robot_config(robot_config.robot_config):
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02],  # joint 5 offset
             [-3.6363e-05, 7.5728e-05, -1.2875e-05]])  # link 6 offset
-            # dtype='float32')
 
         # ---- Joint Transform Matrices ----
 
@@ -272,12 +268,14 @@ class robot_config(robot_config.robot_config):
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5)
-            elif name == 'joint5':
+            elif name == 'joint5' or (self.hand_attached is False and
+                                      name == 'EE'):
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5)
-            elif name == 'link6' or name == 'EE':
+            elif name == 'link6' or (self.hand_attached is True and
+                                     name == 'EE'):
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
