@@ -1,7 +1,5 @@
 import numpy as np
 
-import abr_control
-
 
 class controller:
     """ Implements a floating controller that only compensates for
@@ -22,6 +20,6 @@ class controller:
         # calculate the effect of gravity in joint space
         Mq_g = self.robot_config.Mq_g(q)
         Mq = self.robot_config.Mq(q)
-        u = - Mq_g -0.4 * np.dot(Mq, dq)
+        u = - Mq_g - 0.4 * np.dot(Mq, dq)
 
         return u
