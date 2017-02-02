@@ -71,8 +71,8 @@ class controller:
         # position was provided, and the mask includes positions
         if target_x is not None and np.sum(mask[:3]) > 0:
             # calculate the position error
-            #x_tilde = np.array(xyz - target_x)
-            x_tilde = np.array([0, 0, 0.05])
+            x_tilde = np.array(xyz - target_x)
+            #x_tilde = np.array([0, 0, 0.05])
 
             if self.vmax is not None:
                 # implement velocity limiting
