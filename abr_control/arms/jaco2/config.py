@@ -1,4 +1,4 @@
-# Config filefor Jaco 2 in VREP
+# Config file for Jaco 2 in VREP
 import numpy as np
 import sympy as sp
 
@@ -34,20 +34,30 @@ class robot_config(robot_config.robot_config):
         # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
         self._M_links = [
-            sp.diag(0.64, 0.64, 0.64, 0.01, 0.01, 0.01),  # link0
-            sp.diag(0.6, 0.6, 0.6, 0.04, 0.04, 0.04),  # link1
-            sp.diag(0.57, 0.57, 0.57, 0.04, 0.04, 0.04),  # link2
-            sp.diag(0.6, 0.6, 0.6, 0.04, 0.04, 0.04),  # link3
-            sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04),  # link4
-            sp.diag(1.37, 1.37, 1.37, 0.04, 0.04, 0.04),  # link5
-            sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04)]  # link6
+            # sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
+            # sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link1
+            # sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link2
+            # sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
+            # sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
+            # sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link4
+            # sp.diag(0.25, 0.25, 0.25, 0.01, 0.01, 0.01)]  # link5
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link0
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link1
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link2
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link4
+            sp.diag(0.25, 0.25, 0.25, 0.04, 0.04, 0.04)]  # link5
+        if self.hand_attached is True:
+            self._M_links.append(sp.diag(0.37, 0.37, 0.37,
+                                         0.04, 0.04, 0.04))  # link6
 
         # the joints don't weigh anything in VREP
         self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
-        self.L = np.array([
+        self.L = [
             [0.0, 0.0, 7.8369e-02],  # link 0 offset
             [-3.2712e-05, -1.7324e-05, 7.8381e-02],  # joint 0 offset
             [2.1217e-05, 4.8455e-05, -7.9515e-02],  # link 1 offset
@@ -59,8 +69,10 @@ class robot_config(robot_config.robot_config):
             [-4.0053e-04, 1.2581e-02, -3.5270e-02],  # link 4 offset
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
-            [-1.9534e-03, 5.0298e-03, -3.7176e-02],  # joint 5 offset
-            [-3.6363e-05, 7.5728e-05, -1.2875e-05]])  # link 6 offset
+            [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
+        if self.hand_attached is True:  # add in hand offset
+            self.L.append([-3.6363e-05, 7.5728e-05, -1.2875e-05])
+        self.L = np.array(self.L)
 
         # ---- Joint Transform Matrices ----
 
@@ -198,18 +210,19 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix: joint 5 -> link 6
         # account for rotations due to q
-        self.Tj5l6a = sp.Matrix([
-            [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
-            [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1]])
-        # no axes change, account for offsets
-        self.Tj5l6b = sp.Matrix([
-            [-1, 0, 0, self.L[12, 0]],
-            [0, -1, 0, self.L[12, 1]],
-            [0, 0, 1, self.L[12, 2]],
-            [0, 0, 0, 1]])
-        self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
+        if self.hand_attached is True:
+            self.Tj5l6a = sp.Matrix([
+                [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
+                [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]])
+            # no axes change, account for offsets
+            self.Tj5l6b = sp.Matrix([
+                [-1, 0, 0, self.L[12, 0]],
+                [0, -1, 0, self.L[12, 1]],
+                [0, 0, 1, self.L[12, 2]],
+                [0, 0, 0, 1]])
+            self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1])
