@@ -7,19 +7,19 @@ to its default resting position.
 import numpy as np
 
 import abr_control
-import abr_jaco2
 
 # initialize our robot config for neural controllers
-robot_config = abr_jaco2.robot_config(
-    regenerate_functions=True, use_cython=True,
+robot_config = abr_control.arms.jaco2.config(
+    regenerate_functions=False, use_cython=True,
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
-ctrlr = abr_control.controllers.osc(
-    robot_config, kp=4, kv=2, vmax=0.35)
+ctrlr = abr_control.controllers.floating(
+    robot_config)
+    # robot_config, kp=.1, kv=.1, vmax=0.35)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(6), np.zeros(6), target_x=np.zeros(3))
+ctrlr.control(np.zeros(6), np.zeros(6))  # ,target_x=np.zeros(3))
 
 # create our interface for the jaco2
 interface = abr_control.interfaces.vrep(
@@ -54,7 +54,8 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', q=feedback['q'])
 
-        u = ctrlr.control(q=feedback['q'], dq=feedback['dq'], target_x=target_xyz)
+        u = ctrlr.control(q=feedback['q'], dq=feedback['dq'],)
+                          # target_x=target_xyz)
         interface.apply_u(np.array(u, dtype='float32'))
 
         error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
@@ -75,7 +76,7 @@ try:
         targets_track.append(target_xyz)
         count += 1
 
-        if ctr%1000 == 0:
+        if ctr % 1000 == 0:
             print('error: ', error)
 
 except Exception as e:
@@ -87,7 +88,7 @@ finally:
 
     if count > 0:  # i.e. if it successfully ran
         import matplotlib.pyplot as plt
-        import seaborn
+        # import seaborn
 
         ee_track = np.array(ee_track)
         targets_track = np.array(targets_track)
