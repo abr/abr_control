@@ -1,6 +1,4 @@
 import numpy as np
-import pdb
-import abr_control
 
 
 class controller:
@@ -20,7 +18,7 @@ class controller:
         self.lamb = self.kp / self.kv
 
     def control(self, q, dq,
-                target_x, target_dx=np.zeros(3),
+                target_pos, target_vel=np.zeros(3),
                 target_quat=None, target_w=np.zeros(3),
                 mask=[1, 1, 1, 0, 0, 0],
                 ref_frame='EE', offset=[0, 0, 0]):
@@ -28,8 +26,8 @@ class controller:
 
         q np.array: the current joint angles
         dq np.array: the current joint velocities
-        target_x np.array: the target end-effector position values, post-mask
-        target_dx np.array: the target end-effector velocity, post-mask
+        target_pos np.array: the target end-effector position values, post-mask
+        target_vel np.array: the target end-effector velocity, post-mask
         target_quat np.array: the target orientation as a quaternion
                               in the form [w, x, y, z]
         target_w np.array: the target angular velocities
@@ -69,17 +67,16 @@ class controller:
 
         # generate the position control signal in task space if a target
         # position was provided, and the mask includes positions
-        if target_x is not None and np.sum(mask[:3]) > 0:
+        if target_pos is not None and np.sum(mask[:3]) > 0:
             # calculate the position error
-            x_tilde = np.array(xyz - target_x)
-            #x_tilde = np.array([0, 0, 0.05])
+            x_tilde = np.array(xyz - target_pos)
+            # x_tilde = np.array([0, 0, 0.05])
 
             if self.vmax is not None:
                 # implement velocity limiting
                 sat = self.vmax / (self.lamb * np.abs(x_tilde))
                 if np.any(sat < 1):
                     index = np.argmin(sat)
-                    #pdb.set_trace()
                     unclipped = self.kp * x_tilde[index]
                     clipped = self.kv * self.vmax * np.sign(x_tilde[index])
                     scale = np.ones(3, dtype='float32') * clipped / unclipped
@@ -87,12 +84,12 @@ class controller:
                 else:
                     scale = np.ones(3, dtype='float32')
 
-                u_task[:3] = -self.kv * (dx - target_dx -
-                                    np.clip(sat / scale, 0, 1) *
-                                    -self.lamb * scale * x_tilde)
+                u_task[:3] = -self.kv * (dx - target_vel -
+                                         np.clip(sat / scale, 0, 1) *
+                                         -self.lamb * scale * x_tilde)
             else:
                 # generate (x,y,z) force without velocity limiting)
-                u_task[:3] = -self.kp * x_tilde + self.kv * (target_dx - dx)
+                u_task[:3] = -self.kp * x_tilde + self.kv * (target_vel - dx)
 
         # generate the orientation control signal in task space if a target
         # orientation was provided, and the mask includes orientation angles
