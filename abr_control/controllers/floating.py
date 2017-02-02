@@ -1,8 +1,3 @@
-import numpy as np
-
-import abr_control
-
-
 class controller:
     """ Implements a floating controller that only compensates for
     the effects of gravity on the arm.

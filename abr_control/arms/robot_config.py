@@ -12,6 +12,8 @@ import abr_control.arms
 
 # TODO : check to see how long it takes to load T from file vs recompute
 
+# TODO : should simplify option just be removed?
+
 class robot_config():
     """ Class defines a bunch of useful functions for controlling
     a given robot, including transformation to joints and COMs,
@@ -29,7 +31,7 @@ class robot_config():
         regenerate_functions boolean: if True, don't look to saved files
                                       regenerate all transforms and Jacobians
         use_simplify boolean: if True, symbolic representations are simplified
-                              useful when execution time is more important 
+                              useful when execution time is more important
                               than generation time
         use_cython boolean: if True, a more efficient function is generated
                             useful when execution time is more important than
@@ -54,7 +56,7 @@ class robot_config():
         self._M_joints = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
         self._Mq_g = None  # placeholder for joint space gravity term function
-        self._orientation = {} # placeholder for orientation functions
+        self._orientation = {}  # placeholder for orientation functions
         self._T_inv = {}  # for inverse transform calculations
         self._Tx = {}  # for point transform calculations
         self._T_func = {}  # for transform matrix calculations
@@ -77,7 +79,6 @@ class robot_config():
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._J.get(funcname, None) is None:
-            print('Generating Jacobian function for %s' % name)
             self._J[funcname] = self._calc_J(
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
@@ -94,8 +95,6 @@ class robot_config():
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._dJ.get(funcname, None) is None:
-            print('Generating derivative of Jacobian ',
-                  'function for %s' % funcname)
             self._dJ[funcname] = self._calc_dJ(
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
@@ -108,7 +107,6 @@ class robot_config():
         """
         # check for function in dictionary
         if self._Mq is None:
-            print('Generating inertia matrix function')
             self._Mq = self._calc_Mq(regenerate=self.regenerate_functions)
         parameters = tuple(q)
         return np.array(self._Mq(*parameters), dtype='float32')
@@ -120,7 +118,6 @@ class robot_config():
         """
         # check for function in dictionary
         if self._Mq_g is None:
-            print('Generating gravity effects function')
             self._Mq_g = self._calc_Mq_g(regenerate=self.regenerate_functions)
         parameters = tuple(q)
         return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
@@ -131,16 +128,16 @@ class robot_config():
 
         name string: name of the joint or link, or end-effector
         q list: set of joint angles to pass in to the Mq_g function
-        regenerate boolean: if True, don't use saved functions
         """
         # get transform matrix for reference frame of interest
         if self._T_func.get(name, None) is None:
+            print('Generating orientation function.')
             # check to see if we have our transformation saved in file
             if (self.regenerate_functions is False and
                     os.path.isfile('%s/%s.T' % (self.config_folder, name))):
                 T = pickle.load(open('%s/%s.T' %
-                                          (self.config_folder, name),
-                                          'rb'))
+                                     (self.config_folder, name),
+                                     'rb'))
             else:
                 T = self._calc_T(name=name)
 
@@ -166,9 +163,6 @@ class robot_config():
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._Tx.get(funcname, None) is None:
-            print('Generating transform function for %s' % name)
-            # TODO: link0 and joint0 share a transform, but will
-            # both have their own transform calculated with this check
             self._Tx[funcname] = self._calc_Tx(
                 name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
@@ -182,7 +176,6 @@ class robot_config():
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._T_inv.get(funcname, None) is None:
-            print('Generating inverse transform function for % s' % funcname)
             self._T_inv[funcname] = self._calc_T_inv(
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
@@ -205,9 +198,14 @@ class robot_config():
         if (regenerate is False and
                 os.path.isfile('%s/%s.dJ' % (self.config_folder, filename))):
             dJ = pickle.load(open('%s/%s.dJ' %
-                                       (self.config_folder, filename), 'rb'))
+                                  (self.config_folder, filename), 'rb'))
         else:
-            J = self._calc_J(name, x=x, lambdify=False)
+            print('Generating derivative of Jacobian ',
+                  'function for %s' % filename)
+            # TODO: make sure that we're not regenerating all these
+            # Jacobians again here if they've already been regenerated
+            # once, but they are actually regenerated if only this is called
+            J = self._calc_J(name, x=x, lambdify=False, regenerate=regenerate)
             dJ = sp.Matrix(np.zeros(J.shape, dtype='float32'))
             # calculate derivative of (x,y,z) wrt to time
             # which each joint is dependent on
@@ -244,9 +242,14 @@ class robot_config():
         if (regenerate is False and
                 os.path.isfile('%s/%s.J' % (self.config_folder, filename))):
             J = pickle.load(open('%s/%s.J' %
-                                      (self.config_folder, filename), 'rb'))
+                                 (self.config_folder, filename), 'rb'))
         else:
-            Tx = self._calc_Tx(name, x=x, lambdify=False)
+            print('Generating Jacobian function for %s' % filename)
+            # TODO: make sure that we're not regenerating all these
+            # Transforms again here if they've already been regenerated
+            # once, but they are actually regenerated if only this is called
+            Tx = self._calc_Tx(name, x=x, lambdify=False,
+                               regenerate=regenerate)
             # NOTE: calculating the Jacobian this way doesn't incur any
             # real computational cost (maybe 30ms) and it simplifies adding
             # the orientation information below (as opposed to using
@@ -255,9 +258,12 @@ class robot_config():
             # calculate derivative of (x,y,z) wrt to each joint
             for ii in range(self.num_joints):
                 J.append([])
-                J[ii].append(self.simplify(Tx[0].diff(self.q[ii])))  # dx/dq[ii]
-                J[ii].append(self.simplify(Tx[1].diff(self.q[ii])))  # dy/dq[ii]
-                J[ii].append(self.simplify(Tx[2].diff(self.q[ii])))  # dz/dq[ii]
+                J[ii].append(self.simplify(
+                    Tx[0].diff(self.q[ii])))  # dx/dq[ii]
+                J[ii].append(self.simplify(
+                    Tx[1].diff(self.q[ii])))  # dy/dq[ii]
+                J[ii].append(self.simplify(
+                    Tx[2].diff(self.q[ii])))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
             end_point = self.num_joints if 'EE' in end_point else end_point
@@ -296,14 +302,17 @@ class robot_config():
                 os.path.isfile('%s/Mq' % self.config_folder)):
             Mq = pickle.load(open('%s/Mq' % self.config_folder, 'rb'))
         else:
+            print('Generating inertia matrix function')
             # get the Jacobians for each link's COM
             # TODO: make sure that we're not regenerating all these
             # Jacobians again here if they've already been regenerated
-            # once, but that they are actually regenerated if only this is called
-            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
-                 for ii in range(self.num_links)]
-            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0], lambdify=False)
-                 for ii in range(self.num_joints)]
+            # once, but they are actually regenerated if only this is called
+            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
+                                    lambdify=False, regenerate=regenerate)
+                       for ii in range(self.num_links)]
+            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
+                                     lambdify=False, regenerate=regenerate)
+                        for ii in range(self.num_joints)]
 
             # sum together the effects of each arm segment's inertia
             Mq = sp.zeros(self.num_joints)
@@ -341,16 +350,19 @@ class robot_config():
         if (regenerate is False and
                 os.path.isfile('%s/Mq_g' % self.config_folder)):
             Mq_g = pickle.load(open('%s/Mq_g' %
-                                         self.config_folder, 'rb'))
+                                    self.config_folder, 'rb'))
         else:
+            print('Generating gravity compensation function')
             # get the Jacobians for each link's COM
             # TODO: make sure that we're not regenerating all these
             # Jacobians again here if they've already been regenerated
-            # once, but that they are actually regenerated if only this is called
-            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0], lambdify=False)
-                 for ii in range(self.num_links)]
-            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0], lambdify=False)
-                 for ii in range(self.num_joints)]
+            # once, but they are actually regenerated if only this is called
+            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
+                                    lambdify=False, regenerate=regenerate)
+                       for ii in range(self.num_links)]
+            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
+                                     lambdify=False, regenerate=regenerate)
+                        for ii in range(self.num_joints)]
 
             # sum together the effects of each arm segment's inertia
             Mq_g = sp.zeros(self.num_joints, 1)
@@ -398,8 +410,9 @@ class robot_config():
         if (regenerate is False and
                 os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
             Tx = pickle.load(open('%s/%s.T' %
-                                       (self.config_folder, filename), 'rb'))
+                                  (self.config_folder, filename), 'rb'))
         else:
+            print('Generating transform function for %s' % filename)
             T = self._calc_T(name=name)
             # transform x into world coordinates
             if np.allclose(x, 0):
@@ -416,7 +429,6 @@ class robot_config():
             # save to file
             pickle.dump(sp.Matrix(Tx), open(
                 '%s/%s.T' % (self.config_folder, filename), 'wb'))
-
 
         if lambdify is False:
             return Tx
@@ -443,10 +455,11 @@ class robot_config():
                 os.path.isfile('%s/%s.T_inv' % (self.config_folder,
                                                 filename))):
             T_inv = pickle.load(open('%s/%s.T_inv' %
-                                          (self.config_folder,
-                                           filename), 'rb'))
+                                     (self.config_folder,
+                                      filename), 'rb'))
         else:
-            T = self._calc_T(name=name)
+            print('Generating inverse transform function for % s' % filename)
+            T = self._calc_T(name=name, regenerate=regenerate)
             rotation_inv = T[:3, :3].T
             translation_inv = -rotation_inv * T[:3, 3]
             T_inv = rotation_inv.row_join(translation_inv).col_join(
