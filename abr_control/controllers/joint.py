@@ -24,6 +24,7 @@ class controller:
         target_vel np.array: desired joint velocities
         """
 
+        q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi
         if target_vel is None:
             target_vel = np.zeros(self.robot_config.num_joints)
 
@@ -33,7 +34,7 @@ class controller:
         Mq_g = self.robot_config.Mq_g(q)
 
         # calculated desired joint control signal
-        u = - Mq_g + np.dot(Mq, (self.kp * (target_pos - q) +
+        u = - Mq_g + np.dot(Mq, (self.kp * q_tilde +
                                  self.kv * (target_vel - dq)))
 
         return u
