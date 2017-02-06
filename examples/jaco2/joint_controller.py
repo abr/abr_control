@@ -65,6 +65,7 @@ finally:
         import matplotlib.pyplot as plt
         # import seaborn
 
+        q_track = np.array(q_track)
         plt.plot(q_track)
         plt.plot(np.ones(q_track.shape) * target_pos)
         plt.tight_layout()
