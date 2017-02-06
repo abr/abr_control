@@ -9,11 +9,11 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for neural controllers
-robot_config = abr_control.arms.jaco2.config_link2(
+robot_config = abr_control.arms.jaco2.config_link3(
     regenerate_functions=True, use_cython=True,
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
-ctrlr = abr_control.controllers.joint(robot_config, kp=2, kv=1)
+ctrlr = abr_control.controllers.joint(robot_config, kp=2, kv=1.5)
 
 ctrlr.control(np.zeros(robot_config.num_joints),
               np.zeros(robot_config.num_joints),
@@ -23,7 +23,7 @@ ctrlr.control(np.zeros(robot_config.num_joints),
 interface = abr_control.interfaces.vrep(
     robot_config=robot_config, dt=.001)
 
-target_pos = np.array([2.0,2.36], dtype='float32')
+target_pos = np.array([2.0,2.75, 3.45], dtype='float32')
 target_vel = None #np.array([1.0, 1.0], dtype='float32')
 
 # connect to the jaco
