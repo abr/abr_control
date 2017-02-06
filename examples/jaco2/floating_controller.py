@@ -8,6 +8,7 @@ import numpy as np
 
 import abr_control
 
+print('here')
 # initialize our robot config for neural controllers
 robot_config = abr_control.arms.jaco2.config_link2(
     regenerate_functions=True, use_cython=False,
