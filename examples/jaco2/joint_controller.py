@@ -52,7 +52,7 @@ try:
             quaternion, axes='rxyz')
         interface.set_orientation('hand', angles)
 
-        q_track.append(feedback['q'])
+        q_track.append(np.copy(feedback['q']))
 
 except Exception as e:
     print(e)
@@ -67,6 +67,6 @@ finally:
 
         q_track = np.array(q_track)
         plt.plot(q_track)
-        plt.plot(np.ones(q_track.shape) * target_pos)
+        plt.plot(np.ones(q_track.shape) * target_pos, 'r--')
         plt.tight_layout()
         plt.show()
