@@ -23,8 +23,8 @@ ctrlr.control(np.zeros(robot_config.num_joints),
 interface = abr_control.interfaces.vrep(
     robot_config=robot_config, dt=.001)
 
-target_pos = np.array([2.0,2.75, 3.45], dtype='float32')
-target_vel = None #np.array([1.0, 1.0], dtype='float32')
+target_pos = np.array([2.0, 2.75, 3.45], dtype='float32')
+target_vel = None
 
 # connect to the jaco
 interface.connect()
@@ -41,16 +41,16 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', q=feedback['q'])
 
-        u = ctrlr.control(q=feedback['q'], dq=feedback['dq'], 
-            target_pos=target_pos, target_vel=target_vel)
+        u = ctrlr.control(q=feedback['q'], dq=feedback['dq'],
+                          target_pos=target_pos, target_vel=target_vel)
         interface.apply_u(np.array(u, dtype='float32'))
 
         print('q: ', feedback['q'])
         # set orientation of hand object to match EE
-        """quaternion = robot_config.orientation('EE', q=feedback['q'])
+        quaternion = robot_config.orientation('EE', q=feedback['q'])
         angles = abr_control.utils.transformations.euler_from_quaternion(
             quaternion, axes='rxyz')
-        interface.set_orientation('hand', angles)"""
+        interface.set_orientation('hand', angles)
 
         ee_track.append(hand_xyz)
 
