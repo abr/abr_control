@@ -8,25 +8,25 @@ from .. import robot_config
 class robot_config(robot_config.robot_config):
     """ Robot config file for the Kinova Jaco^2 V2"""
 
-    def __init__(self, hand_attached=False, **kwargs):
+    def __init__(self, hand_attached=None, **kwargs):
 
-        self.hand_attached = hand_attached
-        num_links = 7 if hand_attached is True else 6
-        super(robot_config, self).__init__(num_joints=6, num_links=num_links,
+        num_links = 6
+        super(robot_config, self).__init__(num_joints=5, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
+        print(self.joint_names)
 
         # Kinova Home Position - straight up
         self.home_position = np.array([250.0, 180.0, 180.0,
-                                       270.0, 0.0, 0.0], dtype="float32")
+                                       270.0, 0.0], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0, 0.0],
+        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0],
                                     dtype='float32')
 
         # TODO: check if using sp or np diag makes a difference
@@ -39,9 +39,6 @@ class robot_config(robot_config.robot_config):
             sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link3
             sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link4
             sp.diag(0.25, 0.25, 0.25, 0.04, 0.04, 0.04)]  # link5
-        if self.hand_attached is True:
-            self._M_links.append(sp.diag(0.37, 0.37, 0.37,
-                                         0.04, 0.04, 0.04))  # link6
 
         # the joints don't weigh anything in VREP
         self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
@@ -59,10 +56,7 @@ class robot_config(robot_config.robot_config):
             [2.5923e-04, -3.8935e-03, -1.2393e-01],  # joint 3 offset
             [-4.0053e-04, 1.2581e-02, -3.5270e-02],  # link 4 offset
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
-            [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
-            [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
-        if self.hand_attached is True:  # add in hand offset
-            self.L.append([-3.6363e-05, 7.5728e-05, -1.2875e-05])
+            [-5.2974e-04, 1.2272e-02, -3.5485e-02]]  # link 5 offset
         self.L = np.array(self.L)
 
         # ---- Joint Transform Matrices ----
@@ -191,30 +185,6 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         self.Tj4l5 = self.Tj4l5a * self.Tj4l5b
 
-        # Transform matrix : link 5 -> joint 5
-        # account for axes change and offsets
-        self.Tl5j5 = sp.Matrix([
-            [-0.890598824, 0.403618758, 0.209584432, self.L[11, 0]],
-            [-0.454789710, -0.790154512, -0.410879747, self.L[11, 1]],
-            [0, -0.461245863, 0.887272337, self.L[11, 2]],
-            [0, 0, 0, 1]])
-
-        # Transform matrix: joint 5 -> link 6
-        # account for rotations due to q
-        if self.hand_attached is True:
-            self.Tj5l6a = sp.Matrix([
-                [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
-                [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1]])
-            # no axes change, account for offsets
-            self.Tj5l6b = sp.Matrix([
-                [-1, 0, 0, self.L[12, 0]],
-                [0, -1, 0, self.L[12, 1]],
-                [0, 0, 1, self.L[12, 2]],
-                [0, 0, 0, 1]])
-            self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
-
         # orientation part of the Jacobian (compensating for angular velocity)
         kz = sp.Matrix([0, 0, 1])
         self.J_orientation = [
@@ -222,8 +192,7 @@ class robot_config(robot_config.robot_config):
             self._calc_T('joint1')[:3, :3] * kz,  # joint 1 orientation
             self._calc_T('joint2')[:3, :3] * kz,  # joint 2 orientation
             self._calc_T('joint3')[:3, :3] * kz,  # joint 3 orientation
-            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 orientation
-            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 orientation
+            self._calc_T('joint4')[:3, :3] * kz]  # joint 4 orientation
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
@@ -267,24 +236,11 @@ class robot_config(robot_config.robot_config):
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4)
-            elif name == 'link5':
+            elif name == 'link5' or name == 'EE':
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
                     self.Tj3l4 * self.Tl4j4 * self.Tj4l5)
-            elif name == 'joint5' or (self.hand_attached is False and
-                                      name == 'EE'):
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5)
-            elif name == 'link6' or (self.hand_attached is True and
-                                     name == 'EE'):
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5 *
-                    self.Tj5l6)
             else:
                 raise Exception('Invalid transformation name: %s' % name)
 
