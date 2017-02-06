@@ -9,11 +9,11 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for neural controllers
-robot_config = abr_control.arms.jaco2.config_link3(
+robot_config = abr_control.arms.jaco2.config_link5(
     regenerate_functions=True, use_cython=True,
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
-ctrlr = abr_control.controllers.joint(robot_config, kp=2, kv=1.5)
+ctrlr = abr_control.controllers.joint(robot_config, kp=4, kv=2)
 
 ctrlr.control(np.zeros(robot_config.num_joints),
               np.zeros(robot_config.num_joints),
@@ -23,7 +23,7 @@ ctrlr.control(np.zeros(robot_config.num_joints),
 interface = abr_control.interfaces.vrep(
     robot_config=robot_config, dt=.001)
 
-target_pos = np.array([2.0, 2.75, 3.45], dtype='float32')
+target_pos = np.array([2.0, 2.75, 3.45, 1.0, .5], dtype='float32')
 target_vel = None
 
 # connect to the jaco
@@ -67,6 +67,8 @@ finally:
 
         q_track = np.array(q_track)
         plt.plot(q_track)
-        plt.plot(np.ones(q_track.shape) * target_pos, 'r--')
+        plt.plot(np.ones(q_track.shape) *
+                 ((target_pos + np.pi) % (np.pi * 2) - np.pi),
+                 'r--')
         plt.tight_layout()
         plt.show()

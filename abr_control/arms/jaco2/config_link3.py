@@ -31,7 +31,7 @@ class robot_config(robot_config.robot_config):
         self._M_links = [
             sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link0
             sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link1
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04), # link2
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link2
             sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04)]  # link3
 
         # the joints don't weigh anything in VREP
@@ -104,7 +104,7 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         self.Tj1l2 = self.Tj1l2a * self.Tj1l2b
 
-         # Transform matrix : link 2 -> joint 2
+        # Transform matrix : link 2 -> joint 2
         # account for axes rotation and offsets
         self.Tl2j2 = sp.Matrix([
             [0, 0, 1, self.L[5, 0]],
@@ -126,7 +126,6 @@ class robot_config(robot_config.robot_config):
             [-0.98977618, -0.14262926, 0, self.L[6, 2]],
             [0, 0, 0, 1]])
         self.Tj2l3 = self.Tj2l3a * self.Tj2l3b
-
 
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1])
