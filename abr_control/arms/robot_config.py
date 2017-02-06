@@ -197,8 +197,10 @@ class robot_config():
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.dJ' % (self.config_folder, filename))):
+            print('Loading derivative of Jacobian ',
+                  'function for %s...' % filename)
             dJ = pickle.load(open('%s/%s.dJ' %
-                                  (self.config_folder, filename), 'rb'))
+                                  (self.config_folder, filename), 'rb'))            
         else:
             print('Generating derivative of Jacobian ',
                   'function for %s' % filename)
@@ -241,8 +243,9 @@ class robot_config():
         # check to see if we have our Jacobian saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.J' % (self.config_folder, filename))):
+            print('Loading Jacobian function for %s...' % filename)
             J = pickle.load(open('%s/%s.J' %
-                                 (self.config_folder, filename), 'rb'))
+                                 (self.config_folder, filename), 'rb'))            
         else:
             print('Generating Jacobian function for %s' % filename)
             # TODO: make sure that we're not regenerating all these
@@ -300,6 +303,7 @@ class robot_config():
         # check to see if we have our inertia matrix saved in file
         if (regenerate is False and
                 os.path.isfile('%s/Mq' % self.config_folder)):
+            print('Loading inertia matrix function...')
             Mq = pickle.load(open('%s/Mq' % self.config_folder, 'rb'))
         else:
             print('Generating inertia matrix function')
@@ -349,6 +353,7 @@ class robot_config():
         # check to see if we have our gravity term saved in file
         if (regenerate is False and
                 os.path.isfile('%s/Mq_g' % self.config_folder)):
+            print('Loading gravity compensation function...')
             Mq_g = pickle.load(open('%s/Mq_g' %
                                     self.config_folder, 'rb'))
         else:
@@ -409,6 +414,7 @@ class robot_config():
         # check to see if we have our transformation saved in file
         if (regenerate is False and
                 os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
+            print('Loading transform function for %s...' % filename)
             Tx = pickle.load(open('%s/%s.T' %
                                   (self.config_folder, filename), 'rb'))
         else:
@@ -454,11 +460,12 @@ class robot_config():
         if (regenerate is False and
                 os.path.isfile('%s/%s.T_inv' % (self.config_folder,
                                                 filename))):
+            print('Loading inverse transform function for %s...' % filename)
             T_inv = pickle.load(open('%s/%s.T_inv' %
                                      (self.config_folder,
                                       filename), 'rb'))
         else:
-            print('Generating inverse transform function for % s' % filename)
+            print('Generating inverse transform function for %s' % filename)
             T = self._calc_T(name=name, regenerate=regenerate)
             rotation_inv = T[:3, :3].T
             translation_inv = -rotation_inv * T[:3, 3]
