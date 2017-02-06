@@ -30,7 +30,7 @@ target_vel = None
 interface.connect()
 
 # set up arrays for tracking end-effector and target position
-ee_track = []
+q_track = []
 ctr = 0
 
 try:
@@ -52,7 +52,7 @@ try:
             quaternion, axes='rxyz')
         interface.set_orientation('hand', angles)
 
-        ee_track.append(hand_xyz)
+        q_track.append(np.copy(feedback['q']))
 
 except Exception as e:
     print(e)
@@ -65,9 +65,8 @@ finally:
         import matplotlib.pyplot as plt
         # import seaborn
 
-        ee_track = np.array(ee_track)
-        abr_control.utils.plotting.plot_trajectory(
-            ee_track, np.zeros(ee_track.shape))
-
+        q_track = np.array(q_track)
+        plt.plot(q_track)
+        plt.plot(np.ones(q_track.shape) * target_pos, 'r--')
         plt.tight_layout()
         plt.show()
