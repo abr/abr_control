@@ -10,8 +10,8 @@ class robot_config(robot_config.robot_config):
 
     def __init__(self, hand_attached=False, **kwargs):
 
-        num_links = 4
-        super(robot_config, self).__init__(num_joints=3, num_links=num_links,
+        num_links = 5
+        super(robot_config, self).__init__(num_joints=4, num_links=num_links,
                                            robot_name='jaco2', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
@@ -20,11 +20,11 @@ class robot_config(robot_config.robot_config):
                             for ii in range(self.num_joints)]
 
         # Kinova Home Position - straight up
-        self.home_position = np.array([250.0, 180.0, 180.0], dtype="float32")
+        self.home_position = np.array([250.0, 180.0, 180.0, 270.0], dtype="float32")
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array([0.0, 140.0, 140.0], dtype='float32')
+        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0], dtype='float32')
 
         # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
@@ -32,7 +32,8 @@ class robot_config(robot_config.robot_config):
             sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link0
             sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link1
             sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04), # link2
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04)]  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04)]  # link4
 
         # the joints don't weigh anything in VREP
         self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
@@ -46,7 +47,9 @@ class robot_config(robot_config.robot_config):
             [-2.2042e-05, 1.3245e-04, -3.8863e-02],  # joint 1 offset
             [-1.9519e-03, 2.0902e-01, -2.8839e-02],  # link 2 offset
             [-2.3094e-02, -1.0980e-06, 2.0503e-01],  # joint 2 offset
-            [-4.8786e-04, -8.1945e-02, -1.2931e-02]])  # link 3 offset
+            [-4.8786e-04, -8.1945e-02, -1.2931e-02],  # link 3 offset
+            [2.5923e-04, -3.8935e-03, -1.2393e-01],  # joint 3 offset            
+            [-4.0053e-04, 1.2581e-02, -3.5270e-02]])  # link 4 offset
 
         # ---- Joint Transform Matrices ----
 
@@ -127,13 +130,36 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
         self.Tj2l3 = self.Tj2l3a * self.Tj2l3b
 
+        # Transform matrix : link 3 -> joint 3
+        # account for axes change and offsets
+        self.Tl3j3 = sp.Matrix([
+            [-0.14262861, -0.98977628, 0, self.L[7, 0]],
+            [0.98977628, -0.14262861, 0, self.L[7, 1]],
+            [0, 0, 1, self.L[7, 2]],
+            [0, 0, 0, 1]])
+
+        # Transform matrix: joint 3 -> link 4
+        # account for rotations due to q
+        self.Tj3l4a = sp.Matrix([
+            [sp.cos(self.q[3]), -sp.sin(self.q[3]), 0, 0],
+            [sp.sin(self.q[3]), sp.cos(self.q[3]), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]])
+        # account for axes and rotation and offsets
+        self.Tj3l4b = sp.Matrix([
+            [0.85536427, -0.51802699, 0, self.L[8, 0]],
+            [-0.45991232, -0.75940555,  0.46019982, self.L[8, 1]],
+            [-0.23839593, -0.39363848, -0.88781537, self.L[8, 2]],
+            [0, 0, 0, 1]])
+        self.Tj3l4 = self.Tj3l4a * self.Tj3l4b
 
         # orientation part of the Jacobian (compensating for orientations)
         kz = sp.Matrix([0, 0, 1])
         self.J_orientation = [
             self._calc_T('joint0')[:3, :3] * kz,  # joint 0 angular velocity
             self._calc_T('joint1')[:3, :3] * kz,  # joint 1 angular velocity
-            self._calc_T('joint2')[:3, :3] * kz]
+            self._calc_T('joint2')[:3, :3] * kz,  # joint 2
+            self._calc_T('joint3')[:3, :3] * kz]  # joint 3
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
@@ -159,9 +185,18 @@ class robot_config(robot_config.robot_config):
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2)
-            elif name == 'link3' or name == 'EE':
+            elif name == 'link3':
                 self._T[name] = (
                     self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
                     self.Tj1l2 * self.Tl2j2 * self.Tj2l3)
+            elif name == 'joint3':
+                self._T[name] = (
+                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
+                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3)
+            elif name == 'link4' or name == 'EE':
+                self._T[name] = (
+                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
+                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
+                    self.Tj3l4)
 
         return self._T[name]
