@@ -5,7 +5,8 @@ class controller:
     """ Implements an operational space controller (OSC)
     """
 
-    def __init__(self, robot_config, kp=1, kv=None, vmax=0.5):
+    def __init__(self, robot_config, kp=1, kv=None, vmax=0.5,
+                 null_control=True):
 
         self.robot_config = robot_config
 
@@ -16,6 +17,8 @@ class controller:
         # velocity limit of the end-effector
         self.vmax = vmax
         self.lamb = self.kp / self.kv
+
+        self.null_control = null_control
 
     def control(self, q, dq,
                 target_pos, target_vel=np.zeros(3),
@@ -41,11 +44,12 @@ class controller:
 
         # calculate the Jacobian for the end effector
         JEE = self.robot_config.J(ref_frame, q, x=offset)
+        JEE = JEE[:3]
 
         # calculate the end-effector linear and angular velocity
         full_velocity_signal = np.dot(JEE, dq)
         dx = full_velocity_signal[:3]  # linear velocity
-        w = full_velocity_signal[3:]  # angular velocity
+        # w = full_velocity_signal[3:]  # angular velocity
 
         # calculate the inertia matrix in joint space
         Mq = self.robot_config.Mq(q)
@@ -54,7 +58,7 @@ class controller:
         Mq_g = self.robot_config.Mq_g(q)
 
         # apply mask to Jacobian before
-        JEE *= np.array(mask).reshape(6, 1)
+        # JEE *= np.array(mask).reshape(6, 1)
         # calculate the inertia matrix in task space
         Mq_inv = np.linalg.inv(Mq)
         JEE_Mq_inv = np.dot(JEE, Mq_inv)  # save for use again below
@@ -63,7 +67,7 @@ class controller:
         # is slightly faster than doing it manually with svd
         Mx = np.linalg.pinv(Mx_inv, rcond=.01)
 
-        u_task = np.zeros(6)  # task space control signal before masking
+        u_task = np.zeros(3)  # task space control signal before masking
 
         # generate the position control signal in task space if a target
         # position was provided, and the mask includes positions
@@ -91,27 +95,27 @@ class controller:
                 # generate (x,y,z) force without velocity limiting)
                 u_task[:3] = -self.kp * x_tilde + self.kv * (target_vel - dx)
 
-        # generate the orientation control signal in task space if a target
-        # orientation was provided, and the mask includes orientation angles
-        if target_quat is not None and np.sum(mask[3:]) > 0:
-            # get the quaternion describing orientation of ref_frame
-            quat = self.robot_config.orientation(ref_frame, q)
-
-            # calculate the error between the two quaternions as
-            # described in (Nakanishi et al, 2008)
-            target_e = np.array([
-                [0, -target_quat[3], target_quat[2]],
-                [target_quat[3], 0, -target_quat[1]],
-                [-target_quat[2], target_quat[1], 0]])
-            error_quat = (target_quat[0] * quat[1:] -
-                          quat[0] * target_quat[1:] +
-                          np.dot(target_e, quat[1:]))
-
-            ko = self.kp
-            ka = np.sqrt(ko)
-            u_task[3:] = (ka * (target_w - w) - ko * error_quat)
-        # apply mask
-        u_task *= mask
+        # # generate the orientation control signal in task space if a target
+        # # orientation was provided, and the mask includes orientation angles
+        # if target_quat is not None and np.sum(mask[3:]) > 0:
+        #     # get the quaternion describing orientation of ref_frame
+        #     quat = self.robot_config.orientation(ref_frame, q)
+        #
+        #     # calculate the error between the two quaternions as
+        #     # described in (Nakanishi et al, 2008)
+        #     target_e = np.array([
+        #         [0, -target_quat[3], target_quat[2]],
+        #         [target_quat[3], 0, -target_quat[1]],
+        #         [-target_quat[2], target_quat[1], 0]])
+        #     error_quat = (target_quat[0] * quat[1:] -
+        #                   quat[0] * target_quat[1:] +
+        #                   np.dot(target_e, quat[1:]))
+        #
+        #     ko = self.kp
+        #     ka = np.sqrt(ko)
+        #     u_task[3:] = (ka * (target_w - w) - ko * error_quat)
+        # # apply mask
+        # u_task *= mask
 
         # incorporate task space inertia matrix
         u_task = np.dot(Mx, u_task)
@@ -122,28 +126,26 @@ class controller:
         # add in gravity compensation, not included in training signal
         u = self.training_signal - Mq_g
 
-        # NOTE: Should the null space controller be separated out
-        # as a signal to be added in if chosen? -----------------
+        if self.null_control is True:
+            # calculate the null space filter
+            nkp = self.kp * .1
+            nkv = np.sqrt(nkp)
+            Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
+            null_filter = (np.eye(self.robot_config.num_joints) -
+                           np.dot(JEE.T, Jdyn_inv))
 
-        # # calculate the null space filter
-        # nkp = self.kp * .1
-        # nkv = np.sqrt(nkp)
-        # Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
-        # null_filter = (np.eye(self.robot_config.num_joints) -
-        #                np.dot(JEE.T, Jdyn_inv))
-        #
-        # q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
-        # dq_des = np.zeros(self.robot_config.num_joints, dtype='float32')
-        #
-        # # calculated desired joint angle acceleration using rest angles
-        # for ii in range(1, self.robot_config.num_joints):
-        #     if self.robot_config.rest_angles[ii] is not None:
-        #         q_des[ii] = (
-        #             ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
-        #              (np.pi*2) - np.pi)
-        #         dq_des[ii] = dq[ii]
-        # u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
-        #
-        # u += np.dot(null_filter, u_null)
+            q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
+            dq_des = np.zeros(self.robot_config.num_joints, dtype='float32')
+
+            # calculated desired joint angle acceleration using rest angles
+            for ii in range(1, self.robot_config.num_joints):
+                if self.robot_config.rest_angles[ii] is not None:
+                    q_des[ii] = (
+                        ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
+                        (np.pi*2) - np.pi)
+                    dq_des[ii] = dq[ii]
+            u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
+
+            u += np.dot(null_filter, u_null)
 
         return u
