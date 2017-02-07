@@ -26,6 +26,7 @@ interface.connect()
 ee_track = []
 target_track = []
 
+
 def on_exit(signal, frame):
     """ A function for plotting the end-effector trajectory and error """
     global ee_track, target_track
@@ -68,7 +69,7 @@ try:
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
-    while count < 1500:
+    while 1: # count < 1500:
         # get arm feedback from VREP
         feedback = interface.get_feedback()
 
@@ -79,12 +80,18 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_x=target_xyz,
-            target_dx=np.zeros(3))
+            target_pos=target_xyz,
+            target_vel=np.zeros(3))
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
         interface.apply_u(u)
+
+        # set orientation of hand object to match EE
+        quaternion = robot_config.orientation('EE', q=feedback['q'])
+        angles = abr_control.utils.transformations.euler_from_quaternion(
+            quaternion, axes='rxyz')
+        interface.set_orientation('hand', angles)
 
         # track data
         ee_track.append(np.copy(ee_xyz))
