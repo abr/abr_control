@@ -200,7 +200,7 @@ class robot_config():
             print('Loading derivative of Jacobian ',
                   'function for %s...' % filename)
             dJ = pickle.load(open('%s/%s.dJ' %
-                                  (self.config_folder, filename), 'rb'))            
+                                  (self.config_folder, filename), 'rb'))
         else:
             print('Generating derivative of Jacobian ',
                   'function for %s' % filename)
@@ -245,7 +245,7 @@ class robot_config():
                 os.path.isfile('%s/%s.J' % (self.config_folder, filename))):
             print('Loading Jacobian function for %s...' % filename)
             J = pickle.load(open('%s/%s.J' %
-                                 (self.config_folder, filename), 'rb'))            
+                                 (self.config_folder, filename), 'rb'))
         else:
             print('Generating Jacobian function for %s' % filename)
             # TODO: make sure that we're not regenerating all these

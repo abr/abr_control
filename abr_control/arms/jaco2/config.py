@@ -20,25 +20,21 @@ class robot_config(robot_config.robot_config):
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
 
-        # Kinova Home Position - straight up
-        self.home_position = np.array([250.0, 180.0, 180.0,
-                                       270.0, 0.0, 0.0], dtype="float32")
-
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0, 0.0, 0.0],
-                                    dtype='float32')
+        self.rest_angles = np.array([None, 2.42, 2.42, 0.0, 0.0, 0.0])
 
         # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
+        # inertia values in VREP are divided by mass, account for that here
         self._M_links = [
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link0
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link1
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link2
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link3
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link3
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link4
-            sp.diag(0.25, 0.25, 0.25, 0.04, 0.04, 0.04)]  # link5
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link1
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link2
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link4
+            sp.diag(0.25, 0.25, 0.25, 0.01, 0.01, 0.01)]  # link5
         if self.hand_attached is True:
             self._M_links.append(sp.diag(0.37, 0.37, 0.37,
                                          0.04, 0.04, 0.04))  # link6

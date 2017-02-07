@@ -8,22 +8,21 @@ import numpy as np
 
 import abr_control
 
-# initialize our robot config for neural controllers
+# initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
     regenerate_functions=True, use_cython=True,
-    use_simplify=False, hand_attached=False)
-# instantiate the REACH controller for the jaco2 robot
+    use_simplify=False)
+# instantiate the controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=1, kv=1, vmax=0.35)
+    robot_config, kp=10, kv=3, vmax=.1, null_control=True)
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(6), np.zeros(6), target_x=np.zeros(3))
+ctrlr.control(np.zeros(6), np.zeros(6), target_pos=np.zeros(3))
 
-# create our interface for the jaco2
+# create our vrep interface
 interface = abr_control.interfaces.vrep(
     robot_config=robot_config, dt=.001)
-# connect to the jaco
 interface.connect()
 
 # set up arrays for tracking end-effector and target position
@@ -35,11 +34,11 @@ target_index = 0
 at_target_count = 0
 
 # list of targets to move to
-targets = [[-.467, .22, .78],
-           [-.467, -.22, .78],
-           [.467, -.22, .78],
-           [.467, .22, .78],
-           [-.467, .22, .78]]
+targets = [[-.4, .22, .7],
+           [-.4, -.22, .7],
+           [.4, -.22, .7],
+           [.4, .22, .7],
+           [-.4, .22, .7]]
 target_xyz = targets[0]
 print('Moving to first target: ', target_xyz)
 
@@ -54,7 +53,8 @@ try:
         hand_xyz = robot_config.Tx('EE', q=feedback['q'])
 
         u = ctrlr.control(q=feedback['q'], dq=feedback['dq'],
-                          target_x=target_xyz)
+                          target_pos=target_xyz)
+        print('u: ', [float('%.3f' % val) for val in u])
         interface.apply_u(np.array(u, dtype='float32'))
 
         error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
@@ -68,8 +68,15 @@ try:
                     break
                 else:
                     target_xyz = targets[target_index]
+                    interface.set_xyz(name='target', xyz=target_xyz)
                     print('Moving to next target: ', target_xyz)
                 at_target_count = 0
+
+        # set orientation of hand object to match EE
+        quaternion = robot_config.orientation('EE', q=feedback['q'])
+        angles = abr_control.utils.transformations.euler_from_quaternion(
+            quaternion, axes='rxyz')
+        interface.set_orientation('hand', angles)
 
         ee_track.append(hand_xyz)
         targets_track.append(target_xyz)
@@ -86,13 +93,8 @@ finally:
     interface.disconnect()
 
     if count > 0:  # i.e. if it successfully ran
-        import matplotlib.pyplot as plt
-        # import seaborn
-
         ee_track = np.array(ee_track)
         targets_track = np.array(targets_track)
         # plot targets and trajectory of end-effectory in 3D
-        abr_control.utils.plotting.plot_trajectory(ee_track, targets_track)
-
-        plt.tight_layout()
-        plt.show()
+        abr_control.utils.plotting.plot_trajectory(
+            ee_track, targets_track, save_file_name='trajectory')
