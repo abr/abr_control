@@ -2,7 +2,6 @@
 moves to target using force control"""
 import numpy as np
 import time
-import os
 import abr_control
 import abr_jaco2
 
@@ -63,8 +62,8 @@ try:
 
         interface.apply_u(np.array(u, dtype='float32'))
 
-        euclidean_err = np.sqrt(np.sum((target_xyz - ee_xyz_control)**2)) 
-               
+        euclidean_err = np.sqrt(np.sum((target_xyz - ee_xyz_control)**2))
+
         # break once end-effector is within 5mm of the target
 
         if loop_count % 1000 == 0:
