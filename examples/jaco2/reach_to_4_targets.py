@@ -8,11 +8,11 @@ import numpy as np
 
 import abr_control
 
-# initialize our robot config for neural controllers
+# initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
     regenerate_functions=True, use_cython=True,
     use_simplify=False, hand_attached=False)
-# instantiate the REACH controller for the jaco2 robot
+# instantiate the controller
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=1, kv=1, vmax=0.35)
 
@@ -20,10 +20,9 @@ ctrlr = abr_control.controllers.osc(
 # outside of the main loop, because force mode auto-exits after 200ms
 ctrlr.control(np.zeros(6), np.zeros(6), target_x=np.zeros(3))
 
-# create our interface for the jaco2
+# create our vrep interface
 interface = abr_control.interfaces.vrep(
     robot_config=robot_config, dt=.001)
-# connect to the jaco
 interface.connect()
 
 # set up arrays for tracking end-effector and target position

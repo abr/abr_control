@@ -9,7 +9,7 @@ import sys
 
 import abr_control
 
-# initialize our robot config for the ur5
+# initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
     regenerate_functions=True)
 
@@ -70,7 +70,7 @@ try:
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
-    while 1: # count < 1500:
+    while 1:  # count < 1500:
         # get arm feedback from VREP
         feedback = interface.get_feedback()
 
@@ -86,7 +86,7 @@ try:
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
-        interface.apply_u(-u)
+        interface.apply_u(u)
 
         # set orientation of hand object to match EE
         quaternion = robot_config.orientation('EE', q=feedback['q'])
