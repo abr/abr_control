@@ -32,6 +32,8 @@ class interface(interface.interface):
         self.count = 0  # keep track of how many times apply_u has been called
         self.misc_handles = {}  # for tracking miscellaneous object handles
 
+        print('\n\nNOTE: NEED TO FIGURE OUT WHY THE UR5 TORQUES ARE * -1\n\n')
+
     def connect(self):
         """ Connect to the current scene open in VREP,
         find the VREP references to the joints of the robot,
@@ -151,7 +153,7 @@ class interface(interface.interface):
         u np.array: an array of the torques to apply to the robot
         """
         # invert because torque directions are opposite of expected
-        u *= -1
+        # u *= -1
 
         for ii, joint_handle in enumerate(self.joint_handles):
 
