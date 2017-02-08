@@ -9,7 +9,7 @@ import sys
 
 import abr_control
 
-# initialize our robot config for the ur5
+# initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
     regenerate_functions=True)
 
@@ -31,18 +31,19 @@ def on_exit(signal, frame):
     """ A function for plotting the end-effector trajectory and error """
     global ee_track, target_track
     ee_track = np.array(ee_track)
-    target_track = np.array(target_track)
 
     import matplotlib.pyplot as plt
     fig = plt.figure()
     ax = fig.gca(projection='3d')
 
     # plot start point of hand
-    ax.plot(*ee_track, 'bx', mew=10)
+    ax.plot([ee_track[0, 0]], [ee_track[0, 1]], [ee_track[0, 2]],
+            'bx', mew=10)
     # plot trajectory of hand
-    ax.plot(*ee_track[:, 0])
+    ax.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2])
     # plot trajectory of target
-    ax.plot(*target_track, 'rx', mew=10)
+    ax.plot([target_xyz[0]], [target_xyz[1]], [target_xyz[2]],
+            'rx', mew=10)
     ax.set_xlim3d(-1, 1)
     ax.set_ylim3d(-1, 1)
     ax.set_zlim3d(0, 1.5)
@@ -69,7 +70,7 @@ try:
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
-    while 1: # count < 1500:
+    while 1:  # count < 1500:
         # get arm feedback from VREP
         feedback = interface.get_feedback()
 
@@ -85,7 +86,7 @@ try:
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
-        interface.apply_u(-u)
+        interface.apply_u(u)
 
         # set orientation of hand object to match EE
         quaternion = robot_config.orientation('EE', q=feedback['q'])

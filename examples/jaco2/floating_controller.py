@@ -10,7 +10,7 @@ import abr_control
 
 print('here')
 # initialize our robot config for neural controllers
-robot_config = abr_control.arms.jaco2.config_link2(
+robot_config = abr_control.arms.jaco2.config_link4(
     regenerate_functions=True, use_cython=False,
     use_simplify=False, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
