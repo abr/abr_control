@@ -24,16 +24,17 @@ class robot_config(robot_config.robot_config):
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0], dtype='float32')
+        self.rest_angles = np.array([0.0, 140.0, 140.0, 0.0],
+                                     dtype='float32') * np.pi / 180
 
         # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
         self._M_links = [
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link0
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link1
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04), # link2
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link3
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04)]  # link4
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link1
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02), # link2
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02)]  # link4
 
         # the joints don't weigh anything in VREP
         self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
@@ -48,7 +49,7 @@ class robot_config(robot_config.robot_config):
             [-1.9519e-03, 2.0902e-01, -2.8839e-02],  # link 2 offset
             [-2.3094e-02, -1.0980e-06, 2.0503e-01],  # joint 2 offset
             [-4.8786e-04, -8.1945e-02, -1.2931e-02],  # link 3 offset
-            [2.5923e-04, -3.8935e-03, -1.2393e-01],  # joint 3 offset            
+            [2.5923e-04, -3.8935e-03, -1.2393e-01],  # joint 3 offset
             [-4.0053e-04, 1.2581e-02, -3.5270e-02]])  # link 4 offset
 
         # ---- Joint Transform Matrices ----
