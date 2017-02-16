@@ -13,6 +13,7 @@ class controller:
         self.kp = kp
         # derivative gain term
         self.kv = np.sqrt(self.kp) if kv is None else kv
+        self.q_tilde = np.zeros(robot_config.num_joints)
 
     def control(self, q, dq, target_pos, target_vel=None):
         """Generate a control signal to move the arm through
@@ -24,7 +25,7 @@ class controller:
         target_vel np.array: desired joint velocities
         """
 
-        q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi
+        self.q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi
         if target_vel is None:
             target_vel = np.zeros(self.robot_config.num_joints)
 
@@ -34,7 +35,7 @@ class controller:
         Mq_g = self.robot_config.Mq_g(q)
 
         # calculated desired joint control signal
-        u = - Mq_g + np.dot(Mq, (self.kp * q_tilde +
+        u = - Mq_g + np.dot(Mq, (self.kp * self.q_tilde +
                                  self.kv * (target_vel - dq)))
 
         return u
