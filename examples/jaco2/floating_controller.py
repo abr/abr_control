@@ -5,14 +5,15 @@ once the final target is reached, and the arm has moved back
 to its default resting position.
 """
 import numpy as np
+import signal
+import sys
 
 import abr_control
 
-print('here')
 # initialize our robot config for neural controllers
-robot_config = abr_control.arms.jaco2.config_link4(
+robot_config = abr_control.arms.jaco2.config_link5(
     regenerate_functions=True, use_cython=False,
-    use_simplify=False, hand_attached=False)
+    hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.floating(
     robot_config)
@@ -28,18 +29,34 @@ interface.connect()
 
 # set up arrays for tracking end-effector and target position
 ee_track = []
-ctr = 0
+
+
+def on_exit(signal, frame):
+    """ A function for plotting the end-effector trajectory and error """
+    global ee_track
+    ee_track = np.array(ee_track)
+
+    import matplotlib.pyplot as plt
+
+    abr_control.utils.plotting.plot_trajectory(
+        ee_track, np.zeros(ee_track.shape))
+
+    plt.tight_layout()
+    plt.show()
+    sys.exit()
+
+# call on_exit when ctrl-c is pressed
+signal.signal(signal.SIGINT, on_exit)
 
 try:
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', q=feedback['q'])
     while 1:
-        ctr += 1
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', q=feedback['q'])
 
         u = ctrlr.control(q=feedback['q'], dq=feedback['dq'],)
-        interface.apply_u(np.array(u, dtype='float32'))
+        interface.send_forces(np.array(u, dtype='float32'))
 
         # set orientation of hand object to match EE
         quaternion = robot_config.orientation('EE', q=feedback['q'])
@@ -56,13 +73,4 @@ finally:
     # close the connection to the arm
     interface.disconnect()
 
-    if ctr > 0:  # i.e. if it successfully ran
-        import matplotlib.pyplot as plt
-        # import seaborn
-
-        ee_track = np.array(ee_track)
-        abr_control.utils.plotting.plot_trajectory(
-            ee_track, np.zeros(ee_track.shape))
-
-        plt.tight_layout()
-        plt.show()
+        

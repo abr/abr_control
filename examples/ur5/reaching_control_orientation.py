@@ -21,6 +21,7 @@ interface.connect()
 ee_track = []
 target_track = []
 
+
 def on_exit(signal, frame):
     """ A function for plotting the end-effector trajectory and error """
     global ee_track, target_track
@@ -76,12 +77,12 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_x=target_xyz,
+            target_pos=target_xyz,
             target_quat=target_quat,
             mask=[0, 0, 0, 1, 1, 1])
 
         # apply the control signal, step the sim forward
-        interface.apply_u(u)
+        interface.send_forces(u)
 
         ee_xyz = interface.get_xyz('hand')
         angles = interface.get_orientation('UR5_link6')

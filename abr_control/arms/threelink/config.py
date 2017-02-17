@@ -26,12 +26,15 @@ class robot_config(robot_config.robot_config):
         #                         0.012, 0.012, 0.012]) * 10)  # link1
         # self._M.append(np.diag([0.15, 0.15, 0.15,
         #                         0.001, 0.001, 0.001]) * 10)  # link2
-        self._M.append(np.diag([10.0, 10.0, 10.0,
+        self._M_links.append(np.diag([10.0, 10.0, 10.0,
                                 0.0, 0.0, 100.0]))  # link0
-        self._M.append(np.diag([10.0, 10.0, 10.0,
+        self._M_links.append(np.diag([10.0, 10.0, 10.0,
                                 0.0, 0.0, 100.0]))  # link1
-        self._M.append(np.diag([10.0, 10.0, 10.0,
+        self._M_links.append(np.diag([10.0, 10.0, 10.0,
                                 0.0, 0.0, 100.0]))  # link2
+
+        # the joints don't weigh anything
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
 
         # segment lengths associated with each joint
         # [x, y, z],  Ignoring lengths < 1e-04
