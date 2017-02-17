@@ -37,7 +37,7 @@ def plot_trajectory(ee_path, target_path, save_file_name=None):
     plt.tight_layout()
 
     if save_file_name is not None:
-        plt.savefig(save_file_name, format='pdf')
+        plt.savefig(save_file_name + '.pdf', format='pdf')
         plt.savefig(save_file_name)
 
     plt.show()

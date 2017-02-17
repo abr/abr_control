@@ -41,13 +41,13 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_x=target_xyz)
+            target_pos=target_xyz)
 
         target_xyz[0], target_xyz[1] = interface.display.get_mousexy()
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward
-        interface.apply_u(u)
+        interface.send_forces(u)
 
         # track data
         ee_path.append(np.copy(hand_xyz))
