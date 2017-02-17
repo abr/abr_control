@@ -88,6 +88,9 @@ while 1:
                 print('Moving to next target: ', target_xyz)
             at_target_count = 0
 
+    # print([name for name in sys.modules if 'wrapper' in name])
+    print(sys.modules['EE[0,0,0].wrapper_module_0'])
+    print(sys.modules['wrapper_module_0'])
     # set orientation of hand object to match EE
     quaternion = robot_config.orientation('EE', q=feedback['q'])
     angles = abr_control.utils.transformations.euler_from_quaternion(

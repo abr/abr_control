@@ -93,7 +93,8 @@ class controller:
                                          -self.lamb * scale * x_tilde)
             else:
                 # generate (x,y,z) force without velocity limiting)
-                u_task[:3] = -self.kp * x_tilde + self.kv * (target_vel - dx)
+                # u_task[:3] = -self.kp * x_tilde + self.kv * (target_vel - dx)
+                u_task[:3] = -self.kp * x_tilde
 
         # # generate the orientation control signal in task space if a target
         # # orientation was provided, and the mask includes orientation angles
@@ -122,7 +123,8 @@ class controller:
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
-        self.training_signal = np.dot(JEE.T, u_task)
+        # self.training_signal = np.dot(JEE.T, u_task)
+        self.training_signal = np.dot(JEE.T, u_task) - np.dot(Mq, dq)
         # add in gravity compensation, not included in training signal
         u = self.training_signal - g
 

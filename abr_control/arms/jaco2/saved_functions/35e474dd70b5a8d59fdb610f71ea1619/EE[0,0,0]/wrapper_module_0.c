@@ -266,14 +266,14 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE__wrapped_module_2
-#define __PYX_HAVE_API__wrapped_module_2
+#define __PYX_HAVE__wrapper_module_0
+#define __PYX_HAVE_API__wrapper_module_0
 #include "string.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "numpy/arrayobject.h"
 #include "numpy/ufuncobject.h"
-#include "wrapped_code_2.h"
+#include "wrapped_code_0.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
@@ -511,7 +511,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "wrapped_module_2.pyx",
+  "wrapper_module_0.pyx",
   "__init__.pxd",
   "type.pxd",
 };
@@ -1193,15 +1193,18 @@ static PyTypeObject *__pyx_ptype_5numpy_ndarray = 0;
 static PyTypeObject *__pyx_ptype_5numpy_ufunc = 0;
 static CYTHON_INLINE char *__pyx_f_5numpy__util_dtypestring(PyArray_Descr *, char *, char *, int *); /*proto*/
 
-/* Module declarations from 'wrapped_module_2' */
+/* Module declarations from 'wrapper_module_0' */
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_double_t = { "double_t", NULL, sizeof(__pyx_t_5numpy_double_t), { 0 }, 0, 'R', 0, 0 };
-#define __Pyx_MODULE_NAME "wrapped_module_2"
-int __pyx_module_is_main_wrapped_module_2 = 0;
+#define __Pyx_MODULE_NAME "wrapper_module_0"
+int __pyx_module_is_main_wrapper_module_0 = 0;
 
-/* Implementation of 'wrapped_module_2' */
+/* Implementation of 'wrapper_module_0' */
 static PyObject *__pyx_builtin_ValueError;
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_RuntimeError;
+static const char __pyx_k_x[] = "x";
+static const char __pyx_k_y[] = "y";
+static const char __pyx_k_z[] = "z";
 static const char __pyx_k_np[] = "np";
 static const char __pyx_k_q0[] = "q0";
 static const char __pyx_k_q1[] = "q1";
@@ -1218,10 +1221,10 @@ static const char __pyx_k_import[] = "__import__";
 static const char __pyx_k_ValueError[] = "ValueError";
 static const char __pyx_k_autofunc_c[] = "autofunc_c";
 static const char __pyx_k_RuntimeError[] = "RuntimeError";
-static const char __pyx_k_wrapped_module_2[] = "wrapped_module_2";
-static const char __pyx_k_out_1197067879353450676[] = "out_1197067879353450676";
+static const char __pyx_k_wrapper_module_0[] = "wrapper_module_0";
+static const char __pyx_k_out_4814970229430216916[] = "out_4814970229430216916";
 static const char __pyx_k_ndarray_is_not_C_contiguous[] = "ndarray is not C contiguous";
-static const char __pyx_k_home_tdewolf_Dropbox_code_contr[] = "/home/tdewolf/Dropbox/code/control/abr_control/arms/jaco2/saved_functions/35e474dd70b5a8d59fdb610f71ea1619/Mq/wrapped_module_2.pyx";
+static const char __pyx_k_home_tdewolf_Dropbox_code_contr[] = "/home/tdewolf/Dropbox/code/control/abr_control/arms/jaco2/saved_functions/35e474dd70b5a8d59fdb610f71ea1619/EE[0,0,0]/wrapper_module_0.pyx";
 static const char __pyx_k_unknown_dtype_code_in_numpy_pxd[] = "unknown dtype code in numpy.pxd (%d)";
 static const char __pyx_k_Format_string_allocated_too_shor[] = "Format string allocated too short, see comment in numpy.pxd";
 static const char __pyx_k_Non_native_byte_order_not_suppor[] = "Non-native byte order not supported";
@@ -1241,7 +1244,7 @@ static PyObject *__pyx_kp_u_ndarray_is_not_C_contiguous;
 static PyObject *__pyx_kp_u_ndarray_is_not_Fortran_contiguou;
 static PyObject *__pyx_n_s_np;
 static PyObject *__pyx_n_s_numpy;
-static PyObject *__pyx_n_s_out_1197067879353450676;
+static PyObject *__pyx_n_s_out_4814970229430216916;
 static PyObject *__pyx_n_s_q0;
 static PyObject *__pyx_n_s_q1;
 static PyObject *__pyx_n_s_q2;
@@ -1251,11 +1254,15 @@ static PyObject *__pyx_n_s_q5;
 static PyObject *__pyx_n_s_range;
 static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_kp_u_unknown_dtype_code_in_numpy_pxd;
-static PyObject *__pyx_n_s_wrapped_module_2;
-static PyObject *__pyx_pf_16wrapped_module_2_autofunc_c(CYTHON_UNUSED PyObject *__pyx_self, double __pyx_v_q0, double __pyx_v_q1, double __pyx_v_q2, double __pyx_v_q3, double __pyx_v_q4, double __pyx_v_q5); /* proto */
+static PyObject *__pyx_n_s_wrapper_module_0;
+static PyObject *__pyx_n_s_x;
+static PyObject *__pyx_n_s_y;
+static PyObject *__pyx_n_s_z;
+static PyObject *__pyx_pf_16wrapper_module_0_autofunc_c(CYTHON_UNUSED PyObject *__pyx_self, double __pyx_v_q0, double __pyx_v_q1, double __pyx_v_q2, double __pyx_v_q3, double __pyx_v_q4, double __pyx_v_q5, double __pyx_v_x, double __pyx_v_y, double __pyx_v_z); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
-static PyObject *__pyx_int_6;
+static PyObject *__pyx_int_1;
+static PyObject *__pyx_int_4;
 static PyObject *__pyx_tuple_;
 static PyObject *__pyx_tuple__2;
 static PyObject *__pyx_tuple__3;
@@ -1267,34 +1274,40 @@ static PyObject *__pyx_tuple__8;
 static PyObject *__pyx_tuple__9;
 static PyObject *__pyx_codeobj__10;
 
-/* "wrapped_module_2.pyx":7
- *     void autofunc(double q0, double q1, double q2, double q3, double q4, double q5, double *out_1197067879353450676)
+/* "wrapper_module_0.pyx":7
+ *     void autofunc(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z, double *out_4814970229430216916)
  * 
- * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5):             # <<<<<<<<<<<<<<
+ * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z):             # <<<<<<<<<<<<<<
  * 
- *     cdef np.ndarray[np.double_t, ndim=2] out_1197067879353450676 = np.empty((6,6))
+ *     cdef np.ndarray[np.double_t, ndim=2] out_4814970229430216916 = np.empty((4,1))
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_16wrapped_module_2_1autofunc_c(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_16wrapped_module_2_1autofunc_c = {"autofunc_c", (PyCFunction)__pyx_pw_16wrapped_module_2_1autofunc_c, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_16wrapped_module_2_1autofunc_c(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_16wrapper_module_0_1autofunc_c(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_16wrapper_module_0_1autofunc_c = {"autofunc_c", (PyCFunction)__pyx_pw_16wrapper_module_0_1autofunc_c, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_16wrapper_module_0_1autofunc_c(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   double __pyx_v_q0;
   double __pyx_v_q1;
   double __pyx_v_q2;
   double __pyx_v_q3;
   double __pyx_v_q4;
   double __pyx_v_q5;
+  double __pyx_v_x;
+  double __pyx_v_y;
+  double __pyx_v_z;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("autofunc_c (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_q0,&__pyx_n_s_q1,&__pyx_n_s_q2,&__pyx_n_s_q3,&__pyx_n_s_q4,&__pyx_n_s_q5,0};
-    PyObject* values[6] = {0,0,0,0,0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_q0,&__pyx_n_s_q1,&__pyx_n_s_q2,&__pyx_n_s_q3,&__pyx_n_s_q4,&__pyx_n_s_q5,&__pyx_n_s_x,&__pyx_n_s_y,&__pyx_n_s_z,0};
+    PyObject* values[9] = {0,0,0,0,0,0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case  9: values[8] = PyTuple_GET_ITEM(__pyx_args, 8);
+        case  8: values[7] = PyTuple_GET_ITEM(__pyx_args, 7);
+        case  7: values[6] = PyTuple_GET_ITEM(__pyx_args, 6);
         case  6: values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
         case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
         case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
@@ -1312,33 +1325,48 @@ static PyObject *__pyx_pw_16wrapped_module_2_1autofunc_c(PyObject *__pyx_self, P
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_q1)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 6, 6, 1); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, 1); __PYX_ERR(0, 7, __pyx_L3_error)
         }
         case  2:
         if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_q2)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 6, 6, 2); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, 2); __PYX_ERR(0, 7, __pyx_L3_error)
         }
         case  3:
         if (likely((values[3] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_q3)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 6, 6, 3); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, 3); __PYX_ERR(0, 7, __pyx_L3_error)
         }
         case  4:
         if (likely((values[4] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_q4)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 6, 6, 4); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, 4); __PYX_ERR(0, 7, __pyx_L3_error)
         }
         case  5:
         if (likely((values[5] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_q5)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 6, 6, 5); __PYX_ERR(0, 7, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, 5); __PYX_ERR(0, 7, __pyx_L3_error)
+        }
+        case  6:
+        if (likely((values[6] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_x)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, 6); __PYX_ERR(0, 7, __pyx_L3_error)
+        }
+        case  7:
+        if (likely((values[7] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_y)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, 7); __PYX_ERR(0, 7, __pyx_L3_error)
+        }
+        case  8:
+        if (likely((values[8] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_z)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, 8); __PYX_ERR(0, 7, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "autofunc_c") < 0)) __PYX_ERR(0, 7, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 6) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 9) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
@@ -1347,6 +1375,9 @@ static PyObject *__pyx_pw_16wrapped_module_2_1autofunc_c(PyObject *__pyx_self, P
       values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
       values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
       values[5] = PyTuple_GET_ITEM(__pyx_args, 5);
+      values[6] = PyTuple_GET_ITEM(__pyx_args, 6);
+      values[7] = PyTuple_GET_ITEM(__pyx_args, 7);
+      values[8] = PyTuple_GET_ITEM(__pyx_args, 8);
     }
     __pyx_v_q0 = __pyx_PyFloat_AsDouble(values[0]); if (unlikely((__pyx_v_q0 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
     __pyx_v_q1 = __pyx_PyFloat_AsDouble(values[1]); if (unlikely((__pyx_v_q1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
@@ -1354,43 +1385,46 @@ static PyObject *__pyx_pw_16wrapped_module_2_1autofunc_c(PyObject *__pyx_self, P
     __pyx_v_q3 = __pyx_PyFloat_AsDouble(values[3]); if (unlikely((__pyx_v_q3 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
     __pyx_v_q4 = __pyx_PyFloat_AsDouble(values[4]); if (unlikely((__pyx_v_q4 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
     __pyx_v_q5 = __pyx_PyFloat_AsDouble(values[5]); if (unlikely((__pyx_v_q5 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
+    __pyx_v_x = __pyx_PyFloat_AsDouble(values[6]); if (unlikely((__pyx_v_x == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
+    __pyx_v_y = __pyx_PyFloat_AsDouble(values[7]); if (unlikely((__pyx_v_y == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
+    __pyx_v_z = __pyx_PyFloat_AsDouble(values[8]); if (unlikely((__pyx_v_z == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 7, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("autofunc_c", 1, 9, 9, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 7, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("wrapped_module_2.autofunc_c", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("wrapper_module_0.autofunc_c", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_16wrapped_module_2_autofunc_c(__pyx_self, __pyx_v_q0, __pyx_v_q1, __pyx_v_q2, __pyx_v_q3, __pyx_v_q4, __pyx_v_q5);
+  __pyx_r = __pyx_pf_16wrapper_module_0_autofunc_c(__pyx_self, __pyx_v_q0, __pyx_v_q1, __pyx_v_q2, __pyx_v_q3, __pyx_v_q4, __pyx_v_q5, __pyx_v_x, __pyx_v_y, __pyx_v_z);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_16wrapped_module_2_autofunc_c(CYTHON_UNUSED PyObject *__pyx_self, double __pyx_v_q0, double __pyx_v_q1, double __pyx_v_q2, double __pyx_v_q3, double __pyx_v_q4, double __pyx_v_q5) {
-  PyArrayObject *__pyx_v_out_1197067879353450676 = 0;
-  __Pyx_LocalBuf_ND __pyx_pybuffernd_out_1197067879353450676;
-  __Pyx_Buffer __pyx_pybuffer_out_1197067879353450676;
+static PyObject *__pyx_pf_16wrapper_module_0_autofunc_c(CYTHON_UNUSED PyObject *__pyx_self, double __pyx_v_q0, double __pyx_v_q1, double __pyx_v_q2, double __pyx_v_q3, double __pyx_v_q4, double __pyx_v_q5, double __pyx_v_x, double __pyx_v_y, double __pyx_v_z) {
+  PyArrayObject *__pyx_v_out_4814970229430216916 = 0;
+  __Pyx_LocalBuf_ND __pyx_pybuffernd_out_4814970229430216916;
+  __Pyx_Buffer __pyx_pybuffer_out_4814970229430216916;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   PyObject *__pyx_t_2 = NULL;
   PyArrayObject *__pyx_t_3 = NULL;
   __Pyx_RefNannySetupContext("autofunc_c", 0);
-  __pyx_pybuffer_out_1197067879353450676.pybuffer.buf = NULL;
-  __pyx_pybuffer_out_1197067879353450676.refcount = 0;
-  __pyx_pybuffernd_out_1197067879353450676.data = NULL;
-  __pyx_pybuffernd_out_1197067879353450676.rcbuffer = &__pyx_pybuffer_out_1197067879353450676;
+  __pyx_pybuffer_out_4814970229430216916.pybuffer.buf = NULL;
+  __pyx_pybuffer_out_4814970229430216916.refcount = 0;
+  __pyx_pybuffernd_out_4814970229430216916.data = NULL;
+  __pyx_pybuffernd_out_4814970229430216916.rcbuffer = &__pyx_pybuffer_out_4814970229430216916;
 
-  /* "wrapped_module_2.pyx":9
- * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5):
+  /* "wrapper_module_0.pyx":9
+ * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z):
  * 
- *     cdef np.ndarray[np.double_t, ndim=2] out_1197067879353450676 = np.empty((6,6))             # <<<<<<<<<<<<<<
- *     autofunc(q0, q1, q2, q3, q4, q5, <double*> out_1197067879353450676.data)
- *     return out_1197067879353450676
+ *     cdef np.ndarray[np.double_t, ndim=2] out_4814970229430216916 = np.empty((4,1))             # <<<<<<<<<<<<<<
+ *     autofunc(q0, q1, q2, q3, q4, q5, x, y, z, <double*> out_4814970229430216916.data)
+ *     return out_4814970229430216916
  */
   __pyx_t_1 = __Pyx_GetModuleGlobalName(__pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 9, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -1404,40 +1438,40 @@ static PyObject *__pyx_pf_16wrapped_module_2_autofunc_c(CYTHON_UNUSED PyObject *
   __pyx_t_3 = ((PyArrayObject *)__pyx_t_1);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_out_1197067879353450676.rcbuffer->pybuffer, (PyObject*)__pyx_t_3, &__Pyx_TypeInfo_nn___pyx_t_5numpy_double_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) {
-      __pyx_v_out_1197067879353450676 = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_out_1197067879353450676.rcbuffer->pybuffer.buf = NULL;
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_out_4814970229430216916.rcbuffer->pybuffer, (PyObject*)__pyx_t_3, &__Pyx_TypeInfo_nn___pyx_t_5numpy_double_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) {
+      __pyx_v_out_4814970229430216916 = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_out_4814970229430216916.rcbuffer->pybuffer.buf = NULL;
       __PYX_ERR(0, 9, __pyx_L1_error)
-    } else {__pyx_pybuffernd_out_1197067879353450676.diminfo[0].strides = __pyx_pybuffernd_out_1197067879353450676.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_out_1197067879353450676.diminfo[0].shape = __pyx_pybuffernd_out_1197067879353450676.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_out_1197067879353450676.diminfo[1].strides = __pyx_pybuffernd_out_1197067879353450676.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_out_1197067879353450676.diminfo[1].shape = __pyx_pybuffernd_out_1197067879353450676.rcbuffer->pybuffer.shape[1];
+    } else {__pyx_pybuffernd_out_4814970229430216916.diminfo[0].strides = __pyx_pybuffernd_out_4814970229430216916.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_out_4814970229430216916.diminfo[0].shape = __pyx_pybuffernd_out_4814970229430216916.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_out_4814970229430216916.diminfo[1].strides = __pyx_pybuffernd_out_4814970229430216916.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_out_4814970229430216916.diminfo[1].shape = __pyx_pybuffernd_out_4814970229430216916.rcbuffer->pybuffer.shape[1];
     }
   }
   __pyx_t_3 = 0;
-  __pyx_v_out_1197067879353450676 = ((PyArrayObject *)__pyx_t_1);
+  __pyx_v_out_4814970229430216916 = ((PyArrayObject *)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "wrapped_module_2.pyx":10
+  /* "wrapper_module_0.pyx":10
  * 
- *     cdef np.ndarray[np.double_t, ndim=2] out_1197067879353450676 = np.empty((6,6))
- *     autofunc(q0, q1, q2, q3, q4, q5, <double*> out_1197067879353450676.data)             # <<<<<<<<<<<<<<
- *     return out_1197067879353450676
+ *     cdef np.ndarray[np.double_t, ndim=2] out_4814970229430216916 = np.empty((4,1))
+ *     autofunc(q0, q1, q2, q3, q4, q5, x, y, z, <double*> out_4814970229430216916.data)             # <<<<<<<<<<<<<<
+ *     return out_4814970229430216916
  */
-  autofunc(__pyx_v_q0, __pyx_v_q1, __pyx_v_q2, __pyx_v_q3, __pyx_v_q4, __pyx_v_q5, ((double *)__pyx_v_out_1197067879353450676->data));
+  autofunc(__pyx_v_q0, __pyx_v_q1, __pyx_v_q2, __pyx_v_q3, __pyx_v_q4, __pyx_v_q5, __pyx_v_x, __pyx_v_y, __pyx_v_z, ((double *)__pyx_v_out_4814970229430216916->data));
 
-  /* "wrapped_module_2.pyx":11
- *     cdef np.ndarray[np.double_t, ndim=2] out_1197067879353450676 = np.empty((6,6))
- *     autofunc(q0, q1, q2, q3, q4, q5, <double*> out_1197067879353450676.data)
- *     return out_1197067879353450676             # <<<<<<<<<<<<<<
+  /* "wrapper_module_0.pyx":11
+ *     cdef np.ndarray[np.double_t, ndim=2] out_4814970229430216916 = np.empty((4,1))
+ *     autofunc(q0, q1, q2, q3, q4, q5, x, y, z, <double*> out_4814970229430216916.data)
+ *     return out_4814970229430216916             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(((PyObject *)__pyx_v_out_1197067879353450676));
-  __pyx_r = ((PyObject *)__pyx_v_out_1197067879353450676);
+  __Pyx_INCREF(((PyObject *)__pyx_v_out_4814970229430216916));
+  __pyx_r = ((PyObject *)__pyx_v_out_4814970229430216916);
   goto __pyx_L0;
 
-  /* "wrapped_module_2.pyx":7
- *     void autofunc(double q0, double q1, double q2, double q3, double q4, double q5, double *out_1197067879353450676)
+  /* "wrapper_module_0.pyx":7
+ *     void autofunc(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z, double *out_4814970229430216916)
  * 
- * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5):             # <<<<<<<<<<<<<<
+ * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z):             # <<<<<<<<<<<<<<
  * 
- *     cdef np.ndarray[np.double_t, ndim=2] out_1197067879353450676 = np.empty((6,6))
+ *     cdef np.ndarray[np.double_t, ndim=2] out_4814970229430216916 = np.empty((4,1))
  */
 
   /* function exit code */
@@ -1448,15 +1482,15 @@ static PyObject *__pyx_pf_16wrapped_module_2_autofunc_c(CYTHON_UNUSED PyObject *
     __Pyx_PyThreadState_declare
     __Pyx_PyThreadState_assign
     __Pyx_ErrFetch(&__pyx_type, &__pyx_value, &__pyx_tb);
-    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_out_1197067879353450676.rcbuffer->pybuffer);
+    __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_out_4814970229430216916.rcbuffer->pybuffer);
   __Pyx_ErrRestore(__pyx_type, __pyx_value, __pyx_tb);}
-  __Pyx_AddTraceback("wrapped_module_2.autofunc_c", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("wrapper_module_0.autofunc_c", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   goto __pyx_L2;
   __pyx_L0:;
-  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_out_1197067879353450676.rcbuffer->pybuffer);
+  __Pyx_SafeReleaseBuffer(&__pyx_pybuffernd_out_4814970229430216916.rcbuffer->pybuffer);
   __pyx_L2:;
-  __Pyx_XDECREF((PyObject *)__pyx_v_out_1197067879353450676);
+  __Pyx_XDECREF((PyObject *)__pyx_v_out_4814970229430216916);
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
@@ -3595,7 +3629,7 @@ static struct PyModuleDef __pyx_moduledef = {
   #else
     PyModuleDef_HEAD_INIT,
   #endif
-    "wrapped_module_2",
+    "wrapper_module_0",
     0, /* m_doc */
     -1, /* m_size */
     __pyx_methods /* m_methods */,
@@ -3621,7 +3655,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_u_ndarray_is_not_Fortran_contiguou, __pyx_k_ndarray_is_not_Fortran_contiguou, sizeof(__pyx_k_ndarray_is_not_Fortran_contiguou), 0, 1, 0, 0},
   {&__pyx_n_s_np, __pyx_k_np, sizeof(__pyx_k_np), 0, 0, 1, 1},
   {&__pyx_n_s_numpy, __pyx_k_numpy, sizeof(__pyx_k_numpy), 0, 0, 1, 1},
-  {&__pyx_n_s_out_1197067879353450676, __pyx_k_out_1197067879353450676, sizeof(__pyx_k_out_1197067879353450676), 0, 0, 1, 1},
+  {&__pyx_n_s_out_4814970229430216916, __pyx_k_out_4814970229430216916, sizeof(__pyx_k_out_4814970229430216916), 0, 0, 1, 1},
   {&__pyx_n_s_q0, __pyx_k_q0, sizeof(__pyx_k_q0), 0, 0, 1, 1},
   {&__pyx_n_s_q1, __pyx_k_q1, sizeof(__pyx_k_q1), 0, 0, 1, 1},
   {&__pyx_n_s_q2, __pyx_k_q2, sizeof(__pyx_k_q2), 0, 0, 1, 1},
@@ -3631,7 +3665,10 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
   {&__pyx_kp_u_unknown_dtype_code_in_numpy_pxd, __pyx_k_unknown_dtype_code_in_numpy_pxd, sizeof(__pyx_k_unknown_dtype_code_in_numpy_pxd), 0, 1, 0, 0},
-  {&__pyx_n_s_wrapped_module_2, __pyx_k_wrapped_module_2, sizeof(__pyx_k_wrapped_module_2), 0, 0, 1, 1},
+  {&__pyx_n_s_wrapper_module_0, __pyx_k_wrapper_module_0, sizeof(__pyx_k_wrapper_module_0), 0, 0, 1, 1},
+  {&__pyx_n_s_x, __pyx_k_x, sizeof(__pyx_k_x), 0, 0, 1, 1},
+  {&__pyx_n_s_y, __pyx_k_y, sizeof(__pyx_k_y), 0, 0, 1, 1},
+  {&__pyx_n_s_z, __pyx_k_z, sizeof(__pyx_k_z), 0, 0, 1, 1},
   {0, 0, 0, 0, 0, 0, 0}
 };
 static int __Pyx_InitCachedBuiltins(void) {
@@ -3647,14 +3684,14 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "wrapped_module_2.pyx":9
- * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5):
+  /* "wrapper_module_0.pyx":9
+ * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z):
  * 
- *     cdef np.ndarray[np.double_t, ndim=2] out_1197067879353450676 = np.empty((6,6))             # <<<<<<<<<<<<<<
- *     autofunc(q0, q1, q2, q3, q4, q5, <double*> out_1197067879353450676.data)
- *     return out_1197067879353450676
+ *     cdef np.ndarray[np.double_t, ndim=2] out_4814970229430216916 = np.empty((4,1))             # <<<<<<<<<<<<<<
+ *     autofunc(q0, q1, q2, q3, q4, q5, x, y, z, <double*> out_4814970229430216916.data)
+ *     return out_4814970229430216916
  */
-  __pyx_tuple_ = PyTuple_Pack(2, __pyx_int_6, __pyx_int_6); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_tuple_ = PyTuple_Pack(2, __pyx_int_4, __pyx_int_1); if (unlikely(!__pyx_tuple_)) __PYX_ERR(0, 9, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple_);
   __Pyx_GIVEREF(__pyx_tuple_);
   __pyx_tuple__2 = PyTuple_Pack(1, __pyx_tuple_); if (unlikely(!__pyx_tuple__2)) __PYX_ERR(0, 9, __pyx_L1_error)
@@ -3727,17 +3764,17 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__8);
   __Pyx_GIVEREF(__pyx_tuple__8);
 
-  /* "wrapped_module_2.pyx":7
- *     void autofunc(double q0, double q1, double q2, double q3, double q4, double q5, double *out_1197067879353450676)
+  /* "wrapper_module_0.pyx":7
+ *     void autofunc(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z, double *out_4814970229430216916)
  * 
- * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5):             # <<<<<<<<<<<<<<
+ * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z):             # <<<<<<<<<<<<<<
  * 
- *     cdef np.ndarray[np.double_t, ndim=2] out_1197067879353450676 = np.empty((6,6))
+ *     cdef np.ndarray[np.double_t, ndim=2] out_4814970229430216916 = np.empty((4,1))
  */
-  __pyx_tuple__9 = PyTuple_Pack(7, __pyx_n_s_q0, __pyx_n_s_q1, __pyx_n_s_q2, __pyx_n_s_q3, __pyx_n_s_q4, __pyx_n_s_q5, __pyx_n_s_out_1197067879353450676); if (unlikely(!__pyx_tuple__9)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_tuple__9 = PyTuple_Pack(10, __pyx_n_s_q0, __pyx_n_s_q1, __pyx_n_s_q2, __pyx_n_s_q3, __pyx_n_s_q4, __pyx_n_s_q5, __pyx_n_s_x, __pyx_n_s_y, __pyx_n_s_z, __pyx_n_s_out_4814970229430216916); if (unlikely(!__pyx_tuple__9)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__9);
   __Pyx_GIVEREF(__pyx_tuple__9);
-  __pyx_codeobj__10 = (PyObject*)__Pyx_PyCode_New(6, 0, 7, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__9, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_tdewolf_Dropbox_code_contr, __pyx_n_s_autofunc_c, 7, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__10)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_codeobj__10 = (PyObject*)__Pyx_PyCode_New(9, 0, 10, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__9, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_tdewolf_Dropbox_code_contr, __pyx_n_s_autofunc_c, 7, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__10)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -3747,18 +3784,19 @@ static int __Pyx_InitCachedConstants(void) {
 
 static int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) __PYX_ERR(0, 1, __pyx_L1_error);
-  __pyx_int_6 = PyInt_FromLong(6); if (unlikely(!__pyx_int_6)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_int_4 = PyInt_FromLong(4); if (unlikely(!__pyx_int_4)) __PYX_ERR(0, 1, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
 }
 
 #if PY_MAJOR_VERSION < 3
-PyMODINIT_FUNC initwrapped_module_2(void); /*proto*/
-PyMODINIT_FUNC initwrapped_module_2(void)
+PyMODINIT_FUNC initwrapper_module_0(void); /*proto*/
+PyMODINIT_FUNC initwrapper_module_0(void)
 #else
-PyMODINIT_FUNC PyInit_wrapped_module_2(void); /*proto*/
-PyMODINIT_FUNC PyInit_wrapped_module_2(void)
+PyMODINIT_FUNC PyInit_wrapper_module_0(void); /*proto*/
+PyMODINIT_FUNC PyInit_wrapper_module_0(void)
 #endif
 {
   PyObject *__pyx_t_1 = NULL;
@@ -3772,7 +3810,7 @@ PyMODINIT_FUNC PyInit_wrapped_module_2(void)
           Py_FatalError("failed to import 'refnanny' module");
   }
   #endif
-  __Pyx_RefNannySetupContext("PyMODINIT_FUNC PyInit_wrapped_module_2(void)", 0);
+  __Pyx_RefNannySetupContext("PyMODINIT_FUNC PyInit_wrapper_module_0(void)", 0);
   if (__Pyx_check_binary_version() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_empty_tuple = PyTuple_New(0); if (unlikely(!__pyx_empty_tuple)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_empty_bytes = PyBytes_FromStringAndSize("", 0); if (unlikely(!__pyx_empty_bytes)) __PYX_ERR(0, 1, __pyx_L1_error)
@@ -3801,7 +3839,7 @@ PyMODINIT_FUNC PyInit_wrapped_module_2(void)
   #endif
   /*--- Module creation code ---*/
   #if PY_MAJOR_VERSION < 3
-  __pyx_m = Py_InitModule4("wrapped_module_2", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
+  __pyx_m = Py_InitModule4("wrapper_module_0", __pyx_methods, 0, 0, PYTHON_API_VERSION); Py_XINCREF(__pyx_m);
   #else
   __pyx_m = PyModule_Create(&__pyx_moduledef);
   #endif
@@ -3818,14 +3856,14 @@ PyMODINIT_FUNC PyInit_wrapped_module_2(void)
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main_wrapped_module_2) {
+  if (__pyx_module_is_main_wrapper_module_0) {
     if (PyObject_SetAttrString(__pyx_m, "__name__", __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "wrapped_module_2")) {
-      if (unlikely(PyDict_SetItemString(modules, "wrapped_module_2", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "wrapper_module_0")) {
+      if (unlikely(PyDict_SetItemString(modules, "wrapper_module_0", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -3857,7 +3895,7 @@ PyMODINIT_FUNC PyInit_wrapped_module_2(void)
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "wrapped_module_2.pyx":1
+  /* "wrapper_module_0.pyx":1
  * import numpy as np             # <<<<<<<<<<<<<<
  * cimport numpy as np
  * 
@@ -3867,19 +3905,19 @@ PyMODINIT_FUNC PyInit_wrapped_module_2(void)
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "wrapped_module_2.pyx":7
- *     void autofunc(double q0, double q1, double q2, double q3, double q4, double q5, double *out_1197067879353450676)
+  /* "wrapper_module_0.pyx":7
+ *     void autofunc(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z, double *out_4814970229430216916)
  * 
- * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5):             # <<<<<<<<<<<<<<
+ * def autofunc_c(double q0, double q1, double q2, double q3, double q4, double q5, double x, double y, double z):             # <<<<<<<<<<<<<<
  * 
- *     cdef np.ndarray[np.double_t, ndim=2] out_1197067879353450676 = np.empty((6,6))
+ *     cdef np.ndarray[np.double_t, ndim=2] out_4814970229430216916 = np.empty((4,1))
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_16wrapped_module_2_1autofunc_c, NULL, __pyx_n_s_wrapped_module_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_16wrapper_module_0_1autofunc_c, NULL, __pyx_n_s_wrapper_module_0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_autofunc_c, __pyx_t_1) < 0) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "wrapped_module_2.pyx":1
+  /* "wrapper_module_0.pyx":1
  * import numpy as np             # <<<<<<<<<<<<<<
  * cimport numpy as np
  * 
@@ -3904,11 +3942,11 @@ PyMODINIT_FUNC PyInit_wrapped_module_2(void)
   __Pyx_XDECREF(__pyx_t_1);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init wrapped_module_2", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init wrapper_module_0", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     Py_DECREF(__pyx_m); __pyx_m = 0;
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init wrapped_module_2");
+    PyErr_SetString(PyExc_ImportError, "init wrapper_module_0");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
