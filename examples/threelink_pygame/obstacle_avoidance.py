@@ -43,8 +43,7 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_state=np.hstack(
-                [target_xyz, np.zeros(3)]))
+            target_pos=target_xyz)
         # add in obstacle avoidance
         obs_x, obs_y = interface.display.get_mousexy()
         u += avoid.generate(
@@ -52,7 +51,7 @@ try:
             obstacles=[[obs_x, obs_y, 0, .2]])
 
         # apply the control signal, step the sim forward
-        interface.apply_u(u)
+        interface.send_forces(u)
 
         # change target location once hand is within
         # 5mm of the target

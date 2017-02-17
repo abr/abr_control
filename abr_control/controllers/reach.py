@@ -148,16 +148,16 @@ class controller:
                              function=gen_Mqdq,
                              transform=-1)
 
-            def gen_Mq_g(signal):
+            def gen_g(signal):
                 """ Generate the gravity compensation signal """
                 # scale things back
                 q = self.robot_config.scaleup('q', signal[:dim])
-                return self.robot_config.Mq_g(q)
+                return self.robot_config.g(q)
 
             # connect up CB gravity compensation to arm directly
             # (not to be used as part of training signal for u_adapt)
             nengo.Connection(CB, output_node,
-                             function=gen_Mq_g,
+                             function=gen_g,
                              transform=-1)
 
         print('building REACH model...')

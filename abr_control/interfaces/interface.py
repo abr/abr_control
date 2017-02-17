@@ -1,6 +1,3 @@
-import numpy as np
-
-
 class interface:
     """ Base class for interfaces.
     The purpose of interfaces is to abstract away the API
@@ -20,7 +17,7 @@ class interface:
         when done with the arm. """
         raise NotImplementedError
 
-    def apply_u(self, u):
+    def send_forces(self, u):
         """ Applies the set of torques u to the arm.
 
         u np.array: An array of joint torques

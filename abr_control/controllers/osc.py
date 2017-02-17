@@ -55,7 +55,7 @@ class controller:
         Mq = self.robot_config.Mq(q)
 
         # calculate the effect of gravity in joint space
-        Mq_g = self.robot_config.Mq_g(q)
+        g = self.robot_config.g(q)
 
         # apply mask to Jacobian before
         # JEE *= np.array(mask).reshape(6, 1)
@@ -124,7 +124,7 @@ class controller:
         # this signal for dynamics adaptation training?
         self.training_signal = np.dot(JEE.T, u_task)
         # add in gravity compensation, not included in training signal
-        u = self.training_signal - Mq_g
+        u = self.training_signal - g
 
         if self.null_control is True:
             # calculate the null space filter

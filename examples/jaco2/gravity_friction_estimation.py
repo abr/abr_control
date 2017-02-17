@@ -91,7 +91,7 @@ try:
                 np.dot(Wfunc(*feedback['q']), theta_g) +
                 theta_f)
             # apply the control signal, step the sim forward
-            interface.apply_u(u)
+            interface.send_forces(u)
 
             # set orientation of hand object to match EE
             quaternion = robot_config.orientation('EE', q=feedback['q'])

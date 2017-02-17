@@ -29,10 +29,10 @@ class robot_config(robot_config.robot_config):
         # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
         self._M_links = [
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link0
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link1
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04),  # link2
-            sp.diag(0.5, 0.5, 0.5, 0.04, 0.04, 0.04)]  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
+            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link1
+            sp.diag(0.50025, 0.50025, 0.50025, 0.02, 0.02, 0.02),  # link2
+            sp.diag(0.50025, 0.50025, 0.50025, 0.02, 0.02, 0.02)]  # link3
 
         # the joints don't weigh anything in VREP
         self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]

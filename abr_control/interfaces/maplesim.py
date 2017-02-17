@@ -29,7 +29,7 @@ class interface(interface.interface):
             self.q_init = None
 
         self.dt = dt  # time step
-        self.count = 0  # keep track of how many times apply_u has been called
+        self.count = 0  # keep track of how many times forces have been sent
 
     def connect(self):
         """ Creates the MapleSim model and set up PyGame.
@@ -63,8 +63,8 @@ class interface(interface.interface):
 
         print('connection closed...')
 
-    def apply_u(self, u, dt=None):
-        """ Apply the specified torque to the robot joints,
+    def send_forces(self, u, dt=None):
+        """ Apply the specified forces to the robot,
         move the simulation one time step forward, and update
         the plot.
 
