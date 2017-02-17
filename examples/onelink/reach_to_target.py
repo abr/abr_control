@@ -5,6 +5,8 @@ once the final target is reached, and the arm has moved back
 to its default resting position.
 """
 import numpy as np
+import signal
+import sys
 
 import abr_control
 
@@ -16,7 +18,7 @@ ctrlr = abr_control.controllers.osc(
 
 # run controller once to generate functions / take care of overhead
 # outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(1), np.zeros(1), target_state=np.zeros(6))
+ctrlr.control(np.zeros(1), np.zeros(1), target_pos=np.zeros(3))
 
 # create our VREP interface for the onelink arm
 interface = abr_control.interfaces.vrep(robot_config)
@@ -25,7 +27,7 @@ interface.connect()
 
 # set up arrays for tracking end-effector and target position
 ee_track = []
-targets_track = []
+target_track = []
 
 count = 0
 target_index = 0
@@ -34,6 +36,7 @@ at_target_count = 0
 # list of targets to move to
 targets = [[.3, 0.0, .375],
            [-.3, 0.0, .375]]
+
 
 def set_target(xyz):
     # normalize target position to lie on path of arm's end-effector
@@ -46,15 +49,33 @@ def set_target(xyz):
 target_xyz = set_target(targets[0])
 print('Moving to first target: ', target_xyz)
 
+
+def on_exit(signal, frame):
+    """ A function for plotting the end-effector trajectory and error """
+    global ee_track, target_track
+    ee_track = np.array(ee_track)
+    target_track = np.array(target_track)
+
+    import matplotlib.pyplot as plt
+    # plot targets and trajectory of end-effectory in 3D
+    abr_control.utils.plotting.plot_trajectory(ee_track, target_track)
+
+    plt.tight_layout()
+    plt.show()
+    sys.exit()
+
+# call on_exit when ctrl-c is pressed
+signal.signal(signal.SIGINT, on_exit)
+
 try:
     while 1:
         feedback = interface.get_feedback()
         q = feedback['q']
         dq = feedback['dq']
         u = ctrlr.control(q=q, dq=dq,
-                          target_state=np.hstack([target_xyz,
-                                                 np.zeros(3)]))
-        interface.apply_u(np.array(u, dtype='float32'))
+                          target_pos=target_xyz,
+                          target_vel=np.zeros(3))
+        interface.send_forces(np.array(u, dtype='float32'))
 
         hand_xyz = robot_config.Tx('EE', q=q)
         error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
@@ -72,7 +93,7 @@ try:
                 at_target_count = 0
 
         ee_track.append(hand_xyz)
-        targets_track.append(target_xyz)
+        target_track.append(target_xyz)
         count += 1
 
 except Exception as e:
@@ -81,15 +102,3 @@ except Exception as e:
 finally:
     # close the connection to the arm
     interface.disconnect()
-
-    if count > 0:  # i.e. if it successfully ran
-        import matplotlib.pyplot as plt
-        import seaborn
-
-        ee_track = np.array(ee_track)
-        targets_track = np.array(targets_track)
-        # plot targets and trajectory of end-effectory in 3D
-        abr_control.utils.plotting.plot_trajectory(ee_track, targets_track)
-
-        plt.tight_layout()
-        plt.show()

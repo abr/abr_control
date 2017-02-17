@@ -47,8 +47,7 @@ try:
         u = ctrlr.control(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_state=np.hstack(
-                [target_xyz, np.zeros(3)]))
+            target_pos=target_xyz)
 
         # get the next point in the target trajectory from the dmp
         target_xyz[0], target_xyz[1] = dmps.step(
@@ -56,7 +55,7 @@ try:
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward
-        interface.apply_u(u)
+        interface.send_forces(u)
 
         # track data
         ee_path.append(np.copy(hand_xyz))

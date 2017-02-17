@@ -32,9 +32,9 @@ class robot_config(robot_config.robot_config):
         self._M_links = [
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link1
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02), # link2
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02)]  # link4
+            sp.diag(0.50025, 0.50025, 0.50025, 0.02, 0.02, 0.02),  # link2
+            sp.diag(0.50025, 0.50025, 0.50025, 0.02, 0.02, 0.02),  # link3
+            sp.diag(0.499, 0.499, 0.499, 0.02, 0.02, 0.02)]  # link4
 
         # the joints don't weigh anything in VREP
         self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]

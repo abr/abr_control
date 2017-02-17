@@ -16,8 +16,11 @@ class robot_config(robot_config.robot_config):
         self.rest_angles = np.array([90.0])
 
         # create the inertia matrices for each link of the ur5
-        self._M.append(np.diag([1.0, 1.0, 1.0,
-                                0.02, 0.02, 0.02]))  # link0
+        self._M_links.append(np.diag([1.0, 1.0, 1.0,
+                                      0.02, 0.02, 0.02]))  # link0
+
+        # the joints don't weigh anything
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
 
         # segment lengths associated with each joint
         self.L = np.array([

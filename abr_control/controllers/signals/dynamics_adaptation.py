@@ -1,5 +1,4 @@
 import numpy as np
-import scipy
 
 try:
     import nengo
@@ -14,7 +13,6 @@ except ImportError:
     print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
 from abr_control.utils.keeplearningsolver import KeepLearningSolver
-from abr_control.utils.areaintercepts import AreaIntercepts
 
 
 class Signal():
@@ -81,9 +79,7 @@ class Signal():
                         surface=False),
                     intercepts=nengo.dists.Uniform(-.1,1)))
 
-                # connect input to CB with Voja so that encoders shift to
-                # most commonly explored areas of state space
-                conn_in = nengo.Connection(
+                nengo.Connection(
                     qdq_input,
                     adapt_ens[ii][:self.robot_config.num_joints * 2],
                     function=lambda x: x / np.linalg.norm(x))

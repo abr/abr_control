@@ -4,6 +4,8 @@ The simulation ends after 1.5 simulated seconds, and the trajectory
 of the end-effector is plotted in 3D.
 """
 import numpy as np
+import signal
+import sys
 
 import abr_control
 
@@ -27,65 +29,10 @@ ee_track = []
 target_track = []
 obstacle_track = []
 
-try:
-    num_targets = 0
-    back_to_start = False
 
-    # get visual position of end point of object
-    feedback = interface.get_feedback()
-    # set up the values to be used by the Jacobian for the object end effector
-    start = robot_config.Tx('EE', q=feedback['q'])
-
-    target_xyz = start + np.array([.25, -.25, 0.0])
-    interface.set_xyz(name='target', xyz=target_xyz)
-
-    moving_obstacle = True
-    obstacle_xyz = np.array([0.09596, -0.3661, 0.64204])
-    interface.set_xyz(name='obstacle', xyz=obstacle_xyz)
-
-    count = 0.0
-    obs_count = 0.0
-    while count < 1500:
-        # get arm feedback from VREP
-        feedback = interface.get_feedback()
-
-        # use visual feedback to get object endpoint position
-        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
-
-        # generate control signal
-        u = ctrlr.control(
-            q=feedback['q'],
-            dq=feedback['dq'],
-            target_state=np.hstack((
-                target_xyz,
-                [0, 0, 0])))
-
-        # locate obstacle
-        obs_x, obs_y, obs_z = interface.get_xyz('obstacle')
-        if moving_obstacle is True:
-            obs_x = .125 + .25 * np.sin(obs_count)
-            obs_count += .01
-            interface.set_xyz(name='obstacle', xyz=[obs_x, obs_y, obs_z])
-
-        # add in obstacle avoidance control signal
-        u += avoid.generate(
-            q=feedback['q'],
-            obstacles=[[obs_x, obs_y, obs_z, 0.05]])
-
-        print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
-        # apply the control signal, step the sim forward
-        interface.apply_u(u)
-
-        # track data
-        ee_track.append(np.copy(ee_xyz))
-        target_track.append(np.copy(target_xyz))
-        obstacle_track.append(np.copy([obs_x, obs_y, obs_z]))
-
-        count += 1
-
-finally:
-    # stop and reset the VREP simulation
-    interface.disconnect()
+def on_exit(signal, frame):
+    """ A function for plotting the end-effector trajectory and error """
+    global ee_track, target_track, obstacle_track
 
     ee_track = np.array(ee_track)
     target_track = np.array(target_track)
@@ -121,3 +68,66 @@ finally:
     plt.ylabel('Error (m)')
     plt.xlabel('Time (ms)')
     plt.show()
+    sys.exit()
+
+# call on_exit when ctrl-c is pressed
+signal.signal(signal.SIGINT, on_exit)
+
+try:
+    num_targets = 0
+    back_to_start = False
+
+    # get visual position of end point of object
+    feedback = interface.get_feedback()
+    # set up the values to be used by the Jacobian for the object end effector
+    start = robot_config.Tx('EE', q=feedback['q'])
+
+    target_xyz = start + np.array([.25, -.25, 0.0])
+    interface.set_xyz(name='target', xyz=target_xyz)
+
+    moving_obstacle = True
+    obstacle_xyz = np.array([0.09596, -0.3661, 0.64204])
+    interface.set_xyz(name='obstacle', xyz=obstacle_xyz)
+
+    count = 0.0
+    obs_count = 0.0
+    while count < 1500:
+        # get arm feedback from VREP
+        feedback = interface.get_feedback()
+
+        # use visual feedback to get object endpoint position
+        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
+
+        # generate control signal
+        u = ctrlr.control(
+            q=feedback['q'],
+            dq=feedback['dq'],
+            target_pos=target_xyz,
+            target_vel=np.zeros(3))
+
+        # locate obstacle
+        obs_x, obs_y, obs_z = interface.get_xyz('obstacle')
+        if moving_obstacle is True:
+            obs_x = .125 + .25 * np.sin(obs_count)
+            obs_count += .01
+            interface.set_xyz(name='obstacle', xyz=[obs_x, obs_y, obs_z])
+
+        # add in obstacle avoidance control signal
+        u += avoid.generate(
+            q=feedback['q'],
+            obstacles=[[obs_x, obs_y, obs_z, 0.05]])
+
+        print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
+        # apply the control signal, step the sim forward
+        interface.send_forces(u)
+
+        # track data
+        ee_track.append(np.copy(ee_xyz))
+        target_track.append(np.copy(target_xyz))
+        obstacle_track.append(np.copy([obs_x, obs_y, obs_z]))
+
+        count += 1
+
+finally:
+    # stop and reset the VREP simulation
+    interface.disconnect()
