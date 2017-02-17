@@ -11,7 +11,7 @@ class interface(interface.interface):
     """ An interface for VREP.
     Implements force control using VREP's force-limiting method.
     Lock-steps the simulation so that it only moves forward one dt
-    every time apply_u is called.
+    every time send_forces is called.
     Expects that there are there is a 'hand' object in the VREP
     environment,
     """
@@ -29,7 +29,7 @@ class interface(interface.interface):
                                         10000.0)
 
         self.dt = dt  # time step
-        self.count = 0  # keep track of how many times apply_u has been called
+        self.count = 0  # keep track of how many times send forces has been called
         self.misc_handles = {}  # for tracking miscellaneous object handles
 
     def connect(self):
@@ -143,7 +143,7 @@ class interface(interface.interface):
             angles,
             vrep.simx_opmode_blocking)
 
-    def apply_u(self, u):
+    def send_forces(self, u):
         """ Apply the specified torque to the robot joints,
         move the simulation one time step forward, and update
         the position of the hand object.
@@ -161,7 +161,7 @@ class interface(interface.interface):
                 joint_handle,
                 vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception()
+                raise Exception('Error retrieving joint torque.')
 
             # if force has changed signs,
             # we need to change the target velocity sign
@@ -174,7 +174,7 @@ class interface(interface.interface):
                     self.joint_target_velocities[ii],
                     vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception()
+                raise Exception('Error setting joint target velocity.')
 
             # and now modulate the force
             vrep.simxSetJointForce(self.clientID,
@@ -182,7 +182,7 @@ class interface(interface.interface):
                                    abs(u[ii]),  # force to apply
                                    vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception()
+                raise Exception('Error setting max joint force.')
 
         hand_xyz = self.robot_config.Tx(name='EE', q=self.q)
 
@@ -208,7 +208,7 @@ class interface(interface.interface):
                 joint_handle,
                 vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception()
+                raise Exception('Error retrieving joint angle.')
 
             # get the joint velocity
             _, self.dq[ii] = vrep.simxGetObjectFloatParameter(
@@ -217,7 +217,7 @@ class interface(interface.interface):
                 2012,  # ID for joint angular velocity
                 vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception()
+                raise Exception('Error retrieving joint velocity.')
 
         return {'q': self.q,
                 'dq': self.dq}

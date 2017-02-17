@@ -1,8 +1,11 @@
-import pickle
+import cloudpickle
+import hashlib
+import importlib
 import numpy as np
 import os
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
+import sys
 
 import abr_control
 import abr_control.arms
@@ -12,8 +15,6 @@ import abr_control.arms
 
 # TODO : check to see how long it takes to load T from file vs recompute
 
-# TODO : should simplify option just be removed?
-
 class robot_config():
     """ Class defines a bunch of useful functions for controlling
     a given robot, including transformation to joints and COMs,
@@ -22,17 +23,13 @@ class robot_config():
     """
 
     def __init__(self, num_joints, num_links, robot_name="robot",
-                 regenerate_functions=False,
-                 use_simplify=False, use_cython=False):
+                 regenerate_functions=False, use_cython=False):
         """
         num_joints int: number of joints in robot
         num_links int: number of arm segments in robot
         robot_name string: used for saving/loading functions to file
         regenerate_functions boolean: if True, don't look to saved files
                                       regenerate all transforms and Jacobians
-        use_simplify boolean: if True, symbolic representations are simplified
-                              useful when execution time is more important
-                              than generation time
         use_cython boolean: if True, a more efficient function is generated
                             useful when execution time is more important than
                             generation time
@@ -41,12 +38,9 @@ class robot_config():
         self.num_joints = num_joints
         self.num_links = num_links
         self.robot_name = robot_name
-        self.config_folder = (os.path.dirname(abr_control.arms.__file__) +
-                              '/%s/saved_functions' % robot_name)
 
         self.regenerate_functions = regenerate_functions
         self.use_cython = use_cython
-        self.simplify = sp.simplify if use_simplify is True else lambda x: x
 
         # create function dictionaries
         self._Tx = {}  # for transform calculations
@@ -55,11 +49,22 @@ class robot_config():
         self._M_links = []  # placeholder for (x,y,z) inertia matrices
         self._M_joints = []  # placeholder for (x,y,z) inertia matrices
         self._Mq = None  # placeholder for joint space inertia matrix function
-        self._Mq_g = None  # placeholder for joint space gravity term function
+        self._g = None  # placeholder for joint space gravity term function
         self._orientation = {}  # placeholder for orientation functions
         self._T_inv = {}  # for inverse transform calculations
         self._Tx = {}  # for point transform calculations
         self._T_func = {}  # for transform matrix calculations
+
+        # specify / create the folder to save to and load from
+        self.config_folder = (os.path.dirname(abr_control.arms.__file__) +
+                              '/%s/saved_functions/' % robot_name)
+        hasher = hashlib.md5()
+        with open(sys.modules[self.__module__].__file__, 'rb') as afile:
+            buf = afile.read()
+            hasher.update(buf)
+        self.config_folder += hasher.hexdigest()
+        # make config folder if it doesn't exist
+        abr_control.utils.os.makedir(self.config_folder)
 
         # set up our joint angle symbols
         self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
@@ -111,23 +116,23 @@ class robot_config():
         parameters = tuple(q)
         return np.array(self._Mq(*parameters), dtype='float32')
 
-    def Mq_g(self, q):
+    def g(self, q):
         """ Calculates the force of gravity in joint space for the ur5
 
-        q list: set of joint angles to pass in to the Mq_g function
+        q list: set of joint angles to pass in to the g function
         """
         # check for function in dictionary
-        if self._Mq_g is None:
-            self._Mq_g = self._calc_Mq_g(regenerate=self.regenerate_functions)
+        if self._g is None:
+            self._g = self._calc_g(regenerate=self.regenerate_functions)
         parameters = tuple(q)
-        return np.array(self._Mq_g(*parameters), dtype='float32').flatten()
+        return np.array(self._g(*parameters), dtype='float32').flatten()
 
     def orientation(self, name, q):
         """ Uses Sympy to generate the orientation for a joint or link
         calculated as a quaternion.
 
         name string: name of the joint or link, or end-effector
-        q list: set of joint angles to pass in to the Mq_g function
+        q list: set of joint angles to pass in to the g function
         """
         # get transform matrix for reference frame of interest
         if self._T_func.get(name, None) is None:
@@ -135,14 +140,14 @@ class robot_config():
             # check to see if we have our transformation saved in file
             if (self.regenerate_functions is False and
                     os.path.isfile('%s/%s.T' % (self.config_folder, name))):
-                T = pickle.load(open('%s/%s.T' %
+                T = cloudpickle.load(open('%s/%s.T' %
                                      (self.config_folder, name),
                                      'rb'))
             else:
                 T = self._calc_T(name=name)
 
                 # save to file
-                pickle.dump(sp.Matrix(T), open(
+                cloudpickle.dump(sp.Matrix(T), open(
                     '%s/%s.T' % (self.config_folder, name), 'wb'))
             if self.use_cython is True:
                 T_func = autowrap(T, backend="cython", args=self.q)
@@ -181,6 +186,78 @@ class robot_config():
         parameters = tuple(q) + tuple(x)
         return self._T_inv[funcname](*parameters)
 
+    def _generate_and_save_function(self, filename, expression, parameters):
+        """ Create a folder in the saved_functions folder, based on a hash
+        of the current robot_config subclass.
+
+        If use_cython is True, specify a working directory for the autowrap
+        function, so that binaries are saved inside and can be loaded in
+        quickly later.
+        """
+
+        # check for / create the save folder for this expression
+        folder = self.config_folder + '/' + filename
+        abr_control.utils.os.makedir(folder)
+
+        if self.use_cython is True:
+            # binaries saved by specifying tempdir parameter
+            function = autowrap(expression, backend="cython",
+                                args=parameters, tempdir=folder)
+        else:
+            function = sp.lambdify(parameters, expression, "numpy")
+            # save function to file
+            cloudpickle.dump(function, open(
+                '%s/%s.func' % (folder, filename),
+                'wb'))
+
+        return function
+
+    def _load_from_file(self, filename, lambdify):
+        expression = None
+        function = None
+
+        # check for / create the save folder for this expression
+        folder = self.config_folder + '/' + filename
+        if os.path.isdir(folder) is not False:
+            # check to see should return function or expression
+            if lambdify is True:
+                if self.use_cython is True:
+                    # check for cython binaries
+                    saved_file = [sf for sf in os.listdir(folder)
+                                  if sf.endswith('.so')]
+                    if len(saved_file) > 0:
+                        # if found, load in function from file
+                        print('Loading cython function from %s ...' % filename)
+                        # sys.path.append(folder)
+                        if self.config_folder not in sys.path:
+                            sys.path.append(self.config_folder)
+                        saved_file = saved_file[0].split('.')[0]
+                        function_binary = importlib.import_module(
+                            filename + '.' + saved_file)
+                        function = getattr(function_binary, 'autofunc_c')
+                        # sys.path.remove(folder)
+                        # sys.path.remove(self.config_folder)
+                else:
+                    # check for saved function
+                    extension = '.func'
+                    full_filename = '%s/%s%s' % (self.config_folder,
+                                                 filename, extension)
+
+                    if os.path.isfile(full_filename):
+                        print('Loading function from %s%s ...' % (filename,
+                                                                  extension))
+                        function = cloudpickle.load(open(full_filename, 'rb'))
+
+            if function is None:
+                # if function not loaded, check for saved expression
+                if os.path.isfile('%s/%s' %
+                                  (self.config_folder, filename)):
+                    print('Loading expression from %s ...' % filename)
+                    expression = cloudpickle.load(open(
+                        '%s/%s' % (self.config_folder, filename), 'rb'))
+
+        return expression, function
+
     def _calc_dJ(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the derivative of the Jacobian
         for a joint or link with respect to time
@@ -193,17 +270,19 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
 
+        dJ = None
+        dJ_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
-        # check to see if we have our Jacobian saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.dJ' % (self.config_folder, filename))):
-            print('Loading derivative of Jacobian ',
-                  'function for %s...' % filename)
-            dJ = pickle.load(open('%s/%s.dJ' %
-                                  (self.config_folder, filename), 'rb'))
-        else:
+        filename += '_dJ'
+        # check to see if should try to load functions from file
+        if regenerate is False:
+            dJ, dJ_func = self._load_from_file(filename, lambdify)
+
+        if dJ is None and dJ_func is None:
+            # if no saved file was loaded, generate function
             print('Generating derivative of Jacobian ',
                   'function for %s' % filename)
+
             # TODO: make sure that we're not regenerating all these
             # Jacobians again here if they've already been regenerated
             # once, but they are actually regenerated if only this is called
@@ -214,19 +293,19 @@ class robot_config():
             for ii in range(J.shape[0]):
                 for jj in range(J.shape[1]):
                     for kk in range(self.num_joints):
-                        dJ[ii, jj] += self.simplify(
-                            J[ii, jj].diff(self.q[kk]))
+                        dJ[ii, jj] += J[ii, jj].diff(self.q[kk])
             dJ = sp.Matrix(dJ).T
 
-            # save to file
-            pickle.dump(dJ, open(
-                '%s/%s.dJ' % (self.config_folder, filename), 'wb'))
+            # save expression to file
+            cloudpickle.dump(dJ, open(
+                '%s/%s' % (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
+            # if should return expression not function
             return dJ
-        if self.use_cython is True:
-            return autowrap(dJ, backend="cython", args=self.q+self.x)
-        return sp.lambdify(self.q + self.x, dJ, "numpy")
+        return self._generate_and_save_function(
+            filename=filename, expression=dJ,
+            parameters=self.q+self.x)
 
     def _calc_J(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the Jacobian for a joint or link
@@ -238,16 +317,19 @@ class robot_config():
                           matrix
         regenerate boolean: if True, don't use saved functions
         """
-
+        J = None
+        J_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
-        # check to see if we have our Jacobian saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.J' % (self.config_folder, filename))):
-            print('Loading Jacobian function for %s...' % filename)
-            J = pickle.load(open('%s/%s.J' %
-                                 (self.config_folder, filename), 'rb'))
-        else:
+        filename += '_J'
+
+        # check to see if should try to load functions from file
+        if regenerate is False:
+            J, J_func = self._load_from_file(filename, lambdify)
+
+        if J is None and J_func is None:
+            # if no saved file was loaded, generate function
             print('Generating Jacobian function for %s' % filename)
+
             # TODO: make sure that we're not regenerating all these
             # Transforms again here if they've already been regenerated
             # once, but they are actually regenerated if only this is called
@@ -261,12 +343,9 @@ class robot_config():
             # calculate derivative of (x,y,z) wrt to each joint
             for ii in range(self.num_joints):
                 J.append([])
-                J[ii].append(self.simplify(
-                    Tx[0].diff(self.q[ii])))  # dx/dq[ii]
-                J[ii].append(self.simplify(
-                    Tx[1].diff(self.q[ii])))  # dy/dq[ii]
-                J[ii].append(self.simplify(
-                    Tx[2].diff(self.q[ii])))  # dz/dq[ii]
+                J[ii].append(Tx[0].diff(self.q[ii]))  # dx/dq[ii]
+                J[ii].append(Tx[1].diff(self.q[ii]))  # dy/dq[ii]
+                J[ii].append(Tx[2].diff(self.q[ii]))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
             end_point = self.num_joints if 'EE' in end_point else end_point
@@ -278,17 +357,23 @@ class robot_config():
             # fill in the rest of the joints orientation info with 0
             for ii in range(end_point, self.num_joints):
                 J[ii] = J[ii] + [0, 0, 0]
+            J = sp.Matrix(J).T  # correct the orientation of J
 
             # save to file
-            pickle.dump(sp.Matrix(J), open(
-                '%s/%s.J' % (self.config_folder, filename), 'wb'))
+            abr_control.utils.os.makedir(
+                '%s/%s' % (self.config_folder, filename))
+            cloudpickle.dump(J, open(
+                '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
 
-        J = sp.Matrix(J).T  # correct the orientation of J
         if lambdify is False:
+            # if should return expression not function
             return J
-        if self.use_cython is True:
-            return autowrap(J, backend="cython", args=self.q+self.x)
-        return sp.lambdify(self.q + self.x, J, "numpy")
+
+        if J_func is None:
+            J_func = self._generate_and_save_function(
+                filename=filename, expression=J,
+                parameters=self.q+self.x)
+        return J_func
 
     def _calc_Mq(self, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the inertia matrix in
@@ -300,13 +385,17 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
 
+        Mq = None
+        Mq_func = None
+
         # check to see if we have our inertia matrix saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/Mq' % self.config_folder)):
-            print('Loading inertia matrix function...')
-            Mq = pickle.load(open('%s/Mq' % self.config_folder, 'rb'))
-        else:
+        if regenerate is False:
+            Mq, Mq_func = self._load_from_file('Mq', lambdify)
+
+        if Mq is None and Mq_func is None:
+            # if no saved file was loaded, generate function
             print('Generating inertia matrix function')
+
             # get the Jacobians for each link's COM
             # TODO: make sure that we're not regenerating all these
             # Jacobians again here if they've already been regenerated
@@ -327,20 +416,25 @@ class robot_config():
             for ii in range(self.num_joints):
                 # transform each inertia matrix into joint space
                 Mq += (J_joints[ii].T * self._M_joints[ii] * J_joints[ii])
-            Mq = self.simplify(Mq)
             Mq = sp.Matrix(Mq)
 
             # save to file
-            pickle.dump(Mq, open(
-                '%s/Mq' % self.config_folder, 'wb'))
+            abr_control.utils.os.makedir(
+                '%s/Mq' % (self.config_folder))
+            cloudpickle.dump(Mq, open(
+                '%s/Mq/Mq' % self.config_folder, 'wb'))
 
         if lambdify is False:
+            # if should return expression not function
             return Mq
-        if self.use_cython is True:
-            return autowrap(Mq, backend='cython', args=self.q)
-        return sp.lambdify(self.q, Mq, "numpy")
 
-    def _calc_Mq_g(self, lambdify=True, regenerate=False):
+        if Mq_func is None:
+            Mq_func = self._generate_and_save_function(
+                filename='Mq', expression=Mq,
+                parameters=self.q)
+        return Mq_func
+
+    def _calc_g(self, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the force of gravity in
         joint space
 
@@ -350,14 +444,16 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
 
+        g = None
+        g_func = None
         # check to see if we have our gravity term saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/Mq_g' % self.config_folder)):
-            print('Loading gravity compensation function...')
-            Mq_g = pickle.load(open('%s/Mq_g' %
-                                    self.config_folder, 'rb'))
-        else:
+        if regenerate is False:
+            g, g_func = self._load_from_file('g', lambdify)
+
+        if g is None and g_func is None:
+            # if no saved file was loaded, generate function
             print('Generating gravity compensation function')
+
             # get the Jacobians for each link's COM
             # TODO: make sure that we're not regenerating all these
             # Jacobians again here if they've already been regenerated
@@ -370,27 +466,31 @@ class robot_config():
                         for ii in range(self.num_joints)]
 
             # sum together the effects of each arm segment's inertia
-            Mq_g = sp.zeros(self.num_joints, 1)
+            g = sp.zeros(self.num_joints, 1)
             for ii in range(self.num_links):
                 # transform each inertia matrix into joint space
-                Mq_g += (J_links[ii].T * self._M_links[ii] * self.gravity)
+                g += (J_links[ii].T * self._M_links[ii] * self.gravity)
             # sum together the effects of each joint's inertia on each motor
             for ii in range(self.num_joints):
                 # transform each inertia matrix into joint space
-                Mq_g += (J_joints[ii].T * self._M_joints[ii] * self.gravity)
-            Mq_g = self.simplify(Mq_g)
-            Mq_g = sp.Matrix(Mq_g)
+                g += (J_joints[ii].T * self._M_joints[ii] * self.gravity)
+            g = sp.Matrix(g)
 
             # save to file
-            pickle.dump(Mq_g, open(
-                '%s/Mq_g' % self.config_folder, 'wb'))
+            abr_control.utils.os.makedir(
+                '%s/g' % self.config_folder)
+            cloudpickle.dump(g, open(
+                '%s/g/g' % self.config_folder, 'wb'))
 
         if lambdify is False:
-            return Mq_g
-        if self.use_cython is True:
-            return autowrap(Mq_g, backend="cython",
-                            args=self.q)
-        return sp.lambdify(self.q, Mq_g, "numpy")
+            # if should return expression not function
+            return g
+
+        if g_func is None:
+            g_func = self._generate_and_save_function(
+                filename='g', expression=g,
+                parameters=self.q)
+        return g_func
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
@@ -410,14 +510,14 @@ class robot_config():
                           matrix
         """
 
+        Tx = None
+        Tx_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T' % (self.config_folder, filename))):
-            print('Loading transform function for %s...' % filename)
-            Tx = pickle.load(open('%s/%s.T' %
-                                  (self.config_folder, filename), 'rb'))
-        else:
+        if regenerate is False:
+            Tx, Tx_func = self._load_from_file(filename, lambdify)
+
+        if Tx is None and Tx_func is None:
             print('Generating transform function for %s' % filename)
             T = self._calc_T(name=name)
             # transform x into world coordinates
@@ -429,19 +529,25 @@ class robot_config():
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
                 Tx = T * sp.Matrix(self.x + [1])
-            Tx = self.simplify(Tx)
             Tx = sp.Matrix(Tx)
 
             # save to file
-            pickle.dump(sp.Matrix(Tx), open(
-                '%s/%s.T' % (self.config_folder, filename), 'wb'))
+            abr_control.utils.os.makedir(
+                '%s/%s' % (self.config_folder, filename))
+            cloudpickle.dump(sp.Matrix(Tx), open(
+                '%s/%s/%s.Tx' % (self.config_folder, filename, filename),
+                'wb'))
 
         if lambdify is False:
+            # if should return expression not function
             return Tx
-        if self.use_cython is True:
-            return autowrap(Tx, backend="cython",
-                            args=self.q+self.x)
-        return sp.lambdify(self.q + self.x, Tx, "numpy")
+
+        if Tx_func is None:
+            Tx_func = self._generate_and_save_function(
+                filename=filename, expression=Tx,
+                parameters=self.q+self.x)
+        return Tx_func
+
 
     def _calc_T_inv(self, name, x, lambdify=True, regenerate=False):
         """ Return the inverse transform matrix, which converts from
@@ -455,16 +561,14 @@ class robot_config():
         regenerate boolean: if True, don't use saved functions
         """
 
+        T_inv = None
+        T_inv_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
-        if (regenerate is False and
-                os.path.isfile('%s/%s.T_inv' % (self.config_folder,
-                                                filename))):
-            print('Loading inverse transform function for %s...' % filename)
-            T_inv = pickle.load(open('%s/%s.T_inv' %
-                                     (self.config_folder,
-                                      filename), 'rb'))
-        else:
+        if regenerate is False:
+            T_inv, T_inv_func = self._load_from_file(filename, lambdify)
+
+        if T_inv is None and T_inv_func is None:
             print('Generating inverse transform function for %s' % filename)
             T = self._calc_T(name=name, regenerate=regenerate)
             rotation_inv = T[:3, :3].T
@@ -474,12 +578,19 @@ class robot_config():
             T_inv = sp.Matrix(T_inv)
 
             # save to file
-            pickle.dump(T_inv, open(
+            abr_control.utils.os.makedir(
+                '%s/%s' % (self.config_folder, filename))
+            cloudpickle.dump(T_inv, open(
                 '%s/%s.T_inv' % (self.config_folder, filename), 'wb'))
 
         if lambdify is False:
+            # if should return expression not function
             return T_inv
-        if self.use_cython is True:
-            return autowrap(T_inv, backend="cython",
-                            args=self.q+self.x)
-        return sp.lambdify(self.q + self.x, T_inv, "numpy")
+
+        if T_inv_func is None:
+            T_inv_func = self._generate_and_save_function(
+                filename=filename, expression=T_inv,
+                parameters=self.q+self.x)
+        return T_inv_func
+
+

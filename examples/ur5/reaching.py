@@ -85,7 +85,7 @@ try:
 
         print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz)**2)))
         # apply the control signal, step the sim forward
-        interface.apply_u(u)
+        interface.send_forces(u)
 
         # set orientation of hand object to match EE
         quaternion = robot_config.orientation('EE', q=feedback['q'])
