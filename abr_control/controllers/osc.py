@@ -43,11 +43,11 @@ class controller:
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
 
         # calculate the Jacobian for the end effector
-        JEE = self.robot_config.J(ref_frame, q, x=offset)
-        JEE = JEE[:3]
+        J = self.robot_config.J(ref_frame, q, x=offset)
+        J = J[:3]
 
         # calculate the end-effector linear and angular velocity
-        full_velocity_signal = np.dot(JEE, dq)
+        full_velocity_signal = np.dot(J, dq)
         dx = full_velocity_signal[:3]  # linear velocity
         # w = full_velocity_signal[3:]  # angular velocity
 
@@ -58,11 +58,11 @@ class controller:
         g = self.robot_config.g(q)
 
         # apply mask to Jacobian before
-        # JEE *= np.array(mask).reshape(6, 1)
+        # J *= np.array(mask).reshape(6, 1)
         # calculate the inertia matrix in task space
         Mq_inv = np.linalg.inv(Mq)
-        JEE_Mq_inv = np.dot(JEE, Mq_inv)  # save for use again below
-        Mx_inv = np.dot(JEE_Mq_inv, JEE.T)
+        J_Mq_inv = np.dot(J, Mq_inv)  # save for use again below
+        Mx_inv = np.dot(J_Mq_inv, J.T)
         # using the rcond to set singular values < thresh to 0
         # is slightly faster than doing it manually with svd
         Mx = np.linalg.pinv(Mx_inv, rcond=.01)
@@ -120,11 +120,15 @@ class controller:
 
         # incorporate task space inertia matrix
         u_task = np.dot(Mx, u_task)
+        # dJ = self.robot_config.dJ(ref_frame, q=q)
+        # u_task = np.dot(Mx, (u_task - np.dot(dJ, dq)))
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
-        # self.training_signal = np.dot(JEE.T, u_task)
-        self.training_signal = np.dot(JEE.T, u_task) - np.dot(Mq, dq)
+        self.training_signal = np.dot(J.T, u_task)
+        if self.vmax is None:
+            self.training_signal -= np.dot(J.T, u_task) - np.dot(Mq, dq)
+
         # add in gravity compensation, not included in training signal
         u = self.training_signal - g
 
@@ -132,9 +136,6 @@ class controller:
             # calculate the null space filter
             nkp = self.kp * .1
             nkv = np.sqrt(nkp)
-            Jdyn_inv = np.dot(Mx, JEE_Mq_inv)
-            null_filter = (np.eye(self.robot_config.num_joints) -
-                           np.dot(JEE.T, Jdyn_inv))
 
             q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
             dq_des = np.zeros(self.robot_config.num_joints, dtype='float32')
@@ -147,6 +148,9 @@ class controller:
                         (np.pi*2) - np.pi)
                     dq_des[ii] = dq[ii]
             u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
+
+            null_filter = (np.eye(self.robot_config.num_joints) -
+                           np.dot(J.T, np.dot(Mq_inv, np.dot(J.T, Mx)).T))
 
             u += np.dot(null_filter, u_null)
 

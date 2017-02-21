@@ -12,11 +12,10 @@ import abr_control
 
 # initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
-    regenerate_functions=False, use_cython=True,
-    hand_attached=False)
+    use_cython=True, hand_attached=False)
 # instantiate the controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=20, vmax=.1, null_control=True)
+    robot_config, kp=20, vmax=1, null_control=True)
 
 # create our vrep interface
 interface = abr_control.interfaces.vrep(
@@ -56,56 +55,52 @@ def on_exit(signal, frame):
 # call on_exit when ctrl-c is pressed
 signal.signal(signal.SIGINT, on_exit)
 
-# print('Moving to first target: ', target_xyz)
-# try:
-feedback = interface.get_feedback()
-start = robot_config.Tx('EE', q=feedback['q'])
-interface.set_xyz(name='target', xyz=target_xyz)
-ctr = 0
-while 1:
-    ctr += 1
+print('Moving to first target: ', target_xyz)
+try:
     feedback = interface.get_feedback()
-    hand_xyz = robot_config.Tx('EE', q=feedback['q'])
+    start = robot_config.Tx('EE', q=feedback['q'])
+    interface.set_xyz(name='target', xyz=target_xyz)
+    ctr = 0
+    while 1:
+        ctr += 1
+        feedback = interface.get_feedback()
+        hand_xyz = robot_config.Tx('EE', q=feedback['q'])
 
-    u = ctrlr.control(q=feedback['q'],
-                        dq=feedback['dq'],
-                        target_pos=target_xyz)
-    print('u: ', [float('%.3f' % val) for val in u])
-    interface.send_forces(np.array(u, dtype='float32'))
+        u = ctrlr.control(q=feedback['q'],
+                            dq=feedback['dq'],
+                            target_pos=target_xyz)
+        print('u: ', [float('%.3f' % val) for val in u])
+        interface.send_forces(np.array(u, dtype='float32'))
 
-    error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
-    if error < .01:
-        # if we're at the target, start count
-        # down to moving to the next target
-        at_target_count += 1
-        if at_target_count >= 200:
-            target_index += 1
-            if target_index > len(targets):
-                break
-            else:
-                target_xyz = targets[target_index]
-                interface.set_xyz(name='target', xyz=target_xyz)
-                print('Moving to next target: ', target_xyz)
-            at_target_count = 0
+        error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
+        if error < .01:
+            # if we're at the target, start count
+            # down to moving to the next target
+            at_target_count += 1
+            if at_target_count >= 200:
+                target_index += 1
+                if target_index > len(targets):
+                    break
+                else:
+                    target_xyz = targets[target_index]
+                    interface.set_xyz(name='target', xyz=target_xyz)
+                    print('Moving to next target: ', target_xyz)
+                at_target_count = 0
 
-    # print([name for name in sys.modules if 'wrapper' in name])
-    print(sys.modules['EE[0,0,0].wrapper_module_0'])
-    print(sys.modules['wrapper_module_0'])
-    # set orientation of hand object to match EE
-    quaternion = robot_config.orientation('EE', q=feedback['q'])
-    angles = abr_control.utils.transformations.euler_from_quaternion(
-        quaternion, axes='rxyz')
-    interface.set_orientation('hand', angles)
+        quaternion = robot_config.orientation('EE', q=feedback['q'])
+        angles = abr_control.utils.transformations.euler_from_quaternion(
+            quaternion, axes='rxyz')
+        interface.set_orientation('hand', angles)
 
-    ee_track.append(hand_xyz)
-    target_track.append(target_xyz)
+        ee_track.append(hand_xyz)
+        target_track.append(target_xyz)
 
-    if ctr % 1000 == 0:
-        print('error: ', error)
-#
-# except Exception as e:
-#     print(e)
-#
-# finally:
-#     # close the connection to the arm
-#     interface.disconnect()
+        if ctr % 1000 == 0:
+            print('error: ', error)
+
+except Exception as e:
+    print(e)
+
+finally:
+    # close the connection to the arm
+    interface.disconnect()
