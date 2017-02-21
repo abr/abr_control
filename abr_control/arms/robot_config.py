@@ -53,7 +53,7 @@ class robot_config():
         self._orientation = {}  # placeholder for orientation functions
         self._T_inv = {}  # for inverse transform calculations
         self._Tx = {}  # for point transform calculations
-        self._T_func = {}  # for transform matrix calculations
+        self._R = {}  # for transform matrix calculations
 
         # specify / create the folder to save to and load from
         self.config_folder = (os.path.dirname(abr_control.arms.__file__) +
@@ -73,6 +73,80 @@ class robot_config():
         self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
+
+    def _generate_and_save_function(self, filename, expression, parameters):
+        """ Create a folder in the saved_functions folder, based on a hash
+        of the current robot_config subclass.
+
+        If use_cython is True, specify a working directory for the autowrap
+        function, so that binaries are saved inside and can be loaded in
+        quickly later.
+        """
+
+        # check for / create the save folder for this expression
+        folder = self.config_folder + '/' + filename
+        abr_control.utils.os.makedir(folder)
+
+        if self.use_cython is True:
+            # binaries saved by specifying tempdir parameter
+            function = autowrap(expression, backend="cython",
+                                args=parameters, tempdir=folder)
+        else:
+            function = sp.lambdify(parameters, expression, "numpy")
+            # save function to file
+            cloudpickle.dump(function, open(
+                '%s/%s.func' % (folder, filename),
+                'wb'))
+
+        return function
+
+    def _load_from_file(self, filename, lambdify):
+        expression = None
+        function = None
+
+        # check for / create the save folder for this expression
+        folder = self.config_folder + '/' + filename
+        if os.path.isdir(folder) is not False:
+            # check to see should return function or expression
+            if lambdify is True:
+                if self.use_cython is True:
+                    # check for cython binaries
+                    saved_file = [sf for sf in os.listdir(folder)
+                                  if sf.endswith('.so')]
+                    if len(saved_file) > 0:
+                        # if found, load in function from file
+                        print('Loading cython function from %s ...' % filename)
+                        if self.config_folder not in sys.path:
+                            sys.path.append(self.config_folder)
+                        saved_file = saved_file[0].split('.')[0]
+                        function_binary = importlib.import_module(
+                            filename + '.' + saved_file)
+                        function = getattr(function_binary, 'autofunc_c')
+                        # NOTE: This is a hack, but the above import command
+                        # imports both 'filename.saved_file' and 'saved_file'
+                        # having 'saved_file' in modules cause problems if
+                        # the cython autofunc wrapper is used after this.
+                        del sys.modules[saved_file]
+                else:
+                    # check for saved function
+                    extension = '.func'
+                    full_filename = '%s/%s%s' % (self.config_folder,
+                                                 filename, extension)
+
+                    if os.path.isfile(full_filename):
+                        print('Loading function from %s%s ...' % (filename,
+                                                                  extension))
+                        function = cloudpickle.load(open(full_filename, 'rb'))
+
+            if function is None:
+                # if function not loaded, check for saved expression
+                if os.path.isfile('%s/%s' %
+                                  (self.config_folder, filename)):
+                    print('Loading expression from %s ...' % filename)
+                    expression = cloudpickle.load(open(
+                        '%s/%s' % (self.config_folder, filename), 'rb'))
+
+        return expression, function
 
     def J(self, name, q, x=[0, 0, 0]):
         """ Calculates the Jacobian for a joint or link
@@ -134,29 +208,35 @@ class robot_config():
         name string: name of the joint or link, or end-effector
         q list: set of joint angles to pass in to the g function
         """
-        # get transform matrix for reference frame of interest
-        if self._T_func.get(name, None) is None:
-            print('Generating orientation function.')
+        R = None
+        R_func = None
+        filename = name + '[0,0,0]_R'
+
+        # check to see if should try to load functions from file
+        if self._R.get(name, None) is None:
             # check to see if we have our transformation saved in file
-            if (self.regenerate_functions is False and
-                    os.path.isfile('%s/%s.T' % (self.config_folder, name))):
-                T = cloudpickle.load(open('%s/%s.T' %
-                                     (self.config_folder, name),
-                                     'rb'))
-            else:
-                T = self._calc_T(name=name)
+            if self.regenerate_functions is False:
+                R, R_func = self._load_from_file(filename, lambdify=True)
+
+            if R is None and R_func is None:
+                # if no saved file was loaded, generate function
+                print('Generating orientation function.')
+                R = self._calc_T(name=name)[:3, :3]
 
                 # save to file
-                cloudpickle.dump(sp.Matrix(T), open(
-                    '%s/%s.T' % (self.config_folder, name), 'wb'))
-            if self.use_cython is True:
-                T_func = autowrap(T, backend="cython", args=self.q)
-            else:
-                T_func = sp.lambdify(self.q, T, "numpy")
-            self._T_func[name] = T_func
-        T = self._T_func[name](*q)
+                abr_control.utils.os.makedir(
+                    '%s/%s' % (self.config_folder, filename))
+                cloudpickle.dump(sp.Matrix(R), open(
+                    '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
 
-        return abr_control.utils.transformations.quaternion_from_matrix(T)
+            if R_func is None:
+                R_func = self._generate_and_save_function(
+                    filename=filename, expression=R,
+                    parameters=self.q)
+            self._R[name] = R_func
+        R = self._R[name](*q)
+
+        return abr_control.utils.transformations.quaternion_from_matrix(R)
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Calculates the transform for a joint or link
@@ -185,78 +265,6 @@ class robot_config():
                 name=name, x=x, regenerate=self.regenerate_functions)
         parameters = tuple(q) + tuple(x)
         return self._T_inv[funcname](*parameters)
-
-    def _generate_and_save_function(self, filename, expression, parameters):
-        """ Create a folder in the saved_functions folder, based on a hash
-        of the current robot_config subclass.
-
-        If use_cython is True, specify a working directory for the autowrap
-        function, so that binaries are saved inside and can be loaded in
-        quickly later.
-        """
-
-        # check for / create the save folder for this expression
-        folder = self.config_folder + '/' + filename
-        abr_control.utils.os.makedir(folder)
-
-        if self.use_cython is True:
-            # binaries saved by specifying tempdir parameter
-            function = autowrap(expression, backend="cython",
-                                args=parameters, tempdir=folder)
-        else:
-            function = sp.lambdify(parameters, expression, "numpy")
-            # save function to file
-            cloudpickle.dump(function, open(
-                '%s/%s.func' % (folder, filename),
-                'wb'))
-
-        return function
-
-    def _load_from_file(self, filename, lambdify):
-        expression = None
-        function = None
-
-        # check for / create the save folder for this expression
-        folder = self.config_folder + '/' + filename
-        if os.path.isdir(folder) is not False:
-            # check to see should return function or expression
-            if lambdify is True:
-                if self.use_cython is True:
-                    # check for cython binaries
-                    saved_file = [sf for sf in os.listdir(folder)
-                                  if sf.endswith('.so')]
-                    if len(saved_file) > 0:
-                        # if found, load in function from file
-                        print('Loading cython function from %s ...' % filename)
-                        # sys.path.append(folder)
-                        if self.config_folder not in sys.path:
-                            sys.path.append(self.config_folder)
-                        saved_file = saved_file[0].split('.')[0]
-                        function_binary = importlib.import_module(
-                            filename + '.' + saved_file)
-                        function = getattr(function_binary, 'autofunc_c')
-                        # sys.path.remove(folder)
-                        # sys.path.remove(self.config_folder)
-                else:
-                    # check for saved function
-                    extension = '.func'
-                    full_filename = '%s/%s%s' % (self.config_folder,
-                                                 filename, extension)
-
-                    if os.path.isfile(full_filename):
-                        print('Loading function from %s%s ...' % (filename,
-                                                                  extension))
-                        function = cloudpickle.load(open(full_filename, 'rb'))
-
-            if function is None:
-                # if function not loaded, check for saved expression
-                if os.path.isfile('%s/%s' %
-                                  (self.config_folder, filename)):
-                    print('Loading expression from %s ...' % filename)
-                    expression = cloudpickle.load(open(
-                        '%s/%s' % (self.config_folder, filename), 'rb'))
-
-        return expression, function
 
     def _calc_dJ(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the derivative of the Jacobian
@@ -298,7 +306,7 @@ class robot_config():
 
             # save expression to file
             cloudpickle.dump(dJ, open(
-                '%s/%s' % (self.config_folder, filename), 'wb'))
+                '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
 
         if lambdify is False:
             # if should return expression not function
