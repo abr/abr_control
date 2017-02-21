@@ -8,6 +8,7 @@ __pycache__/
 
 # save files
 *~
+saved_functions/
 
 # Distribution / packaging
 .Python
