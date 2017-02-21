@@ -76,7 +76,8 @@ class robot_config():
 
     def _generate_and_save_function(self, filename, expression, parameters):
         """ Create a folder in the saved_functions folder, based on a hash
-        of the current robot_config subclass.
+        of the current robot_config subclass, save the functions created
+        into this folder.
 
         If use_cython is True, specify a working directory for the autowrap
         function, so that binaries are saved inside and can be loaded in
@@ -101,6 +102,13 @@ class robot_config():
         return function
 
     def _load_from_file(self, filename, lambdify):
+        """ Attempt to load in the specified function or expression from
+        saved file, in a subfolder based on the hash of the robot_config
+
+        filename string: the desired function to load in
+        lambdify boolean: if True look for saved function
+                          if False look for saved expression
+        """
         expression = None
         function = None
 
