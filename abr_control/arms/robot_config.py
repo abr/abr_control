@@ -184,48 +184,6 @@ class robot_config():
         parameters = tuple(q) + tuple(x)
         return self._T_inv[funcname](*parameters)
 
-    def _load_from_file(self, filename, lambdify):
-        expression = None
-        function = None
-
-        # check for / create the save folder for this expression
-        folder = self.config_folder + '/' + filename
-        if os.path.isdir(folder) is not False:
-            # check to see should return function or expression
-            if lambdify is True:
-                if self.use_cython is True:
-                    # check for cython binaries
-                    saved_file = [sf for sf in os.listdir(folder)
-                                  if sf.endswith('.so')]
-                    if len(saved_file) > 0:
-                        # if found, load in function from file
-                        print('Loading cython function from %s ...' % filename)
-                        sys.path.append(folder)
-                        saved_file = saved_file[0].split('.')[0]
-                        function_binary = importlib.import_module(saved_file)
-                        function = getattr(function_binary, 'autofunc_c')
-                        sys.path.remove(folder)
-                else:
-                    # check for saved function
-                    extension = '.func'
-                    full_filename = '%s/%s%s' % (self.config_folder,
-                                                 filename, extension)
-
-                    if os.path.isfile(full_filename):
-                        print('Loading function from %s%s ...' % (filename,
-                                                                  extension))
-                        function = cloudpickle.load(open(full_filename, 'rb'))
-
-            if function is None:
-                # if function not loaded, check for saved expression
-                if os.path.isfile('%s/%s' %
-                                  (self.config_folder, filename)):
-                    print('Loading expression from %s ...' % filename)
-                    expression = cloudpickle.load(open(
-                        '%s/%s' % (self.config_folder, filename), 'rb'))
-
-        return expression, function
-
     def _generate_and_save_function(self, filename, expression, parameters):
         """ Create a folder in the saved_functions folder, based on a hash
         of the current robot_config subclass.
@@ -251,6 +209,52 @@ class robot_config():
                 'wb'))
 
         return function
+
+    def _load_from_file(self, filename, lambdify):
+        expression = None
+        function = None
+
+        # check for / create the save folder for this expression
+        folder = self.config_folder + '/' + filename
+        if os.path.isdir(folder) is not False:
+            # check to see should return function or expression
+            if lambdify is True:
+                if self.use_cython is True:
+                    # check for cython binaries
+                    saved_file = [sf for sf in os.listdir(folder)
+                                  if sf.endswith('.so')]
+                    if len(saved_file) > 0:
+                        # if found, load in function from file
+                        print('Loading cython function from %s ...' % filename)
+                        # sys.path.append(folder)
+                        if self.config_folder not in sys.path:
+                            sys.path.append(self.config_folder)
+                        saved_file = saved_file[0].split('.')[0]
+                        function_binary = importlib.import_module(
+                            filename + '.' + saved_file)
+                        function = getattr(function_binary, 'autofunc_c')
+                        # sys.path.remove(folder)
+                        # sys.path.remove(self.config_folder)
+                else:
+                    # check for saved function
+                    extension = '.func'
+                    full_filename = '%s/%s%s' % (self.config_folder,
+                                                 filename, extension)
+
+                    if os.path.isfile(full_filename):
+                        print('Loading function from %s%s ...' % (filename,
+                                                                  extension))
+                        function = cloudpickle.load(open(full_filename, 'rb'))
+
+            if function is None:
+                # if function not loaded, check for saved expression
+                if os.path.isfile('%s/%s' %
+                                  (self.config_folder, filename)):
+                    print('Loading expression from %s ...' % filename)
+                    expression = cloudpickle.load(open(
+                        '%s/%s' % (self.config_folder, filename), 'rb'))
+
+        return expression, function
 
     def _calc_dJ(self, name, x, lambdify=True, regenerate=False):
         """ Uses Sympy to generate the derivative of the Jacobian
