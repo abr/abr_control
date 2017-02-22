@@ -61,8 +61,7 @@ class controller:
         # J *= np.array(mask).reshape(6, 1)
         # calculate the inertia matrix in task space
         Mq_inv = np.linalg.inv(Mq)
-        J_Mq_inv = np.dot(J, Mq_inv)  # save for use again below
-        Mx_inv = np.dot(J_Mq_inv, J.T)
+        Mx_inv = np.dot(J, np.dot(Mq_inv, J.T))
         # using the rcond to set singular values < thresh to 0
         # is slightly faster than doing it manually with svd
         Mx = np.linalg.pinv(Mx_inv, rcond=.01)
@@ -119,22 +118,23 @@ class controller:
         # u_task *= mask
 
         # incorporate task space inertia matrix
-        u_task = np.dot(Mx, u_task)
-        # dJ = self.robot_config.dJ(ref_frame, q=q)
-        # u_task = np.dot(Mx, (u_task - np.dot(dJ, dq)))
+        # u_task = np.dot(Mx, u_task)
+        # self.training_signal = np.dot(J.T, u_task)
+
+        Jbar = np.dot(Mq_inv, np.dot(J.T, Mx))
+        self.training_signal = np.dot(Mq, np.dot(Jbar, u_task))
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
-        self.training_signal = np.dot(J.T, u_task)
         if self.vmax is None:
-            self.training_signal -= np.dot(J.T, u_task) - np.dot(Mq, dq)
+            self.training_signal -= np.dot(Mq, dq)
 
         # add in gravity compensation, not included in training signal
         u = self.training_signal - g
 
         if self.null_control is True:
             # calculate the null space filter
-            nkp = self.kp * .1
+            nkp = self.kp #* .1
             nkv = np.sqrt(nkp)
 
             q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
@@ -150,7 +150,7 @@ class controller:
             u_null = np.dot(Mq, (nkp * q_des - nkv * dq_des))
 
             null_filter = (np.eye(self.robot_config.num_joints) -
-                           np.dot(J.T, np.dot(Mq_inv, np.dot(J.T, Mx)).T))
+                           np.dot(J.T, Jbar.T))
 
             u += np.dot(null_filter, u_null)
 
