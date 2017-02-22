@@ -125,8 +125,10 @@ class controller:
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
-        # self.training_signal = np.dot(J.T, u_task)
-        self.training_signal = np.dot(J.T, u_task) - np.dot(Mq, dq)
+        self.training_signal = np.dot(J.T, u_task)
+        if self.vmax is None:
+            self.training_signal -= np.dot(J.T, u_task) - np.dot(Mq, dq)
+
         # add in gravity compensation, not included in training signal
         u = self.training_signal - g
 
