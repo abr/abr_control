@@ -12,11 +12,10 @@ import abr_control
 
 # initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
-    regenerate_functions=False, use_cython=True,
-    hand_attached=False)
+    use_cython=True, hand_attached=False)
 # instantiate the controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=20, vmax=.1, null_control=True)
+    robot_config, kp=20, vmax=1, null_control=True)
 
 # create our vrep interface
 interface = abr_control.interfaces.vrep(
