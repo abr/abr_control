@@ -12,14 +12,12 @@ import abr_control
 
 # initialize our robot config for neural controllers
 robot_config = abr_control.arms.jaco2.config_link5(
-    regenerate_functions=True, use_cython=False,
-    hand_attached=False)
+    use_cython=True, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.floating(
     robot_config)
 
-ctrlr.control(np.zeros(robot_config.num_joints),
-              np.zeros(robot_config.num_joints))
+robot_config.generate_control_functions()
 
 # create our interface for the jaco2
 interface = abr_control.interfaces.vrep(

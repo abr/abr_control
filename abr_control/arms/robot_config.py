@@ -11,9 +11,8 @@ import abr_control
 import abr_control.arms
 
 
-# TODO : store both the lambdified and unlambdified versions of everything
-
-# TODO : check to see how long it takes to load T from file vs recompute
+# TODO : store lambdified functions, currently running into pickling errors
+# cloudpickle, dill, and pickle all run into problems
 
 class robot_config():
     """ Class defines a bunch of useful functions for controlling
@@ -23,13 +22,11 @@ class robot_config():
     """
 
     def __init__(self, num_joints, num_links, robot_name="robot",
-                 regenerate_functions=False, use_cython=False):
+                 use_cython=False):
         """
         num_joints int: number of joints in robot
         num_links int: number of arm segments in robot
         robot_name string: used for saving/loading functions to file
-        regenerate_functions boolean: if True, don't look to saved files
-                                      regenerate all transforms and Jacobians
         use_cython boolean: if True, a more efficient function is generated
                             useful when execution time is more important than
                             generation time
@@ -39,12 +36,10 @@ class robot_config():
         self.num_links = num_links
         self.robot_name = robot_name
 
-        self.regenerate_functions = regenerate_functions
         self.use_cython = use_cython
 
         # create function dictionaries
-        self._Tx = {}  # for transform calculations
-        self._T_inv = {}  # for inverse transform calculations
+        self._dJ = {}  # for Jacobian time derivative calculations
         self._J = {}  # for Jacobian calculations
         self._M_links = []  # placeholder for (x,y,z) inertia matrices
         self._M_joints = []  # placeholder for (x,y,z) inertia matrices
@@ -92,12 +87,7 @@ class robot_config():
             # binaries saved by specifying tempdir parameter
             function = autowrap(expression, backend="cython",
                                 args=parameters, tempdir=folder)
-        else:
-            function = sp.lambdify(parameters, expression, "numpy")
-            # save function to file
-            cloudpickle.dump(function, open(
-                '%s/%s.func' % (folder, filename),
-                'wb'))
+        function = sp.lambdify(parameters, expression, "numpy")
 
         return function
 
@@ -135,41 +125,30 @@ class robot_config():
                         # having 'saved_file' in modules cause problems if
                         # the cython autofunc wrapper is used after this.
                         del sys.modules[saved_file]
-                else:
-                    # check for saved function
-                    extension = '.func'
-                    full_filename = '%s/%s%s' % (self.config_folder,
-                                                 filename, extension)
-
-                    if os.path.isfile(full_filename):
-                        print('Loading function from %s%s ...' % (filename,
-                                                                  extension))
-                        function = cloudpickle.load(open(full_filename, 'rb'))
 
             if function is None:
                 # if function not loaded, check for saved expression
-                if os.path.isfile('%s/%s' %
-                                  (self.config_folder, filename)):
+                if os.path.isfile('%s/%s/%s' %
+                                  (self.config_folder, filename, filename)):
                     print('Loading expression from %s ...' % filename)
                     expression = cloudpickle.load(open(
-                        '%s/%s' % (self.config_folder, filename), 'rb'))
+                        '%s/%s/%s' % (self.config_folder, filename, filename),
+                        'rb'))
 
         return expression, function
 
-    def J(self, name, q, x=[0, 0, 0]):
-        """ Calculates the Jacobian for a joint or link
+    def generate_control_functions(self):
+        """ Create / load in all of the functions used by robot_config """
+        q = np.zeros(self.num_joints)
+        names = ['link%i' % ii for ii in range(self.num_joints)]
+        names += ['joint%i' % ii for ii in range(self.num_joints)]
 
-        name string: name of the joint or link, or end-effector
-        q list: set of joint angles to pass in to the Jacobian function
-        x list: the [x,y,z] position of interest in "name"'s reference frame
-        """
-        funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
-        # check for function in dictionary
-        if self._J.get(funcname, None) is None:
-            self._J[funcname] = self._calc_J(
-                name=name, x=x, regenerate=self.regenerate_functions)
-        parameters = tuple(q) + tuple(x)
-        return np.array(self._J[funcname](*parameters), dtype='float32')
+        self.dJ('EE', q=q)
+        self.J('EE', q=q)
+        self.Mq(q=q)
+        self.g(q=q)
+        self.orientation('EE', q=q)
+        print('All functions generated ...')
 
     def dJ(self, name, q, x=[0, 0, 0]):
         """ Calculates the derivative of a Jacobian for a joint or link
@@ -182,10 +161,23 @@ class robot_config():
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._dJ.get(funcname, None) is None:
-            self._dJ[funcname] = self._calc_dJ(
-                name=name, x=x, regenerate=self.regenerate_functions)
+            self._dJ[funcname] = self._calc_dJ(name=name, x=x)
         parameters = tuple(q) + tuple(x)
         return np.array(self._dJ[funcname](*parameters), dtype='float32')
+
+    def J(self, name, q, x=[0, 0, 0]):
+        """ Calculates the Jacobian for a joint or link
+
+        name string: name of the joint or link, or end-effector
+        q list: set of joint angles to pass in to the Jacobian function
+        x list: the [x,y,z] position of interest in "name"'s reference frame
+        """
+        funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
+        # check for function in dictionary
+        if self._J.get(funcname, None) is None:
+            self._J[funcname] = self._calc_J(name=name, x=x)
+        parameters = tuple(q) + tuple(x)
+        return np.array(self._J[funcname](*parameters), dtype='float32')
 
     def Mq(self, q):
         """ Calculates the joint space inertia matrix for the ur5
@@ -194,7 +186,7 @@ class robot_config():
         """
         # check for function in dictionary
         if self._Mq is None:
-            self._Mq = self._calc_Mq(regenerate=self.regenerate_functions)
+            self._Mq = self._calc_Mq()
         parameters = tuple(q)
         return np.array(self._Mq(*parameters), dtype='float32')
 
@@ -205,7 +197,7 @@ class robot_config():
         """
         # check for function in dictionary
         if self._g is None:
-            self._g = self._calc_g(regenerate=self.regenerate_functions)
+            self._g = self._calc_g()
         parameters = tuple(q)
         return np.array(self._g(*parameters), dtype='float32').flatten()
 
@@ -216,34 +208,12 @@ class robot_config():
         name string: name of the joint or link, or end-effector
         q list: set of joint angles to pass in to the g function
         """
-        R = None
-        R_func = None
-        filename = name + '[0,0,0]_R'
-
-        # check to see if should try to load functions from file
+        # check for function in dictionary
         if self._R.get(name, None) is None:
-            # check to see if we have our transformation saved in file
-            if self.regenerate_functions is False:
-                R, R_func = self._load_from_file(filename, lambdify=True)
+            self._R[name] = self._calc_R(name)
+        parameters = tuple(q)
 
-            if R is None and R_func is None:
-                # if no saved file was loaded, generate function
-                print('Generating orientation function.')
-                R = self._calc_T(name=name)[:3, :3]
-
-                # save to file
-                abr_control.utils.os.makedir(
-                    '%s/%s' % (self.config_folder, filename))
-                cloudpickle.dump(sp.Matrix(R), open(
-                    '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
-
-            if R_func is None:
-                R_func = self._generate_and_save_function(
-                    filename=filename, expression=R,
-                    parameters=self.q)
-            self._R[name] = R_func
-        R = self._R[name](*q)
-
+        R = self._R[name](*parameters)
         return abr_control.utils.transformations.quaternion_from_matrix(R)
 
     def Tx(self, name, q, x=[0, 0, 0]):
@@ -256,8 +226,7 @@ class robot_config():
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._Tx.get(funcname, None) is None:
-            self._Tx[funcname] = self._calc_Tx(
-                name, x=x, regenerate=self.regenerate_functions)
+            self._Tx[funcname] = self._calc_Tx(name, x=x)
         parameters = tuple(q) + tuple(x)
         return self._Tx[funcname](*parameters)[:-1].flatten()
 
@@ -269,12 +238,11 @@ class robot_config():
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._T_inv.get(funcname, None) is None:
-            self._T_inv[funcname] = self._calc_T_inv(
-                name=name, x=x, regenerate=self.regenerate_functions)
+            self._T_inv[funcname] = self._calc_T_inv(name=name, x=x)
         parameters = tuple(q) + tuple(x)
         return self._T_inv[funcname](*parameters)
 
-    def _calc_dJ(self, name, x, lambdify=True, regenerate=False):
+    def _calc_dJ(self, name, x, lambdify=True):
         """ Uses Sympy to generate the derivative of the Jacobian
         for a joint or link with respect to time
 
@@ -283,7 +251,6 @@ class robot_config():
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
                           matrix
-        regenerate boolean: if True, don't use saved functions
         """
 
         dJ = None
@@ -291,18 +258,14 @@ class robot_config():
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         filename += '_dJ'
         # check to see if should try to load functions from file
-        if regenerate is False:
-            dJ, dJ_func = self._load_from_file(filename, lambdify)
+        dJ, dJ_func = self._load_from_file(filename, lambdify)
 
         if dJ is None and dJ_func is None:
             # if no saved file was loaded, generate function
             print('Generating derivative of Jacobian ',
                   'function for %s' % filename)
 
-            # TODO: make sure that we're not regenerating all these
-            # Jacobians again here if they've already been regenerated
-            # once, but they are actually regenerated if only this is called
-            J = self._calc_J(name, x=x, lambdify=False, regenerate=regenerate)
+            J = self._calc_J(name, x=x, lambdify=False)
             dJ = sp.Matrix(np.zeros(J.shape, dtype='float32'))
             # calculate derivative of (x,y,z) wrt to time
             # which each joint is dependent on
@@ -313,17 +276,22 @@ class robot_config():
             dJ = sp.Matrix(dJ).T
 
             # save expression to file
+            abr_control.utils.os.makedir(
+                '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(dJ, open(
                 '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
 
         if lambdify is False:
             # if should return expression not function
             return dJ
-        return self._generate_and_save_function(
-            filename=filename, expression=dJ,
-            parameters=self.q+self.x)
 
-    def _calc_J(self, name, x, lambdify=True, regenerate=False):
+        if dJ_func is None:
+            dJ_func = self._generate_and_save_function(
+                filename=filename, expression=dJ,
+                parameters=self.q+self.x)
+        return dJ_func
+
+    def _calc_J(self, name, x, lambdify=True):
         """ Uses Sympy to generate the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
@@ -331,7 +299,6 @@ class robot_config():
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
                           matrix
-        regenerate boolean: if True, don't use saved functions
         """
         J = None
         J_func = None
@@ -339,18 +306,13 @@ class robot_config():
         filename += '_J'
 
         # check to see if should try to load functions from file
-        if regenerate is False:
-            J, J_func = self._load_from_file(filename, lambdify)
+        J, J_func = self._load_from_file(filename, lambdify)
 
         if J is None and J_func is None:
             # if no saved file was loaded, generate function
             print('Generating Jacobian function for %s' % filename)
 
-            # TODO: make sure that we're not regenerating all these
-            # Transforms again here if they've already been regenerated
-            # once, but they are actually regenerated if only this is called
-            Tx = self._calc_Tx(name, x=x, lambdify=False,
-                               regenerate=regenerate)
+            Tx = self._calc_Tx(name, x=x, lambdify=False)
             # NOTE: calculating the Jacobian this way doesn't incur any
             # real computational cost (maybe 30ms) and it simplifies adding
             # the orientation information below (as opposed to using
@@ -391,36 +353,31 @@ class robot_config():
                 parameters=self.q+self.x)
         return J_func
 
-    def _calc_Mq(self, lambdify=True, regenerate=False):
+    def _calc_Mq(self, lambdify=True):
         """ Uses Sympy to generate the inertia matrix in
         joint space
 
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
                           matrix
-        regenerate boolean: if True, don't use saved functions
         """
 
         Mq = None
         Mq_func = None
 
         # check to see if we have our inertia matrix saved in file
-        if regenerate is False:
-            Mq, Mq_func = self._load_from_file('Mq', lambdify)
+        Mq, Mq_func = self._load_from_file('Mq', lambdify)
 
         if Mq is None and Mq_func is None:
             # if no saved file was loaded, generate function
             print('Generating inertia matrix function')
 
             # get the Jacobians for each link's COM
-            # TODO: make sure that we're not regenerating all these
-            # Jacobians again here if they've already been regenerated
-            # once, but they are actually regenerated if only this is called
             J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
-                                    lambdify=False, regenerate=regenerate)
+                                    lambdify=False)
                        for ii in range(self.num_links)]
             J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
-                                     lambdify=False, regenerate=regenerate)
+                                     lambdify=False)
                         for ii in range(self.num_joints)]
 
             # sum together the effects of each arm segment's inertia
@@ -450,35 +407,30 @@ class robot_config():
                 parameters=self.q)
         return Mq_func
 
-    def _calc_g(self, lambdify=True, regenerate=False):
+    def _calc_g(self, lambdify=True):
         """ Uses Sympy to generate the force of gravity in
         joint space
 
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
                           matrix
-        regenerate boolean: if True, don't use saved functions
         """
 
         g = None
         g_func = None
         # check to see if we have our gravity term saved in file
-        if regenerate is False:
-            g, g_func = self._load_from_file('g', lambdify)
+        g, g_func = self._load_from_file('g', lambdify)
 
         if g is None and g_func is None:
             # if no saved file was loaded, generate function
             print('Generating gravity compensation function')
 
             # get the Jacobians for each link's COM
-            # TODO: make sure that we're not regenerating all these
-            # Jacobians again here if they've already been regenerated
-            # once, but they are actually regenerated if only this is called
             J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
-                                    lambdify=False, regenerate=regenerate)
+                                    lambdify=False)
                        for ii in range(self.num_links)]
             J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
-                                     lambdify=False, regenerate=regenerate)
+                                     lambdify=False)
                         for ii in range(self.num_joints)]
 
             # sum together the effects of each arm segment's inertia
@@ -508,6 +460,39 @@ class robot_config():
                 parameters=self.q)
         return g_func
 
+    def _calc_R(self, name, lambdify=True):
+        """ Uses Sympy to generate the rotation matrix for a joint or link
+
+        name string: name of the joint or link, or end-effector
+        lambdify boolean: if True returns a function to calculate
+                          the Jacobian. If False returns the Sympy
+                          matrix
+        """
+        R = None
+        R_func = None
+        filename = name + '[0,0,0]_R'
+
+        # check to see if we have the rotation matrix saved in file
+        R, R_func = self._load_from_file(filename, lambdify=True)
+
+        if R is None and R_func is None:
+            # if no saved file was loaded, generate function
+            print('Generating rotation matrix function.')
+            R = self._calc_T(name=name)[:3, :3]
+
+            # save to file
+            abr_control.utils.os.makedir(
+                '%s/%s' % (self.config_folder, filename))
+            cloudpickle.dump(sp.Matrix(R), open(
+                '%s/%s/%s' % (self.config_folder, filename, filename),
+                'wb'))
+
+        if R_func is None:
+            R_func = self._generate_and_save_function(
+                filename=filename, expression=R,
+                parameters=self.q)
+        return R_func
+
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
 
@@ -515,7 +500,7 @@ class robot_config():
         """
         raise NotImplementedError("_calc_T function not implemented")
 
-    def _calc_Tx(self, name, x=None, lambdify=True, regenerate=False):  # noqa C907
+    def _calc_Tx(self, name, x=None, lambdify=True):
         """ Uses Sympy to transform x from the reference frame of a joint
         or link to the origin (world) coordinates.
 
@@ -530,8 +515,7 @@ class robot_config():
         Tx_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
-        if regenerate is False:
-            Tx, Tx_func = self._load_from_file(filename, lambdify)
+        Tx, Tx_func = self._load_from_file(filename, lambdify)
 
         if Tx is None and Tx_func is None:
             print('Generating transform function for %s' % filename)
@@ -564,8 +548,7 @@ class robot_config():
                 parameters=self.q+self.x)
         return Tx_func
 
-
-    def _calc_T_inv(self, name, x, lambdify=True, regenerate=False):
+    def _calc_T_inv(self, name, x, lambdify=True):
         """ Return the inverse transform matrix, which converts from
         world coordinates into the robot's end-effector reference frame
 
@@ -574,19 +557,17 @@ class robot_config():
         lambdify boolean: if True returns a function to calculate
                           the transform. If False returns the Sympy
                           matrix
-        regenerate boolean: if True, don't use saved functions
         """
 
         T_inv = None
         T_inv_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check to see if we have our transformation saved in file
-        if regenerate is False:
-            T_inv, T_inv_func = self._load_from_file(filename, lambdify)
+        T_inv, T_inv_func = self._load_from_file(filename, lambdify)
 
         if T_inv is None and T_inv_func is None:
             print('Generating inverse transform function for %s' % filename)
-            T = self._calc_T(name=name, regenerate=regenerate)
+            T = self._calc_T(name=name)
             rotation_inv = T[:3, :3].T
             translation_inv = -rotation_inv * T[:3, 3]
             T_inv = rotation_inv.row_join(translation_inv).col_join(
@@ -608,5 +589,3 @@ class robot_config():
                 filename=filename, expression=T_inv,
                 parameters=self.q+self.x)
         return T_inv_func
-
-
