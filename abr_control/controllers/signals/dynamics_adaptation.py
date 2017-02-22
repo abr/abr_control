@@ -23,15 +23,11 @@ class Signal():
                  n_neurons=1000,
                  n_adapt_pop=1,
                  pes_learning_rate=1e-6,
-                 voja_learning_rate=1e-6,
                  weights_file=None,
                  backend='nengo'):
         """
         pes_learning_rate float: controls the speed of neural adaptation
                                  for training the dynamics compensation term
-        voja_learning_rate float: controls the speed of neural adaptation
-                                  for shifting the sensitivity of the CB
-                                  encoders towards areas most often explored
         weights_file string: path to file where learned weights are saved
         """
         self.robot_config = robot_config
