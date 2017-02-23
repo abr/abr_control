@@ -13,8 +13,8 @@ run_to_plot = 0
 
 robot_config = abr_jaco2.robot_config_neural()
 
-q = robot_config.scaledown('q', np.load('%s/q.npz' % folder)['q'])
-dq = robot_config.scaledown('dq', np.load('%s/dq.npz' % folder)['dq'])
+q = robot_config.scaledown('q', np.load('%s/q9.npz' % folder)['q'])
+dq = robot_config.scaledown('dq', np.load('%s/dq9.npz' % folder)['dq'])
 print('q shape: ', q.shape)
 
 model = nengo.Network(seed=10)
@@ -35,7 +35,7 @@ with model:
         dimensions=12,
         encoders=encoders,
         eval_points=eval_points,
-        intercepts=nengo.dists.Uniform(.5, 1),)
+        intercepts=nengo.dists.Uniform(-.1, 1),)
 
     nengo.Connection(in_q, adapt_ens[:6],
         function=lambda x: x / np.linalg.norm(x))
@@ -53,5 +53,5 @@ for ii in range(6):
     plt.plot(q[1:, ii])
 
 plt.subplot(212)
-rasterplot(sim.trange(), sim.data[probe])#[:, :500])
+rasterplot(sim.trange(), sim.data[probe][:, :2000])
 plt.show()
