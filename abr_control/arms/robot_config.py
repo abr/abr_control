@@ -39,12 +39,13 @@ class robot_config():
         self.use_cython = use_cython
 
         # create function dictionaries
+        self._C = None  # placeholder for the centripetal and Coriolis function
+        self._g = None  # placeholder for joint space gravity function
         self._dJ = {}  # for Jacobian time derivative calculations
         self._J = {}  # for Jacobian calculations
         self._M_links = []  # placeholder for (x,y,z) inertia matrices
         self._M_joints = []  # placeholder for (x,y,z) inertia matrices
-        self._Mq = None  # placeholder for joint space inertia matrix function
-        self._g = None  # placeholder for joint space gravity term function
+        self._M = None  # placeholder for joint space inertia matrix function
         self._orientation = {}  # placeholder for orientation functions
         self._T_inv = {}  # for inverse transform calculations
         self._Tx = {}  # for point transform calculations
@@ -145,32 +146,55 @@ class robot_config():
 
         self.dJ('EE', q=q)
         self.J('EE', q=q)
-        self.Mq(q=q)
+        self.M(q=q)
         self.g(q=q)
         self.orientation('EE', q=q)
         print('All functions generated ...')
 
-    def dJ(self, name, q, x=[0, 0, 0]):
+    def C(self, q, dq):
+        """ Calculates the centripetal and Coriolis forces
+
+        q list: (radians) joint angles
+        dq list: (radians/sec) joint velocities
+        """
+        # check for function in dictionary
+        if self._C is None:
+            self._C = self._calc_C()
+        parameters = tuple(q) + tuple(dq)
+        return np.array(self._C(*parameters), dtype='float32').flatten()
+
+    def g(self, q):
+        """ Calculates the force of gravity in joint space for the ur5
+
+        q list: (radians) joint angles
+        """
+        # check for function in dictionary
+        if self._g is None:
+            self._g = self._calc_g()
+        parameters = tuple(q)
+        return np.array(self._g(*parameters), dtype='float32').flatten()
+
+    def dJ(self, name, q, dq, x=[0, 0, 0]):
         """ Calculates the derivative of a Jacobian for a joint or link
         with respect to time
 
         name string: name of the joint or link, or end-effector
-        q list: set of joint angles to pass in to the Jacobian function
-        x list: the [x,y,z] position of interest in "name"'s reference frame
+        q list: (radians) joint angles
+        x list: (m) the [x,y,z] offset inside name's reference frame
         """
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._dJ.get(funcname, None) is None:
             self._dJ[funcname] = self._calc_dJ(name=name, x=x)
-        parameters = tuple(q) + tuple(x)
+        parameters = tuple(q) + tuple(dq) + tuple(x)
         return np.array(self._dJ[funcname](*parameters), dtype='float32')
 
     def J(self, name, q, x=[0, 0, 0]):
         """ Calculates the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
-        q list: set of joint angles to pass in to the Jacobian function
-        x list: the [x,y,z] position of interest in "name"'s reference frame
+        q list: (radians) joint angles
+        x list: (m) the [x,y,z] offset inside name's reference frame
         """
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
@@ -179,34 +203,23 @@ class robot_config():
         parameters = tuple(q) + tuple(x)
         return np.array(self._J[funcname](*parameters), dtype='float32')
 
-    def Mq(self, q):
+    def M(self, q):
         """ Calculates the joint space inertia matrix for the ur5
 
-        q list: set of joint angles to pass in to the Mq function
+        q list: (radians) joint angles
         """
         # check for function in dictionary
-        if self._Mq is None:
-            self._Mq = self._calc_Mq()
+        if self._M is None:
+            self._M = self._calc_M()
         parameters = tuple(q)
-        return np.array(self._Mq(*parameters), dtype='float32')
-
-    def g(self, q):
-        """ Calculates the force of gravity in joint space for the ur5
-
-        q list: set of joint angles to pass in to the g function
-        """
-        # check for function in dictionary
-        if self._g is None:
-            self._g = self._calc_g()
-        parameters = tuple(q)
-        return np.array(self._g(*parameters), dtype='float32').flatten()
+        return np.array(self._M(*parameters), dtype='float32')
 
     def orientation(self, name, q):
         """ Uses Sympy to generate the orientation for a joint or link
         calculated as a quaternion.
 
         name string: name of the joint or link, or end-effector
-        q list: set of joint angles to pass in to the g function
+        q list: (radians) joint angles
         """
         # check for function in dictionary
         if self._R.get(name, None) is None:
@@ -220,8 +233,8 @@ class robot_config():
         """ Calculates the transform for a joint or link
 
         name string: name of the joint or link, or end-effector
-        q list: set of joint angles to pass in to the T function
-        x list: the [x,y,z] position of interest in "name"'s reference frame
+        q list: (radians) joint angles
+        x list: (m) the [x,y,z] offset inside name's reference frame
         """
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
@@ -233,7 +246,7 @@ class robot_config():
     def T_inv(self, name, q, x=[0, 0, 0]):
         """ Calculates the inverse transform for a joint or link
 
-        q list: set of joint angles to pass in to the T function
+        q list: (radians) joint angles
         """
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
@@ -242,17 +255,117 @@ class robot_config():
         parameters = tuple(q) + tuple(x)
         return self._T_inv[funcname](*parameters)
 
+    def _calc_C(self, lambdify=True):
+        """ Uses Sympy to generate the centripetal and Coriolis forces
+        affecting the arm
+
+        lambdify boolean: if True returns a function to calculate
+                          the Jacobian. If False returns the Sympy
+                          matrix
+        """
+        C = None
+        C_func = None
+        # check to see if we have our gravity term saved in file
+        C, C_func = self._load_from_file('C', lambdify)
+
+        if C is None and C_func is None:
+            # if no saved file was loaded, generate function
+            print('Generating centripetal and Coriolis compensation function')
+
+            # first get the inertia matrix
+            M = self._calc_M(lambdify=False)
+            # http://www.diag.uniroma1.it/~deluca/rob2_en/03_LagrangianDynamics_1.pdf
+            # c_k = dq.T * C_k * dq
+            # C_k = .5 * (\frac{\partial m_k}{\partial q} +
+            #           \frac{\partial m_k}{\partial q}^T +
+            #           \frac{\partial M}{\partia q_k})
+            # where c_k and m_k are the kth element of C and column of M
+            C = sp.zeros(6, 1)
+            for kk in range(6):
+                dMkdq = M[:, kk].jacobian(sp.Matrix(self.q))
+                Ck = 0.5 * (dMkdq + dMkdq.T - M.diff(self.q[kk]))
+                C[kk] = sp.Matrix(self.dq).T * Ck * sp.Matrix(self.dq)
+            C = sp.Matrix(C)
+
+            # save to file
+            abr_control.utils.os.makedir(
+                '%s/C' % self.config_folder)
+            cloudpickle.dump(C, open(
+                '%s/C/C' % self.config_folder, 'wb'))
+
+        if lambdify is False:
+            # if should return expression not function
+            return C
+
+        if C_func is None:
+            C_func = self._generate_and_save_function(
+                filename='C', expression=C,
+                parameters=self.q+self.dq)
+        return C_func
+
+    def _calc_g(self, lambdify=True):
+        """ Uses Sympy to generate the force of gravity in
+        joint space
+
+        lambdify boolean: if True returns a function to calculate
+                          the Jacobian. If False returns the Sympy
+                          matrix
+        """
+        g = None
+        g_func = None
+        # check to see if we have our gravity term saved in file
+        g, g_func = self._load_from_file('g', lambdify)
+
+        if g is None and g_func is None:
+            # if no saved file was loaded, generate function
+            print('Generating gravity compensation function')
+
+            # get the Jacobians for each link's COM
+            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
+                                    lambdify=False)
+                       for ii in range(self.num_links)]
+            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
+                                     lambdify=False)
+                        for ii in range(self.num_joints)]
+
+            # sum together the effects of each arm segment's inertia
+            g = sp.zeros(self.num_joints, 1)
+            for ii in range(self.num_links):
+                # transform each inertia matrix into joint space
+                g += (J_links[ii].T * self._M_links[ii] * self.gravity)
+            # sum together the effects of each joint's inertia on each motor
+            for ii in range(self.num_joints):
+                # transform each inertia matrix into joint space
+                g += (J_joints[ii].T * self._M_joints[ii] * self.gravity)
+            g = sp.Matrix(g)
+
+            # save to file
+            abr_control.utils.os.makedir(
+                '%s/g' % self.config_folder)
+            cloudpickle.dump(g, open(
+                '%s/g/g' % self.config_folder, 'wb'))
+
+        if lambdify is False:
+            # if should return expression not function
+            return g
+
+        if g_func is None:
+            g_func = self._generate_and_save_function(
+                filename='g', expression=g,
+                parameters=self.q)
+        return g_func
+
+
     def _calc_dJ(self, name, x, lambdify=True):
         """ Uses Sympy to generate the derivative of the Jacobian
         for a joint or link with respect to time
 
         name string: name of the joint or link, or end-effector
-        x list: the [x,y,z] position of interest in "name"'s reference frame
+        x list: (m) the [x,y,z] offset inside name's reference frame
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
                           matrix
         """
-
         dJ = None
         dJ_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -272,8 +385,8 @@ class robot_config():
             for ii in range(J.shape[0]):
                 for jj in range(J.shape[1]):
                     for kk in range(self.num_joints):
-                        dJ[ii, jj] += J[ii, jj].diff(self.q[kk])
-            dJ = sp.Matrix(dJ).T
+                        dJ[ii, jj] += J[ii, jj].diff(self.q[kk]) * self.dq[kk]
+            dJ = sp.Matrix(dJ)
 
             # save expression to file
             abr_control.utils.os.makedir(
@@ -288,14 +401,14 @@ class robot_config():
         if dJ_func is None:
             dJ_func = self._generate_and_save_function(
                 filename=filename, expression=dJ,
-                parameters=self.q+self.x)
+                parameters=self.q+self.dq+self.x)
         return dJ_func
 
     def _calc_J(self, name, x, lambdify=True):
         """ Uses Sympy to generate the Jacobian for a joint or link
 
         name string: name of the joint or link, or end-effector
-        x list: the [x,y,z] position of interest in "name"'s reference frame
+        x list: (m) the [x,y,z] offset inside name's reference frame
         lambdify boolean: if True returns a function to calculate
                           the Jacobian. If False returns the Sympy
                           matrix
@@ -353,7 +466,7 @@ class robot_config():
                 parameters=self.q+self.x)
         return J_func
 
-    def _calc_Mq(self, lambdify=True):
+    def _calc_M(self, lambdify=True):
         """ Uses Sympy to generate the inertia matrix in
         joint space
 
@@ -362,13 +475,13 @@ class robot_config():
                           matrix
         """
 
-        Mq = None
-        Mq_func = None
+        M = None
+        M_func = None
 
         # check to see if we have our inertia matrix saved in file
-        Mq, Mq_func = self._load_from_file('Mq', lambdify)
+        M, M_func = self._load_from_file('M', lambdify)
 
-        if Mq is None and Mq_func is None:
+        if M is None and M_func is None:
             # if no saved file was loaded, generate function
             print('Generating inertia matrix function')
 
@@ -381,84 +494,31 @@ class robot_config():
                         for ii in range(self.num_joints)]
 
             # sum together the effects of each arm segment's inertia
-            Mq = sp.zeros(self.num_joints)
+            M = sp.zeros(self.num_joints)
             for ii in range(self.num_links):
                 # transform each inertia matrix into joint space
-                Mq += (J_links[ii].T * self._M_links[ii] * J_links[ii])
+                M += (J_links[ii].T * self._M_links[ii] * J_links[ii])
             # sum together the effects of each joint's inertia on each motor
             for ii in range(self.num_joints):
                 # transform each inertia matrix into joint space
-                Mq += (J_joints[ii].T * self._M_joints[ii] * J_joints[ii])
-            Mq = sp.Matrix(Mq)
+                M += (J_joints[ii].T * self._M_joints[ii] * J_joints[ii])
+            M = sp.Matrix(M)
 
             # save to file
             abr_control.utils.os.makedir(
-                '%s/Mq' % (self.config_folder))
-            cloudpickle.dump(Mq, open(
-                '%s/Mq/Mq' % self.config_folder, 'wb'))
+                '%s/M' % (self.config_folder))
+            cloudpickle.dump(M, open(
+                '%s/M/M' % self.config_folder, 'wb'))
 
         if lambdify is False:
             # if should return expression not function
-            return Mq
+            return M
 
-        if Mq_func is None:
-            Mq_func = self._generate_and_save_function(
-                filename='Mq', expression=Mq,
+        if M_func is None:
+            M_func = self._generate_and_save_function(
+                filename='M', expression=M,
                 parameters=self.q)
-        return Mq_func
-
-    def _calc_g(self, lambdify=True):
-        """ Uses Sympy to generate the force of gravity in
-        joint space
-
-        lambdify boolean: if True returns a function to calculate
-                          the Jacobian. If False returns the Sympy
-                          matrix
-        """
-
-        g = None
-        g_func = None
-        # check to see if we have our gravity term saved in file
-        g, g_func = self._load_from_file('g', lambdify)
-
-        if g is None and g_func is None:
-            # if no saved file was loaded, generate function
-            print('Generating gravity compensation function')
-
-            # get the Jacobians for each link's COM
-            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
-                                    lambdify=False)
-                       for ii in range(self.num_links)]
-            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
-                                     lambdify=False)
-                        for ii in range(self.num_joints)]
-
-            # sum together the effects of each arm segment's inertia
-            g = sp.zeros(self.num_joints, 1)
-            for ii in range(self.num_links):
-                # transform each inertia matrix into joint space
-                g += (J_links[ii].T * self._M_links[ii] * self.gravity)
-            # sum together the effects of each joint's inertia on each motor
-            for ii in range(self.num_joints):
-                # transform each inertia matrix into joint space
-                g += (J_joints[ii].T * self._M_joints[ii] * self.gravity)
-            g = sp.Matrix(g)
-
-            # save to file
-            abr_control.utils.os.makedir(
-                '%s/g' % self.config_folder)
-            cloudpickle.dump(g, open(
-                '%s/g/g' % self.config_folder, 'wb'))
-
-        if lambdify is False:
-            # if should return expression not function
-            return g
-
-        if g_func is None:
-            g_func = self._generate_and_save_function(
-                filename='g', expression=g,
-                parameters=self.q)
-        return g_func
+        return M_func
 
     def _calc_R(self, name, lambdify=True):
         """ Uses Sympy to generate the rotation matrix for a joint or link
@@ -505,7 +565,7 @@ class robot_config():
         or link to the origin (world) coordinates.
 
         name string: name of the joint or link, or end-effector
-        x list: the [x,y,z] position of interest in "name"'s reference frame
+        x list: (m) the [x,y,z] offset inside name's reference frame
         lambdify boolean: if True returns a function to calculate
                           the transform. If False returns the Sympy
                           matrix
@@ -553,7 +613,7 @@ class robot_config():
         world coordinates into the robot's end-effector reference frame
 
         name string: name of the joint or link, or end-effector
-        x list: the [x,y,z] position of interest in "name"'s reference frame
+        x list: (m) the [x,y,z] offset inside name's reference frame
         lambdify boolean: if True returns a function to calculate
                           the transform. If False returns the Sympy
                           matrix
