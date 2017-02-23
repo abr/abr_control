@@ -263,7 +263,6 @@ class robot_config():
                           the Jacobian. If False returns the Sympy
                           matrix
         """
-
         C = None
         C_func = None
         # check to see if we have our gravity term saved in file
@@ -312,7 +311,6 @@ class robot_config():
                           the Jacobian. If False returns the Sympy
                           matrix
         """
-
         g = None
         g_func = None
         # check to see if we have our gravity term saved in file
@@ -368,7 +366,6 @@ class robot_config():
                           the Jacobian. If False returns the Sympy
                           matrix
         """
-
         dJ = None
         dJ_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -389,7 +386,7 @@ class robot_config():
                 for jj in range(J.shape[1]):
                     for kk in range(self.num_joints):
                         dJ[ii, jj] += J[ii, jj].diff(self.q[kk]) * self.dq[kk]
-            dJ = sp.Matrix(dJ).T
+            dJ = sp.Matrix(dJ)
 
             # save expression to file
             abr_control.utils.os.makedir(

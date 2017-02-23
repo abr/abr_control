@@ -119,18 +119,21 @@ class controller:
         # self.training_signal = np.dot(J.T, u_task)
 
         Jbar = np.dot(M_inv, np.dot(J.T, Mx))
-        # dJ = self.robot_config.dJ(q=q, dq=dq)
+        # self.training_signal = np.dot(M, np.dot(Jbar, u_task))
+
+        dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
+        dJ = dJ[:3]
         # self.training_signal = np.dot(M, np.dot(Jbar, (u_task - np.dot(dJ, dq))))
-        self.training_signal = np.dot(M, np.dot(Jbar, u_task))
+        self.training_signal = np.dot(J.T, np.dot(Mx, (u_task - np.dot(dJ, dq))))
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
         if self.vmax is None:
             self.training_signal -= np.dot(M, dq)
 
-        # add in gravity compensation, not included in training signal
+        # cancel out effects of gravity
         u = self.training_signal - self.robot_config.g(q=q)
-        # add in centripetal and Coriolis effects compensation
+        # cancel out centripetal and Coriolis effects
         u -= self.robot_config.C(q=q, dq=dq)
 
         if self.null_control is True:
