@@ -35,7 +35,7 @@ with model:
         dimensions=12,
         encoders=encoders,
         eval_points=eval_points,
-        intercepts=nengo.dists.Uniform(-.1, 1),)
+        intercepts=nengo.dists.Uniform(.5, 1),)
 
     nengo.Connection(in_q, adapt_ens[:6],
         function=lambda x: x / np.linalg.norm(x))
@@ -53,5 +53,5 @@ for ii in range(6):
     plt.plot(q[1:, ii])
 
 plt.subplot(212)
-rasterplot(sim.trange(), sim.data[probe][:, :2000])
+rasterplot(sim.trange(), sim.data[probe][:, :1000])
 plt.show()
