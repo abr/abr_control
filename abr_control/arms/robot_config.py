@@ -3,6 +3,7 @@ import hashlib
 import importlib
 import numpy as np
 import os
+import os_utils
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
 import sys
@@ -60,7 +61,7 @@ class robot_config():
             hasher.update(buf)
         self.config_folder += hasher.hexdigest()
         # make config folder if it doesn't exist
-        abr_control.utils.os.makedir(self.config_folder)
+        abr_control.utils.os_utils.makedir(self.config_folder)
 
         # set up our joint angle symbols
         self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
@@ -82,7 +83,7 @@ class robot_config():
 
         # check for / create the save folder for this expression
         folder = self.config_folder + '/' + filename
-        abr_control.utils.os.makedir(folder)
+        abr_control.utils.os_utils.makedir(folder)
 
         if self.use_cython is True:
             # binaries saved by specifying tempdir parameter
@@ -288,7 +289,7 @@ class robot_config():
             C = sp.Matrix(C)
 
             # save to file
-            abr_control.utils.os.makedir(
+            abr_control.utils.os_utils.makedir(
                 '%s/C' % self.config_folder)
             cloudpickle.dump(C, open(
                 '%s/C/C' % self.config_folder, 'wb'))
@@ -340,7 +341,7 @@ class robot_config():
             g = sp.Matrix(g)
 
             # save to file
-            abr_control.utils.os.makedir(
+            abr_control.utils.os_utils.makedir(
                 '%s/g' % self.config_folder)
             cloudpickle.dump(g, open(
                 '%s/g/g' % self.config_folder, 'wb'))
@@ -389,7 +390,7 @@ class robot_config():
             dJ = sp.Matrix(dJ)
 
             # save expression to file
-            abr_control.utils.os.makedir(
+            abr_control.utils.os_utils.makedir(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(dJ, open(
                 '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
@@ -451,7 +452,7 @@ class robot_config():
             J = sp.Matrix(J).T  # correct the orientation of J
 
             # save to file
-            abr_control.utils.os.makedir(
+            abr_control.utils.os_utils.makedir(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(J, open(
                 '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
@@ -505,7 +506,7 @@ class robot_config():
             M = sp.Matrix(M)
 
             # save to file
-            abr_control.utils.os.makedir(
+            abr_control.utils.os_utils.makedir(
                 '%s/M' % (self.config_folder))
             cloudpickle.dump(M, open(
                 '%s/M/M' % self.config_folder, 'wb'))
@@ -541,7 +542,7 @@ class robot_config():
             R = self._calc_T(name=name)[:3, :3]
 
             # save to file
-            abr_control.utils.os.makedir(
+            abr_control.utils.os_utils.makedir(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(sp.Matrix(R), open(
                 '%s/%s/%s' % (self.config_folder, filename, filename),
@@ -592,7 +593,7 @@ class robot_config():
             Tx = sp.Matrix(Tx)
 
             # save to file
-            abr_control.utils.os.makedir(
+            abr_control.utils.os_utils.makedir(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(sp.Matrix(Tx), open(
                 '%s/%s/%s.Tx' % (self.config_folder, filename, filename),
@@ -635,7 +636,7 @@ class robot_config():
             T_inv = sp.Matrix(T_inv)
 
             # save to file
-            abr_control.utils.os.makedir(
+            abr_control.utils.os_utils.makedir(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(T_inv, open(
                 '%s/%s.T_inv' % (self.config_folder, filename), 'wb'))
