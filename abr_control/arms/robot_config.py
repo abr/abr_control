@@ -3,7 +3,6 @@ import hashlib
 import importlib
 import numpy as np
 import os
-import os_utils
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
 import sys
@@ -139,17 +138,20 @@ class robot_config():
 
         return expression, function
 
-    def generate_control_functions(self):
+    def generate_control_functions(self, x=[0, 0, 0]):
         """ Create / load in all of the functions used by robot_config """
         q = np.zeros(self.num_joints)
+        dq = np.zeros(self.num_joints)
         names = ['link%i' % ii for ii in range(self.num_joints)]
         names += ['joint%i' % ii for ii in range(self.num_joints)]
 
-        self.dJ('EE', q=q)
-        self.J('EE', q=q)
+        self.Tx('EE', q=q, x=x)
+        self.dJ('EE', q=q, dq=dq, x=x)
+        self.J('EE', q=q, x=x)
         self.M(q=q)
         self.g(q=q)
         self.orientation('EE', q=q)
+        self.C(q=q, dq=dq)
         print('All functions generated ...')
 
     def C(self, q, dq):

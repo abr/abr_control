@@ -71,9 +71,7 @@ class Signal():
                     dimensions=self.robot_config.num_joints * 2,
                     encoders = nengolib.stats.ScatteredHypersphere(
                         surface=True),
-                    eval_points = nengolib.stats.ScatteredHypersphere(
-                        surface=False),
-                    intercepts=nengo.dists.Uniform(-.1,1)))
+                    intercepts=nengo.dists.Uniform(.975,1)))
 
                 nengo.Connection(
                     qdq_input,
@@ -82,19 +80,24 @@ class Signal():
 
                 conn_learn.append(
                     nengo.Connection(
-                        adapt_ens[ii][:self.robot_config.num_joints * 2], output,
+                        adapt_ens[ii][:self.robot_config.num_joints * 2],
+                        output,
                         # start with outputting just zero
                         function=lambda x, ii=ii: np.zeros(dim),
                         learning_rule_type=nengo.PES(pes_learning_rate),
                         # use the weights solver that lets you keep
                         # learning from the what's saved to file
-                        solver=KeepLearningSolver(filename=weights_file[ii])))
+                        solver=KeepLearningSolver(
+                            filename=weights_file[ii],
+                            zero_default=True,
+                            output_shape=6)))
                 nengo.Connection(u_input, conn_learn[ii].learning_rule,
                                 # invert because we're providing error not reward
                                 transform=-1, synapse=.01)
 
                 self.probe_weights.append(nengo.Probe(conn_learn[ii], 'weights'))
 
+        nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
             self.sim = nengo.Simulator(nengo_model, dt=.001)
         elif backend == 'nengo_ocl':

@@ -204,6 +204,7 @@ class robot_config(robot_config.robot_config):
                 [0, 0, 1, 0],
                 [0, 0, 0, 1]])
             # no axes change, account for offsets
+            # NOTE: why are the x and y axes flipped?
             self.Tj5l6b = sp.Matrix([
                 [-1, 0, 0, self.L[12, 0]],
                 [0, -1, 0, self.L[12, 1]],
