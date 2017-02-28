@@ -12,10 +12,10 @@ import abr_control
 
 # initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
-    use_cython=True, hand_attached=False)
+    use_cython=False, hand_attached=True)
 # instantiate the controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=20, vmax=.3, null_control=True)
+    robot_config, kp=10, kv=3, vmax=1, null_control=False)
 
 # create our vrep interface
 interface = abr_control.interfaces.vrep(
@@ -67,8 +67,9 @@ try:
         hand_xyz = robot_config.Tx('EE', q=feedback['q'])
 
         u = ctrlr.control(q=feedback['q'],
-                            dq=feedback['dq'],
-                            target_pos=target_xyz)
+                          dq=feedback['dq'],
+                          offset=[0, 0, 0.01],
+                          target_pos=target_xyz)
         print('u: ', [float('%.3f' % val) for val in u])
         interface.send_forces(np.array(u, dtype='float32'))
 

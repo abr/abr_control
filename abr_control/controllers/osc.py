@@ -115,16 +115,12 @@ class controller:
         # u_task *= mask
 
         # incorporate task space inertia matrix
-        # u_task = np.dot(Mx, u_task)
-        # self.training_signal = np.dot(J.T, u_task)
-
-        Jbar = np.dot(M_inv, np.dot(J.T, Mx))
-        # self.training_signal = np.dot(M, np.dot(Jbar, u_task))
+        # self.training_signal = np.dot(J.T, np.dot(Mx, u_task))
 
         dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
         dJ = dJ[:3]
-        # self.training_signal = np.dot(M, np.dot(Jbar, (u_task - np.dot(dJ, dq))))
         self.training_signal = np.dot(J.T, np.dot(Mx, (u_task - np.dot(dJ, dq))))
+        # self.training_signal = np.dot(J.T, np.dot(Mx, u_task))
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
@@ -153,6 +149,7 @@ class controller:
                     dq_des[ii] = dq[ii]
             u_null = np.dot(M, (nkp * q_des - nkv * dq_des))
 
+            Jbar = np.dot(M_inv, np.dot(J.T, Mx))
             null_filter = (np.eye(self.robot_config.num_joints) -
                            np.dot(J.T, Jbar.T))
 
