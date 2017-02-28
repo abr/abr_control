@@ -197,19 +197,19 @@ class robot_config(robot_config.robot_config):
 
         # Transform matrix: joint 5 -> link 6
         # account for rotations due to q
-        if self.hand_attached is True:
-            self.Tj5l6a = sp.Matrix([
-                [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
-                [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1]])
-            # no axes change, account for offsets
-            self.Tj5l6b = sp.Matrix([
-                [-1, 0, 0, self.L[12, 0]],
-                [0, -1, 0, self.L[12, 1]],
-                [0, 0, 1, self.L[12, 2]],
-                [0, 0, 0, 1]])
-            self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
+        self.Tj5l6a = sp.Matrix([
+            [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
+            [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]])
+        # no axes change, account for offsets
+        # NOTE: why are the x and y axes flipped?
+        self.Tj5l6b = sp.Matrix([
+            [-1, 0, 0, self.L[12, 0]],
+            [0, -1, 0, self.L[12, 1]],
+            [0, 0, 1, self.L[12, 2]],
+            [0, 0, 0, 1]])
+        self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for angular velocity)
         kz = sp.Matrix([0, 0, 1])
