@@ -1,4 +1,8 @@
 import numpy as np
+import os
+import redis
+import scipy
+r = redis.StrictRedis(host='127.0.0.1')
 
 try:
     import nengo
@@ -12,7 +16,32 @@ try:
 except ImportError:
     print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
-from abr_control.utils.keeplearningsolver import KeepLearningSolver
+# from abr_control.utils.keeplearningsolver import KeepLearningSolver
+
+class AreaIntercepts(nengo.dists.Distribution):
+    dimensions = nengo.params.NumberParam('dimensions')
+    base = nengo.dists.DistributionParam('base')
+
+    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
+        super(AreaIntercepts, self).__init__()
+        self.dimensions = dimensions
+        self.base = base
+
+    def __repr(self):
+        return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions, self.base)
+
+    def transform(self, x):
+        sign = 1
+        if x > 0:
+            x = -x
+            sign = -1
+        return sign * np.sqrt(1-scipy.special.betaincinv((self.dimensions+1)/2.0, 0.5, x+1))
+
+    def sample(self, n, d=None, rng=np.random):
+        s = self.base.sample(n=n, d=d, rng=rng)
+        for i in range(len(s)):
+            s[i] = self.transform(s[i])
+        return s
 
 
 class Signal():
@@ -23,6 +52,11 @@ class Signal():
                  n_neurons=1000,
                  n_adapt_pop=1,
                  pes_learning_rate=1e-6,
+                 intercepts = (0.5,1.0),
+                 spiking=False,
+                 use_area_intercepts=True,
+                 extra_dimension=False,
+                 use_probes=False,
                  weights_file=None,
                  backend='nengo'):
         """
@@ -36,6 +70,13 @@ class Signal():
 
         weights_file = (['']*n_adapt_pop if
             weights_file is None else weights_file)
+
+        if use_probes:
+            self.probe_weights=[]
+            # self.ens_activity=[]
+        else:
+            self.probe_weights=None
+            # self.ens_activity=None
 
         dim = self.robot_config.num_joints
         nengo_model = nengo.Network(seed=10)
@@ -64,37 +105,85 @@ class Signal():
 
             adapt_ens=[]
             conn_learn=[]
-            self.probe_weights=[]
             for ii in range(n_adapt_pop):
+                num_ens_dims = self.robot_config.num_joints * 2
+                if extra_dimension:
+                    num_ens_dims = self.robot_config.num_joints * 2 + 1
+
+                intercepts=nengo.dists.Uniform(
+                    intercepts[0], intercepts[1])
+                if use_area_intercepts:
+                    intercepts = AreaIntercepts(dimensions=num_ens_dims,
+                                                base=intercepts)
+
+                if spiking:
+                    neuron_type = nengo.LIF()
+                else:
+                    neuron_type = nengo.LIFRate()
+
                 adapt_ens.append(nengo.Ensemble(
                     n_neurons=n_neurons,
-                    dimensions=self.robot_config.num_joints * 2,
+                    dimensions=num_ens_dims,
                     encoders = nengolib.stats.ScatteredHypersphere(
                         surface=True),
-                    eval_points = nengolib.stats.ScatteredHypersphere(
-                        surface=False),
-                    intercepts=nengo.dists.Uniform(-.1,1)))
+                    intercepts=intercepts,
+                    neuron_type=neuron_type))
 
+                def expanded_normalize(x):
+                    if extra_dimension:
+                        x = np.hstack([x, [1]])
+                        x /= np.linalg.norm(x)
+                    return x
                 nengo.Connection(
                     qdq_input,
-                    adapt_ens[ii][:self.robot_config.num_joints * 2],
-                    function=lambda x: x / np.linalg.norm(x))
+                    adapt_ens[ii][:num_ens_dims],
+                    function=expanded_normalize,
+                    synapse=0.005)
+
+                # load weights from file if they exist, otherwise use zeros
+                print ('%s' % weights_file[ii])
+                if os.path.isfile('%s' % weights_file[ii]):
+                    transform = np.load(weights_file[ii])['weights'][-1][0]
+                    print('Loading transform: \n', transform)
+                    print('Transform all zeros: ', np.allclose(transform, 0))
+                else:
+                    print('transform is zeros')
+                    transform=np.zeros((adapt_ens[ii].n_neurons,
+                                        self.robot_config.num_joints)).T
+
 
                 conn_learn.append(
                     nengo.Connection(
-                        adapt_ens[ii][:self.robot_config.num_joints * 2], output,
-                        # start with outputting just zero
-                        function=lambda x, ii=ii: np.zeros(dim),
+                        adapt_ens[ii].neurons,
+                        output,
                         learning_rule_type=nengo.PES(pes_learning_rate),
+                        transform=transform))
                         # use the weights solver that lets you keep
                         # learning from the what's saved to file
-                        solver=KeepLearningSolver(filename=weights_file[ii])))
+                        # solver=KeepLearningSolver(
+                        #     filename=weights_file[ii],
+                        #     zero_default=True,
+                        #     output_shape=6)))
+                def gate_error(x):
+                    r.set('raw_error', x)
+                    #if np.linalg.norm(x) > 2.0:
+                    #    x*=0
+                    return x
                 nengo.Connection(u_input, conn_learn[ii].learning_rule,
                                 # invert because we're providing error not reward
-                                transform=-1, synapse=.01)
+                                transform=-1,
+                                function=gate_error,
+                                synapse=0.01)
 
-                self.probe_weights.append(nengo.Probe(conn_learn[ii], 'weights'))
+                if use_probes:
+                    # record the weights once every second
+                    self.probe_weights.append(nengo.Probe(
+                        conn_learn[ii], 'weights', sample_every=1))
 
+                    # self.ens_activity = nengo.Probe(
+                    #     adapt_ens[ii].neurons, sample_every=1)
+
+        nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
             self.sim = nengo.Simulator(nengo_model, dt=.001)
         elif backend == 'nengo_ocl':
