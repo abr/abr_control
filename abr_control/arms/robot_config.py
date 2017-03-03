@@ -55,10 +55,12 @@ class robot_config():
         self.config_folder = (os.path.dirname(abr_control.arms.__file__) +
                               '/%s/saved_functions/' % robot_name)
         hasher = hashlib.md5()
+        # TODO: make it so this file also affects hash
         with open(sys.modules[self.__module__].__file__, 'rb') as afile:
             buf = afile.read()
             hasher.update(buf)
-        self.config_folder += hasher.hexdigest()
+        self.config_hash = hasher.hexdigest()
+        self.config_folder += self.config_hash
         # make config folder if it doesn't exist
         abr_control.utils.os_utils.makedir(self.config_folder)
 

@@ -42,6 +42,5 @@ class KeepLearningSolver(nengo.solvers.Lstsq):
                 print('generating with Lstsq solver')
                 weights, info = \
                     super(KeepLearningSolver, self).__call__(A, Y)
-        print('herererererer')
 
         return weights, info

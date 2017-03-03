@@ -35,7 +35,7 @@ with model:
         dimensions=12,
         encoders=encoders,
         # eval_points=eval_points,
-        intercepts=nengo.dists.Uniform(.975, 1),)
+        intercepts=nengo.dists.Uniform(.7, 1),)
 
     nengo.Connection(in_q, adapt_ens[:6],
         function=lambda x: x / np.linalg.norm(x))
@@ -44,7 +44,7 @@ with model:
 
     probe = nengo.Probe(adapt_ens.neurons, synapse=None)
 
-time_len = 7
+time_len = 13
 sim = nengo.Simulator(model)
 sim.run(time_len)
 

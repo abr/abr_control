@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 try:
     import nengo
@@ -12,7 +13,7 @@ try:
 except ImportError:
     print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
-from abr_control.utils.keeplearningsolver import KeepLearningSolver
+# from abr_control.utils.keeplearningsolver import KeepLearningSolver
 
 
 class Signal():
@@ -23,6 +24,7 @@ class Signal():
                  n_neurons=1000,
                  n_adapt_pop=1,
                  pes_learning_rate=1e-6,
+                 intercepts = (0.5,1.0),
                  weights_file=None,
                  backend='nengo'):
         """
@@ -71,31 +73,39 @@ class Signal():
                     dimensions=self.robot_config.num_joints * 2,
                     encoders = nengolib.stats.ScatteredHypersphere(
                         surface=True),
-                    intercepts=nengo.dists.Uniform(.975,1)))
+                    intercepts=nengo.dists.Uniform(
+                        intercepts[0], intercepts[1])))
 
                 nengo.Connection(
                     qdq_input,
                     adapt_ens[ii][:self.robot_config.num_joints * 2],
                     function=lambda x: x / np.linalg.norm(x))
 
+                # load weights from file if they exist, otherwise use zeros
+                if os.path.isfile('./%s' % weights_file[ii]):
+                    transform = np.load(weights_file[ii])['weights'][-1]
+                else:
+                    transform=np.zeros((adapt_ens[ii].n_neurons,
+                                        self.robot_config.num_joints)).T
                 conn_learn.append(
                     nengo.Connection(
-                        adapt_ens[ii][:self.robot_config.num_joints * 2],
+                        adapt_ens[ii].neurons,
                         output,
-                        # start with outputting just zero
-                        function=lambda x, ii=ii: np.zeros(dim),
                         learning_rule_type=nengo.PES(pes_learning_rate),
+                        transform=transform))
                         # use the weights solver that lets you keep
                         # learning from the what's saved to file
-                        solver=KeepLearningSolver(
-                            filename=weights_file[ii],
-                            zero_default=True,
-                            output_shape=6)))
+                        # solver=KeepLearningSolver(
+                        #     filename=weights_file[ii],
+                        #     zero_default=True,
+                        #     output_shape=6)))
                 nengo.Connection(u_input, conn_learn[ii].learning_rule,
                                 # invert because we're providing error not reward
                                 transform=-1, synapse=.01)
 
-                self.probe_weights.append(nengo.Probe(conn_learn[ii], 'weights'))
+                # record the weights once every second
+                self.probe_weights.append(nengo.Probe(
+                    conn_learn[ii], 'weights', sample_every=1))
 
         nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':

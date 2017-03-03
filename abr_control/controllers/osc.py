@@ -115,8 +115,7 @@ class controller:
         # u_task *= mask
 
         # incorporate task space inertia matrix
-        # u_task = np.dot(Mx, u_task)
-        # self.training_signal = np.dot(J.T, u_task)
+        # self.training_signal = np.dot(J.T, np.dot(Mx, u_task))
 
         dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
         dJ = dJ[:3]
