@@ -12,7 +12,7 @@ import abr_control
 
 # initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
-    use_cython=True, hand_attached=False)
+    use_cython=True, hand_attached=True)
 # instantiate the controller
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=20, kv=4, vmax=1, null_control=True)
@@ -55,7 +55,7 @@ def on_exit(signal, frame):
 # call on_exit when ctrl-c is pressed
 signal.signal(signal.SIGINT, on_exit)
 
-offset = [0, 0, -.10]  # m
+offset = [0, 0, .20]  # m
 print('Moving to first target: ', target_xyz)
 try:
     feedback = interface.get_feedback()
@@ -65,6 +65,7 @@ try:
         ctr += 1
         feedback = interface.get_feedback()
 
+        # TODO: make sure coriolis is added in
         u = ctrlr.control(q=feedback['q'],
                           dq=feedback['dq'],
                           offset=offset,
@@ -82,7 +83,7 @@ try:
             quaternion, axes='rxyz')
         interface.set_orientation('tooltip', angles)
 
-        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
+        ee_xyz = robot_config.Tx('EE', q=feedback['q'], x=offset)
         error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
         if error < .01:
             # if we're at the target, start count

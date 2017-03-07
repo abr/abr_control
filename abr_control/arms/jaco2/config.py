@@ -17,6 +17,10 @@ class robot_config(robot_config.robot_config):
 
         self._T = {}  # dictionary for storing calculated transforms
 
+        # set up saved functions folder to be in the abr_jaco repo
+        self.config_folder += ('with_hand' if self.hand_attached is True
+                               else 'no_hand')
+
         self.joint_names = ['joint%i' % ii
                             for ii in range(self.num_joints)]
 
@@ -36,8 +40,8 @@ class robot_config(robot_config.robot_config):
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link4
             sp.diag(0.25, 0.25, 0.25, 0.01, 0.01, 0.01)]  # link5
         if self.hand_attached is True:
-            self._M_links.append(sp.diag(0.37, 0.37, 0.37,
-                                         0.04, 0.04, 0.04))  # link6
+            self._M_links.append(
+                sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04))  # link6
 
         # the joints don't weigh anything in VREP
         self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
@@ -195,7 +199,7 @@ class robot_config(robot_config.robot_config):
             [0, -0.461245863, 0.887272337, self.L[11, 2]],
             [0, 0, 0, 1]])
 
-        if self.hand_attached is True:  # add in hand offset
+        if self.hand_attached is True:
             # Transform matrix: joint 5 -> link 6
             # account for rotations due to q
             self.Tj5l6a = sp.Matrix([
@@ -205,10 +209,11 @@ class robot_config(robot_config.robot_config):
                 [0, 0, 0, 1]])
             # no axes change, account for offsets
             self.Tj5l6b = sp.Matrix([
-                [1, 0, 0, self.L[12, 0]],
+                [-1, 0, 0, self.L[12, 0]],
                 [0, 1, 0, self.L[12, 1]],
                 [0, 0, -1, self.L[12, 2]],
                 [0, 0, 0, 1]])
+
             self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for angular velocity)
@@ -252,10 +257,10 @@ class robot_config(robot_config.robot_config):
                 self._T[name] = self._calc_T('joint4') * self.Tj4l5
             elif name == 'joint5':
                 self._T[name] = self._calc_T('link5') * self.Tl5j5
-            elif name == 'link6':
-                self._T[name] = self._calc_T('joint5') * self.Tj5l6
             elif self.hand_attached is False and name == 'EE':
                 self._T[name] = self._calc_T('joint5')
+            elif self.hand_attached is True and name == 'link6':
+                self._T[name] = self._calc_T('joint5') * self.Tj5l6
             elif self.hand_attached is True and name == 'EE':
                 self._T[name] = self._calc_T('link6')
 

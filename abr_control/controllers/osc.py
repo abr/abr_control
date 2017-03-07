@@ -44,6 +44,7 @@ class controller:
 
         # calculate the Jacobian for the end effector
         J = self.robot_config.J(ref_frame, q, x=offset)
+        # isolate position component of Jacobian
         J = J[:3]
 
         # calculate the end-effector linear and angular velocity
