@@ -535,7 +535,7 @@ class robot_config():
         """
         R = None
         R_func = None
-        filename = name + '[0,0,0]_R'
+        filename = name + '_R'
 
         # check to see if we have the rotation matrix saved in file
         R, R_func = self._load_from_file(filename, lambdify=True)
@@ -579,7 +579,7 @@ class robot_config():
         Tx = None
         Tx_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
-        filename += '_T'
+        filename += '_Tx'
         # check to see if we have our transformation saved in file
         Tx, Tx_func = self._load_from_file(filename, lambdify)
 
