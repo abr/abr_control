@@ -579,6 +579,7 @@ class robot_config():
         Tx = None
         Tx_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
+        filename += '_T'
         # check to see if we have our transformation saved in file
         Tx, Tx_func = self._load_from_file(filename, lambdify)
 
@@ -590,10 +591,12 @@ class robot_config():
                 # if we're only interested in the origin, not including
                 # the x variables significantly speeds things up
                 Tx = T * sp.Matrix([0, 0, 0, 1])
+                print('11111111111111111111 Tx: ', Tx.shape)
             else:
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
                 Tx = T * sp.Matrix(self.x + [1])
+                print('heree heherheerehe Tx: ', Tx.shape)
             Tx = sp.Matrix(Tx)
 
             # save to file
@@ -627,6 +630,7 @@ class robot_config():
         T_inv = None
         T_inv_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
+        filename += '_Tinv'
         # check to see if we have our transformation saved in file
         T_inv, T_inv_func = self._load_from_file(filename, lambdify)
 
