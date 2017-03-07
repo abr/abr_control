@@ -44,6 +44,7 @@ class controller:
 
         # calculate the Jacobian for the end effector
         J = self.robot_config.J(ref_frame, q, x=offset)
+        # isolate position component of Jacobian
         J = J[:3]
 
         # calculate the end-effector linear and angular velocity
@@ -58,7 +59,8 @@ class controller:
         # J *= np.array(mask).reshape(6, 1)
         # calculate the inertia matrix in task space
         M_inv = np.linalg.inv(M)
-        Mx_inv = np.dot(J, np.dot(M_inv, J.T))
+        JEE = self.robot_config.J(ref_frame, q)[:3]
+        Mx_inv = np.dot(JEE, np.dot(M_inv, JEE.T))
         # using the rcond to set singular values < thresh to 0
         # is slightly faster than doing it manually with svd
         Mx = np.linalg.pinv(Mx_inv, rcond=.01)
@@ -117,10 +119,10 @@ class controller:
         # incorporate task space inertia matrix
         # self.training_signal = np.dot(J.T, np.dot(Mx, u_task))
 
-        dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
-        dJ = dJ[:3]
-        self.training_signal = np.dot(J.T, np.dot(Mx, (u_task - np.dot(dJ, dq))))
-        # self.training_signal = np.dot(J.T, np.dot(Mx, u_task))
+        # dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
+        # dJ = dJ[:3]
+        # self.training_signal = np.dot(J.T, np.dot(Mx, (u_task - np.dot(dJ, dq))))
+        self.training_signal = np.dot(J.T, np.dot(Mx, u_task))
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
@@ -130,11 +132,11 @@ class controller:
         # cancel out effects of gravity
         u = self.training_signal - self.robot_config.g(q=q)
         # cancel out centripetal and Coriolis effects
-        u -= self.robot_config.C(q=q, dq=dq)
+        # u -= self.robot_config.C(q=q, dq=dq)
 
         if self.null_control is True:
             # calculate the null space filter
-            nkp = self.kp #* .1
+            nkp = self.kp * .1
             nkv = np.sqrt(nkp)
 
             q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
@@ -145,11 +147,11 @@ class controller:
                 if self.robot_config.rest_angles[ii] is not None:
                     q_des[ii] = (
                         ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
-                        (np.pi*2) - np.pi)
+                        (np.pi * 2) - np.pi)
                     dq_des[ii] = dq[ii]
             u_null = np.dot(M, (nkp * q_des - nkv * dq_des))
 
-            Jbar = np.dot(M_inv, np.dot(J.T, Mx))
+            Jbar = np.dot(M_inv, np.dot(JEE.T, Mx))
             null_filter = (np.eye(self.robot_config.num_joints) -
                            np.dot(J.T, Jbar.T))
 
