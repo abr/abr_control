@@ -168,19 +168,19 @@ class interface(interface.interface):
             if np.sign(torque) * np.sign(u[ii]) <= 0:
                 self.joint_target_velocities[ii] = \
                     self.joint_target_velocities[ii] * -1
-                vrep.simxSetJointTargetVelocity(
+                _ = vrep.simxSetJointTargetVelocity(
                     self.clientID,
                     joint_handle,
                     self.joint_target_velocities[ii],
                     vrep.simx_opmode_blocking)
-            if _ != 0:
-                raise Exception('Error setting joint target velocity.')
+                if _ != 0:
+                    raise Exception('Error setting joint target velocity.')
 
             # and now modulate the force
-            vrep.simxSetJointForce(self.clientID,
-                                   joint_handle,
-                                   abs(u[ii]),  # force to apply
-                                   vrep.simx_opmode_blocking)
+            _ = vrep.simxSetJointForce(self.clientID,
+                                       joint_handle,
+                                       abs(u[ii]),  # force to apply
+                                       vrep.simx_opmode_blocking)
             if _ != 0:
                 raise Exception('Error setting max joint force.')
 
@@ -197,6 +197,17 @@ class interface(interface.interface):
         # move simulation ahead one time step
         vrep.simxSynchronousTrigger(self.clientID)
         self.count += self.dt
+
+    # def set_target_angles(self):
+    #     """ Send in angles for the arm to move to. """
+    #     # first change the mode of the motors
+    #
+    #     # send in target angles
+    #    _ = vrep.simxSetJointPosition(
+    #            self.clientID,
+    #            joint_handle,
+    #            position[ii],
+    #            vrep.simx_opmode_streaming)
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller. """

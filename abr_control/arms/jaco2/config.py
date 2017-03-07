@@ -195,21 +195,21 @@ class robot_config(robot_config.robot_config):
             [0, -0.461245863, 0.887272337, self.L[11, 2]],
             [0, 0, 0, 1]])
 
-        # Transform matrix: joint 5 -> link 6
-        # account for rotations due to q
-        self.Tj5l6a = sp.Matrix([
-            [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
-            [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1]])
-        # no axes change, account for offsets
-        # NOTE: why are the x and y axes flipped?
-        self.Tj5l6b = sp.Matrix([
-            [-1, 0, 0, self.L[12, 0]],
-            [0, -1, 0, self.L[12, 1]],
-            [0, 0, 1, self.L[12, 2]],
-            [0, 0, 0, 1]])
-        self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
+        if self.hand_attached is True:  # add in hand offset
+            # Transform matrix: joint 5 -> link 6
+            # account for rotations due to q
+            self.Tj5l6a = sp.Matrix([
+                [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
+                [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]])
+            # no axes change, account for offsets
+            self.Tj5l6b = sp.Matrix([
+                [1, 0, 0, self.L[12, 0]],
+                [0, 1, 0, self.L[12, 1]],
+                [0, 0, -1, self.L[12, 2]],
+                [0, 0, 0, 1]])
+            self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for angular velocity)
         kz = sp.Matrix([0, 0, 1])
@@ -231,56 +231,34 @@ class robot_config(robot_config.robot_config):
             if name == 'link0':
                 self._T[name] = self.Torgl0
             elif name == 'joint0':
-                self._T[name] = self.Torgl0 * self.Tl0j0
+                self._T[name] = self._calc_T('link0') * self.Tl0j0
             elif name == 'link1':
-                self._T[name] = self.Torgl0 * self.Tl0j0 * self.Tj0l1
+                self._T[name] = self._calc_T('joint0') * self.Tj0l1
             elif name == 'joint1':
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1)
+                self._T[name] = self._calc_T('link1') * self.Tl1j1
             elif name == 'link2':
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2)
+                self._T[name] = self._calc_T('joint1') * self.Tj1l2
             elif name == 'joint2':
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2)
+                self._T[name] = self._calc_T('link2') * self.Tl2j2
             elif name == 'link3':
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3)
+                self._T[name] = self._calc_T('joint2') * self.Tj2l3
             elif name == 'joint3':
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3)
+                self._T[name] = self._calc_T('link3') * self.Tl3j3
             elif name == 'link4':
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4)
+                self._T[name] = self._calc_T('joint3') * self.Tj3l4
             elif name == 'joint4':
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4)
+                self._T[name] = self._calc_T('link4') * self.Tl4j4
             elif name == 'link5':
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5)
-            elif name == 'joint5' or (self.hand_attached is False and
-                                      name == 'EE'):
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5)
-            elif name == 'link6' or (self.hand_attached is True and
-                                     name == 'EE'):
-                self._T[name] = (
-                    self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1j1 *
-                    self.Tj1l2 * self.Tl2j2 * self.Tj2l3 * self.Tl3j3 *
-                    self.Tj3l4 * self.Tl4j4 * self.Tj4l5 * self.Tl5j5 *
-                    self.Tj5l6)
+                self._T[name] = self._calc_T('joint4') * self.Tj4l5
+            elif name == 'joint5':
+                self._T[name] = self._calc_T('link5') * self.Tl5j5
+            elif name == 'link6':
+                self._T[name] = self._calc_T('joint5') * self.Tj5l6
+            elif self.hand_attached is False and name == 'EE':
+                self._T[name] = self._calc_T('joint5')
+            elif self.hand_attached is True and name == 'EE':
+                self._T[name] = self._calc_T('link6')
+
             else:
                 raise Exception('Invalid transformation name: %s' % name)
 
