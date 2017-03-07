@@ -11,12 +11,11 @@ import traceback
 import abr_control
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.ur5.config(
-    use_cython=True)
+robot_config = abr_control.arms.jaco2.config(use_cython=True)
 
 # instantiate controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=20, vmax=0.5,
+    robot_config, kp=20, kv=4, vmax=1,
     null_control=True)
 
 # create our VREP interface
