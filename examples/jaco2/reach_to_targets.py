@@ -12,7 +12,8 @@ import abr_control
 
 # initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
-    use_cython=False, hand_attached=True)
+    use_cython=True, hand_attached=False)
+print(robot_config.num_links)
 # instantiate the controller
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=10, kv=3, vmax=1, null_control=False)
@@ -55,6 +56,7 @@ def on_exit(signal, frame):
 # call on_exit when ctrl-c is pressed
 signal.signal(signal.SIGINT, on_exit)
 
+offset = [0, 0, 0]
 print('Moving to first target: ', target_xyz)
 try:
     feedback = interface.get_feedback()
@@ -68,7 +70,7 @@ try:
 
         u = ctrlr.control(q=feedback['q'],
                           dq=feedback['dq'],
-                          offset=[0, 0, 0.01],
+                          offset=offset,
                           target_pos=target_xyz)
         print('u: ', [float('%.3f' % val) for val in u])
         interface.send_forces(np.array(u, dtype='float32'))
@@ -92,6 +94,10 @@ try:
         angles = abr_control.utils.transformations.euler_from_quaternion(
             quaternion, axes='rxyz')
         interface.set_orientation('hand', angles)
+
+        interface.set_orientation('tooltip', angles)
+        interface.set_xyz('tooltip', robot_config.Tx(
+            'EE', x=offset, q=feedback['q']))
 
         ee_track.append(hand_xyz)
         target_track.append(target_xyz)

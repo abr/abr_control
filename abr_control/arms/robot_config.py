@@ -579,6 +579,7 @@ class robot_config():
         Tx = None
         Tx_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
+        filename += '_T'
         # check to see if we have our transformation saved in file
         Tx, Tx_func = self._load_from_file(filename, lambdify)
 
@@ -627,6 +628,7 @@ class robot_config():
         T_inv = None
         T_inv_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
+        filename += '_Tinv'
         # check to see if we have our transformation saved in file
         T_inv, T_inv_func = self._load_from_file(filename, lambdify)
 
