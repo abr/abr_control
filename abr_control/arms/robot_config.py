@@ -591,12 +591,10 @@ class robot_config():
                 # if we're only interested in the origin, not including
                 # the x variables significantly speeds things up
                 Tx = T * sp.Matrix([0, 0, 0, 1])
-                print('11111111111111111111 Tx: ', Tx.shape)
             else:
                 # if we're interested in other points in the given frame
                 # of reference, calculate transform with x variables
                 Tx = T * sp.Matrix(self.x + [1])
-                print('heree heherheerehe Tx: ', Tx.shape)
             Tx = sp.Matrix(Tx)
 
             # save to file
