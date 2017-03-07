@@ -1,5 +1,5 @@
 """
-A basic script for connecting and moving the arm to 4 targets.
+Ajointp5 basic script for connecting and moving the arm to 4 targets.
 The end-effector and target postions are recorded and plotted
 once the final target is reached, and the arm has moved back
 to its default resting position.
@@ -12,11 +12,10 @@ import abr_control
 
 # initialize our robot config
 robot_config = abr_control.arms.jaco2.config(
-    use_cython=True, hand_attached=False)
-print(robot_config.num_links)
+    use_cython=True, hand_attached=True)
 # instantiate the controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=10, kv=3, vmax=1, null_control=False)
+    robot_config, kp=20, kv=4, vmax=1, null_control=True)
 
 # create our vrep interface
 interface = abr_control.interfaces.vrep(
@@ -56,18 +55,17 @@ def on_exit(signal, frame):
 # call on_exit when ctrl-c is pressed
 signal.signal(signal.SIGINT, on_exit)
 
-offset = [0, 0, 0]
+offset = [0, 0, 0]  # m
 print('Moving to first target: ', target_xyz)
 try:
     feedback = interface.get_feedback()
-    start = robot_config.Tx('EE', q=feedback['q'])
     interface.set_xyz(name='target', xyz=target_xyz)
     ctr = 0
     while 1:
         ctr += 1
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('EE', q=feedback['q'])
 
+        # TODO: make sure coriolis is added in
         u = ctrlr.control(q=feedback['q'],
                           dq=feedback['dq'],
                           offset=offset,
@@ -75,7 +73,17 @@ try:
         print('u: ', [float('%.3f' % val) for val in u])
         interface.send_forces(np.array(u, dtype='float32'))
 
-        error = np.sqrt(np.sum((hand_xyz - target_xyz)**2))
+        tooltip_refframe = 'link4'
+        interface.set_xyz('tooltip', robot_config.Tx(
+            tooltip_refframe, x=offset, q=feedback['q']))
+        quaternion = robot_config.orientation(
+            tooltip_refframe, q=feedback['q'])
+        angles = abr_control.utils.transformations.euler_from_quaternion(
+            quaternion, axes='rxyz')
+        interface.set_orientation('tooltip', angles)
+
+        ee_xyz = robot_config.Tx('EE', q=feedback['q'], x=offset)
+        error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
         if error < .01:
             # if we're at the target, start count
             # down to moving to the next target
@@ -90,17 +98,8 @@ try:
                     print('Moving to next target: ', target_xyz)
                 at_target_count = 0
 
-        quaternion = robot_config.orientation('EE', q=feedback['q'])
-        angles = abr_control.utils.transformations.euler_from_quaternion(
-            quaternion, axes='rxyz')
-        interface.set_orientation('hand', angles)
-
-        interface.set_orientation('tooltip', angles)
-        interface.set_xyz('tooltip', robot_config.Tx(
-            'EE', x=offset, q=feedback['q']))
-
-        ee_track.append(hand_xyz)
-        target_track.append(target_xyz)
+        ee_track.append(np.copy(ee_xyz))
+        target_track.append(np.copy(target_xyz))
 
         if ctr % 1000 == 0:
             print('error: ', error)
