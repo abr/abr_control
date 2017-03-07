@@ -120,6 +120,7 @@ class controller:
         dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
         dJ = dJ[:3]
         self.training_signal = np.dot(J.T, np.dot(Mx, (u_task - np.dot(dJ, dq))))
+        # self.training_signal = np.dot(J.T, np.dot(Mx, u_task))
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
