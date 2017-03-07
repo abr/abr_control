@@ -1,6 +1,7 @@
 import numpy as np
 from .vrep_files import vrep
 
+import abr_control
 from . import interface
 
 # TODO: add ability to load models files so that vrep only has to be open
@@ -184,15 +185,15 @@ class interface(interface.interface):
             if _ != 0:
                 raise Exception('Error setting max joint force.')
 
+        # Update position of hand object
         hand_xyz = self.robot_config.Tx(name='EE', q=self.q)
+        self.set_xyz('hand', hand_xyz)
 
-        # Update position of hand sphere
-        vrep.simxSetObjectPosition(
-            self.clientID,
-            self.hand_handle,
-            -1,  # set absolute, not relative position
-            hand_xyz,
-            vrep.simx_opmode_blocking)
+        # Update orientation of hand object
+        quaternion = self.robot_config.orientation('EE', q=self.q)
+        angles = abr_control.utils.transformations.euler_from_quaternion(
+            quaternion, axes='rxyz')
+        self.set_orientation('hand', angles)
 
         # move simulation ahead one time step
         vrep.simxSynchronousTrigger(self.clientID)
