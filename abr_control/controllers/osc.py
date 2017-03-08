@@ -59,7 +59,8 @@ class controller:
         # J *= np.array(mask).reshape(6, 1)
         # calculate the inertia matrix in task space
         M_inv = np.linalg.inv(M)
-        Mx_inv = np.dot(J, np.dot(M_inv, J.T))
+        JEE = self.robot_config.J(ref_frame, q)[:3]
+        Mx_inv = np.dot(JEE, np.dot(M_inv, JEE.T))
         # using the rcond to set singular values < thresh to 0
         # is slightly faster than doing it manually with svd
         Mx = np.linalg.pinv(Mx_inv, rcond=.01)
@@ -131,11 +132,11 @@ class controller:
         # cancel out effects of gravity
         u = self.training_signal - self.robot_config.g(q=q)
         # cancel out centripetal and Coriolis effects
-        u -= self.robot_config.C(q=q, dq=dq)
+        #u -= self.robot_config.C(q=q, dq=dq)
 
         if self.null_control is True:
             # calculate the null space filter
-            nkp = self.kp #* .1
+            nkp = self.kp * .1
             nkv = np.sqrt(nkp)
 
             q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
@@ -150,7 +151,7 @@ class controller:
                     dq_des[ii] = dq[ii]
             u_null = np.dot(M, (nkp * q_des - nkv * dq_des))
 
-            Jbar = np.dot(M_inv, np.dot(J.T, Mx))
+            Jbar = np.dot(M_inv, np.dot(JEE.T, Mx))
             null_filter = (np.eye(self.robot_config.num_joints) -
                            np.dot(J.T, Jbar.T))
 
