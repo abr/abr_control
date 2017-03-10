@@ -136,7 +136,8 @@ class controller:
 
         if self.null_control is True:
             # calculate the null space filter
-            nkp = self.kp * .1
+            # nkp = self.kp * .5  # NOTE: value for demo 3.2
+            nkp = self.kp * .1  # NOTE: normal gain value
             nkv = np.sqrt(nkp)
 
             q_des = np.zeros(self.robot_config.num_joints, dtype='float32')
