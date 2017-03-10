@@ -132,7 +132,7 @@ class controller:
         # cancel out effects of gravity
         u = self.training_signal - self.robot_config.g(q=q)
         # cancel out centripetal and Coriolis effects
-        #u -= self.robot_config.C(q=q, dq=dq)
+        # u -= self.robot_config.C(q=q, dq=dq)
 
         if self.null_control is True:
             # calculate the null space filter
@@ -147,7 +147,7 @@ class controller:
                 if self.robot_config.rest_angles[ii] is not None:
                     q_des[ii] = (
                         ((self.robot_config.rest_angles[ii] - q[ii]) + np.pi) %
-                        (np.pi*2) - np.pi)
+                        (np.pi * 2) - np.pi)
                     dq_des[ii] = dq[ii]
             u_null = np.dot(M, (nkp * q_des - nkv * dq_des))
 

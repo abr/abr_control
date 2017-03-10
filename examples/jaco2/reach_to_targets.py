@@ -55,7 +55,7 @@ def on_exit(signal, frame):
 # call on_exit when ctrl-c is pressed
 signal.signal(signal.SIGINT, on_exit)
 
-offset = [0, 0, .20]  # m
+offset = [0, 0, 0]  # m
 print('Moving to first target: ', target_xyz)
 try:
     feedback = interface.get_feedback()
@@ -73,8 +73,7 @@ try:
         print('u: ', [float('%.3f' % val) for val in u])
         interface.send_forces(np.array(u, dtype='float32'))
 
-        # find out where the offset is
-        tooltip_refframe = 'EE'
+        tooltip_refframe = 'link4'
         interface.set_xyz('tooltip', robot_config.Tx(
             tooltip_refframe, x=offset, q=feedback['q']))
         quaternion = robot_config.orientation(
