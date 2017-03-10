@@ -127,7 +127,8 @@ class robot_config():
                         # imports both 'filename.saved_file' and 'saved_file'
                         # having 'saved_file' in modules cause problems if
                         # the cython autofunc wrapper is used after this.
-                        del sys.modules[saved_file]
+                        if saved_file in sys.modules.keys():
+                            del sys.modules[saved_file]
 
             if function is None:
                 # if function not loaded, check for saved expression
