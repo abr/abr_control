@@ -5,7 +5,6 @@ import abr_control
 from . import interface
 
 # TODO: add ability to load models files so that vrep only has to be open
-# TODO: add ability to set initial position of robot
 
 
 class interface(interface.interface):
