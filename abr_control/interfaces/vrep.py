@@ -199,16 +199,20 @@ class interface(interface.interface):
         vrep.simxSynchronousTrigger(self.clientID)
         self.count += self.dt
 
-    # def set_target_angles(self):
-    #     """ Send in angles for the arm to move to. """
-    #     # first change the mode of the motors
-    #
-    #     # send in target angles
-    #    _ = vrep.simxSetJointPosition(
-    #            self.clientID,
-    #            joint_handle,
-    #            position[ii],
-    #            vrep.simx_opmode_streaming)
+    def set_position(self, joint_angles):
+        """ Move the robot to the specified configuration.
+
+        joint_angles np.array: configuration to move to (radians)
+        """
+
+        for ii, joint_handle in enumerate(self.joint_handles):
+            # send in angles to move to
+            # NODE: no success / fail message received in oneshot mode
+            vrep.simxSetJointPosition(
+                self.clientID,
+                joint_handle,
+                joint_angles[ii],
+                vrep.simx_opmode_oneshot)
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller. """
