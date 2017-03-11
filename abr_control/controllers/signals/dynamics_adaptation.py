@@ -166,8 +166,8 @@ class Signal():
                         #     output_shape=6)))
                 def gate_error(x):
                     r.set('raw_error', x)
-                    #if np.linalg.norm(x) > 2.0:
-                    #    x*=0
+                    if np.linalg.norm(x) > 2.0:
+                        x/=np.linalg.norm(x) * 0.5
                     return x
                 nengo.Connection(u_input, conn_learn[ii].learning_rule,
                                 # invert because we're providing error not reward
