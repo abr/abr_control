@@ -164,6 +164,8 @@ class Signal():
                         #     filename=weights_file[ii],
                         #     zero_default=True,
                         #     output_shape=6)))
+                
+                #Allow gating of error signal
                 def gate_error(x):
                     r.set('raw_error', x)
                     if np.linalg.norm(x) > 2.0:
@@ -175,13 +177,28 @@ class Signal():
                                 function=gate_error,
                                 synapse=0.01)
 
+                #Send spikes via redis
+                def send_spikes(t, x):
+                        v = np.where(x!=0)[0]
+                        if len(v) > 0:
+                            msg = struct.pack('%dI' % len(v), *v)
+                        else:
+                            msg = ''
+                        r.set('spikes', msg)
+                source_node = nengo.Node(send_spikes, size_in=10)
+                nengo.Connection(adapt_ens[ii].neurons[:10], 
+                    source_node, 
+                    synapse=None)
+
+
                 if use_probes:
                     # record the weights once every second
                     self.probe_weights.append(nengo.Probe(
                         conn_learn[ii], 'weights', sample_every=1))
 
-                    # self.ens_activity = nengo.Probe(
-                    #     adapt_ens[ii].neurons, sample_every=1)
+                    # record the activity to determine sparseness
+                    #self.ens_activity = nengo.Probe(
+                    #    adapt_ens[ii].neurons, sample_every=1)                  
 
         nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
