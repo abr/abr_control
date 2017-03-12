@@ -57,6 +57,7 @@ class Signal():
                  use_area_intercepts=True,
                  extra_dimension=False,
                  use_probes=False,
+                 filter_error=False,
                  weights_file=None,
                  backend='nengo'):
         """
@@ -165,11 +166,12 @@ class Signal():
                         #     zero_default=True,
                         #     output_shape=6)))
                 
-                #Allow gating of error signal
+                #Allow filtering of error signal
                 def gate_error(x):
                     r.set('raw_error', x)
-                    if np.linalg.norm(x) > 2.0:
-                        x/=np.linalg.norm(x) * 0.5
+                    if filter_error:
+                        if np.linalg.norm(x) > 2.0:
+                            x/=np.linalg.norm(x) * 0.5
                     return x
                 nengo.Connection(u_input, conn_learn[ii].learning_rule,
                                 # invert because we're providing error not reward
