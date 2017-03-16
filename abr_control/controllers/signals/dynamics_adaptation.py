@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import redis
+import struct
 import scipy
 r = redis.StrictRedis(host='127.0.0.1')
 
@@ -165,7 +166,7 @@ class Signal():
                         #     filename=weights_file[ii],
                         #     zero_default=True,
                         #     output_shape=6)))
-                
+
                 #Allow filtering of error signal
                 def gate_error(x):
                     r.set('raw_error', x)
@@ -187,9 +188,9 @@ class Signal():
                         else:
                             msg = ''
                         r.set('spikes', msg)
-                source_node = nengo.Node(send_spikes, size_in=10)
-                nengo.Connection(adapt_ens[ii].neurons[:10], 
-                    source_node, 
+                source_node = nengo.Node(send_spikes, size_in=25)
+                nengo.Connection(adapt_ens[ii].neurons[:25],
+                    source_node,
                     synapse=None)
 
 
@@ -200,7 +201,7 @@ class Signal():
 
                     # record the activity to determine sparseness
                     #self.ens_activity = nengo.Probe(
-                    #    adapt_ens[ii].neurons, sample_every=1)                  
+                    #    adapt_ens[ii].neurons, sample_every=1)
 
         nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
