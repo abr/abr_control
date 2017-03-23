@@ -72,13 +72,12 @@ try:
     offset = np.dot(T_inv, np.hstack([object_start, 1]))[:-1]
     print('offset: ', offset)
 
-
     target_xyz = object_start + np.array([.25, -.25, -.25])
     print('target_xyz: ', target_xyz)
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
-    while 1: # count < 1500:
+    while count < 1500:
         # get arm feedback from VREP
         feedback = interface.get_feedback()
 
@@ -89,27 +88,14 @@ try:
             target_pos=target_xyz,
             offset=offset)
 
-        # use visual feedback to get object endpoint position
-        ee_xyz_visual = np.array(interface.get_xyz('object_endpoint'))
-        ee_xyz_control = robot_config.Tx('EE', q=feedback['q'], x=offset)
-        #if count % 100 == 0:
-        print('q: ', feedback['q'])
-        print('ee_xyz_sim', ee_xyz_visual)
-        print('ee_xyz_control: ', ee_xyz_control)
-        print('error: ', np.sqrt(np.sum((target_xyz - ee_xyz_visual)**2)))
         # apply the control signal, step the sim forward
         interface.send_forces(u)
 
-        # set orientation of hand object to match EE
-        #quaternion = robot_config.orientation('EE', q=feedback['q'])
-        #angles = abr_control.utils.transformations.euler_from_quaternion(
-        #    quaternion, axes='rxyz')
-        #interface.set_orientation('hand', angles)
-
+        # use visual feedback to get object endpoint position
+        xyz = robot_config.Tx('EE', q=feedback['q'], x=offset)
         # track data
-        #ee_sim_track.append(np.copy(ee_xyz_visual))
-        #ee_control_track.append(np.copy(ee_xyz_control))
-        #target_track.append(np.copy(target_xyz))
+        ee_track.append(np.copy(xyz))
+        target_track.append(np.copy(target_xyz))
 
         count += 1
 

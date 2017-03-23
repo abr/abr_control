@@ -12,8 +12,10 @@ class robot_config(robot_config.robot_config):
         super(robot_config, self).__init__(num_joints=1, num_links=1,
                                            robot_name='onelink', **kwargs)
 
+        self._T = {}  # dictionary for storing calculated transforms
+
         self.joint_names = ['joint0']
-        self.rest_angles = np.array([90.0])
+        self.rest_angles = np.array([np.pi/2.0])
 
         # create the inertia matrices for each link of the ur5
         self._M_links.append(np.diag([1.0, 1.0, 1.0,
@@ -24,62 +26,57 @@ class robot_config(robot_config.robot_config):
 
         # segment lengths associated with each joint
         self.L = np.array([
-            [0.0, 0.0, 0.15],
-            [0.37, 0.0, 0.0]],
+            [0.0, 0.0, 0.05],
+            [0.0, 0.0, 0.05],
+            [0.22, 0.0, 0.0],
+            [0.0, 0.0, .15]],
             dtype='float32')
 
-        self.L_com = np.array([
-            [0.0, 0.0, .05],
-            [0.22, 0.0, 0.0]],
-            dtype='float32')
+        # ---- Transform Matrices ----
 
-        # ---- Joint Transform Matrices ----
-
-        # transform matrix from origin to joint 0 reference frame
-        # link 0 reference frame is the same as joint 0
-        self.Torg0 = sp.Matrix([
-            [1, 0, 0, 0],
-            [0, 0, -1, 0],
-            [0, 1, 0, self.L[0, 2]],
+        # Transform matrix : origin -> link 0
+        # account for axes change and offsets
+        self.Torgl0 = sp.Matrix([
+            [1, 0, 0, self.L[0, 0]],
+            [0, 1, 0, self.L[0, 1]],
+            [0, 0, 1, self.L[0, 2]],
             [0, 0, 0, 1]])
 
-        # transform to move to end-effector position
-        q0 = self.q[0]
-        self.T0EE = sp.Matrix([
-            [sp.cos(q0), -sp.sin(q0), 0,
-             self.L[1, 0] * sp.cos(q0)],
-            [sp.sin(q0), sp.cos(q0), 0,
-             self.L[1, 0] * sp.sin(q0)],
+        # Transform matrix : link 0 -> joint 0
+        # account for axes change and offsets
+        self.Tl0j0 = sp.Matrix([
+            [1, 0, 0, self.L[1, 0]],
+            [0, 0, -1, self.L[1, 1]],
+            [0, 1, 0, self.L[1, 2]],
+            [0, 0, 0, 1]])
+
+        # Transform matrix : joint 0 -> link 1
+        # account for rotation due to q
+        self.Tj0l1a = sp.Matrix([
+            [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0, 0],
+            [sp.sin(self.q[0]), sp.cos(self.q[0]), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
-
-        # ---- COM Transform Matrices ----
-
-        self.Tlorg0 = sp.Matrix([
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, self.L_com[0, 2]],
+        # account for change of axes and offsets
+        self.Tj0l1b = sp.Matrix([
+            [0, 0, 1, self.L[2, 0]],
+            [0, 1, 0, self.L[2, 1]],
+            [-1, 0, 0, self.L[2, 2]],
             [0, 0, 0, 1]])
+        self.Tj0l1 = self.Tj0l1a * self.Tj0l1b
 
-        self.Tl01a = sp.Matrix([
-            [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0,
-             self.L_com[1, 0] * sp.cos(self.q[0])],
-            [sp.sin(self.q[0]), sp.cos(self.q[0]), 0,
-             self.L_com[1, 0] * sp.sin(self.q[0])],
-            [0, 0, 1, 0],
+        # Transform matrix : link 1 -> end-effector
+        self.Tl1ee = sp.Matrix([
+            [1, 0, 0, self.L[3, 0]],
+            [0, 1, 0, self.L[3, 1]],
+            [0, 0, 1, self.L[3, 2]],
             [0, 0, 0, 1]])
-        # transform to match orientation to link 1
-        self.Tl01b = sp.Matrix([
-            [0, 0, 1,
-             self.L_com[1, 0] * sp.cos(self.q[0])],
-            [0, 1, 0,
-             self.L_com[1, 0] * sp.sin(self.q[0])],
-            [-1, 0, 0, 0],
-            [0, 0, 0, 1]])
-        self.Tl01 = self.Tl01b #self.Tl01a * self.Tl01b
+        print(self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1ee)
 
-        # orientation part of the Jacobian (compensating for orientations)
-        self.J_orientation = [[0, 0, 1]]  # joint 0 rotates around z axis
+        # orientation part of the Jacobian (compensating for angular velocity)
+        kz = sp.Matrix([0, 0, 1])
+        self.J_orientation = [
+            self._calc_T('joint0')[:3, :3] * kz]  # joint 0 orientation
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
@@ -87,15 +84,17 @@ class robot_config(robot_config.robot_config):
         name string: name of the joint or link, or end-effector
         """
 
-        if name == 'link0':
-            T = self.Tlorg0
-        elif name == 'joint0':
-            T = self.Torg0
-        elif name == 'link1':
-            T = self.Torg0 * self.Tl01
-        elif name == 'EE':
-            T = self.Torg0 * self.T0EE
-        else:
-            raise Exception('Invalid transformation name: %s' % name)
+        if self._T.get(name, None) is None:
+            if name == 'link0':
+                self._T[name] = self.Torgl0
+            elif name == 'joint0':
+                self._T[name] = self._calc_T('link0') * self.Tl0j0
+            elif name == 'link1':
+                self._T[name] = self._calc_T('joint0') * self.Tj0l1
+            elif name == 'EE':
+                self._T[name] = self._calc_T('link1') * self.Tl1ee
 
-        return T
+            else:
+                raise Exception('Invalid transformation name: %s' % name)
+
+        return self._T[name]

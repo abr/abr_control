@@ -1,12 +1,12 @@
 """
-A basic script for connecting and moving the arm to 4 targets.
-The end-effector and target postions are recorded and plotted
-once the final target is reached, and the arm has moved back
-to its default resting position.
+A basic script for connecting to the arm and putting it in floating
+mode, which only compensates for gravity. The end-effector position
+is recorded and plotted when the script is exited (with ctrl-c).
 """
 import numpy as np
 import signal
 import sys
+import traceback
 
 import abr_control
 
@@ -64,11 +64,9 @@ try:
 
         ee_track.append(hand_xyz)
 
-except Exception as e:
-    print(e)
+except:
+    print(traceback.format_exc())
 
 finally:
     # close the connection to the arm
     interface.disconnect()
-
-        
