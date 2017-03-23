@@ -16,10 +16,6 @@ robot_config = abr_control.arms.onelink.config()
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=600)
 
-# run controller once to generate functions / take care of overhead
-# outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(1), np.zeros(1), target_pos=np.zeros(3))
-
 # create our VREP interface for the onelink arm
 interface = abr_control.interfaces.vrep(robot_config)
 # connect to the jaco
@@ -40,7 +36,7 @@ targets = [[.3, 0.0, .375],
 
 def set_target(xyz):
     # normalize target position to lie on path of arm's end-effector
-    xyz = xyz / np.linalg.norm(xyz) * robot_config.L[1, 0] + robot_config.L[0]
+    xyz = xyz / np.linalg.norm(xyz) * .375
     print('target xyz: ', xyz)
     interface.set_xyz('target', xyz)
     return xyz
@@ -68,6 +64,7 @@ def on_exit(signal, frame):
 signal.signal(signal.SIGINT, on_exit)
 
 try:
+    print('Running...')
     while 1:
         feedback = interface.get_feedback()
         q = feedback['q']
@@ -91,6 +88,8 @@ try:
                     target_xyz = set_target(targets[target_index])
                     print('Moving to next target: ', target_xyz)
                 at_target_count = 0
+
+        interface.set_xyz('hand0', robot_config.Tx('joint0', q=q))
 
         ee_track.append(hand_xyz)
         target_track.append(target_xyz)
