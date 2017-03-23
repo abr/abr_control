@@ -7,6 +7,7 @@ to its default resting position.
 import numpy as np
 import signal
 import sys
+import traceback
 
 import abr_control
 
@@ -15,10 +16,6 @@ robot_config = abr_control.arms.onelink.config()
 # instantiate the REACH controller for the onelink robot
 ctrlr = abr_control.controllers.osc(
     robot_config, kp=600)
-
-# run controller once to generate functions / take care of overhead
-# outside of the main loop, because force mode auto-exits after 200ms
-ctrlr.control(np.zeros(1), np.zeros(1), target_pos=np.zeros(3))
 
 # create our VREP interface for the onelink arm
 interface = abr_control.interfaces.vrep(robot_config)
@@ -40,7 +37,9 @@ targets = [[.3, 0.0, .375],
 
 def set_target(xyz):
     # normalize target position to lie on path of arm's end-effector
-    xyz = xyz / np.linalg.norm(xyz) * robot_config.L[1, 0] + robot_config.L[0]
+    z_offset = np.array([0, 0, .1])
+    xyz = ((xyz - z_offset) / np.linalg.norm(xyz - z_offset) * .37
+           + z_offset)
     print('target xyz: ', xyz)
     interface.set_xyz('target', xyz)
     return xyz
@@ -68,6 +67,7 @@ def on_exit(signal, frame):
 signal.signal(signal.SIGINT, on_exit)
 
 try:
+    print('Running...')
     while 1:
         feedback = interface.get_feedback()
         q = feedback['q']
@@ -96,8 +96,8 @@ try:
         target_track.append(target_xyz)
         count += 1
 
-except Exception as e:
-    print(e)
+except:
+    print(traceback.format_exc())
 
 finally:
     # close the connection to the arm

@@ -10,12 +10,11 @@ import abr_control
 print('\nClick to move the target.\n')
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.threelink.config(
-    regenerate_functions=True)
+robot_config = abr_control.arms.threelink.config(use_cython=True)
 
 # create an operational space controller
 ctrlr = abr_control.controllers.osc(
-    robot_config, kp=100, vmax=None)
+    robot_config, kp=10, vmax=None)
 
 # create our interface
 interface = abr_control.interfaces.maplesim(

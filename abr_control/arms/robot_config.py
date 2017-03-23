@@ -345,7 +345,6 @@ class robot_config():
                 parameters=self.q)
         return g_func
 
-
     def _calc_dJ(self, name, x, lambdify=True):
         """ Uses Sympy to generate the derivative of the Jacobian
         for a joint or link with respect to time

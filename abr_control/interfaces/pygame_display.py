@@ -31,7 +31,7 @@ class display():
 
         self.on_click_move = on_click_move
 
-        self.L = np.array(L[1:, 0]) * self.scaling_term
+        self.L = np.asarray(L) * self.scaling_term
         self.target = None
         self.circles = []
         self.mouse_x = 0
