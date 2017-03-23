@@ -1,12 +1,13 @@
 """
-A basic script for connecting and moving the arm to 4 targets.
-The end-effector and target postions are recorded and plotted
-once the final target is reached, and the arm has moved back
-to its default resting position.
+A basic script for connecting and moving the arm to 4 targets
+is joint space. The joint angles are recorded and plotted against
+the target angles once the final target is reached, and the arm
+has moved back to its default resting position.
 """
 import numpy as np
 import signal
 import sys
+import traceback
 
 import abr_control
 
@@ -45,8 +46,8 @@ def on_exit(signal, frame):
 
     plt.plot(q_track)
     plt.plot(np.ones(q_track.shape) *
-                ((target_pos + np.pi) % (np.pi * 2) - np.pi),
-                'r--')
+             ((target_pos + np.pi) % (np.pi * 2) - np.pi),
+             'r--')
     plt.tight_layout()
     plt.show()
     sys.exit()
@@ -66,20 +67,11 @@ try:
                           target_pos=target_pos, target_vel=target_vel)
         interface.send_forces(np.array(u, dtype='float32'))
 
-        print('q: ', feedback['q'])
-        # set orientation of hand object to match EE
-        quaternion = robot_config.orientation('EE', q=feedback['q'])
-        angles = abr_control.utils.transformations.euler_from_quaternion(
-            quaternion, axes='rxyz')
-        interface.set_orientation('hand', angles)
-
         q_track.append(np.copy(feedback['q']))
 
-except Exception as e:
-    print(e)
+except:
+    print(traceback.format_exc())
 
 finally:
     # close the connection to the arm
     interface.disconnect()
-
-        

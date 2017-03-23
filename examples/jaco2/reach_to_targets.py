@@ -1,12 +1,13 @@
 """
-Ajointp5 basic script for connecting and moving the arm to 4 targets.
-The end-effector and target postions are recorded and plotted
+A basic script for connecting and moving the arm to 4 targets.
+The end-effector and target positions are recorded and plotted
 once the final target is reached, and the arm has moved back
 to its default resting position.
 """
 import numpy as np
 import signal
 import sys
+import traceback
 
 import abr_control
 
@@ -65,7 +66,6 @@ try:
         ctr += 1
         feedback = interface.get_feedback()
 
-        # TODO: make sure coriolis is added in
         u = ctrlr.control(q=feedback['q'],
                           dq=feedback['dq'],
                           offset=offset,
@@ -104,8 +104,8 @@ try:
         if ctr % 1000 == 0:
             print('error: ', error)
 
-except Exception as e:
-    print(e)
+except:
+    print(traceback.format_exc())
 
 finally:
     # close the connection to the arm
