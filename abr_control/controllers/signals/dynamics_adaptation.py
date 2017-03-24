@@ -17,7 +17,6 @@ try:
 except ImportError:
     print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
-# from abr_control.utils.keeplearningsolver import KeepLearningSolver
 
 class AreaIntercepts(nengo.dists.Distribution):
     dimensions = nengo.params.NumberParam('dimensions')
@@ -29,14 +28,16 @@ class AreaIntercepts(nengo.dists.Distribution):
         self.base = base
 
     def __repr(self):
-        return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions, self.base)
+        return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions,
+                                                           self.base)
 
     def transform(self, x):
         sign = 1
         if x > 0:
             x = -x
             sign = -1
-        return sign * np.sqrt(1-scipy.special.betaincinv((self.dimensions+1)/2.0, 0.5, x+1))
+        return sign * np.sqrt(1 - scipy.special.betaincinv(
+            (self.dimensions + 1) / 2.0, 0.5, x + 1))
 
     def sample(self, n, d=None, rng=np.random):
         s = self.base.sample(n=n, d=d, rng=rng)
@@ -53,7 +54,7 @@ class Signal():
                  n_neurons=1000,
                  n_adapt_pop=1,
                  pes_learning_rate=1e-6,
-                 intercepts = (0.5,1.0),
+                 intercepts=(0.5, 1.0),
                  spiking=False,
                  use_area_intercepts=True,
                  extra_dimension=False,
@@ -62,23 +63,33 @@ class Signal():
                  weights_file=None,
                  backend='nengo'):
         """
+        n_neurons int: number of neurons per adaptive population
+        n_adapt_pop: number of adaptive populations
         pes_learning_rate float: controls the speed of neural adaptation
                                  for training the dynamics compensation term
+        intercepts list: voltage threshold range for neurons
+        spiking boolean: use spiking or rate mode neurons
+        use_area_intercepts boolean: set intercepts to be distributed or not
+        extra_dimensions boolean: add an extra dimension for putting things
+                                  on the hypersphere, or not
+        use_probes boolean: record weights and spiking data or not
+        filter_error boolean: apply low pass filter to the error signal or not
         weights_file string: path to file where learned weights are saved
+        backend string: {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
         """
         self.robot_config = robot_config
 
         self.u_adapt = np.zeros(self.robot_config.num_joints)
 
         weights_file = (['']*n_adapt_pop if
-            weights_file is None else weights_file)
+                        weights_file is None else weights_file)
 
         if use_probes:
-            self.probe_weights=[]
-            # self.ens_activity=[]
+            self.probe_weights = []
+            # self.ens_activity = []
         else:
-            self.probe_weights=None
-            # self.ens_activity=None
+            self.probe_weights = None
+            # self.ens_activity = None
 
         dim = self.robot_config.num_joints
         nengo_model = nengo.Network(seed=10)
@@ -105,14 +116,14 @@ class Signal():
                 self.u_adapt = np.copy(x)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
 
-            adapt_ens=[]
-            conn_learn=[]
+            adapt_ens = []
+            conn_learn = []
             for ii in range(n_adapt_pop):
                 num_ens_dims = self.robot_config.num_joints * 2
                 if extra_dimension:
                     num_ens_dims = self.robot_config.num_joints * 2 + 1
 
-                intercepts=nengo.dists.Uniform(
+                intercepts = nengo.dists.Uniform(
                     intercepts[0], intercepts[1])
                 if use_area_intercepts:
                     intercepts = AreaIntercepts(dimensions=num_ens_dims,
@@ -126,7 +137,7 @@ class Signal():
                 adapt_ens.append(nengo.Ensemble(
                     n_neurons=n_neurons,
                     dimensions=num_ens_dims,
-                    encoders = nengolib.stats.ScatteredHypersphere(
+                    encoders=nengolib.stats.ScatteredHypersphere(
                         surface=True),
                     intercepts=intercepts,
                     neuron_type=neuron_type))
@@ -150,9 +161,8 @@ class Signal():
                     print('Transform all zeros: ', np.allclose(transform, 0))
                 else:
                     print('transform is zeros')
-                    transform=np.zeros((adapt_ens[ii].n_neurons,
-                                        self.robot_config.num_joints)).T
-
+                    transform = np.zeros((adapt_ens[ii].n_neurons,
+                                          self.robot_config.num_joints)).T
 
                 conn_learn.append(
                     nengo.Connection(
@@ -160,39 +170,33 @@ class Signal():
                         output,
                         learning_rule_type=nengo.PES(pes_learning_rate),
                         transform=transform))
-                        # use the weights solver that lets you keep
-                        # learning from the what's saved to file
-                        # solver=KeepLearningSolver(
-                        #     filename=weights_file[ii],
-                        #     zero_default=True,
-                        #     output_shape=6)))
 
-                #Allow filtering of error signal
+                # Allow filtering of error signal
                 def gate_error(x):
                     r.set('raw_error', x)
                     if filter_error:
                         if np.linalg.norm(x) > 2.0:
-                            x/=np.linalg.norm(x) * 0.5
+                            x /= np.linalg.norm(x) * 0.5
                     return x
                 nengo.Connection(u_input, conn_learn[ii].learning_rule,
-                                # invert because we're providing error not reward
-                                transform=-1,
-                                function=gate_error,
-                                synapse=0.01)
+                                 # invert to provide error not reward
+                                 transform=-1,
+                                 function=gate_error,
+                                 synapse=0.01)
 
-                #Send spikes via redis
+                # Send spikes via redis
                 def send_spikes(t, x):
-                        v = np.where(x!=0)[0]
+                        v = np.where(x != 0)[0]
                         if len(v) > 0:
                             msg = struct.pack('%dI' % len(v), *v)
                         else:
                             msg = ''
                         r.set('spikes', msg)
                 source_node = nengo.Node(send_spikes, size_in=25)
-                nengo.Connection(adapt_ens[ii].neurons[:25],
+                nengo.Connection(
+                    adapt_ens[ii].neurons[:25],
                     source_node,
                     synapse=None)
-
 
                 if use_probes:
                     # record the weights once every second
@@ -200,7 +204,7 @@ class Signal():
                         conn_learn[ii], 'weights', sample_every=1))
 
                     # record the activity to determine sparseness
-                    #self.ens_activity = nengo.Probe(
+                    # self.ens_activity = nengo.Probe(
                     #    adapt_ens[ii].neurons, sample_every=1)
 
         nengo.cache.DecoderCache().invalidate()
