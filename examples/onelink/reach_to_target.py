@@ -7,6 +7,7 @@ to its default resting position.
 import numpy as np
 import signal
 import sys
+import traceback
 
 import abr_control
 
@@ -36,7 +37,9 @@ targets = [[.3, 0.0, .375],
 
 def set_target(xyz):
     # normalize target position to lie on path of arm's end-effector
-    xyz = xyz / np.linalg.norm(xyz) * .375
+    z_offset = np.array([0, 0, .1])
+    xyz = ((xyz - z_offset) / np.linalg.norm(xyz - z_offset) * .37
+           + z_offset)
     print('target xyz: ', xyz)
     interface.set_xyz('target', xyz)
     return xyz
@@ -89,14 +92,12 @@ try:
                     print('Moving to next target: ', target_xyz)
                 at_target_count = 0
 
-        interface.set_xyz('hand0', robot_config.Tx('joint0', q=q))
-
         ee_track.append(hand_xyz)
         target_track.append(target_xyz)
         count += 1
 
-except Exception as e:
-    print(e)
+except:
+    print(traceback.format_exc())
 
 finally:
     # close the connection to the arm

@@ -62,7 +62,7 @@ class robot_config(robot_config.robot_config):
             [0, 0, 1, self.L[2, 0]],
             [0, 1, 0, self.L[2, 1]],
             [-1, 0, 0, self.L[2, 2]],
-            [0, 0, 1, 0]])
+            [0, 0, 0, 1]])
         self.Tj0l1 = self.Tj0l1a * self.Tj0l1b
 
         # Transform matrix : link 1 -> end-effector
@@ -71,6 +71,7 @@ class robot_config(robot_config.robot_config):
             [0, 1, 0, self.L[3, 1]],
             [0, 0, 1, self.L[3, 2]],
             [0, 0, 0, 1]])
+        print(self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1ee)
 
         # orientation part of the Jacobian (compensating for angular velocity)
         kz = sp.Matrix([0, 0, 1])
