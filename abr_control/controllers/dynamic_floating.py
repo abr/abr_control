@@ -2,8 +2,8 @@ import numpy as np
 
 
 class controller:
-    """ Implements a floating controller that only compensates for
-    the effects of gravity on the arm.
+    """ Implements a floating controller that compensates for
+    the effects of gravity on the arm and velocity.
     """
 
     def __init__(self, robot_config):
@@ -20,6 +20,6 @@ class controller:
         # calculate the effect of gravity in joint space
         g = self.robot_config.g(q)
         Mq = self.robot_config.Mq(q)
-        u = - g - 0.4 * np.dot(Mq, dq)
+        u = - g - 0.5 * np.dot(Mq, dq)
 
         return u
