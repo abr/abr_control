@@ -8,8 +8,7 @@ import numpy as np
 import abr_control
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.threelink.config(
-    regenerate_functions=False)
+robot_config = abr_control.arms.threelink.config(use_cython=True)
 
 # create our environment
 interface = abr_control.interfaces.maplesim(

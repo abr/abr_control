@@ -36,7 +36,8 @@ class interface(interface.interface):
         """
 
         # create the PyGame display
-        self.display = pygame_display.display(L=self.robot_config.L,
+        # TODO: read the arm lengths out of the config
+        self.display = pygame_display.display(L=[2, 1.2, .7],
                                               **self.kwargs)
 
         # stores information returned from maplesim
@@ -98,21 +99,12 @@ class interface(interface.interface):
     def _position(self):
         """Compute x,y position of the hand
         """
-        q0 = self.q[0]
-        q1 = self.q[1]
-        q2 = self.q[2]
-        L = self.robot_config.L[1:, 0]
 
-        self.joints_x = np.cumsum([
-            0,
-            L[0] * np.cos(q0),
-            L[1] * np.cos(q0+q1),
-            L[2] * np.cos(q0+q1+q2)])
-        self.joints_y = np.cumsum([
-            0,
-            L[0] * np.sin(q0),
-            L[1] * np.sin(q0+q1),
-            L[2] * np.sin(q0+q1+q2)])
+        xy = [self.robot_config.Tx('joint%i' % ii, q=self.q)
+              for ii in range(self.robot_config.num_joints)]
+        xy = np.vstack([xy, self.robot_config.Tx('EE', q=self.q)])
+        self.joints_x = xy[:, 0]
+        self.joints_y = xy[:, 1]
         return np.array([self.joints_x, self.joints_y])
 
     def _update_state(self):
@@ -123,6 +115,5 @@ class interface(interface.interface):
         self._position()
         self.x = np.array([self.joints_x[-1], self.joints_y[-1]])
 
-        # print('%.3f: ' % self.t, self.q)
         # update the display
         self.display.update(self.q)
