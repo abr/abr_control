@@ -198,7 +198,7 @@ class interface(interface.interface):
         vrep.simxSynchronousTrigger(self.clientID)
         self.count += self.dt
 
-    def set_position(self, joint_angles):
+    def send_target_angles(self, q):
         """ Move the robot to the specified configuration.
 
         joint_angles np.array: configuration to move to (radians)
@@ -210,7 +210,7 @@ class interface(interface.interface):
             vrep.simxSetJointPosition(
                 self.clientID,
                 joint_handle,
-                joint_angles[ii],
+                q[ii],
                 vrep.simx_opmode_oneshot)
 
     def get_feedback(self):
