@@ -29,7 +29,8 @@ class robot_config(robot_config.robot_config):
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array([None, 2.42, 2.42, 0.0, 0.0, 0.0])
+        self.rest_angles = np.array(
+            [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
 
         # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
