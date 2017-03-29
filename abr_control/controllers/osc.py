@@ -33,6 +33,10 @@ class controller:
 
         self.null_indices = ~np.isnan(self.robot_config.rest_angles)
         self.dq_des = np.zeros(self.robot_config.num_joints)
+        self.identity_num_joints = np.eye(self.robot_config.num_joints)
+        # null space filter gains
+        self.nkp = self.kp * .1
+        self.nkv = np.sqrt(self.nkp)
 
     def control(self, q, dq,
                 target_pos, target_vel=np.zeros(3),
@@ -155,20 +159,16 @@ class controller:
             u -= self.robot_config.C(q=q, dq=dq)
 
         if self.null_control is True:
-            # calculate the null space filter
-            nkp = self.kp * .1
-            nkv = np.sqrt(nkp)
-
-            # # calculated desired joint angle acceleration using rest angles
-            q_des = np.nan_to_num((self.robot_config.rest_angles - q + np.pi) %
-                                  (np.pi * 2) - np.pi)
+            # calculated desired joint angle acceleration using rest angles
+            q_des = ((self.robot_config.rest_angles - q + np.pi) %
+                     (np.pi * 2) - np.pi)
+            q_des[~self.null_indices] = 0.0
             self.dq_des[self.null_indices] = dq[self.null_indices]
 
-            u_null = np.dot(M, (nkp * q_des - nkv * self.dq_des))
+            u_null = np.dot(M, (self.nkp * q_des - self.nkv * self.dq_des))
 
             Jbar = np.dot(M_inv, np.dot(JEE.T, Mx))
-            null_filter = (np.eye(self.robot_config.num_joints) -
-                           np.dot(J.T, Jbar.T))
+            null_filter = (self.identity_num_joints - np.dot(J.T, Jbar.T))
 
             u += np.dot(null_filter, u_null)
 
