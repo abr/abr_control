@@ -38,7 +38,6 @@ class controller:
         self.nkp = self.kp * .1
         self.nkv = np.sqrt(self.nkp)
 
-    @profile
     def control(self, q, dq,
                 target_pos, target_vel=np.zeros(3),
                 target_quat=None, target_w=np.zeros(3),

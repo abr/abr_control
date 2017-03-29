@@ -14,7 +14,7 @@ import abr_control
 robot_config = abr_control.arms.jaco2.config(
     use_cython=True, hand_attached=False)
 # instantiate the REACH controller for the jaco2 robot
-ctrlr = abr_control.controllers.joint(robot_config, kp=25, kv=5)
+ctrlr = abr_control.controllers.joint(robot_config, kp=100, kv=10)
 
 zeros = np.zeros(robot_config.num_joints)
 ctrlr.control(zeros, zeros, zeros)
@@ -23,7 +23,7 @@ ctrlr.control(zeros, zeros, zeros)
 interface = abr_control.interfaces.vrep(
     robot_config=robot_config, dt=.001)
 
-target_pos = np.array([2.0, 1.4, 1.8, 1.0, .5, .5], dtype='float32')
+target_pos = np.array([2.0, 1.4, 1.8, 1.0, .5, .6], dtype='float32')
 target_vel = None
 
 # connect to the jaco
@@ -35,8 +35,6 @@ ctr = 0
 
 
 try:
-    feedback = interface.get_feedback()
-    start = robot_config.Tx('EE', q=feedback['q'])
     while 1:
         ctr += 1
         feedback = interface.get_feedback()
@@ -59,9 +57,9 @@ finally:
     import matplotlib.pyplot as plt
 
     plt.plot(q_track)
+    plt.gca().set_color_cycle(None)
     plt.plot(np.ones(q_track.shape) *
-             ((target_pos + np.pi) % (np.pi * 2) - np.pi),
-             'r--')
+             ((target_pos + np.pi) % (np.pi * 2) - np.pi), '--')
     plt.legend(range(6))
     plt.tight_layout()
     plt.show()
