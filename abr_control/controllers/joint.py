@@ -40,6 +40,5 @@ class controller:
                                       self.kv * (target_vel - dq)))
         # self.training_signal = self.kp * self.q_tilde - self.kv * dq
         u = self.training_signal - g
-        print('u: ', [float('%.3f' % val) for val in u])
 
         return u
