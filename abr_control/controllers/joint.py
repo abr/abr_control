@@ -13,7 +13,8 @@ class controller:
         self.kp = kp
         # derivative gain term
         self.kv = np.sqrt(self.kp) if kv is None else kv
-        self.q_tilde = np.zeros(robot_config.num_joints)
+        self.zeros_num_joints = np.zeros(robot_config.num_joints)
+        self.q_tilde = np.copy(self.zeros_num_joints)
 
     def control(self, q, dq, target_pos, target_vel=None):
         """Generate a control signal to move the arm through
@@ -27,7 +28,7 @@ class controller:
 
         self.q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi
         if target_vel is None:
-            target_vel = np.zeros(self.robot_config.num_joints)
+            target_vel = self.zeros_num_joints
 
         # get the joint space inertia matrix
         M = self.robot_config.M(q)
@@ -37,6 +38,7 @@ class controller:
         # calculated desired joint control signal
         self.training_signal = np.dot(M, (self.kp * self.q_tilde +
                                       self.kv * (target_vel - dq)))
+        # self.training_signal = self.kp * self.q_tilde - self.kv * dq
         u = self.training_signal - g
 
         return u
