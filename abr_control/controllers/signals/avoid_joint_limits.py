@@ -6,12 +6,12 @@ class Signal():
 
     def __init__(self, robot_config,
                  min_joint_angles, max_joint_angles,
-                 max_torque=1000):
+                 max_torque=None):
         """
         min_joint_angles np.array: the lower bound on joint angles (radians)
         max_joint_angles np.array: the upper bound on joint angles (radians)
         NOTE: use None as a placeholder for joints that have no limits
-        gains np.array: default is .01
+        max_torque np.array: default is 1
         """
 
         self.min_joint_angles = np.asarray(min_joint_angles, dtype='float32')
@@ -25,7 +25,8 @@ class Signal():
         self.no_limits_max = np.isnan(self.max_joint_angles)
 
         self.robot_config = robot_config
-        self.max_torque = max_torque
+        self.max_torque = (np.ones(robot_config.num_joints)
+                           if max_torque is None else np.asarray(max_torque))
 
 
     def generate(self, q):
@@ -36,12 +37,14 @@ class Signal():
 
         avoid_min = np.zeros(self.robot_config.num_joints)
         avoid_min = np.minimum(np.exp(-1.0/(self.min_joint_angles - q)), self.max_torque)
-        avoid_min[(q - self.min_joint_angles) < 0] = self.max_torque
+        min_index = (q - self.min_joint_angles) < 0
+        avoid_min[min_index] = self.max_torque[min_index]
         avoid_min[self.no_limits_min] = 0.0
 
         avoid_max = np.zeros(self.robot_config.num_joints)
         avoid_max = -np.minimum(np.exp(-1.0/(q - self.max_joint_angles)), self.max_torque)
-        avoid_max[(self.max_joint_angles - q) < 0] = -self.max_torque
+        max_index = (self.min_joint_angles - q) < 0
+        avoid_max[max_index] = -self.max_torque[max_index]
         avoid_max[self.no_limits_max] = 0.0
 
         self.u_avoid = avoid_min + avoid_max
