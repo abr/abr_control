@@ -24,7 +24,7 @@ avoid = abr_control.controllers.signals.avoid_joint_limits(
     robot_config,
     min_joint_angles=[np.pi/5, np.pi/5.0, np.pi/4.0],
     max_joint_angles=[np.pi/2, 4*np.pi/5.0, 3*np.pi/4.0],
-    max_torque=1000)
+    max_torque=[10, 100, 1000])
 
 # create a target
 target_xyz = [0, 2, 0]
