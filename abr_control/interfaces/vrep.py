@@ -198,15 +198,17 @@ class interface(interface.interface):
         vrep.simxSynchronousTrigger(self.clientID)
         self.count += self.dt
 
-    def send_target_angles(self, q):
+    def send_target_angles(self, q, joint_handles=None):
         """ Move the robot to the specified configuration.
 
-        joint_angles np.array: configuration to move to (radians)
+        q np.array: configuration to move to (radians)
         """
+        joint_handles = (self.joint_handles if joint_handles is None
+                         else joint_handles)
 
-        for ii, joint_handle in enumerate(self.joint_handles):
+        for ii, joint_handle in enumerate(joint_handles):
             # send in angles to move to
-            # NODE: no success / fail message received in oneshot mode
+            # NOTE: no success / fail message received in oneshot mode
             vrep.simxSetJointPosition(
                 self.clientID,
                 joint_handle,

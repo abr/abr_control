@@ -13,6 +13,8 @@ import abr_control
 # initialize our robot config for neural controllers
 robot_config = abr_control.arms.jaco2.config(
     use_cython=True, hand_attached=True)
+
+
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = abr_control.controllers.joint(robot_config, kp=20, kv=6)
 
@@ -28,6 +30,15 @@ target_vel = None
 
 # connect to the jaco
 interface.connect()
+
+# get joint handles for shadow
+names = ['joint%i_shadow' % ii for ii in range(robot_config.num_joints)]
+joint_handles = []
+for name in names:
+    interface.get_xyz(name)  # this loads in the joint handle
+    joint_handles.append(interface.misc_handles[name])
+# move shadow to target position
+interface.send_target_angles(target_pos, joint_handles)
 
 # set up arrays for tracking end-effector and target position
 q_track = []
