@@ -31,12 +31,10 @@ interface.connect()
 
 # set up arrays for tracking end-effector and target position
 q_track = []
-ctr = 0
 
 
 try:
     while 1:
-        ctr += 1
         feedback = interface.get_feedback()
 
         u = ctrlr.control(q=feedback['q'], dq=feedback['dq'],
