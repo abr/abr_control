@@ -173,7 +173,7 @@ class Signal():
 
                 # Allow filtering of error signal
                 def gate_error(x):
-                    r.set('raw_error', x)
+                    # r.set('raw_error', x)
                     if filter_error:
                         if np.linalg.norm(x) > 2.0:
                             x /= np.linalg.norm(x) * 0.5
@@ -202,10 +202,6 @@ class Signal():
                     # record the weights once every second
                     self.probe_weights.append(nengo.Probe(
                         conn_learn[ii], 'weights', sample_every=1))
-
-                    # record the activity to determine sparseness
-                    # self.ens_activity = nengo.Probe(
-                    #    adapt_ens[ii].neurons, sample_every=1)
 
         nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
