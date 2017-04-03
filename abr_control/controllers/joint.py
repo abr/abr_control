@@ -31,14 +31,14 @@ class controller:
             target_vel = self.zeros_num_joints
 
         # get the joint space inertia matrix
-        M = self.robot_config.M(q)
+        # M = self.robot_config.M(q)
         # get the gravity compensation signal
         g = self.robot_config.g(q)
 
         # calculated desired joint control signal
-        self.training_signal = np.dot(M, (self.kp * self.q_tilde +
-                                      self.kv * (target_vel - dq)))
-        # self.training_signal = self.kp * self.q_tilde - self.kv * dq
+        # self.training_signal = np.dot(M, (self.kp * self.q_tilde +
+        #                               self.kv * (target_vel - dq)))
+        self.training_signal = self.kp * self.q_tilde - self.kv * dq
         u = self.training_signal - g
 
         return u
