@@ -101,10 +101,10 @@ class Signal():
                 q = ((self.q + np.pi) % (np.pi*2)) - np.pi
 
                 output = np.hstack([
-                    self.robot_config.scaledown('q', q),
-                    self.robot_config.scaledown('dq', self.dq)])
+                    self.robot_config.scaledown('q', q)])#,
+                    #self.robot_config.scaledown('dq', self.dq)])
                 return output
-            qdq_input = nengo.Node(qdq_input, size_out=dim*2)
+            qdq_input = nengo.Node(qdq_input, size_out=dim)#*2)
 
             def u_input(t):
                 """ returns the control signal for training """
@@ -119,9 +119,9 @@ class Signal():
             adapt_ens = []
             conn_learn = []
             for ii in range(n_adapt_pop):
-                num_ens_dims = self.robot_config.num_joints * 2
+                num_ens_dims = self.robot_config.num_joints #* 2
                 if extra_dimension:
-                    num_ens_dims = self.robot_config.num_joints * 2 + 1
+                    num_ens_dims = self.robot_config.num_joints +1 # * 2 + 1
 
                 intercepts = nengo.dists.Uniform(
                     intercepts[0], intercepts[1])
