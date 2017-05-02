@@ -19,7 +19,7 @@ class Signal():
         u_psp = np.zeros(self.robot_config.num_joints, dtype='float32')
 
         # calculate the inertia matrix in joint space
-        Mq = self.robot_config.Mq(q)
+        M = self.robot_config.M(q)
 
         # add in obstacles avoidance
         for obstacle in obstacles:
@@ -60,7 +60,7 @@ class Signal():
                     eta = .02  # feel like i saw 4 somewhere in the paper
                     drhodx = (v - closest) / rho
                     Fpsp = (eta * (1.0/rho - 1.0/self.threshold) *
-                            1.0/rho**2 * drhodx)
+                            1.0/rho**1.5 * drhodx)
 
                     # get offset of closest point from link's reference frame
                     T_inv = self.robot_config.T_inv('link%i' % ii, q=q)
@@ -70,7 +70,7 @@ class Signal():
 
                     # calculate the inertia matrix for the
                     # point subjected to the potential space
-                    Mxpsp_inv = np.dot(Jpsp, np.dot(np.linalg.inv(Mq), Jpsp.T))
+                    Mxpsp_inv = np.dot(Jpsp, np.dot(np.linalg.inv(M), Jpsp.T))
                     # using the rcond to set singular values < thresh to 0
                     # is slightly faster than doing it manually with svd
                     Mxpsp = np.linalg.pinv(Mxpsp_inv, rcond=.01)
