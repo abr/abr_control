@@ -3,6 +3,7 @@ import os
 import redis
 import struct
 import scipy
+import threading
 r = redis.StrictRedis(host='127.0.0.1')
 
 try:
@@ -17,6 +18,12 @@ try:
 except ImportError:
     print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
+class DummySolver(nengo.solvers.Solver):
+        def __init__(self, fixed):
+            self.fixed=fixed
+            self.weights=False
+        def __call__(self, A, Y, rng=None, E=None):
+            return self.fixed, {}
 
 class AreaIntercepts(nengo.dists.Distribution):
     dimensions = nengo.params.NumberParam('dimensions')
@@ -44,6 +51,14 @@ class AreaIntercepts(nengo.dists.Distribution):
         for i in range(len(s)):
             s[i] = self.transform(s[i])
         return s
+
+# class spinnakerThread(threading.Thread):
+#     def __init__(self):
+#         threading.Thread.__init__(self)
+#     def run(self):
+#         print('Starting SpiNNaker Sim')
+#         Signal.start_spinnaker_sim()
+#         print('SpiNNaker Sim Complete')
 
 
 class Signal():
@@ -163,13 +178,21 @@ class Signal():
                     print('transform is zeros')
                     transform = np.zeros((adapt_ens[ii].n_neurons,
                                           self.robot_config.num_joints)).T
+                if backend == 'nengo_spinnaker':
+                    conn_learn.append(
+                        nengo.Connection(
+                            adapt_ens[ii],
+                            output,
+                            learning_rule_type=nengo.PES(pes_learning_rate),
+                            solver=DummySolver(transform.T)))
+                else:
+                    conn_learn.append(
+                        nengo.Connection(
+                            adapt_ens[ii].neurons,
+                            output,
+                            learning_rule_type=nengo.PES(pes_learning_rate),
+                            transform=transform))
 
-                conn_learn.append(
-                    nengo.Connection(
-                        adapt_ens[ii].neurons,
-                        output,
-                        learning_rule_type=nengo.PES(pes_learning_rate),
-                        transform=transform))
 
                 # Allow filtering of error signal
                 def gate_error(x):
@@ -183,20 +206,20 @@ class Signal():
                                  transform=-1,
                                  function=gate_error,
                                  synapse=0.01)
-
-                # Send spikes via redis
-                def send_spikes(t, x):
-                        v = np.where(x != 0)[0]
-                        if len(v) > 0:
-                            msg = struct.pack('%dI' % len(v), *v)
-                        else:
-                            msg = ''
-                        r.set('spikes', msg)
-                source_node = nengo.Node(send_spikes, size_in=25)
-                nengo.Connection(
-                    adapt_ens[ii].neurons[:25],
-                    source_node,
-                    synapse=None)
+                if backend != 'nengo_spinnaker':
+                    # Send spikes via redis
+                    def send_spikes(t, x):
+                            v = np.where(x != 0)[0]
+                            if len(v) > 0:
+                                msg = struct.pack('%dI' % len(v), *v)
+                            else:
+                                msg = ''
+                            r.set('spikes', msg)
+                    source_node = nengo.Node(send_spikes, size_in=25)
+                    nengo.Connection(
+                        adapt_ens[ii].neurons[:25],
+                        source_node,
+                        synapse=None)
 
                 if use_probes:
                     # record the weights once every second
@@ -227,6 +250,22 @@ class Signal():
             raise Exception('Invalid backend specified')
         self.backend = backend
 
+        # start spinnaker, cannot be stopped and started like nengo, needs to
+        # run in parallel
+        if self.backend == 'nengo_spinnaker':
+            self.q = np.zeros(self.robot_config.num_joints)
+            self.dq = np.zeros(self.robot_config.num_joints)
+            self.training_signal = np.zeros(self.robot_config.num_joints)
+            print('Creating SpiNNaker Thread')
+            spin_sim = threading.Thread(target=self.sim.run_steps(self.sim.max_steps))
+            print('Starting SpiNNaker Thread')
+            spin_sim.start()
+            # spinn_thread = spinnakerThread()
+            # spinn_thread.start()
+
+    # def start_spinnaker_sim(self):
+    #     self.sim.run_steps(self.sim.max_steps)
+
     def generate(self, q, dq, training_signal):
         """ Generates the control signal
 
@@ -243,6 +282,8 @@ class Signal():
         # run the simulation t generate the adaptive signal
         if self.backend == 'nengo' or self.backend == 'nengo_ocl':
             self.sim.run(time_in_seconds=.001, progress_bar=False)
+        elif self.backend == 'nengo_spinnaker':
+            pass
         else:
             self.sim.run(time_in_seconds=.001)
 
