@@ -3,6 +3,8 @@ keep the angles in bounds. """
 
 import numpy as np
 
+from . import controller
+
 try:
     import nengo
 except ImportError:
@@ -15,22 +17,22 @@ except ImportError:
     print('Nengo OCL not installed, simulation will be slower.')
 
 
-class controller:
+class Reach(controller.Controller):
     """ Implements an operational space controller (OSC)
     """
 
     def __init__(self, robot_config):  # noqa C901
 
         self.robot_config = robot_config
-
+        super(Reach,self).__init__(robot_config=self.robot_config)
         self.kp = 100.0  # proportional gain term
         self.kv = np.sqrt(self.kp)  # derivative gain term
 
-        self.dq = np.zeros(self.robot_config.num_joints)
+        self.dq = np.zeros(self.robot_config.NUM_JOINTS)
 
         self.target_state = np.zeros(6)
 
-        dim = self.robot_config.num_joints
+        dim = self.robot_config.NUM_JOINTS
         self.model = nengo.Network('REACH', seed=5)
         self.model.config[nengo.Connection].synapse = None
         with self.model:
@@ -76,9 +78,9 @@ class controller:
                 Mx_inv = np.dot(JEE, np.dot(np.linalg.inv(Mq), JEE.T))
                 svd_u, svd_s, svd_v = np.linalg.svd(Mx_inv)
                 # cut off any singular values that could cause control problems
-                singularity_thresh = .00025
+                SINGULARITY_THRESH = .00025
                 for i in range(len(svd_s)):
-                    svd_s[i] = 0 if svd_s[i] < singularity_thresh else \
+                    svd_s[i] = 0 if svd_s[i] < SINGULARITY_THRESH else \
                         1./float(svd_s[i])
                 # numpy returns U,S,V.T, so have to transpose both here
                 Mx = np.dot(svd_v.T, np.dot(np.diag(svd_s), svd_u.T))
@@ -167,7 +169,7 @@ class controller:
             self.sim = nengo.Simulator(self.model, dt=.001)
         print('building complete...')
 
-    def control(self, q, dq, target_state, ee_name='EE'):
+    def generate(self, q, dq, target_state, ee_name='EE'):
         """ Generates the control signal
         q np.array: the current joint angles
         dq np.array: the current joint velocities

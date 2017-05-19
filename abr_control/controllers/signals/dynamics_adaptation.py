@@ -118,6 +118,7 @@ class Signal():
                 output = np.hstack([
                     self.robot_config.scaledown('q', q)])#,
                     #self.robot_config.scaledown('dq', self.dq)])
+                #print('input: ', output)
                 return output
             qdq_input = nengo.Node(qdq_input, size_out=dim)#*2)
 
@@ -128,9 +129,10 @@ class Signal():
 
             def u_adapt_output(t, x):
                 """ stores the adaptive output for use in control() """
+                # self.u_adapt = np.copy(x)
                 self.u_adapt = np.copy(x)
+                # print('u_adapt: ', self.u_adapt)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
-
             adapt_ens = []
             conn_learn = []
             for ii in range(n_adapt_pop):
@@ -246,25 +248,14 @@ class Signal():
                 raise Exception('Nengo SpiNNaker not installed, ' +
                                 'cannot use this backend.')
             self.sim = nengo_spinnaker.Simulator(nengo_model)
-        else:
-            raise Exception('Invalid backend specified')
-        self.backend = backend
-
-        # start spinnaker, cannot be stopped and started like nengo, needs to
-        # run in parallel
-        if self.backend == 'nengo_spinnaker':
             self.q = np.zeros(self.robot_config.num_joints)
             self.dq = np.zeros(self.robot_config.num_joints)
             self.training_signal = np.zeros(self.robot_config.num_joints)
-            print('Creating SpiNNaker Thread')
-            spin_sim = threading.Thread(target=self.sim.run_steps(self.sim.max_steps))
-            print('Starting SpiNNaker Thread')
-            spin_sim.start()
-            # spinn_thread = spinnakerThread()
-            # spinn_thread.start()
-
-    # def start_spinnaker_sim(self):
-    #     self.sim.run_steps(self.sim.max_steps)
+            # start running the spinnaker model
+            self.sim.async_run_forever()
+        else:
+            raise Exception('Invalid backend specified')
+        self.backend = backend
 
     def generate(self, q, dq, training_signal):
         """ Generates the control signal
@@ -283,7 +274,8 @@ class Signal():
         if self.backend == 'nengo' or self.backend == 'nengo_ocl':
             self.sim.run(time_in_seconds=.001, progress_bar=False)
         elif self.backend == 'nengo_spinnaker':
-            pass
+            # update spinnaker inputs
+            self.sim.async_update()
         else:
             self.sim.run(time_in_seconds=.001)
 

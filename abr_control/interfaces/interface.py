@@ -1,4 +1,4 @@
-class interface:
+class Interface:
     """ Base class for interfaces.
     The purpose of interfaces is to abstract away the API
     and overhead of connection / disconnection etc for each

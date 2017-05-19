@@ -1,2 +1,3 @@
-from .config import robot_config as config
-from .config_neural import robot_config as config_neural
+from .config import UR5Config as Config
+from .config_neural import UR5ConfigNeural as ConfigNeural
+from .config_neural_cossin import UR5ConfigNeuralCos as ConfigNeuralCos

@@ -7,7 +7,7 @@ from . import interface
 # TODO: add ability to load models files so that vrep only has to be open
 
 
-class interface(interface.interface):
+class VrepInterface(interface.Interface):
     """ An interface for VREP.
     Implements force control using VREP's force-limiting method.
     Lock-steps the simulation so that it only moves forward one dt
@@ -17,15 +17,15 @@ class interface(interface.interface):
     """
 
     def __init__(self, robot_config, dt=.001):
-        super(interface, self).__init__(robot_config)
+        super(Interface, self).__init__(robot_config)
 
-        self.q = np.zeros(self.robot_config.num_joints)  # joint angles
-        self.dq = np.zeros(self.robot_config.num_joints)  # joint_velocities
+        self.q = np.zeros(self.robot_config.NUM_JOINTS)  # joint angles
+        self.dq = np.zeros(self.robot_config.NUM_JOINTS)  # joint_velocities
 
         # joint target velocities, as part of the torque limiting control
         # these need to be super high so that the joints are always moving
         # at the maximum allowed torque
-        self.joint_target_velocities = (np.ones(robot_config.num_joints) *
+        self.joint_target_velocities = (np.ones(robot_config.NUM_JOINTS) *
                                         10000.0)
 
         self.dt = dt  # time step
