@@ -4,21 +4,21 @@ import sympy as sp
 from .. import robot_config
 
 
-class robot_config(robot_config.robot_config):
+class UR5Config(robot_config.RobotConfig):
     """ Robot config file for the UR5 arm """
 
     def __init__(self, **kwargs):
 
-        super(robot_config, self).__init__(num_joints=6, num_links=7,
-                                           robot_name='ur5', **kwargs)
+        super(RobotConfig, self).__init__(NUM_JOINTS=6, NUM_LINKS=7,
+                                           ROBOT_NAME='ur5', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
-        self.joint_names = ['UR5_joint%i' % ii
-                            for ii in range(self.num_joints)]
+        self.JOINT_NAMES = ['UR5_joint%i' % ii
+                            for ii in range(self.NUM_JOINTS)]
 
         # for the null space controller, keep arm near these angles
-        self.rest_angles = np.array([None,
+        self.REST_ANGLES = np.array([None,
                                      np.pi/4.0,
                                      -np.pi/2.0,
                                      np.pi/4.0,
@@ -38,7 +38,7 @@ class robot_config(robot_config.robot_config):
             sp.diag(0.7, 0.7, 0.7, 0.01, 0.01, 0.01)]  # link6
 
         # the joints don't weigh anything in VREP
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.NUM_JOINTS)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
@@ -207,14 +207,14 @@ class robot_config(robot_config.robot_config):
         self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for angular velocity)
-        kz = sp.Matrix([0, 0, 1])
+        KZ = sp.Matrix([0, 0, 1])
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 orientation
-            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 orientation
-            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 orientation
-            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 orientation
-            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 orientation
-            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 orientation
+            self._calc_T('joint0')[:3, :3] * KZ,  # joint 0 orientation
+            self._calc_T('joint1')[:3, :3] * KZ,  # joint 1 orientation
+            self._calc_T('joint2')[:3, :3] * KZ,  # joint 2 orientation
+            self._calc_T('joint3')[:3, :3] * KZ,  # joint 3 orientation
+            self._calc_T('joint4')[:3, :3] * KZ,  # joint 4 orientation
+            self._calc_T('joint5')[:3, :3] * KZ]  # joint 5 orientation
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link

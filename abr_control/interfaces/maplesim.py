@@ -2,10 +2,10 @@ import numpy as np
 
 from . import interface
 from . import pygame_display
-from ..arms.threelink import py3LinkArm
+#from ..arms.threelink import py3LinkArm
 
 
-class interface(interface.interface):
+class MapleSimInterface(interface.Interface):
     """ An interface for MapleSim models that have been exported to
     C and turned into shared libraries using Cython. Plots the movement
     in PyGame.
@@ -15,13 +15,13 @@ class interface(interface.interface):
 
         self.kwargs = kwargs
 
-        super(interface, self).__init__(robot_config)
+        super(Interface, self).__init__(robot_config)
 
-        self.q = np.zeros(self.robot_config.num_joints)  # joint angles
-        self.dq = np.zeros(self.robot_config.num_joints)  # joint_velocities
+        self.q = np.zeros(self.robot_config.NUM_JOINTS)  # joint angles
+        self.dq = np.zeros(self.robot_config.NUM_JOINTS)  # joint_velocities
 
         if q_init is not None:
-            self.q_init = np.zeros(self.robot_config.num_joints*2)
+            self.q_init = np.zeros(self.robot_config.NUM_JOINTS*2)
             self.q_init[::2] = q_init
             # TODO: add in ability to set starting velocity, if useful
             # self.q_init[1::2] = dq_init
@@ -54,8 +54,8 @@ class interface(interface.interface):
         """
 
         state = np.hstack([
-            self.robot_config.rest_angles,
-            np.zeros(self.robot_config.num_joints)])
+            self.robot_config.REST_ANGLES,
+            np.zeros(self.robot_config.NUM_JOINTS)])
 
         self.sim.reset(self.state, state)
         self._update_state()
@@ -101,7 +101,7 @@ class interface(interface.interface):
         """
 
         xy = [self.robot_config.Tx('joint%i' % ii, q=self.q)
-              for ii in range(self.robot_config.num_joints)]
+              for ii in range(self.robot_config.NUM_JOINTS)]
         xy = np.vstack([xy, self.robot_config.Tx('EE', q=self.q)])
         self.joints_x = xy[:, 0]
         self.joints_y = xy[:, 1]

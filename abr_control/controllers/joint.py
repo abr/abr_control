@@ -1,22 +1,22 @@
 import numpy as np
 
+from . import controller
 
-class controller:
+class Joint(controller.Controller):
     """ Implements a joint controller
     """
 
     def __init__(self, robot_config, kp=1, kv=None):
-
         self.robot_config = robot_config
-
+        super(Joint,self).__init__(robot_config=self.robot_config)
         # proportional gain term
         self.kp = kp
         # derivative gain term
         self.kv = np.sqrt(self.kp) if kv is None else kv
-        self.zeros_num_joints = np.zeros(robot_config.num_joints)
-        self.q_tilde = np.copy(self.zeros_num_joints)
+        self.ZEROS_NUM_JOINTS = np.zeros(robot_config.NUM_JOINTS)
+        self.q_tilde = np.copy(self.zeros_NUM_JOINTS)
 
-    def control(self, q, dq, target_pos, target_vel=None):
+    def generate(self, q, dq, target_pos, target_vel=None):
         """Generate a control signal to move the arm through
            joint space to the desired joint angle position
 
@@ -28,8 +28,8 @@ class controller:
 
         self.q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi
         if target_vel is None:
-            target_vel = self.zeros_num_joints
-
+            target_vel = self.ZEROS_NUM_JOINTS
+        # TODO: do we need the M term here?
         # get the joint space inertia matrix
         # M = self.robot_config.M(q)
         # get the gravity compensation signal

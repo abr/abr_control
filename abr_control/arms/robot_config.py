@@ -14,27 +14,27 @@ import abr_control.arms
 # TODO : store lambdified functions, currently running into pickling errors
 # cloudpickle, dill, and pickle all run into problems
 
-class robot_config():
+class RobotConfig():
     """ Class defines a bunch of useful functions for controlling
     a given robot, including transformation to joints and COMs,
     Jacobians, the inertia matrix in joint space, and the effects
     of gravity. Uses SymPy and lambdify to do this.
     """
 
-    def __init__(self, num_joints, num_links, robot_name="robot",
+    def __init__(self, NUM_JOINTS, NUM_LINKS, ROBOT_NAME="robot",
                  use_cython=False):
         """
-        num_joints int: number of joints in robot
-        num_links int: number of arm segments in robot
-        robot_name string: used for saving/loading functions to file
+        NUM_JOINTS int: number of joints in robot
+        NUM_LINKS int: number of arm segments in robot
+        ROBOT_NAME string: used for saving/loading functions to file
         use_cython boolean: if True, a more efficient function is generated
                             useful when execution time is more important than
                             generation time
         """
 
-        self.num_joints = num_joints
-        self.num_links = num_links
-        self.robot_name = robot_name
+        self.NUM_JOINTS = NUM_JOINTS
+        self.NUM_LINKS = NUM_LINKS
+        self.ROBOT_NAME = ROBOT_NAME
 
         self.use_cython = use_cython
 
@@ -53,7 +53,7 @@ class robot_config():
 
         # specify / create the folder to save to and load from
         self.config_folder = (os.path.dirname(abr_control.arms.__file__) +
-                              '/%s/saved_functions/' % robot_name)
+                              '/%s/saved_functions/' % ROBOT_NAME)
         hasher = hashlib.md5()
         # TODO: make it so this file also affects hash
         with open(sys.modules[self.__module__].__file__, 'rb') as afile:
@@ -65,8 +65,8 @@ class robot_config():
         abr_control.utils.os_utils.makedir(self.config_folder)
 
         # set up our joint angle symbols
-        self.q = [sp.Symbol('q%i' % ii) for ii in range(self.num_joints)]
-        self.dq = [sp.Symbol('dq%i' % ii) for ii in range(self.num_joints)]
+        self.q = [sp.Symbol('q%i' % ii) for ii in range(self.NUM_JOINTS)]
+        self.dq = [sp.Symbol('dq%i' % ii) for ii in range(self.NUM_JOINTS)]
         # set up an (x,y,z) offset
         self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
 
@@ -313,18 +313,18 @@ class robot_config():
             # get the Jacobians for each link's COM
             J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
                                     lambdify=False)
-                       for ii in range(self.num_links)]
+                       for ii in range(self.NUM_LINKS)]
             J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
                                      lambdify=False)
-                        for ii in range(self.num_joints)]
+                        for ii in range(self.NUM_JOINTS)]
 
             # sum together the effects of each arm segment's inertia
-            g = sp.zeros(self.num_joints, 1)
-            for ii in range(self.num_links):
+            g = sp.zeros(self.NUM_JOINTS, 1)
+            for ii in range(self.NUM_LINKS):
                 # transform each inertia matrix into joint space
                 g += (J_links[ii].T * self._M_links[ii] * self.gravity)
             # sum together the effects of each joint's inertia on each motor
-            for ii in range(self.num_joints):
+            for ii in range(self.NUM_JOINTS):
                 # transform each inertia matrix into joint space
                 g += (J_joints[ii].T * self._M_joints[ii] * self.gravity)
             g = sp.Matrix(g)
@@ -373,7 +373,7 @@ class robot_config():
             # which each joint is dependent on
             for ii in range(J.shape[0]):
                 for jj in range(J.shape[1]):
-                    for kk in range(self.num_joints):
+                    for kk in range(self.NUM_JOINTS):
                         dJ[ii, jj] += J[ii, jj].diff(self.q[kk]) * self.dq[kk]
             dJ = sp.Matrix(dJ)
 
@@ -421,21 +421,21 @@ class robot_config():
             # sympy's Tx.jacobian method)
             J = []
             # calculate derivative of (x,y,z) wrt to each joint
-            for ii in range(self.num_joints):
+            for ii in range(self.NUM_JOINTS):
                 J.append([])
                 J[ii].append(Tx[0].diff(self.q[ii]))  # dx/dq[ii]
                 J[ii].append(Tx[1].diff(self.q[ii]))  # dy/dq[ii]
                 J[ii].append(Tx[2].diff(self.q[ii]))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
-            end_point = self.num_joints if 'EE' in end_point else end_point
+            end_point = self.NUM_JOINTS if 'EE' in end_point else end_point
 
-            end_point = min(int(end_point) + 1, self.num_joints)
+            end_point = min(int(end_point) + 1, self.NUM_JOINTS)
             # add on the orientation information up to the last joint
             for ii in range(end_point):
                 J[ii] = J[ii] + list(self.J_orientation[ii])
             # fill in the rest of the joints orientation info with 0
-            for ii in range(end_point, self.num_joints):
+            for ii in range(end_point, self.NUM_JOINTS):
                 J[ii] = J[ii] + [0, 0, 0]
             J = sp.Matrix(J).T  # correct the orientation of J
 
@@ -477,18 +477,18 @@ class robot_config():
             # get the Jacobians for each link's COM
             J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
                                     lambdify=False)
-                       for ii in range(self.num_links)]
+                       for ii in range(self.NUM_LINKS)]
             J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
                                      lambdify=False)
-                        for ii in range(self.num_joints)]
+                        for ii in range(self.NUM_JOINTS)]
 
             # sum together the effects of each arm segment's inertia
-            M = sp.zeros(self.num_joints)
-            for ii in range(self.num_links):
+            M = sp.zeros(self.NUM_JOINTS)
+            for ii in range(self.NUM_LINKS):
                 # transform each inertia matrix into joint space
                 M += (J_links[ii].T * self._M_links[ii] * J_links[ii])
             # sum together the effects of each joint's inertia on each motor
-            for ii in range(self.num_joints):
+            for ii in range(self.NUM_JOINTS):
                 # transform each inertia matrix into joint space
                 M += (J_joints[ii].T * self._M_joints[ii] * J_joints[ii])
             M = sp.Matrix(M)

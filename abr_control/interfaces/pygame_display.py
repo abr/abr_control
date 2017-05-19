@@ -3,7 +3,7 @@ import pygame
 import pygame.locals
 
 
-class display():
+class Display():
 
     def __init__(self, L, on_click_move=None):
         """ Set up the PyGame visualization window.

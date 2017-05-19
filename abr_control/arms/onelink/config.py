@@ -4,25 +4,25 @@ import sympy as sp
 from .. import robot_config
 
 
-class robot_config(robot_config.robot_config):
+class OneLinkConfig(robot_config.RobotConfig):
     """ Robot config file for the onelink arm """
 
     def __init__(self, **kwargs):
 
-        super(robot_config, self).__init__(num_joints=1, num_links=1,
-                                           robot_name='onelink', **kwargs)
+        super(RobotConfig, self).__init__(NUM_JOINTS=1, NUM_LINKS=1,
+                                           ROBOT_NAME='onelink', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
-        self.joint_names = ['joint0']
-        self.rest_angles = np.array([np.pi/2.0])
+        self.JOINT_NAMES = ['joint0']
+        self.REST_ANGLES = np.array([np.pi/2.0])
 
         # create the inertia matrices for each link of the ur5
         self._M_links.append(np.diag([1.0, 1.0, 1.0,
                                       0.02, 0.02, 0.02]))  # link0
 
         # the joints don't weigh anything
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.NUM_JOINTS)]
 
         # segment lengths associated with each joint
         self.L = np.array([
@@ -74,9 +74,9 @@ class robot_config(robot_config.robot_config):
         print(self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1ee)
 
         # orientation part of the Jacobian (compensating for angular velocity)
-        kz = sp.Matrix([0, 0, 1])
+        KZ = sp.Matrix([0, 0, 1])
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * kz]  # joint 0 orientation
+            self._calc_T('joint0')[:3, :3] * KZ]  # joint 0 orientation
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
