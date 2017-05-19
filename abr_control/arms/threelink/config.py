@@ -4,18 +4,18 @@ import sympy as sp
 from .. import robot_config
 
 
-class robot_config(robot_config.robot_config):
+class ThreeLinkConfig(robot_config.RobotConfig):
     """ Robot config file for the threelink MapleSim arm """
 
     def __init__(self, **kwargs):
 
-        super(robot_config, self).__init__(num_joints=3, num_links=3,
-                                           robot_name='threelink', **kwargs)
+        super(RobotConfig, self).__init__(NUM_JOINTS=3, NUM_LINKS=3,
+                                           ROBOT_NAME='threelink', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
         # for the null space controller, keep arm near these angles
-        self.rest_angles = np.array([np.pi/4.0, np.pi/4.0, np.pi/4.0],
+        self.REST_ANGLES = np.array([np.pi/4.0, np.pi/4.0, np.pi/4.0],
                                     dtype='float32')
 
         # create the inertia matrices for each link of the threelink
@@ -34,7 +34,7 @@ class robot_config(robot_config.robot_config):
                              0.0, 0.0, 100.0]))  # link2
 
         # the joints don't weigh anything
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.NUM_JOINTS)]
 
         # segment lengths associated with each joint
         # [x, y, z],  Ignoring lengths < 1e-04
@@ -136,11 +136,11 @@ class robot_config(robot_config.robot_config):
             [0, 0, 0, 1]])
 
         # orientation part of the Jacobian
-        kz = sp.Matrix([0, 0, 1])  # all joints rotate around their z axis
+        KZ = sp.Matrix([0, 0, 1])  # all joints rotate around their z axis
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 angular velocity
-            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 angular velocity
-            self._calc_T('joint2')[:3, :3] * kz]  # joint 2 angular velocity
+            self._calc_T('joint0')[:3, :3] * KZ,  # joint 0 angular velocity
+            self._calc_T('joint1')[:3, :3] * KZ,  # joint 1 angular velocity
+            self._calc_T('joint2')[:3, :3] * KZ]  # joint 2 angular velocity
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link

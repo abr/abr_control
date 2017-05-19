@@ -1,1 +1,1 @@
-from .config import robot_config as config
+from .config import OneLinkConfig as Config

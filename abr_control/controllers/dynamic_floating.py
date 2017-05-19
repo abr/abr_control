@@ -1,16 +1,17 @@
 import numpy as np
 
+from . import controller
 
-class controller:
+class DynamicFloating(controller.Controller):
     """ Implements a floating controller that compensates for
     the effects of gravity on the arm and velocity.
     """
 
     def __init__(self, robot_config):
-
         self.robot_config = robot_config
+        super(DynamicFloating,self).__init__(robot_config=self.robot_config)
 
-    def control(self, q, dq):
+    def generate(self, q, dq):
         """ Generates the control signal
 
         q np.array: the current joint angles

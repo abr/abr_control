@@ -1,7 +1,8 @@
 import numpy as np
 
+from . import controller
 
-class controller:
+class Trajectory(controller.Controller):
     """ Implements an trajectory controller over on top of a given
     point to point control system.
     """
@@ -9,10 +10,11 @@ class controller:
     def __init__(self, controller):
 
         self.controller = controller
+        super(Trajectory,self).__init__(robot_config=self.controller.robot_config)
 
         self.target_state = None  # for tracking target changes
 
-    def control(self, q, target_state, n_timesteps=200,
+    def generate(self, q, target_state, n_timesteps=200,
                 ee_name='EE', **kwargs):
         """ Generates the control signal.
         The trajectory controller checks to see if the target has changed,

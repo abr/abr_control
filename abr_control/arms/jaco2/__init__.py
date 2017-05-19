@@ -1,2 +1,3 @@
-from .config import robot_config as config
-#from .config_neural import robot_config as config_neural
+from .config import Jaco2SimConfig as Config
+# TODO: setup neural config for jaco2 sim
+# from .config_neural import Jaco2SimConfigNeural as ConfigNeural

@@ -6,15 +6,15 @@ import abr_control
 from .. import robot_config
 
 
-class robot_config(robot_config.robot_config):
+class Jaco2SimConfig(robot_config.RobotConfig):
     """ Robot config file for the Kinova Jaco^2 V2"""
 
     def __init__(self, hand_attached=False, **kwargs):
 
         self.hand_attached = hand_attached
-        num_links = 7 if hand_attached is True else 6
-        super(robot_config, self).__init__(num_joints=6, num_links=num_links,
-                                           robot_name='jaco2', **kwargs)
+        NUM_LINKS = 7 if hand_attached is True else 6
+        super(RobotConfig, self).__init__(NUM_JOINTS=6, NUM_LINKS=NUM_LINKS,
+                                           ROBOT_NAME='jaco2', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -24,18 +24,18 @@ class robot_config(robot_config.robot_config):
         # make config folder if it doesn't exist
         abr_control.utils.os_utils.makedir(self.config_folder)
 
-        self.joint_names = ['joint%i' % ii
-                            for ii in range(self.num_joints)]
+        self.JOINT_NAMES = ['joint%i' % ii
+                            for ii in range(self.NUM_JOINTS)]
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
-        self.rest_angles = np.array(
+        self.REST_ANGLES = np.array(
             [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
 
         # TODO: check if using sp or np diag makes a difference
         # create the inertia matrices for each link of the ur5
         # inertia values in VREP are divided by mass, account for that here
-        self._M_links = [
+        self._M_LINKS = [
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link1
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link2
@@ -44,11 +44,11 @@ class robot_config(robot_config.robot_config):
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link4
             sp.diag(0.25, 0.25, 0.25, 0.01, 0.01, 0.01)]  # link5
         if self.hand_attached is True:
-            self._M_links.append(
+            self._M_LINKS.append(
                 sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04))  # link6
 
         # the joints don't weigh anything in VREP
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.num_joints)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.NUM_JOINTS)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
@@ -70,7 +70,7 @@ class robot_config(robot_config.robot_config):
         self.L = np.array(self.L)
 
         if self.hand_attached is True:  # add in hand offset
-            self.L_handcom = np.array([0.0, 0.0, -0.08])  # com of the hand
+            self.L_HANDCOM = np.array([0.0, 0.0, -0.08])  # com of the hand
 
         # ---- Transform Matrices ----
 
@@ -216,9 +216,9 @@ class robot_config(robot_config.robot_config):
                 [0, 0, 0, 1]])
             # account for axes changes and offsets
             self.Tj5handcomb = sp.Matrix([
-                [-1, 0, 0, self.L_handcom[0]],
-                [0, 1, 0, self.L_handcom[1]],
-                [0, 0, -1, self.L_handcom[2]],
+                [-1, 0, 0, self.L_HANDCOM[0]],
+                [0, 1, 0, self.L_HANDCOM[1]],
+                [0, 0, -1, self.L_HANDCOM[2]],
                 [0, 0, 0, 1]])
             self.Tj5handcom = self.Tj5handcoma * self.Tj5handcomb
 
@@ -230,14 +230,14 @@ class robot_config(robot_config.robot_config):
                 [0, 0, 0, 1]])
 
         # orientation part of the Jacobian (compensating for angular velocity)
-        kz = sp.Matrix([0, 0, 1])
+        KZ= sp.Matrix([0, 0, 1])
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * kz,  # joint 0 orientation
-            self._calc_T('joint1')[:3, :3] * kz,  # joint 1 orientation
-            self._calc_T('joint2')[:3, :3] * kz,  # joint 2 orientation
-            self._calc_T('joint3')[:3, :3] * kz,  # joint 3 orientation
-            self._calc_T('joint4')[:3, :3] * kz,  # joint 4 orientation
-            self._calc_T('joint5')[:3, :3] * kz]  # joint 5 orientation
+            self._calc_T('joint0')[:3, :3] * KZ,  # joint 0 orientation
+            self._calc_T('joint1')[:3, :3] * KZ,  # joint 1 orientation
+            self._calc_T('joint2')[:3, :3] * KZ,  # joint 2 orientation
+            self._calc_T('joint3')[:3, :3] * KZ,  # joint 3 orientation
+            self._calc_T('joint4')[:3, :3] * KZ,  # joint 4 orientation
+            self._calc_T('joint5')[:3, :3] * KZ]  # joint 5 orientation
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link

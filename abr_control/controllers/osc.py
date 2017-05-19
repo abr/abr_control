@@ -1,7 +1,8 @@
 import numpy as np
 
+from . import controller
 
-class controller:
+class OSC(controller.Controller):
     """ Implements an operational space controller (OSC)
     """
 
@@ -23,6 +24,7 @@ class controller:
         """
 
         self.robot_config = robot_config
+        super(OSC,self).__init__(robot_config=self.robot_config)
         self.kp = kp
         self.kv = np.sqrt(self.kp) if kv is None else kv
         self.vmax = vmax
@@ -31,14 +33,14 @@ class controller:
         self.use_C = use_C
         self.use_dJ = use_dJ
 
-        self.null_indices = ~np.isnan(self.robot_config.rest_angles)
-        self.dq_des = np.zeros(self.robot_config.num_joints)
-        self.identity_num_joints = np.eye(self.robot_config.num_joints)
+        self.null_indices = ~np.isnan(self.robot_config.REST_ANGLES)
+        self.dq_des = np.zeros(self.robot_config.NUM_JOINTS)
+        self.IDENTITY_NUM_JOINTS = np.eye(self.robot_config.NUM_JOINTS)
         # null space filter gains
         self.nkp = self.kp * .1
         self.nkv = np.sqrt(self.nkp)
 
-    def control(self, q, dq,
+    def generate(self, q, dq,
                 target_pos, target_vel=np.zeros(3),
                 target_quat=None, target_w=np.zeros(3),
                 mask=[1, 1, 1, 0, 0, 0],
@@ -160,7 +162,7 @@ class controller:
 
         if self.null_control is True:
             # calculated desired joint angle acceleration using rest angles
-            q_des = ((self.robot_config.rest_angles - q + np.pi) %
+            q_des = ((self.robot_config.REST_ANGLES - q + np.pi) %
                      (np.pi * 2) - np.pi)
             q_des[~self.null_indices] = 0.0
             self.dq_des[self.null_indices] = dq[self.null_indices]
@@ -168,7 +170,7 @@ class controller:
             u_null = np.dot(M, (self.nkp * q_des - self.nkv * self.dq_des))
 
             Jbar = np.dot(M_inv, np.dot(JEE.T, Mx))
-            null_filter = (self.identity_num_joints - np.dot(J.T, Jbar.T))
+            null_filter = (self.IDENTITY_NUM_JOINTS - np.dot(J.T, Jbar.T))
 
             u += np.dot(null_filter, u_null)
 
