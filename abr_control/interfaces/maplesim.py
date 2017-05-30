@@ -2,7 +2,7 @@ import numpy as np
 
 from . import interface
 from . import pygame_display
-#from ..arms.threelink import py3LinkArm
+from ..arms.threelink import py3LinkArm
 
 
 class MapleSimInterface(interface.Interface):
