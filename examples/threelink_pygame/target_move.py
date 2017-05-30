@@ -6,19 +6,19 @@ clicking on the background.
 import numpy as np
 
 import abr_control
+from abr_control.interfaces.maplesim import MapleSim
 
 print('\nClick to move the target.\n')
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.threelink.config(use_cython=True)
+robot_config = abr_control.arms.threelink.Config(use_cython=True)
 
 # create an operational space controller
-ctrlr = abr_control.controllers.osc(
-    robot_config, kp=10, vmax=None)
+ctrlr = abr_control.controllers.OSC(
+    robot_config, kp=100, vmax=10)
 
 # create our interface
-interface = abr_control.interfaces.maplesim(
-    robot_config, dt=.001, on_click_move='target')
+interface = MapleSim(robot_config, dt=.001, on_click_move='target')
 interface.connect()
 
 # create a target
@@ -37,7 +37,7 @@ try:
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
         # generate an operational space control signal
-        u = ctrlr.control(
+        u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_xyz)

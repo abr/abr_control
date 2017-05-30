@@ -4,27 +4,54 @@ from . import controller
 
 class OSC(controller.Controller):
     """ Implements an operational space controller (OSC)
-    """
 
+    Parameters
+    ----------
+    robot_config : class instance, required (Default: None)
+        passes in all relevant information about the arm
+        from its config, such as: number of joints, number
+        of links, mass information etc.
+    kp : float, optional (Default: 1)
+        proportional gain term
+    kv : float, optional (Default: None)
+        derivative gain term, a good starting point is sqrt(kp)
+    vmax : float, optional (Default: 0.5)
+        The max allowed velocity of the end-effector in meters/second.
+        If the control signal specifies something above this
+        value it is clipped, if set to None no clipping occurs
+    null_control : boolean, optional (Default: True)
+        Apply a secondary control signal which
+        drives the arm to specified resting joint angles without
+        affecting the movement of the end-effector
+    use_C : boolean,optional (Default: False)
+        calculate and compensate for the Coriolis and
+        centripetal effects of the arm
+    use_dJ : boolean, optional (Default: False)
+        use the Jacobian derivative to estimate and
+        cancel out the current acceleration
+
+    Attributes
+    ----------
+    lamb : float
+        the ratio of the proportional to the derivative gain
+        used for velocity limiting
+    null_indices
+    dq_des : float numpy.array
+        desired joint velocity for null controller
+    IDENTITY_NUM_JOINTS : numpy.eye
+        used for calculating null filter
+    nkp : float
+        proportional gain term for null controller
+    nkv : float
+        derivative gain term for null controller
+    """
+    #TODO what are the null indices? explain above
     def __init__(self, robot_config, kp=1, kv=None, vmax=0.5,
                  null_control=True, use_C=False, use_dJ=False):
-        """
-        kp float: the position gain term
-        kv float: the velocity gain term
-        vmax float: the max allowed velocity of the end-effector
-            if the control signal specifies something above this
-            value it is clipped if set to None no clipping occurs
-        null_control boolean: apply a secondary control signal which
-            drives the arm to specified resting joint angles without
-            affecting the movement of the end-effector
-        use_C boolean: calculate and compensate for the Coriolis and
-            centripetal effects of the arm
-        use_dJ boolean: use the Jacobian derivative to estimate and
-            cancel out the current acceleration
-        """
 
-        self.robot_config = robot_config
-        super(OSC,self).__init__(robot_config=self.robot_config)
+
+        super(OSC, self).__init__(robot_config)
+
         self.kp = kp
         self.kv = np.sqrt(self.kp) if kv is None else kv
         self.vmax = vmax
@@ -34,8 +61,8 @@ class OSC(controller.Controller):
         self.use_dJ = use_dJ
 
         self.null_indices = ~np.isnan(self.robot_config.REST_ANGLES)
-        self.dq_des = np.zeros(self.robot_config.NUM_JOINTS)
-        self.IDENTITY_NUM_JOINTS = np.eye(self.robot_config.NUM_JOINTS)
+        self.dq_des = np.zeros(self.robot_config.N_JOINTS)
+        self.IDENTITY_N_JOINTS = np.eye(self.robot_config.N_JOINTS)
         # null space filter gains
         self.nkp = self.kp * .1
         self.nkv = np.sqrt(self.nkp)
@@ -170,7 +197,7 @@ class OSC(controller.Controller):
             u_null = np.dot(M, (self.nkp * q_des - self.nkv * self.dq_des))
 
             Jbar = np.dot(M_inv, np.dot(JEE.T, Mx))
-            null_filter = (self.IDENTITY_NUM_JOINTS - np.dot(J.T, Jbar.T))
+            null_filter = (self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T))
 
             u += np.dot(null_filter, u_null)
 
