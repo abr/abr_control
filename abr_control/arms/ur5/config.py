@@ -1,21 +1,21 @@
 import numpy as np
 import sympy as sp
 
-from .. import robot_config
+from ..base_config import BaseConfig
 
 
-class UR5Config(robot_config.RobotConfig):
+class Config(BaseConfig):
     """ Robot config file for the UR5 arm """
 
     def __init__(self, **kwargs):
 
-        super(RobotConfig, self).__init__(NUM_JOINTS=6, NUM_LINKS=7,
-                                           ROBOT_NAME='ur5', **kwargs)
+        super(Config, self).__init__(
+            N_JOINTS=6, N_LINKS=7, ROBOT_NAME='ur5', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
         self.JOINT_NAMES = ['UR5_joint%i' % ii
-                            for ii in range(self.NUM_JOINTS)]
+                            for ii in range(self.N_JOINTS)]
 
         # for the null space controller, keep arm near these angles
         self.REST_ANGLES = np.array([None,
@@ -38,7 +38,7 @@ class UR5Config(robot_config.RobotConfig):
             sp.diag(0.7, 0.7, 0.7, 0.01, 0.01, 0.01)]  # link6
 
         # the joints don't weigh anything in VREP
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.NUM_JOINTS)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6

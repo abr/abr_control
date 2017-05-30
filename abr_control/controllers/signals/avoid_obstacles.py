@@ -1,36 +1,39 @@
 import numpy as np
 
-class Signal():
+from .signal import Signal
+
+class AvoidObstacles(Signal):
     """ Implements an obstacle avoidance algorithm from (Khatib, 1987).
     """
 
     def __init__(self, robot_config, obstacles=[], threshold=.2):
 
         self.robot_config = robot_config
-        # set of obstacles [[x, y, radius], ...]
         self.threshold = threshold
+        # set of obstacles [[x, y, radius], ...]
+        self.obstacles = np.copy(obstacles)
 
-    def generate(self, q, obstacles=[]):  # noqa901
+    def generate(self, q):  # noqa901
         """ Generates the control signal
 
         q np.array: the current joint angles
         """
 
-        u_psp = np.zeros(self.robot_config.num_joints, dtype='float32')
+        u_psp = np.zeros(self.robot_config.N_JOINTS, dtype='float32')
 
         # calculate the inertia matrix in joint space
         M = self.robot_config.M(q)
 
         # add in obstacles avoidance
-        for obstacle in obstacles:
+        for obstacle in self.obstacles:
             # our vertex of interest is the center point of the obstacle
             v = np.array(obstacle[:3], dtype='float32')
 
             # find the closest point of each link to the obstacle
-            for ii in range(self.robot_config.num_joints):
+            for ii in range(self.robot_config.N_JOINTS):
                 # get the start and end-points of the arm segment
                 p1 = self.robot_config.Tx('joint%i' % ii, q=q)
-                if ii == self.robot_config.num_joints - 1:
+                if ii == self.robot_config.N_JOINTS - 1:
                     p2 = self.robot_config.Tx('EE', q=q)
                 else:
                     p2 = self.robot_config.Tx('joint%i' % (ii + 1), q=q)
@@ -78,3 +81,8 @@ class Signal():
                     u_psp += -np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
 
         return u_psp
+
+    def set_obstacles(self, obstacles):
+        """ Specify the locations of the obstacles to avoid """
+        # set of obstacles [[x, y, radius], ...]
+        self.obstacles = np.copy(obstacles)

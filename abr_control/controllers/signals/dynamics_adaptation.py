@@ -1,10 +1,8 @@
 import numpy as np
 import os
-import redis
-import struct
 import scipy
-import threading
-r = redis.StrictRedis(host='127.0.0.1')
+
+from .signal import Signal
 
 try:
     import nengo
@@ -52,16 +50,8 @@ class AreaIntercepts(nengo.dists.Distribution):
             s[i] = self.transform(s[i])
         return s
 
-# class spinnakerThread(threading.Thread):
-#     def __init__(self):
-#         threading.Thread.__init__(self)
-#     def run(self):
-#         print('Starting SpiNNaker Sim')
-#         Signal.start_spinnaker_sim()
-#         print('SpiNNaker Sim Complete')
 
-
-class Signal():
+class DynamicsAdaptation(Signal):
     """ An implementation of dynamics adaptation using a Nengo model
     """
 
@@ -71,9 +61,6 @@ class Signal():
                  pes_learning_rate=1e-6,
                  intercepts=(0.5, 1.0),
                  spiking=False,
-                 use_area_intercepts=True,
-                 extra_dimension=False,
-                 use_probes=False,
                  filter_error=False,
                  weights_file=None,
                  backend='nengo'):
@@ -87,7 +74,6 @@ class Signal():
         use_area_intercepts boolean: set intercepts to be distributed or not
         extra_dimensions boolean: add an extra dimension for putting things
                                   on the hypersphere, or not
-        use_probes boolean: record weights and spiking data or not
         filter_error boolean: apply low pass filter to the error signal or not
         weights_file string: path to file where learned weights are saved
         backend string: {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
@@ -98,13 +84,6 @@ class Signal():
 
         weights_file = (['']*n_adapt_pop if
                         weights_file is None else weights_file)
-
-        if use_probes:
-            self.probe_weights = []
-            # self.ens_activity = []
-        else:
-            self.probe_weights = None
-            # self.ens_activity = None
 
         dim = self.robot_config.num_joints
         nengo_model = nengo.Network(seed=10)
@@ -140,11 +119,8 @@ class Signal():
                 if extra_dimension:
                     num_ens_dims = self.robot_config.num_joints +1 # * 2 + 1
 
-                intercepts = nengo.dists.Uniform(
-                    intercepts[0], intercepts[1])
-                if use_area_intercepts:
-                    intercepts = AreaIntercepts(dimensions=num_ens_dims,
-                                                base=intercepts)
+                intercepts = AreaIntercepts(dimensions=num_ens_dims,
+                                            base=intercepts)
 
                 if spiking:
                     neuron_type = nengo.LIF()
@@ -159,15 +135,9 @@ class Signal():
                     intercepts=intercepts,
                     neuron_type=neuron_type))
 
-                def expanded_normalize(x):
-                    if extra_dimension:
-                        x = np.hstack([x, [1]])
-                        x /= np.linalg.norm(x)
-                    return x
                 nengo.Connection(
                     qdq_input,
                     adapt_ens[ii][:num_ens_dims],
-                    function=expanded_normalize,
                     synapse=0.005)
 
                 # load weights from file if they exist, otherwise use zeros
@@ -177,7 +147,7 @@ class Signal():
                     print('Loading transform: \n', transform)
                     print('Transform all zeros: ', np.allclose(transform, 0))
                 else:
-                    print('transform is zeros')
+                    print('Transform is zeros')
                     transform = np.zeros((adapt_ens[ii].n_neurons,
                                           self.robot_config.num_joints)).T
                 if backend == 'nengo_spinnaker':
@@ -198,7 +168,6 @@ class Signal():
 
                 # Allow filtering of error signal
                 def gate_error(x):
-                    # r.set('raw_error', x)
                     if filter_error:
                         if np.linalg.norm(x) > 2.0:
                             x /= np.linalg.norm(x) * 0.5
@@ -208,25 +177,6 @@ class Signal():
                                  transform=-1,
                                  function=gate_error,
                                  synapse=0.01)
-                if backend != 'nengo_spinnaker':
-                    # Send spikes via redis
-                    def send_spikes(t, x):
-                            v = np.where(x != 0)[0]
-                            if len(v) > 0:
-                                msg = struct.pack('%dI' % len(v), *v)
-                            else:
-                                msg = ''
-                            r.set('spikes', msg)
-                    source_node = nengo.Node(send_spikes, size_in=25)
-                    nengo.Connection(
-                        adapt_ens[ii].neurons[:25],
-                        source_node,
-                        synapse=None)
-
-                if use_probes:
-                    # record the weights once every second
-                    self.probe_weights.append(nengo.Probe(
-                        conn_learn[ii], 'weights', sample_every=1))
 
         nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':

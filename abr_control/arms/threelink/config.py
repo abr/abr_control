@@ -1,16 +1,16 @@
 import numpy as np
 import sympy as sp
 
-from .. import robot_config
+from ..base_config import BaseConfig
 
 
-class ThreeLinkConfig(robot_config.RobotConfig):
+class Config(BaseConfig):
     """ Robot config file for the threelink MapleSim arm """
 
     def __init__(self, **kwargs):
 
-        super(RobotConfig, self).__init__(NUM_JOINTS=3, NUM_LINKS=3,
-                                           ROBOT_NAME='threelink', **kwargs)
+        super(Config, self).__init__(
+            N_JOINTS=3, N_LINKS=3, ROBOT_NAME='threelink', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -19,22 +19,16 @@ class ThreeLinkConfig(robot_config.RobotConfig):
                                     dtype='float32')
 
         # create the inertia matrices for each link of the threelink
-        # TODO: confirm that these are actually the right values
-        # self._M.append(np.diag([1.93, 1.93, 1.93,
-        #                         0.0141, 0.0141, 0.0141]) * 10)  # link0
-        # self._M.append(np.diag([0.27, 0.27, 0.27,
-        #                         0.012, 0.012, 0.012]) * 10)  # link1
-        # self._M.append(np.diag([0.15, 0.15, 0.15,
-        #                         0.001, 0.001, 0.001]) * 10)  # link2
-        self._M_links.append(np.diag([10.0, 10.0, 10.0,
+        # TODO: identify the actual values for these links
+        self._M_links.append(np.diag([100.0, 100.0, 100.0,
                              0.0, 0.0, 100.0]))  # link0
-        self._M_links.append(np.diag([10.0, 10.0, 10.0,
+        self._M_links.append(np.diag([100.0, 100.0, 100.0,
                              0.0, 0.0, 100.0]))  # link1
-        self._M_links.append(np.diag([10.0, 10.0, 10.0,
+        self._M_links.append(np.diag([100.0, 100.0, 100.0,
                              0.0, 0.0, 100.0]))  # link2
 
         # the joints don't weigh anything
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.NUM_JOINTS)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
         # segment lengths associated with each joint
         # [x, y, z],  Ignoring lengths < 1e-04

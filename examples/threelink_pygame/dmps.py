@@ -1,11 +1,12 @@
 """
 Running the threelink arm with a pygame display, and using the pydmps
-library to specify a trajectory for the end-effector to follow, in 
+library to specify a trajectory for the end-effector to follow, in
 this case, a circle. The program will run until ctrl-C is called.
 """
 import numpy as np
 
 import abr_control
+from abr_control.interfaces.maplesim import MapleSim
 import pydmps
 
 # create a dmp that traces a circle
@@ -15,16 +16,14 @@ dmps = pydmps.DMPs_rhythmic(n_dmps=2, n_bfs=50, dt=.01)
 dmps.imitate_path(dmps_traj)
 
 # initialize our robot config for the ur5
-robot_config = abr_control.arms.threelink.config(
-    regenerate_functions=False)
+robot_config = abr_control.arms.threelink.Config()
 
 # create an operational space controller
-ctrlr = abr_control.controllers.osc(
-    robot_config, kp=500, vmax=None)
+ctrlr = abr_control.controllers.OSC(
+    robot_config, kp=500, vmax=20)
 
 # create our interface
-interface = abr_control.interfaces.maplesim(
-    robot_config, dt=.001)
+interface = MapleSim(robot_config, dt=.001)
 interface.connect()
 
 # create a target
@@ -44,7 +43,7 @@ try:
         error = np.sqrt(np.sum((target_xyz - hand_xyz)**2))
 
         # generate an operational space control signal
-        u = ctrlr.control(
+        u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_xyz)
