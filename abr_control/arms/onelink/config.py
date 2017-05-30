@@ -1,16 +1,16 @@
 import numpy as np
 import sympy as sp
 
-from .. import robot_config
+from ..base_config import BaseConfig
 
 
-class OneLinkConfig(robot_config.RobotConfig):
+class Config(BaseConfig):
     """ Robot config file for the onelink arm """
 
     def __init__(self, **kwargs):
 
-        super(RobotConfig, self).__init__(NUM_JOINTS=1, NUM_LINKS=1,
-                                           ROBOT_NAME='onelink', **kwargs)
+        super(Config, self).__init__(
+            N_JOINTS=1, N_LINKS=1, ROBOT_NAME='onelink', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -22,7 +22,7 @@ class OneLinkConfig(robot_config.RobotConfig):
                                       0.02, 0.02, 0.02]))  # link0
 
         # the joints don't weigh anything
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.NUM_JOINTS)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
         # segment lengths associated with each joint
         self.L = np.array([

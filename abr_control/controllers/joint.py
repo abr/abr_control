@@ -3,33 +3,67 @@ import numpy as np
 from . import controller
 
 class Joint(controller.Controller):
-    """ Implements a joint controller
+    """ Implements a joint space controller
+
+    Moves the arm joints to a set of specified target angles
+
+    Parameters
+    ----------
+    robot_config : class instance, required (Default: None)
+        passes in all relevant information about the arm
+        from its config, such as: number of joints, number
+        of links, mass information etc.
+    kp : float, optional (Default: 1)
+        proportional gain term
+    kv : float, optional (Default: None)
+        derivative gain term, a good starting point is sqrt(kp)
+
+    Attributes
+    ----------
+    ZEROS_NUM_JOINTS : numpy.zeros array
+        for initialization purposes, it is the length of the
+        number of joints in the arm
+    q_tilde : float numpy array
+        in radians, the difference between target and current
+        joint angle position
     """
 
     def __init__(self, robot_config, kp=1, kv=None):
-        self.robot_config = robot_config
-        super(Joint,self).__init__(robot_config=self.robot_config)
-        # proportional gain term
+        super(Joint, self).__init__(robot_config)
+
         self.kp = kp
-        # derivative gain term
         self.kv = np.sqrt(self.kp) if kv is None else kv
-        self.ZEROS_NUM_JOINTS = np.zeros(robot_config.NUM_JOINTS)
-        self.q_tilde = np.copy(self.zeros_NUM_JOINTS)
+        self.ZEROS_N_JOINTS = np.zeros(robot_config.N_JOINTS)
+        self.q_tilde = np.copy(self.ZEROS_N_JOINTS)
 
     def generate(self, q, dq, target_pos, target_vel=None):
-        """Generate a control signal to move the arm through
-           joint space to the desired joint angle position
+        """Generate a joint space control signal
 
-        q np.array: current joint angles
-        dq np.array: current joint velocities
-        target_pos np.array: desired joint angles
-        target_vel np.array: desired joint velocities
+        Parameters
+        ----------
+        q : float numpy.array, required (Default: None)
+            current joint angles in radians
+        dq : float numpy.array, required (Default: None)
+            current joint velocities in radians/second
+        target_pos : float numpy.array, required (Default: None)
+            desired joint angles in radians
+        target_vel : float numpy.array, optional (Default: None)
+            desired joint velocities in radians/sec
+
+        Attributes
+        ----------
+        g : float numpy.array
+          gravity compensation term in joint space
+        M : float numpy.array
+          joint space inertia matrix
+        u : float numpy.array
+          control signal in joint space
         """
 
         self.q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi
         if target_vel is None:
-            target_vel = self.ZEROS_NUM_JOINTS
-        # TODO: do we need the M term here?
+            target_vel = self.ZEROS_N_JOINTS
+        # TODO: do we want to include vel compensation?
         # get the joint space inertia matrix
         # M = self.robot_config.M(q)
         # get the gravity compensation signal

@@ -1,1 +1,1 @@
-from .config import OneLinkConfig as Config
+from .config import Config

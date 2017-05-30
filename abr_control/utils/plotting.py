@@ -2,7 +2,6 @@ import matplotlib as mpl
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn
 
 
 def plot_trajectory(ee_path, target_path, save_file_name=None):

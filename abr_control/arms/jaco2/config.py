@@ -3,18 +3,18 @@ import numpy as np
 import sympy as sp
 
 import abr_control
-from .. import robot_config
+from ..base_config import BaseConfig
 
 
-class Jaco2SimConfig(robot_config.RobotConfig):
+class Config(BaseConfig):
     """ Robot config file for the Kinova Jaco^2 V2"""
 
     def __init__(self, hand_attached=False, **kwargs):
 
         self.hand_attached = hand_attached
-        NUM_LINKS = 7 if hand_attached is True else 6
-        super(RobotConfig, self).__init__(NUM_JOINTS=6, NUM_LINKS=NUM_LINKS,
-                                           ROBOT_NAME='jaco2', **kwargs)
+        N_LINKS = 7 if hand_attached is True else 6
+        super(Config, self).__init__(
+            N_JOINTS=6, N_LINKS=N_LINKS, ROBOT_NAME='jaco2', **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -22,10 +22,10 @@ class Jaco2SimConfig(robot_config.RobotConfig):
         self.config_folder += ('with_hand' if self.hand_attached is True
                                else 'no_hand')
         # make config folder if it doesn't exist
-        abr_control.utils.os_utils.makedir(self.config_folder)
+        abr_control.utils.os_utils.makedirs(self.config_folder)
 
         self.JOINT_NAMES = ['joint%i' % ii
-                            for ii in range(self.NUM_JOINTS)]
+                            for ii in range(self.N_JOINTS)]
 
         # for the null space controller, keep arm near these angles
         # currently set to the center of the limits
@@ -48,7 +48,7 @@ class Jaco2SimConfig(robot_config.RobotConfig):
                 sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04))  # link6
 
         # the joints don't weigh anything in VREP
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.NUM_JOINTS)]
+        self._M_joints = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6

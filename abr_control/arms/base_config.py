@@ -8,52 +8,101 @@ from sympy.utilities.autowrap import autowrap
 import sys
 
 import abr_control
-import abr_control.arms
+import abr_control.utils.os_utils
+from abr_control.utils.paths import cache_dir
 
 
 # TODO : store lambdified functions, currently running into pickling errors
 # cloudpickle, dill, and pickle all run into problems
 
-class RobotConfig():
-    """ Class defines a bunch of useful functions for controlling
-    a given robot, including transformation to joints and COMs,
+class BaseConfig():
+    """
+    Class defines a bunch of useful functions for controlling a given robot
+
+    Functions include transformation to joints and COMs,
     Jacobians, the inertia matrix in joint space, and the effects
     of gravity. Uses SymPy and lambdify to do this.
+
+    Parameters
+    ----------
+    N_JOINTS : int, required (Default: None)
+        number of joints in robot
+    N_LINKS : int, required (Default: None)
+        number of arm segments in robot
+    ROBOT_NAME : string, required (Default: "robot")
+        used for saving/loading functions to file
+    use_cython : boolean, optional (Default: False)
+        if True, a more efficient function is generated
+        useful when execution time is more important than
+        generation time
+
+    Attributes
+    ----------
+        _C : dictionary
+            placeholder for the centripetal and Coriolis function
+        _g : dictionary
+            placeholder for joint space gravity function
+        _dJ : dictionary
+            for Jacobian time derivative calculations
+        _J  : dictionary
+            for Jacobian calculations
+        _M_links : dictionary
+            placeholder for (x,y,z) inertia matrices
+        _M_joints : dictionary
+            placeholder for (x,y,z) inertia matrices
+        _M : dictionary
+            placeholder for joint space inertia matrix function
+        _orientation : dictionary
+            placeholder for orientation functions
+        _T_inv : dictionary
+            for inverse transform calculations
+        _Tx : dictionary
+            for point transform calculations
+        _R : dictionary
+            for transform matrix calculations
+        config_folder : string
+            location to save to and load functions from
+        config_hash : string
+            hash generated based on the specific robot's config folder
+            to append onto config_folder
+        q : sympy.Symbol
+            symbol for robot joint angles
+        dq : sympy.Symbol
+            symbol for robot joint velocities
+        x : sympy.Symbol
+            symbol for robot x,y,z offset [m] from the EE, later on can specify
+            a point a set distance from the EE to transform to instead
+            of having to regenerate the functions
+        gravity : sympy.Matrix
+            force of gravity vector
+
     """
 
-    def __init__(self, NUM_JOINTS, NUM_LINKS, ROBOT_NAME="robot",
+    def __init__(self, N_JOINTS, N_LINKS, ROBOT_NAME="robot",
                  use_cython=False):
-        """
-        NUM_JOINTS int: number of joints in robot
-        NUM_LINKS int: number of arm segments in robot
-        ROBOT_NAME string: used for saving/loading functions to file
-        use_cython boolean: if True, a more efficient function is generated
-                            useful when execution time is more important than
-                            generation time
-        """
 
-        self.NUM_JOINTS = NUM_JOINTS
-        self.NUM_LINKS = NUM_LINKS
+        self.N_JOINTS = N_JOINTS
+        self.N_LINKS = N_LINKS
         self.ROBOT_NAME = ROBOT_NAME
 
         self.use_cython = use_cython
 
         # create function dictionaries
-        self._C = None  # placeholder for the centripetal and Coriolis function
-        self._g = None  # placeholder for joint space gravity function
-        self._dJ = {}  # for Jacobian time derivative calculations
-        self._J = {}  # for Jacobian calculations
-        self._M_links = []  # placeholder for (x,y,z) inertia matrices
-        self._M_joints = []  # placeholder for (x,y,z) inertia matrices
-        self._M = None  # placeholder for joint space inertia matrix function
-        self._orientation = {}  # placeholder for orientation functions
-        self._T_inv = {}  # for inverse transform calculations
-        self._Tx = {}  # for point transform calculations
-        self._R = {}  # for transform matrix calculations
+        self._C = None
+        self._g = None
+        self._dJ = {}
+        self._J = {}
+        self._M_links = []
+        self._M_joints = []
+        self._M = None
+        self._orientation = {}
+        self._T_inv = {}
+        self._Tx = {}
+        self._R = {}
 
         # specify / create the folder to save to and load from
-        self.config_folder = (os.path.dirname(abr_control.arms.__file__) +
-                              '/%s/saved_functions/' % ROBOT_NAME)
+        self.config_folder = (cache_dir + '/%s/saved_functions/' % ROBOT_NAME)
+        # create a unique hash for the config file
         hasher = hashlib.md5()
         # TODO: make it so this file also affects hash
         with open(sys.modules[self.__module__].__file__, 'rb') as afile:
@@ -62,18 +111,20 @@ class RobotConfig():
         self.config_hash = hasher.hexdigest()
         self.config_folder += self.config_hash
         # make config folder if it doesn't exist
-        abr_control.utils.os_utils.makedir(self.config_folder)
+        abr_control.utils.os_utils.makedirs(self.config_folder)
 
         # set up our joint angle symbols
-        self.q = [sp.Symbol('q%i' % ii) for ii in range(self.NUM_JOINTS)]
-        self.dq = [sp.Symbol('dq%i' % ii) for ii in range(self.NUM_JOINTS)]
+        self.q = [sp.Symbol('q%i' % ii) for ii in range(self.N_JOINTS)]
+        self.dq = [sp.Symbol('dq%i' % ii) for ii in range(self.N_JOINTS)]
         # set up an (x,y,z) offset
         self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
     def _generate_and_save_function(self, filename, expression, parameters):
-        """ Create a folder in the saved_functions folder, based on a hash
+        """ Creates a hashed folder for saved generated functions for later use
+
+        Create a folder in the saved_functions folder, based on a hash
         of the current robot_config subclass, save the functions created
         into this folder.
 
@@ -84,7 +135,7 @@ class RobotConfig():
 
         # check for / create the save folder for this expression
         folder = self.config_folder + '/' + filename
-        abr_control.utils.os_utils.makedir(folder)
+        abr_control.utils.os_utils.makedirs(folder)
 
         if self.use_cython is True:
             # binaries saved by specifying tempdir parameter
@@ -278,7 +329,7 @@ class RobotConfig():
             C = sp.Matrix(C)
 
             # save to file
-            abr_control.utils.os_utils.makedir(
+            abr_control.utils.os_utils.makedirs(
                 '%s/C' % self.config_folder)
             cloudpickle.dump(C, open(
                 '%s/C/C' % self.config_folder, 'wb'))
@@ -313,24 +364,24 @@ class RobotConfig():
             # get the Jacobians for each link's COM
             J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
                                     lambdify=False)
-                       for ii in range(self.NUM_LINKS)]
+                       for ii in range(self.N_LINKS)]
             J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
                                      lambdify=False)
-                        for ii in range(self.NUM_JOINTS)]
+                        for ii in range(self.N_JOINTS)]
 
             # sum together the effects of each arm segment's inertia
-            g = sp.zeros(self.NUM_JOINTS, 1)
-            for ii in range(self.NUM_LINKS):
+            g = sp.zeros(self.N_JOINTS, 1)
+            for ii in range(self.N_LINKS):
                 # transform each inertia matrix into joint space
                 g += (J_links[ii].T * self._M_links[ii] * self.gravity)
             # sum together the effects of each joint's inertia on each motor
-            for ii in range(self.NUM_JOINTS):
+            for ii in range(self.N_JOINTS):
                 # transform each inertia matrix into joint space
                 g += (J_joints[ii].T * self._M_joints[ii] * self.gravity)
             g = sp.Matrix(g)
 
             # save to file
-            abr_control.utils.os_utils.makedir(
+            abr_control.utils.os_utils.makedirs(
                 '%s/g' % self.config_folder)
             cloudpickle.dump(g, open(
                 '%s/g/g' % self.config_folder, 'wb'))
@@ -373,12 +424,12 @@ class RobotConfig():
             # which each joint is dependent on
             for ii in range(J.shape[0]):
                 for jj in range(J.shape[1]):
-                    for kk in range(self.NUM_JOINTS):
+                    for kk in range(self.N_JOINTS):
                         dJ[ii, jj] += J[ii, jj].diff(self.q[kk]) * self.dq[kk]
             dJ = sp.Matrix(dJ)
 
             # save expression to file
-            abr_control.utils.os_utils.makedir(
+            abr_control.utils.os_utils.makedirs(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(dJ, open(
                 '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
@@ -421,26 +472,26 @@ class RobotConfig():
             # sympy's Tx.jacobian method)
             J = []
             # calculate derivative of (x,y,z) wrt to each joint
-            for ii in range(self.NUM_JOINTS):
+            for ii in range(self.N_JOINTS):
                 J.append([])
                 J[ii].append(Tx[0].diff(self.q[ii]))  # dx/dq[ii]
                 J[ii].append(Tx[1].diff(self.q[ii]))  # dy/dq[ii]
                 J[ii].append(Tx[2].diff(self.q[ii]))  # dz/dq[ii]
 
             end_point = name.strip('link').strip('joint')
-            end_point = self.NUM_JOINTS if 'EE' in end_point else end_point
+            end_point = self.N_JOINTS if 'EE' in end_point else end_point
 
-            end_point = min(int(end_point) + 1, self.NUM_JOINTS)
+            end_point = min(int(end_point) + 1, self.N_JOINTS)
             # add on the orientation information up to the last joint
             for ii in range(end_point):
                 J[ii] = J[ii] + list(self.J_orientation[ii])
             # fill in the rest of the joints orientation info with 0
-            for ii in range(end_point, self.NUM_JOINTS):
+            for ii in range(end_point, self.N_JOINTS):
                 J[ii] = J[ii] + [0, 0, 0]
             J = sp.Matrix(J).T  # correct the orientation of J
 
             # save to file
-            abr_control.utils.os_utils.makedir(
+            abr_control.utils.os_utils.makedirs(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(J, open(
                 '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
@@ -477,24 +528,24 @@ class RobotConfig():
             # get the Jacobians for each link's COM
             J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
                                     lambdify=False)
-                       for ii in range(self.NUM_LINKS)]
+                       for ii in range(self.N_LINKS)]
             J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
                                      lambdify=False)
-                        for ii in range(self.NUM_JOINTS)]
+                        for ii in range(self.N_JOINTS)]
 
             # sum together the effects of each arm segment's inertia
-            M = sp.zeros(self.NUM_JOINTS)
-            for ii in range(self.NUM_LINKS):
+            M = sp.zeros(self.N_JOINTS)
+            for ii in range(self.N_LINKS):
                 # transform each inertia matrix into joint space
                 M += (J_links[ii].T * self._M_links[ii] * J_links[ii])
             # sum together the effects of each joint's inertia on each motor
-            for ii in range(self.NUM_JOINTS):
+            for ii in range(self.N_JOINTS):
                 # transform each inertia matrix into joint space
                 M += (J_joints[ii].T * self._M_joints[ii] * J_joints[ii])
             M = sp.Matrix(M)
 
             # save to file
-            abr_control.utils.os_utils.makedir(
+            abr_control.utils.os_utils.makedirs(
                 '%s/M' % (self.config_folder))
             cloudpickle.dump(M, open(
                 '%s/M/M' % self.config_folder, 'wb'))
@@ -530,7 +581,7 @@ class RobotConfig():
             R = self._calc_T(name=name)[:3, :3]
 
             # save to file
-            abr_control.utils.os_utils.makedir(
+            abr_control.utils.os_utils.makedirs(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(sp.Matrix(R), open(
                 '%s/%s/%s' % (self.config_folder, filename, filename),
@@ -582,7 +633,7 @@ class RobotConfig():
             Tx = sp.Matrix(Tx)
 
             # save to file
-            abr_control.utils.os_utils.makedir(
+            abr_control.utils.os_utils.makedirs(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(sp.Matrix(Tx), open(
                 '%s/%s/%s.Tx' % (self.config_folder, filename, filename),
@@ -626,7 +677,7 @@ class RobotConfig():
             T_inv = sp.Matrix(T_inv)
 
             # save to file
-            abr_control.utils.os_utils.makedir(
+            abr_control.utils.os_utils.makedirs(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(T_inv, open(
                 '%s/%s.T_inv' % (self.config_folder, filename), 'wb'))
