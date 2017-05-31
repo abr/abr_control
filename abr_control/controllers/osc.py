@@ -38,7 +38,7 @@ class OSC(controller.Controller):
     null_indices
     dq_des : float numpy.array
         desired joint velocity for null controller
-    IDENTITY_NUM_JOINTS : numpy.eye
+    IDENTITY_N_JOINTS : numpy.eye
         used for calculating null filter
     nkp : float
         proportional gain term for null controller
