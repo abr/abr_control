@@ -113,6 +113,11 @@ class BaseConfig():
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
+        # dictionaries set by the sub-config, used for scaling input into
+        # neural systems. Calculate by recording data from movement of interest
+        self.MEANS = None  # expected mean of joints angles / velocities
+        self.SCALES = None  # expected variance of joint angles / velocities
+
     def _generate_and_save_function(self, filename, expression, parameters):
         """ Creates a hashed folder for saved generated functions for later use
 
@@ -319,6 +324,22 @@ class BaseConfig():
 
         R = self._R[name](*parameters)
         return abr_control.utils.transformations.quaternion_from_matrix(R)
+
+    def scaledown(self, name, x):
+        """ Scales down the input to the -1 to 1 range, based on the
+        mean and max, min values recorded from some stereotyped movements.
+        Used for projecting into neural systems.
+        """
+        if self.MEANS is None or self.SCALES is None:
+            raise Exception('Mean and/or scaling not defined')
+        return (x - self.MEANS[name]) / self.SCALES[name]
+
+    def scaleup(self, name, x):
+        """ Undoes the scaledown transformation.
+        """
+        if self.MEANS is None or self.SCALES is None:
+            raise Exception('Mean and/or scaling not defined')
+        return x * self.SCALES[name] + self.MEANS[name]
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Loads or calculates the transformation Matrix for a joint or link

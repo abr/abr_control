@@ -1,6 +1,6 @@
 """
-Running the threelink arm with the pygame display, using the
-obstacle avoidance signal used to avoid self collision.
+Running the threelink arm with the PyGame display, using an exponential
+additive signal when to push away from joints and  avoid self collision.
 The target location can be moved by clicking on the background.
 """
 import numpy as np

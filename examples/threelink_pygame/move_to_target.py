@@ -17,8 +17,13 @@ robot_config = abr_control.arms.threelink.Config(use_cython=True)
 ctrlr = abr_control.controllers.OSC(
     robot_config, kp=100, vmax=10)
 
+def on_click(self, mouse_x, mouse_y):
+    self.target[0] = self.mouse_x
+    self.target[1] = self.mouse_y
+
 # create our interface
-interface = MapleSim(robot_config, dt=.001, on_click_move='target')
+interface = MapleSim(robot_config, dt=.001,
+                     on_click=on_click)
 interface.connect()
 
 # create a target
@@ -42,7 +47,9 @@ try:
             dq=feedback['dq'],
             target_pos=target_xyz)
 
-        target_xyz[0], target_xyz[1] = interface.display.get_mousexy()
+        new_target = interface.display.get_mousexy()
+        if new_target is not None:
+            target_xyz[0:2] = new_target
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward
