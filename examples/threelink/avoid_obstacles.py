@@ -6,18 +6,21 @@ by clicking on the background.
 import numpy as np
 
 import abr_control
-from abr_control.interfaces.maplesim import MapleSim
+from abr_control.arms.threelink.arm_sim import ArmSim
+from abr_control.interfaces.pygame import PyGame
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.Config(use_cython=True)
+# create our arm simulation
+arm_sim = ArmSim(robot_config)
 
 def on_click(self, mouse_x, mouse_y):
     self.circles[0][0] = mouse_x
     self.circles[0][1] = mouse_y
 
-# create our environment
-interface = MapleSim(robot_config, dt=.001,
-                     on_click=on_click)
+# create our interface
+interface = PyGame(robot_config, arm_sim,
+                   on_click=on_click)
 interface.connect()
 
 ctrlr = abr_control.controllers.OSC(
@@ -26,7 +29,7 @@ avoid = abr_control.controllers.signals.AvoidObstacles(
     robot_config, threshold=1)
 
 # create an obstacle
-interface.display.add_circle(xyz=[0, 0, 0], radius=.2)
+interface.add_circle(xyz=[0, 0, 0], radius=.2)
 
 # create a target
 target_xyz = [0, 2, 0]
@@ -49,7 +52,7 @@ try:
             dq=feedback['dq'],
             target_pos=target_xyz)
         # add in obstacle avoidance
-        obs_xy = interface.display.get_mousexy()
+        obs_xy = interface.get_mousexy()
         if obs_xy is not None:
             avoid.set_obstacles(obstacles=[[obs_xy[0], obs_xy[1], 0, .2]])
         u += avoid.generate(q=feedback['q'])

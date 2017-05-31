@@ -3,17 +3,20 @@ import pygame
 import pygame.locals
 
 
-class Display():
+class PyGame():
 
-    def __init__(self, L, on_click=None, on_keypress=None):
+    def __init__(self, robot_config, arm_sim, dt=0.001, q_init=None,
+                 on_click=None, on_keypress=None):
         """ Set up the PyGame visualization window.
 
-        L np.array: the length of the arm segments
         on_click function: function to call on mouse click, parameters
                            are (Display, mouse_x, mouse_y)
         on_keypress function: function to call on keypress, parameters
                             are (Display, key)
         """
+        self.robot_config = robot_config
+        self.arm_sim = arm_sim
+
         # set up size of pygame window
         self.width = 642
         self.height = 600
@@ -33,6 +36,8 @@ class Display():
         self.on_click = on_click
         self.on_keypress = on_keypress
 
+        # NOTE: need to get the arm lengths here from the transforms
+        L = [2.0, 1.2, .7]
         self.L = np.asarray(L) * self.scaling_term
         self.target = None
         self.circles = []
@@ -50,10 +55,80 @@ class Display():
         self.fps = 20  # frames per second
         self.fpsClock = pygame.time.Clock()
 
+    def connect(self):
+        """ Create the PyGame display, instantiate the arm simulation.
+        """
+
+        self.arm_sim.connect()
+
         pygame.init()
         self.display = pygame.display.set_mode((self.width, self.height))
+        print('Connected to PyGame display')
 
-    def update(self, q):
+    def disconnect(self):
+        """ Close the PyGame display.
+        """
+
+        pygame.quit()
+        self.arm_sim.disconnect()
+        print('PyGame connection closed...')
+
+
+    def get_feedback(self):
+        """ Return a dictionary of information needed by the controller. """
+
+        return self.arm_sim.get_feedback()
+
+    def send_forces(self, u, dt=None):
+        """ Apply the specified forces to the robot,
+        move the simulation one time step forward, and update
+        the PyGame display.
+
+        u np.array: an array of the torques to apply to the robot
+        """
+
+        # update the arm sim
+        self.arm_sim.send_forces(u, dt=dt)
+        # update the display
+        self._update(self.arm_sim.q)
+
+    def set_target(self, xyz):
+        """ Set the position of the target object.
+
+        xyz np.array: the [x,y,z] location of the target (in meters)
+        """
+
+        self.target = (xyz[:2] * np.array([1, -1]) *
+                       self.scaling_term + self.base_offset)
+
+    def add_circle(self, xyz, radius, color=[0, 0, 100]):
+        """ Add an obstacle to the list.
+
+        xyz np.array: the [x,y,z] center location of the obstacle (in meters)
+        size float: the radius of the obstacle (in meters)
+        """
+
+        circle = list(xyz[:2] * np.array([1, -1]) *
+                        self.scaling_term + self.base_offset)
+        circle.append(radius * self.scaling_term)
+        circle += color
+        self.circles.append(circle)
+
+    def get_mousexy(self):
+        """ Returns the (x,y) position of the mouse over the display.
+        """
+
+        if self.mouse_x is not None and self.mouse_y is not None:
+            x = (self.mouse_x - self.base_offset[0]) / self.scaling_term
+            y = (self.mouse_y - self.base_offset[1]) / self.scaling_term * -1
+            return x, y
+        return None
+
+    def get_xyz(self, name):
+        raise NotImplementedError(
+            "Not an available method in the PyGame interface")
+
+    def _update(self, q):
         """ Update the arm using the provided joint angles.
 
         q np.array: the current joint angles
@@ -79,30 +154,34 @@ class Display():
             self.rects.append(self.lines[ii].get_rect())
 
             self.rects[ii].center += np.asarray(points[ii])
-            self.rects[ii].center += np.array([np.cos(np.sum(q[:ii+1])) *
-                                               self.L[ii] / 2.0,
-                                               -np.sin(np.sum(q[:ii+1])) *
-                                               self.L[ii] / 2.0])
-            self.rects[ii].center += np.array([-self.rects[ii].width / 2.0,
-                                               -self.rects[ii].height / 2.0])
+            self.rects[ii].center += np.array([
+                np.cos(np.sum(q[:ii+1])) * self.L[ii] / 2.0,
+                -np.sin(np.sum(q[:ii+1])) * self.L[ii] / 2.0])
+            self.rects[ii].center += np.array([
+                -self.rects[ii].width / 2.0,
+                -self.rects[ii].height / 2.0])
 
         # draw arm lines
         for ii in range(len(self.L)):
             self.display.blit(self.lines[ii], self.rects[ii])
             # draw circles at joint
-            pygame.draw.circle(self.display, self.black, points[ii],
-                               int((len(self.L) - ii) * 10))
-            pygame.draw.circle(self.display, self.arm_color, points[ii],
-                               int((len(self.L) - ii) * 5))
+            pygame.draw.circle(
+                self.display, self.black, points[ii],
+                int((len(self.L) - ii) * 10))
+            pygame.draw.circle(
+                self.display, self.arm_color, points[ii],
+                int((len(self.L) - ii) * 5))
         # draw circles
         for circle in self.circles:
-            pygame.draw.circle(self.display, circle[3:7], # circle color
-                                [int(circle[0]), int(circle[1])],
-                                 int(circle[2]))  # circle size
+            pygame.draw.circle(
+                self.display, circle[3:7], # circle color
+                [int(circle[0]), int(circle[1])],
+                 int(circle[2]))  # circle size
         # draw target
         if self.target is not None:
-            pygame.draw.circle(self.display, self.red,
-                               [int(val) for val in self.target], 10)
+            pygame.draw.circle(
+                self.display, self.red,
+                [int(val) for val in self.target], 10)
 
         # check for events
         for event in pygame.event.get():
@@ -117,36 +196,3 @@ class Display():
 
         pygame.display.update()
         self.fpsClock.tick(self.fps)
-
-    def close(self):
-        """ Close display. """
-        pygame.quit()
-
-    def set_target(self, xyz):
-        """ Set the position of the target object.
-
-        xyz np.array: the [x,y,z] location of the target (in meters)
-        """
-        self.target = (xyz * np.array([1, -1]) *
-                       self.scaling_term + self.base_offset)
-
-    def add_circle(self, xyz, radius, color=[0, 0, 100]):
-        """ Add an obstacle to the list.
-
-        xyz np.array: the [x,y,z] center location of the obstacle (in meters)
-        size float: the radius of the obstacle (in meters)
-        """
-        circle = list(xyz[:2] * np.array([1, -1]) *
-                        self.scaling_term + self.base_offset)
-        circle.append(radius * self.scaling_term)
-        circle += color
-        self.circles.append(circle)
-
-    def get_mousexy(self):
-        """ Returns the (x,y) position of the mouse over the display.
-        """
-        if self.mouse_x is not None and self.mouse_y is not None:
-            x = (self.mouse_x - self.base_offset[0]) / self.scaling_term
-            y = (self.mouse_y - self.base_offset[1]) / self.scaling_term * -1
-            return x, y
-        return None

@@ -5,9 +5,11 @@ this case, a circle.
 """
 import numpy as np
 
-import abr_control
-from abr_control.interfaces.maplesim import MapleSim
 import pydmps
+
+import abr_control
+from abr_control.arms.threelink.arm_sim import ArmSim
+from abr_control.interfaces.pygame import PyGame
 
 # create a dmp that traces a circle
 x = np.linspace(0, np.pi*2, 100)
@@ -17,13 +19,15 @@ dmps.imitate_path(dmps_traj)
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.Config()
+# create our arm simulation
+arm_sim = ArmSim(robot_config)
 
 # create an operational space controller
 ctrlr = abr_control.controllers.OSC(
     robot_config, kp=500, vmax=20)
 
 # create our interface
-interface = MapleSim(robot_config, dt=.001)
+interface = PyGame(robot_config, arm_sim, dt=.001)
 interface.connect()
 
 # create a target
