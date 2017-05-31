@@ -23,13 +23,19 @@ class BaseConfig():
     Jacobians, the inertia matrix in joint space, and the effects
     of gravity. Uses SymPy and lambdify to do this.
 
+    Throughout the class functions, setting lambdify to True will return a function
+    to calculate the matrix being generated. This returns a function that can
+    be used for mathematical manipulation. If the user desires a symbolic expression,
+    then lambdify can be set to False. Lambdify will be set to True by default where it
+    is required, such as in the calculation of derivatives.
+
     Parameters
     ----------
-    N_JOINTS : int, required (Default: None)
+    N_JOINTS : int
         number of joints in robot
-    N_LINKS : int, required (Default: None)
+    N_LINKS : int
         number of arm segments in robot
-    ROBOT_NAME : string, required (Default: "robot")
+    ROBOT_NAME : string, optional (Default: "robot")
         used for saving/loading functions to file
     use_cython : boolean, optional (Default: False)
         if True, a more efficient function is generated
@@ -62,20 +68,6 @@ class BaseConfig():
             for transform matrix calculations
         config_folder : string
             location to save to and load functions from
-        config_hash : string
-            hash generated based on the specific robot's config folder
-            to append onto config_folder
-        q : sympy.Symbol
-            symbol for robot joint angles
-        dq : sympy.Symbol
-            symbol for robot joint velocities
-        x : sympy.Symbol
-            symbol for robot x,y,z offset [m] from the EE, later on can specify
-            a point a set distance from the EE to transform to instead
-            of having to regenerate the functions
-        gravity : sympy.Matrix
-            force of gravity vector
-
     """
 
     def __init__(self, N_JOINTS, N_LINKS, ROBOT_NAME="robot",
@@ -146,13 +138,23 @@ class BaseConfig():
         return function
 
     def _load_from_file(self, filename, lambdify):
-        """ Attempt to load in the specified function or expression from
-        saved file, in a subfolder based on the hash of the robot_config
+        """ Attempts to load the files for the corresponding hash
 
-        filename string: the desired function to load in
-        lambdify boolean: if True look for saved function
-                          if False look for saved expression
+        Attempt to load in the specified function or expression from
+        saved file, in a subfolder based on the hash of the robot_config.
+        Takes a filename as an input and returns the corresponding saved
+        expression or function
+
+        Parameters
+        ----------
+        filename : string
+            the desired function to load in
+        lambdify : boolean
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
+
         expression = None
         function = None
 
@@ -193,10 +195,18 @@ class BaseConfig():
         return expression, function
 
     def C(self, q, dq):
-        """ Calculates the centripetal and Coriolis forces
+        """ Loads or calculates the centripetal and Coriolis forces
 
-        q list: (radians) joint angles
-        dq list: (radians/sec) joint velocities
+        If the function exists, it will load it from file, otherwise
+        it calls _calc_C to generate the function
+
+        Parameters
+        ----------
+        q : numpy.array
+            joint angles in radians
+        dq : numpy.array
+            joint velocities in radians/second
+
         """
         # check for function in dictionary
         if self._C is None:
@@ -205,9 +215,16 @@ class BaseConfig():
         return np.array(self._C(*parameters), dtype='float32').flatten()
 
     def g(self, q):
-        """ Calculates the force of gravity in joint space for the ur5
+        """ Loads or calculates the force of gravity in joint space
 
-        q list: (radians) joint angles
+        If the function exists, it will load it from file, otherwise
+        it calls _calc_g to generate the function
+
+        Parameters
+        ----------
+        q : numpy.array
+            joint angles in radians
+
         """
         # check for function in dictionary
         if self._g is None:
@@ -216,12 +233,21 @@ class BaseConfig():
         return np.array(self._g(*parameters), dtype='float32').flatten()
 
     def dJ(self, name, q, dq, x=[0, 0, 0]):
-        """ Calculates the derivative of a Jacobian for a joint or link
+        """ Loads or calculates the derivative of the Jacobian with respect to time
+
+        If the function exists, it will load it from file, otherwise
+        it calls _calc_dJ to generate the derivative of a Jacobian for a joint or link
         with respect to time
 
-        name string: name of the joint or link, or end-effector
-        q list: (radians) joint angles
-        x list: (m) the [x,y,z] offset inside name's reference frame
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        q : numpy.array
+            joint angles in radians
+        x : numpy.array, optional (Default: [0,0,0])
+            the [x,y,z] offset inside reference frame of 'name' in meters
+
         """
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
@@ -231,12 +257,21 @@ class BaseConfig():
         return np.array(self._dJ[funcname](*parameters), dtype='float32')
 
     def J(self, name, q, x=[0, 0, 0]):
-        """ Calculates the Jacobian for a joint or link
+        """ Loads or calculates the Jacobian for a joint or link
 
-        name string: name of the joint or link, or end-effector
-        q list: (radians) joint angles
-        x list: (m) the [x,y,z] offset inside name's reference frame
+        If the function exists, it will load it from file, otherwise
+        it calls _calc_J to generate the function
+
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        q : numpy.array
+            joint angles in radians
+        x : numpy.array, optional (Default: [0,0,0])
+            the [x,y,z] offset inside reference frame of 'name' in meters
         """
+
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._J.get(funcname, None) is None:
@@ -245,10 +280,17 @@ class BaseConfig():
         return np.array(self._J[funcname](*parameters), dtype='float32')
 
     def M(self, q):
-        """ Calculates the joint space inertia matrix for the ur5
+        """ Loads or calculates the joint space inertia matrix
 
-        q list: (radians) joint angles
+        If the function exists, it will load it from file, otherwise
+        it calls _calc_M to generate the function
+
+        Parameters
+        ----------
+        q : numpy.array
+            joint angles in radians
         """
+
         # check for function in dictionary
         if self._M is None:
             self._M = self._calc_M()
@@ -256,12 +298,20 @@ class BaseConfig():
         return np.array(self._M(*parameters), dtype='float32')
 
     def orientation(self, name, q):
-        """ Uses Sympy to generate the orientation for a joint or link
-        calculated as a quaternion.
+        """ Loads or calculates the orientation of a point as a quaternion
 
-        name string: name of the joint or link, or end-effector
-        q list: (radians) joint angles
+        If the function exists, it will load it from file, otherwise
+        it calls _calc_R and uses Sympy to generate the orientation for a
+        joint or link calculated as a quaternion.
+
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        q : numpy.array
+            joint angles in radians
         """
+
         # check for function in dictionary
         if self._R.get(name, None) is None:
             self._R[name] = self._calc_R(name)
@@ -271,12 +321,21 @@ class BaseConfig():
         return abr_control.utils.transformations.quaternion_from_matrix(R)
 
     def Tx(self, name, q, x=[0, 0, 0]):
-        """ Calculates the transform for a joint or link
+        """ Loads or calculates the transformation Matrix for a joint or link
 
-        name string: name of the joint or link, or end-effector
-        q list: (radians) joint angles
-        x list: (m) the [x,y,z] offset inside name's reference frame
+        If the function exists, it will load it from file, otherwise
+        it calls _calc_Tx to generate the function
+
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        q : numpy.array
+            joint angles in radians
+        x : numpy.array, optional (Default: [0,0,0])
+            the [x,y,z] offset inside reference frame of 'name' in meters
         """
+
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._Tx.get(funcname, None) is None:
@@ -285,10 +344,21 @@ class BaseConfig():
         return self._Tx[funcname](*parameters)[:-1].flatten()
 
     def T_inv(self, name, q, x=[0, 0, 0]):
-        """ Calculates the inverse transform for a joint or link
+        """ Loads or calculates the inverse transform for a joint or link
 
-        q list: (radians) joint angles
+        If the function exists, it will load it from file, otherwise
+        it calls _calc_T_inv to generate the function
+
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        q : numpy.array
+            joint angles in radians
+        x : numpy.array, optional (Default: [0,0,0])
+            the [x,y,z] offset inside reference frame of 'name' in meters
         """
+
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._T_inv.get(funcname, None) is None:
@@ -298,12 +368,15 @@ class BaseConfig():
 
     def _calc_C(self, lambdify=True):
         """ Uses Sympy to generate the centripetal and Coriolis forces
-        affecting the arm
 
-        lambdify boolean: if True returns a function to calculate
-                          the Jacobian. If False returns the Sympy
-                          matrix
+        Parameters
+        ----------
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
+
         C = None
         C_func = None
         # check to see if we have our gravity term saved in file
@@ -315,6 +388,7 @@ class BaseConfig():
 
             # first get the inertia matrix
             M = self._calc_M(lambdify=False)
+            # TODO do we want to keep this link?
             # http://www.diag.uniroma1.it/~deluca/rob2_en/03_LagrangianDynamics_1.pdf
             # c_k = dq.T * C_k * dq
             # C_k = .5 * (\frac{\partial m_k}{\partial q} +
@@ -345,12 +419,17 @@ class BaseConfig():
         return C_func
 
     def _calc_g(self, lambdify=True):
-        """ Uses Sympy to generate the force of gravity in
+        """ Generate the force of gravity in joint space
+
+        Uses Sympy to generate the force of gravity in
         joint space
 
-        lambdify boolean: if True returns a function to calculate
-                          the Jacobian. If False returns the Sympy
-                          matrix
+        Parameters
+        ----------
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
         g = None
         g_func = None
@@ -397,15 +476,23 @@ class BaseConfig():
         return g_func
 
     def _calc_dJ(self, name, x, lambdify=True):
-        """ Uses Sympy to generate the derivative of the Jacobian
+        """ Generate the derivative of the Jacobian
+
+        Uses Sympy to generate the derivative of the Jacobian
         for a joint or link with respect to time
 
-        name string: name of the joint or link, or end-effector
-        x list: (m) the [x,y,z] offset inside name's reference frame
-        lambdify boolean: if True returns a function to calculate
-                          the Jacobian. If False returns the Sympy
-                          matrix
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        x : numpy.array
+            the [x,y,z] offset inside the reference frame of 'name' in meters
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
+
         dJ = None
         dJ_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -447,12 +534,18 @@ class BaseConfig():
     def _calc_J(self, name, x, lambdify=True):
         """ Uses Sympy to generate the Jacobian for a joint or link
 
-        name string: name of the joint or link, or end-effector
-        x list: (m) the [x,y,z] offset inside name's reference frame
-        lambdify boolean: if True returns a function to calculate
-                          the Jacobian. If False returns the Sympy
-                          matrix
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        x : numpy.array
+            the [x,y,z] offset inside the reference frame of 'name' in meters
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
+
         J = None
         J_func = None
         filename = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -507,12 +600,14 @@ class BaseConfig():
         return J_func
 
     def _calc_M(self, lambdify=True):
-        """ Uses Sympy to generate the inertia matrix in
-        joint space
+        """ Uses Sympy to generate the inertia matrix in joint space
 
-        lambdify boolean: if True returns a function to calculate
-                          the Jacobian. If False returns the Sympy
-                          matrix
+        Parameters
+        ----------
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
 
         M = None
@@ -563,10 +658,14 @@ class BaseConfig():
     def _calc_R(self, name, lambdify=True):
         """ Uses Sympy to generate the rotation matrix for a joint or link
 
-        name string: name of the joint or link, or end-effector
-        lambdify boolean: if True returns a function to calculate
-                          the Jacobian. If False returns the Sympy
-                          matrix
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
         R = None
         R_func = None
@@ -596,19 +695,29 @@ class BaseConfig():
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
 
-        name string: name of the joint or link, or end-effector
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
         """
         raise NotImplementedError("_calc_T function not implemented")
 
     def _calc_Tx(self, name, x=None, lambdify=True):
-        """ Uses Sympy to transform x from the reference frame of a joint
+        """Return transform from x in reference frame of 'name' to the origin
+
+        Uses Sympy to transform x from the reference frame of a joint
         or link to the origin (world) coordinates.
 
-        name string: name of the joint or link, or end-effector
-        x list: (m) the [x,y,z] offset inside name's reference frame
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        x : numpy.array
+            the [x,y,z] offset inside the reference frame of 'name' in meters
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
 
         Tx = None
@@ -650,14 +759,21 @@ class BaseConfig():
         return Tx_func
 
     def _calc_T_inv(self, name, x, lambdify=True):
-        """ Return the inverse transform matrix, which converts from
+        """ Return the inverse transform matrix
+
+        Return the inverse transform matrix, which converts from
         world coordinates into the robot's end-effector reference frame
 
-        name string: name of the joint or link, or end-effector
-        x list: (m) the [x,y,z] offset inside name's reference frame
-        lambdify boolean: if True returns a function to calculate
-                          the transform. If False returns the Sympy
-                          matrix
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        x : numpy.array
+            the [x,y,z] offset inside the reference frame of 'name' in meters
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate
+            the matrix. If False returns the Sympy
+            matrix
         """
 
         T_inv = None

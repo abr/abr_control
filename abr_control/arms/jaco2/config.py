@@ -7,7 +7,25 @@ from ..base_config import BaseConfig
 
 
 class Config(BaseConfig):
-    """ Robot config file for the Kinova Jaco^2 V2"""
+    """ Robot config file for the Kinova Jaco^2 V2
+
+    Parameters
+    ----------
+    hand_attached : boolean, optional (Default: False)
+        if false will set the last wrist joint as the end effector
+        if true will set the palm of the hand as the end effector
+    N_JOINTS :
+    N_LINKS :
+    ROBOT_NAME :
+
+    Attributes
+    ----------
+    REST_ANGLES :
+    _M_LINKS :
+    _M_JOINTS :
+    L :
+    L_HANDCOM
+    """
 
     def __init__(self, hand_attached=False, **kwargs):
 
@@ -48,7 +66,7 @@ class Config(BaseConfig):
                 sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04))  # link6
 
         # the joints don't weigh anything in VREP
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
+        self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
