@@ -14,18 +14,37 @@ class Config(BaseConfig):
     hand_attached : boolean, optional (Default: False)
         if false will set the last wrist joint as the end effector
         if true will set the palm of the hand as the end effector
-    N_JOINTS :
-    N_LINKS :
-    ROBOT_NAME :
+    N_JOINTS : int, optional (Default: 6)
+        the number of joint in the jaco arm
+    N_LINKS : int, optional (Default: 6 or 7 depending on hand_attached)
+        the number of links in the jaco2, 6 without hand, 7 with
+    ROBOT_NAME : string, optional (Default: jaco2)
+        name of robot
 
     Attributes
     ----------
-    REST_ANGLES :
-    _M_LINKS :
-    _M_JOINTS :
-    L :
-    L_HANDCOM
+    REST_ANGLES : numpy.array
+        the joint angles the arm tries to push towards with the
+        null controller
+    _M_LINKS : sympy.diag
+        inertia matrix of the links
+    _M_JOINTS : sympy.diag
+        inertia matrix of the joints
+    L : numpy.array
+        segment lengths of arm [meters]
+    L_HANDCOM : numpy.array
+        offset to the center of mass of the hand [meters]
+    KZ : sympy.Matrix
+        z isolation vector in orientational part of Jacobian
+
+    Transform Naming Convention: Tpoint1point2
+    ex: Tj1l1 tranforms from joint 1 reference frame to link 1
+    some transforms are broken up into two matrices for simplification
+    ex: Tj0l1a and Tj0l1b where the former transform accounts for
+    rotations and the latter accounts for translations and axes flips
     """
+
+    #TODO add link in the above docstring to studywolf blog
 
     def __init__(self, hand_attached=False, **kwargs):
 
@@ -45,13 +64,10 @@ class Config(BaseConfig):
         self.JOINT_NAMES = ['joint%i' % ii
                             for ii in range(self.N_JOINTS)]
 
-        # for the null space controller, keep arm near these angles
-        # currently set to the center of the limits
         self.REST_ANGLES = np.array(
             [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
 
         # TODO: check if using sp or np diag makes a difference
-        # create the inertia matrices for each link of the ur5
         # inertia values in VREP are divided by mass, account for that here
         self._M_LINKS = [
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
@@ -68,7 +84,6 @@ class Config(BaseConfig):
         # the joints don't weigh anything in VREP
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
-        # segment lengths associated with each transform
         # ignoring lengths < 1e-6
         self.L = [
             [0.0, 0.0, 7.8369e-02],  # link 0 offset
@@ -260,7 +275,8 @@ class Config(BaseConfig):
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 
-        name string: name of the joint or link, or end-effector
+        name : string
+            name of the joint, link, or end-effector
         """
 
         if self._T.get(name, None) is None:

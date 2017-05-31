@@ -17,15 +17,49 @@ except ImportError:
     print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
 class DummySolver(nengo.solvers.Solver):
-        def __init__(self, fixed):
-            self.fixed=fixed
-            self.weights=False
-        def __call__(self, A, Y, rng=None, E=None):
-            return self.fixed, {}
+    """ one line Function description
+
+    Parameters
+    ----------
+    fixed : variable_type
+        description
+    """
+    #TODO fill in parameter and description info above
+
+    def __init__(self, fixed):
+        self.fixed=fixed
+        self.weights=False
+    def __call__(self, A, Y, rng=None, E=None):
+        """ one line Function description
+
+        Parameters
+        ----------
+        A : variable_type
+            description
+        Y : variable_type
+            description
+        rng : variable_type, optional (Default: None)
+            description
+        E : variable_type, optional (Default: None)
+            description
+        """
+        #TODO fill in parameter and description info above
+
+        return self.fixed, {}
 
 class AreaIntercepts(nengo.dists.Distribution):
     dimensions = nengo.params.NumberParam('dimensions')
     base = nengo.dists.DistributionParam('base')
+    """ one line Function description
+
+    Parameters
+    ----------
+    dimensions : variable_type
+        description
+    base : variable_type, optional (Default: nengo.dists.Uniform(-1,1))
+        description
+    """
+    #TODO fill in parameter and description info above
 
     def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
         super(AreaIntercepts, self).__init__()
@@ -33,10 +67,22 @@ class AreaIntercepts(nengo.dists.Distribution):
         self.base = base
 
     def __repr(self):
+        """ one line Function description"""
+        #TODO fill in description info above
+
         return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions,
                                                            self.base)
 
     def transform(self, x):
+        """ one line Function description
+
+        Parameters
+        ----------
+        x : variable_type
+            description
+        """
+        #TODO fill in parameter and description info above
+
         sign = 1
         if x > 0:
             x = -x
@@ -45,6 +91,19 @@ class AreaIntercepts(nengo.dists.Distribution):
             (self.dimensions + 1) / 2.0, 0.5, x + 1))
 
     def sample(self, n, d=None, rng=np.random):
+        """ one line Function description
+
+        Parameters
+        ----------
+        n : variable_type
+            description
+        d : variable_type, optional (Default: None)
+            description
+        rng : variable_type, optional (Default: numpy.random)
+            description
+        """
+        #TODO fill in parameter and description info above
+
         s = self.base.sample(n=n, d=d, rng=rng)
         for i in range(len(s)):
             s[i] = self.transform(s[i])
@@ -53,6 +112,33 @@ class AreaIntercepts(nengo.dists.Distribution):
 
 class DynamicsAdaptation(Signal):
     """ An implementation of dynamics adaptation using a Nengo model
+
+    The model learns to account for unknown forces and accounts for them
+    with the goal of maintaining target position of the end effector
+
+    Parameters
+    ----------
+    robot_config : class instance
+        passes in all relevant information about the arm
+        from its config, such as: number of joints, number
+        of links, mass information etc.
+    n_neurons : int, optional (Default: 1000)
+        number of neurons per adaptive population
+    n_adapt_pop : int, optional (Default: 1)
+        number of adaptive populations
+    pes_learning_rate : float, optional (Default: 1e-6)
+        controls the speed of neural adaptation for training the dynamics
+        compensation term
+    intercepts list : list of two floats, optional (Default: (0.5, 1.0))
+        voltage threshold range for neurons
+    spiking : boolean, optional (Default: False)
+        use spiking or rate mode neurons
+    filter_error : boolean, optional (Default: False)
+        apply low pass filter to the error signal or not
+    weights_file : string, optional (Default: None)
+        path to file where learned weights are saved
+    backend : string, optional (Default: nengo)
+        {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
     """
 
     def __init__(self, robot_config,
@@ -64,18 +150,6 @@ class DynamicsAdaptation(Signal):
                  filter_error=False,
                  weights_file=None,
                  backend='nengo'):
-        """
-        n_neurons int: number of neurons per adaptive population
-        n_adapt_pop: number of adaptive populations
-        pes_learning_rate float: controls the speed of neural adaptation
-                                 for training the dynamics compensation term
-        intercepts list: voltage threshold range for neurons
-        spiking boolean: use spiking or rate mode neurons
-        use_area_intercepts boolean: set intercepts to be distributed or not
-        filter_error boolean: apply low pass filter to the error signal or not
-        weights_file string: path to file where learned weights are saved
-        backend string: {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
-        """
         self.robot_config = robot_config
 
         self.u_adapt = np.zeros(self.robot_config.N_JOINTS)
@@ -88,8 +162,18 @@ class DynamicsAdaptation(Signal):
         with nengo_model:
 
             def qdq_input(t):
-                """ returns q and dq scaled and bias to
-                be around -1 to 1 """
+                """ returns q and dq
+
+                Returns q and dq scaled and bias to be
+                around -1 to 1
+
+                Parameters
+                ----------
+                t : variable_type
+                    description
+                """
+                #TODO fill in parameter info above
+
                 q = ((self.q + np.pi) % (np.pi*2)) - np.pi
 
                 output = np.hstack([
@@ -99,12 +183,30 @@ class DynamicsAdaptation(Signal):
             qdq_input = nengo.Node(qdq_input, size_out=dim)#*2)
 
             def u_input(t):
-                """ returns the control signal for training """
+                """ returns the control signal for training
+
+                Parameters
+                ----------
+                t : variable_type
+                    description
+                """
+                #TODO fill in parameter info above
+
                 return self.training_signal
             u_input = nengo.Node(u_input, size_out=dim)
 
             def u_adapt_output(t, x):
-                """ stores the adaptive output for use in control() """
+                """ stores the adaptive output for use in control()
+
+                Parameters
+                ----------
+                t : variable_type
+                    description
+                x : variable_type
+                    description
+                """
+                #TODO fill in parameter info above
+
                 self.u_adapt = np.copy(x)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
 
@@ -162,6 +264,15 @@ class DynamicsAdaptation(Signal):
 
                 # Allow filtering of error signal
                 def gate_error(x):
+                    """ one line Function description
+
+                    Parameters
+                    ----------
+                    x : variable_type
+                        description
+                    """
+                    #TODO fill in parameter and description info above
+
                     if filter_error:
                         if np.linalg.norm(x) > 2.0:
                             x /= np.linalg.norm(x) * 0.5
@@ -204,9 +315,14 @@ class DynamicsAdaptation(Signal):
     def generate(self, q, dq, training_signal):
         """ Generates the control signal
 
-        q np.array: the current joint angles
-        dq np.array: the current joint velocities
-        training_signal np.array: the learning signal to drive adaptation
+        Parameters
+        ----------
+        q : numpy.array
+            the current joint angles [radians]
+        dq : numpy.array
+            the current joint velocities [radians/second]
+        training_signal : numpy.array
+            the learning signal to drive adaptation
         """
 
         # store local copies to feed in to the adaptive population

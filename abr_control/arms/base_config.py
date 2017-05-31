@@ -208,9 +208,9 @@ class BaseConfig():
         Parameters
         ----------
         q : numpy.array
-            joint angles in radians
+            joint angles [radians]
         dq : numpy.array
-            joint velocities in radians/second
+            joint velocities [radians/second]
 
         """
         # check for function in dictionary
@@ -228,7 +228,7 @@ class BaseConfig():
         Parameters
         ----------
         q : numpy.array
-            joint angles in radians
+            joint angles [radians]
 
         """
         # check for function in dictionary
@@ -249,9 +249,9 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         q : numpy.array
-            joint angles in radians
+            joint angles [radians]
         x : numpy.array, optional (Default: [0,0,0])
-            the [x,y,z] offset inside reference frame of 'name' in meters
+            the [x,y,z] offset inside reference frame of 'name' [meters]
 
         """
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -272,9 +272,9 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         q : numpy.array
-            joint angles in radians
+            joint angles [radians]
         x : numpy.array, optional (Default: [0,0,0])
-            the [x,y,z] offset inside reference frame of 'name' in meters
+            the [x,y,z] offset inside reference frame of 'name' [meters]
         """
 
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -293,7 +293,7 @@ class BaseConfig():
         Parameters
         ----------
         q : numpy.array
-            joint angles in radians
+            joint angles [radians]
         """
 
         # check for function in dictionary
@@ -314,7 +314,7 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         q : numpy.array
-            joint angles in radians
+            joint angles [radians]
         """
 
         # check for function in dictionary
@@ -352,9 +352,9 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         q : numpy.array
-            joint angles in radians
+            joint angles [radians]
         x : numpy.array, optional (Default: [0,0,0])
-            the [x,y,z] offset inside reference frame of 'name' in meters
+            the [x,y,z] offset inside reference frame of 'name' [meters]
         """
 
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -375,9 +375,9 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         q : numpy.array
-            joint angles in radians
+            joint angles [radians]
         x : numpy.array, optional (Default: [0,0,0])
-            the [x,y,z] offset inside reference frame of 'name' in meters
+            the [x,y,z] offset inside reference frame of 'name' [meters]
         """
 
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -507,7 +507,7 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         x : numpy.array
-            the [x,y,z] offset inside the reference frame of 'name' in meters
+            the [x,y,z] offset inside the reference frame of 'name' [meters]
         lambdify : boolean, optional (Default: True)
             if True returns a function to calculate
             the matrix. If False returns the Sympy
@@ -560,7 +560,7 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         x : numpy.array
-            the [x,y,z] offset inside the reference frame of 'name' in meters
+            the [x,y,z] offset inside the reference frame of 'name' [meters]
         lambdify : boolean, optional (Default: True)
             if True returns a function to calculate
             the matrix. If False returns the Sympy
@@ -734,7 +734,7 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         x : numpy.array
-            the [x,y,z] offset inside the reference frame of 'name' in meters
+            the [x,y,z] offset inside the reference frame of 'name' [meters]
         lambdify : boolean, optional (Default: True)
             if True returns a function to calculate
             the matrix. If False returns the Sympy
@@ -790,7 +790,7 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         x : numpy.array
-            the [x,y,z] offset inside the reference frame of 'name' in meters
+            the [x,y,z] offset inside the reference frame of 'name' [meters]
         lambdify : boolean, optional (Default: True)
             if True returns a function to calculate
             the matrix. If False returns the Sympy

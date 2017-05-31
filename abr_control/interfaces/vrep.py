@@ -8,11 +8,20 @@ from .interface import Interface
 # TODO: add ability to load models files so that vrep only has to be open
 class VREP(Interface):
     """ An interface for VREP.
+
     Implements force control using VREP's force-limiting method.
     Lock-steps the simulation so that it only moves forward one dt
     every time send_forces is called.
-    Expects that there are there is a 'hand' object in the VREP
-    environment,
+    Expects that there is a 'hand' object in the VREP environment
+
+    Parameters
+    ----------
+    robot_config : class instance
+        passes in all relevant information about the arm
+        from its config, such as: number of joints, number
+        of links, mass information etc.
+    dt : float, optional (Default: 0.001)
+        simulation timestep in seconds
     """
 
     def __init__(self, robot_config, dt=.001):
@@ -33,13 +42,18 @@ class VREP(Interface):
         self.misc_handles = {}  # for tracking miscellaneous object handles
 
     def connect(self):
-        """ Connect to the current scene open in VREP,
+        """ Connect to the current scene open in VREP
+
         find the VREP references to the joints of the robot,
         specify the time step for simulation and put into lock-step mode.
+
+        NOTE: the joints and links must follow the naming convention of
+        'joint#' and 'link#', starting from 'joint0' and 'link0'
 
         NOTE: The dt in the VREP physics engine must also be specified
         to be less than the dt used here.
         """
+
         # close any open connections
         vrep.simxFinish(-1)
         # Connect to the V-REP continuous server
@@ -87,6 +101,7 @@ class VREP(Interface):
 
     def disconnect(self):
         """ Stop and reset the simulation. """
+
         # stop the simulation
         vrep.simxStopSimulation(self.clientID, vrep.simx_opmode_blocking)
 
@@ -99,10 +114,14 @@ class VREP(Interface):
         print('connection closed...')
 
     def get_orientation(self, name):
-        """ Returns the orientation of an object in VREP, the Euler
-        angles (radians) are returned in the relative xyz frame.
+        """ Returns the orientation of an object in VREP
 
-        name string: the name of the object of interest
+        the Euler angles [radians] are returned in the relative xyz frame.
+
+        Parameters
+        ----------
+        name : string
+            the name of the object of interest
         """
 
         if self.misc_handles.get(name, None) is None:
@@ -121,12 +140,17 @@ class VREP(Interface):
         return orientation
 
     def set_orientation(self, name, angles):
-        """ Sets the orientation of an object in VREP,
-        using the provided Euler angles .
+        """ Sets the orientation of an object in VREP
 
-        name string: the name of the object of interest
-        angles np.array: the [alpha, beta, gamma] Euler angles (radians)
-                         for the object, specified in relative xyz axes.
+        Sets the orientation of an object using the provided Euler angles .
+
+        Parameters
+        ----------
+        name : string
+            the name of the object of interest
+        angles : np.array
+            the [alpha, beta, gamma] Euler angles [radians]
+            for the object, specified in relative xyz axes.
         """
 
         if self.misc_handles.get(name, None) is None:
@@ -144,12 +168,18 @@ class VREP(Interface):
             vrep.simx_opmode_blocking)
 
     def send_forces(self, u):
-        """ Apply the specified torque to the robot joints,
+        """ Apply the specified torque to the robot joints
+
+        Apply the specified torque to the robot joints,
         move the simulation one time step forward, and update
         the position of the hand object.
 
-        u np.array: an array of the torques to apply to the robot
+        Parameters
+        ----------
+        u : np.array
+            an array of the torques to apply to the robot
         """
+
         # invert because torque directions are opposite of expected
         u *= -1
 
@@ -201,8 +231,15 @@ class VREP(Interface):
     def send_target_angles(self, q, joint_handles=None):
         """ Move the robot to the specified configuration.
 
-        q np.array: configuration to move to (radians)
+        Parameters
+        ----------
+        q : np.array
+            configuration to move to [radians]
+        joint_handles: list, optional (Default: None)
+            ID numbers for the joint, used when trying to get information
+            out of the VREP remote API
         """
+
         joint_handles = (self.joint_handles if joint_handles is None
                          else joint_handles)
 
@@ -216,7 +253,12 @@ class VREP(Interface):
                 vrep.simx_opmode_oneshot)
 
     def get_feedback(self):
-        """ Return a dictionary of information needed by the controller. """
+        """ Return a dictionary of information needed by the controller.
+
+        Returns the joint angles and joint velocities in [rad] and [rad/sec]
+        respectively
+        """
+
         for ii, joint_handle in enumerate(self.joint_handles):
 
             # get the joint angles
@@ -242,7 +284,8 @@ class VREP(Interface):
     def get_xyz(self, name):
         """ Returns the xyz position of the specified object
 
-        name string: name of the object you want the xyz position of
+        name : string
+            name of the object you want the xyz position of
         """
 
         if self.misc_handles.get(name, None) is None:
@@ -263,8 +306,10 @@ class VREP(Interface):
     def set_xyz(self, name, xyz):
         """ Set the position of an object in the environment.
 
-        name string: the name of the object
-        xyz np.array: the [x,y,z] location of the target (in meters)
+        name : string
+            the name of the object
+        xyz : np.array
+            the [x,y,z] location of the target [meters]
         """
 
         if self.misc_handles.get(name, None) is None:

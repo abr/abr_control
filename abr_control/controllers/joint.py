@@ -33,13 +33,13 @@ class Joint(controller.Controller):
         Parameters
         ----------
         q : float numpy.array
-            current joint angles in radians
+            current joint angles [radians]
         dq : float numpy.array
-            current joint velocities in radians/second
+            current joint velocities [radians/second]
         target_pos : float numpy.array
-            desired joint angles in radians
+            desired joint angles [radians]
         target_vel : float numpy.array, optional (Default: None)
-            desired joint velocities in radians/sec
+            desired joint velocities [radians/sec]
         """
 
         self.q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi

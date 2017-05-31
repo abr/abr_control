@@ -5,7 +5,40 @@ from ..base_config import BaseConfig
 
 
 class Config(BaseConfig):
-    """ Robot config file for the UR5 arm """
+    """ Robot config file for the UR5
+
+    Parameters
+    ----------
+    N_JOINTS : int, optional (Default: 6)
+        the number of joint in the UR5 arm
+    N_LINKS : int, optional (Default: 7)
+        the number of links in the UR5
+    ROBOT_NAME : string, optional (Default: ur5)
+        name of robot
+
+    Attributes
+    ----------
+    REST_ANGLES : numpy.array
+        the joint angles the arm tries to push towards with the
+        null controller
+    _M_LINKS : sympy.diag
+        inertia matrix of the links
+    _M_JOINTS : sympy.diag
+        inertia matrix of the joints
+    L : numpy.array
+        segment lengths of arm [meters]
+    L_HANDCOM : numpy.array
+        offset to the center of mass of the hand [meters]
+    KZ : sympy.Matrix
+        z isolation vector in orientational part of Jacobian
+
+    Transform Naming Convention: Tpoint1point2
+    ex: Tj1l1 tranforms from joint 1 reference frame to link 1
+    some transforms are broken up into two matrices for simplification
+    ex: Tj0l1a and Tj0l1b where the former transform accounts for
+    rotations and the latter accounts for translations and axes flips
+    """
+
 
     def __init__(self, **kwargs):
 
@@ -231,7 +264,8 @@ class Config(BaseConfig):
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 
-        name string: name of the joint or link, or end-effector
+        name : string
+            name of the joint, link, or end-effector
         """
 
         if self._T.get(name, None) is None:

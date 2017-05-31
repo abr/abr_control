@@ -4,19 +4,38 @@ from .signal import Signal
 
 class AvoidObstacles(Signal):
     """ Implements an obstacle avoidance algorithm from (Khatib, 1987).
+
+    Parameters
+    ----------
+    robot_config : class instance
+        passes in all relevant information about the arm
+        from its config, such as: number of joints, number
+        of links, mass information etc.
+    obstacles : list of list of floats
+        a list of obstacles, where the obstacles are a list of the
+        corresponding Cartesian coordinates and obstacle radius
+        ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius] etc.
+        The first three entires are the cartesian coordinates of the
+        obstacle and the fourth is the approximate radius of the obstacle
+        coordinates are in [meters]
+    threshold : float, optional (Default: 0.2)
+        radius of the sphere with the obstacle at its center [meters] to
+        avoid
     """
 
     def __init__(self, robot_config, obstacles=[], threshold=.2):
 
         self.robot_config = robot_config
         self.threshold = threshold
-        # set of obstacles [[x, y, radius], ...]
         self.obstacles = np.copy(obstacles)
 
     def generate(self, q):  # noqa901
         """ Generates the control signal
 
-        q np.array: the current joint angles
+        Parameters
+        ----------
+        q : np.array
+        the current joint angles [radians]
         """
 
         u_psp = np.zeros(self.robot_config.N_JOINTS, dtype='float32')
@@ -24,7 +43,7 @@ class AvoidObstacles(Signal):
         # calculate the inertia matrix in joint space
         M = self.robot_config.M(q)
 
-        # add in obstacles avoidance
+        # add in obstacle avoidance
         for obstacle in self.obstacles:
             # our vertex of interest is the center point of the obstacle
             v = np.array(obstacle[:3], dtype='float32')
@@ -83,6 +102,18 @@ class AvoidObstacles(Signal):
         return u_psp
 
     def set_obstacles(self, obstacles):
-        """ Specify the locations of the obstacles to avoid """
-        # set of obstacles [[x, y, radius], ...]
+        """ Specify the locations of the obstacles to avoid
+
+        Parameters
+        ----------
+        obstacles : list of list of floats
+            a list of obstacles, where the obstacles are a list of the
+            corresponding Cartesian coordinates and obstacle radius
+            ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius] etc.
+            The first three entires are the cartesian coordinates of the
+            obstacle and the fourth is the approximate radius of the obstacle
+            coordinates are in [meters]
+
+        """
+
         self.obstacles = np.copy(obstacles)

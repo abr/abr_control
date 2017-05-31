@@ -16,7 +16,7 @@ class OSC(controller.Controller):
     kv : float, optional (Default: None)
         derivative gain term, a good starting point is sqrt(kp)
     vmax : float, optional (Default: 0.5)
-        The max allowed velocity of the end-effector in meters/second.
+        The max allowed velocity of the end-effector [meters/second].
         If the control signal specifies something above this
         value it is clipped, if set to None no clipping occurs
     null_control : boolean, optional (Default: True)
@@ -72,13 +72,13 @@ class OSC(controller.Controller):
         Parameters
         ----------
         q : float numpy.array
-            current joint angles in radians
+            current joint angles [radians]
         dq : float numpy.array
-            current joint velocities in radians/second
+            current joint velocities [radians/second]
         target_pos : float numpy.array
-            desired joint angles in radians
+            desired joint angles [radians]
         target_vel : float numpy.array, optional (Default: numpy.zeros)
-            desired joint velocities in radians/sec
+            desired joint velocities [radians/sec]
         target_quat : float numpy.array, optional Default: None)
             the target orientation as a quaternion in the form [w, x, y, z]
         target_w : float numpy.array, optional (Default: numpy.zeros)
@@ -90,7 +90,7 @@ class OSC(controller.Controller):
             the frame of reference of control point, default is the end
             effector. Names are set in the robot's config file
         offset : list, optional (Default: [0, 0, 0])
-            point of interest from the frame of reference
+            point of interest from the frame of reference [meters]
         """
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
