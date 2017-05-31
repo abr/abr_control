@@ -6,12 +6,15 @@ clicking on the background.
 import numpy as np
 
 import abr_control
-from abr_control.interfaces.maplesim import MapleSim
+from abr_control.arms.threelink.arm_sim import ArmSim
+from abr_control.interfaces.pygame import PyGame
 
 print('\nClick to move the target.\n')
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.Config(use_cython=True)
+# create our arm simulation
+arm_sim = ArmSim(robot_config)
 
 # create an operational space controller
 ctrlr = abr_control.controllers.OSC(
@@ -22,8 +25,8 @@ def on_click(self, mouse_x, mouse_y):
     self.target[1] = self.mouse_y
 
 # create our interface
-interface = MapleSim(robot_config, dt=.001,
-                     on_click=on_click)
+interface = PyGame(robot_config, arm_sim,
+                   dt=.001, on_click=on_click)
 interface.connect()
 
 # create a target
@@ -47,7 +50,7 @@ try:
             dq=feedback['dq'],
             target_pos=target_xyz)
 
-        new_target = interface.display.get_mousexy()
+        new_target = interface.get_mousexy()
         if new_target is not None:
             target_xyz[0:2] = new_target
         interface.set_target(target_xyz)

@@ -8,7 +8,8 @@ import numpy as np
 import pygame
 
 import abr_control
-from abr_control.interfaces.maplesim import MapleSim
+from abr_control.arms.threelink.arm_sim import ArmSim
+from abr_control.interfaces.pygame import PyGame
 
 print('\nClick to move the target.\n')
 
@@ -17,6 +18,9 @@ robot_config = abr_control.arms.threelink.Config(use_cython=True)
 # get Jacobians to each link for calculating perturbation
 J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
            for ii in range(robot_config.N_LINKS)]
+
+# create our arm simulation
+arm_sim = ArmSim(robot_config)
 
 # create an operational space controller
 ctrlr = abr_control.controllers.OSC(
@@ -36,11 +40,11 @@ def on_keypress(self, key):
         print('adaptation: ', self.adaptation)
 
 # create our interface
-interface = MapleSim(robot_config, dt=.001,
+interface = PyGame(robot_config, arm_sim,
                      on_click=on_click,
                      on_keypress=on_keypress)
 interface.connect()
-interface.display.adaptation = False  # set adaptation False to start
+interface.adaptation = False  # set adaptation False to start
 
 # create a target
 feedback = interface.get_feedback()
@@ -63,7 +67,7 @@ try:
             dq=feedback['dq'],
             target_pos=target_xyz)
         # if adaptation is on (toggled with space bar)
-        if interface.display.adaptation:
+        if interface.adaptation:
             u += adapt.generate(feedback['q'], feedback['dq'],
                                 training_signal=u)
 
@@ -74,7 +78,7 @@ try:
             g += np.dot(J_links[ii](*pars).T, fake_gravity)
         u += g.squeeze()
 
-        new_target = interface.display.get_mousexy()
+        new_target = interface.get_mousexy()
         if new_target is not None:
             target_xyz[:2] = new_target
         interface.set_target(target_xyz)
