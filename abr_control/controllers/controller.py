@@ -25,7 +25,7 @@ class Controller:
         Parameters
         ----------
         q : float numpy.array
-            joint angles in radians
+            joint angles [radians]
 
         """
         raise NotImplementedError

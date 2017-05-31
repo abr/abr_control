@@ -11,6 +11,6 @@ def makedirs(folder):
     else:
         parent, directory = os.path.split(folder)
         if parent and not os.path.isdir(parent):
-            makedir(parent)
+            makedirs(parent)
         if directory:
             os.mkdir(folder)
