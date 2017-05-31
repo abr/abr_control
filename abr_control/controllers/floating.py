@@ -11,7 +11,7 @@ class Floating(controller.Controller):
 
     Parameters
     ----------
-    robot_config : class instance, required (Default: None)
+    robot_config : class instance
         passes in all relevant information about the arm
         from its config, such as: number of joints, number
         of links, mass information etc.
@@ -27,19 +27,10 @@ class Floating(controller.Controller):
 
         Parameters
         ----------
-        q : float numpy.array, required (Default: None)
-          the current joint angles in radians
-        dq : float numpy.array, required (Default: None)
-          the current joint velocities in radians/second
-
-        Attributes
-        ----------
-        g : float numpy.array
-          gravity compensation term in joint space
-        Mq : float numpy.array
-          joint space inertia matrix
-        u : float numpy.array
-          control signal in joint space
+        q : float numpy.array
+            the current joint angles in radians
+        dq : float numpy.array
+            the current joint velocities in radians/second
         """
 
         # calculate the effect of gravity in joint space
