@@ -1,21 +1,16 @@
 import numpy as np
 
-from .interface import Interface
-from .pygame_display import Display
-from ..arms.threelink import py3LinkArm
+from .arm_files.py3LinkArm import pySim
 
 
-class MapleSim(Interface):
-    """ An interface for MapleSim models that have been exported to
-    C and turned into shared libraries using Cython. Plots the movement
-    in PyGame.
+class ArmSim():
+    """ An interface for the three-link MapleSim model that has been exported
+    to C and turned into shared libraries using Cython.
     """
 
-    def __init__(self, robot_config, dt=.001, q_init=None, **kwargs):
+    def __init__(self, robot_config, dt=.001, q_init=None):
 
-        self.kwargs = kwargs
-
-        super(MapleSim, self).__init__(robot_config)
+        self.robot_config = robot_config
 
         self.q = np.zeros(self.robot_config.N_JOINTS)  # joint angles
         self.dq = np.zeros(self.robot_config.N_JOINTS)  # joint_velocities
@@ -34,15 +29,9 @@ class MapleSim(Interface):
     def connect(self):
         """ Creates the MapleSim model and set up PyGame.
         """
-
-        # create the PyGame display
-        # TODO: read the arm lengths out of the config
-        self.display = Display(L=[2, 1.2, .7], **self.kwargs)
-
         # stores information returned from maplesim
         self.state = np.zeros(7)
-        # maplesim arm simulation
-        self.sim = py3LinkArm.pySim(dt=1e-5)
+        self.sim = pySim(dt=1e-5)
 
         self.sim.reset(self.state, self.q_init)
         self._update_state()
@@ -58,10 +47,7 @@ class MapleSim(Interface):
 
         self.sim.reset(self.state, state)
         self._update_state()
-
-        self.display.close()
-
-        print('connection closed...')
+        print('MapleSim connection closed...')
 
     def send_forces(self, u, dt=None):
         """ Apply the specified forces to the robot,
@@ -76,7 +62,6 @@ class MapleSim(Interface):
 
         for ii in range(int(np.ceil(dt/1e-5))):
             self.sim.step(self.state, u)
-        self._update_state()
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller. """
@@ -87,13 +72,6 @@ class MapleSim(Interface):
     def get_xyz(self, name):
         raise NotImplementedError("Not an available method" +
                                   "in the MapleSim interface")
-
-    def set_target(self, xyz):
-        """ Set the position of the target object.
-
-        xyz np.array: the [x,y,z] location of the target (in meters)
-        """
-        self.display.set_target(xyz[:2])
 
     def _position(self):
         """Compute x,y position of the hand
@@ -113,6 +91,3 @@ class MapleSim(Interface):
         self.dq = self.state[4:]
         self._position()
         self.x = np.array([self.joints_x[-1], self.joints_y[-1]])
-
-        # update the display
-        self.display.update(self.q)

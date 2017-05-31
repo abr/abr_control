@@ -6,16 +6,23 @@ The target location can be moved by clicking on the background.
 import numpy as np
 
 import abr_control
-from abr_control.interfaces.maplesim import MapleSim
+from abr_control.arms.threelink.arm_sim import ArmSim
+from abr_control.interfaces.pygame import PyGame
 
 print('\nClick to move the target.\n')
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.Config(use_cython=True)
+# create our arm simulation
+arm_sim = ArmSim(robot_config)
 
-# create our environment
-interface = MapleSim(
-    robot_config, dt=.001, on_click_move='target',
+def on_click(self, mouse_x, mouse_y):
+    self.target[0] = self.mouse_x
+    self.target[1] = self.mouse_y
+
+# create our interface
+interface = PyGame(robot_config, arm_sim,
+    dt=.001, on_click=on_click,
     q_init=[np.pi/4, np.pi/2, np.pi/2])
 interface.connect()
 
@@ -50,7 +57,9 @@ try:
         # add in joint limit avoidance
         u += avoid.generate(feedback['q'])
 
-        target_xyz[0], target_xyz[1] = interface.display.get_mousexy()
+        new_target = interface.get_mousexy()
+        if new_target is not None:
+            target_xyz[:2] = new_target
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward

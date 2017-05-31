@@ -7,12 +7,15 @@ steps.
 import numpy as np
 
 import abr_control
-from abr_control.interfaces.maplesim import MapleSim
+from abr_control.arms.threelink.arm_sim import ArmSim
+from abr_control.interfaces.pygame import PyGame
 
 print('\nClick to move the target.\n')
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.Config(use_cython=True)
+# create our arm simulation
+arm_sim = ArmSim(robot_config)
 
 # create an operational space controller
 ctrlr = abr_control.controllers.OSC(
@@ -23,7 +26,7 @@ n_timesteps = 100
 path_planner = abr_control.controllers.path_planners.Linear(robot_config)
 
 # create our interface
-interface = MapleSim(robot_config, dt=.001)
+interface = PyGame(robot_config, arm_sim, dt=.001)
 interface.connect()
 
 # set up lists for tracking data
