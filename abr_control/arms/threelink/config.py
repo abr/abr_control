@@ -136,6 +136,18 @@ class Config(BaseConfig):
             self._calc_T('joint1')[:3, :3] * KZ,  # joint 1 angular velocity
             self._calc_T('joint2')[:3, :3] * KZ]  # joint 2 angular velocity
 
+        # dictionaries set by the sub-config, used for scaling input into
+        # neural systems. Calculate by recording data from movement of interest
+        self.MEANS = {  # expected mean of joints angles / velocities
+            'q':  np.array([.88, 1.95, .19]),
+            'dq':  np.array([.645, 2.76, -1.422])
+            }
+
+        self.SCALES = {  # expected variance of joint angles / velocities
+            'q':  np.array([.52, 1.3, .71]),
+            'dq': np.array([6.7, 12.37, 6.18])
+            }
+
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
 

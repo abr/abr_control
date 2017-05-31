@@ -216,6 +216,18 @@ class Config(BaseConfig):
             self._calc_T('joint4')[:3, :3] * KZ,  # joint 4 orientation
             self._calc_T('joint5')[:3, :3] * KZ]  # joint 5 orientation
 
+        # dictionaries set by the sub-config, used for scaling input into
+        # neural systems. Calculate by recording data from movement of interest
+        self.MEANS = {  # expected mean of joints angles / velocities
+            'q':  np.array([3.06, .968, -.946, .2, 1.1, -.434]),
+            'dq':  np.array([1.21, .177, .54, -.64, -0.112, -1.898])
+            }
+
+        self.SCALES = {  # expected variance of joint angles / velocities
+            'q':  np.array([2.0, 0.30, 0.9, 1.0, 0.97, 3.0]),
+            'dq': np.array([12.47, 2.5, 1.986, 3.374, 10.557, 6.223])
+            }
+
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
 

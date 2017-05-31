@@ -1,6 +1,8 @@
 """
-Running the threelink arm with the pygame display. The arm will
-move the end-effector to the target, which changes every n time steps.
+Running the threelink arm with the PyGame display. The path planning will
+system will generate a trajectory for the controller to follow, moving the
+end-effector in a straight line to the target, which changes every n time
+steps.
 """
 import numpy as np
 
@@ -21,7 +23,7 @@ n_timesteps = 100
 path_planner = abr_control.controllers.path_planners.Linear(robot_config)
 
 # create our interface
-interface = MapleSim(robot_config, dt=.001, on_click_move='target')
+interface = MapleSim(robot_config, dt=.001)
 interface.connect()
 
 # set up lists for tracking data
@@ -38,7 +40,7 @@ try:
         if count % n_timesteps == 0:
             target_xyz = np.array([
                 np.random.random() * 2 - 1,
-                np.random.random() * 2,
+                np.random.random() * 2 + 1,
                 0])
             # update the position of the target
             interface.set_target(target_xyz)
