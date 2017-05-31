@@ -1,7 +1,7 @@
 """
-Running the threelink arm with a pygame display, and using the pydmps
+Running the threelink arm with a PyGame display, and using the pydmps
 library to specify a trajectory for the end-effector to follow, in
-this case, a circle. The program will run until ctrl-C is called.
+this case, a circle.
 """
 import numpy as np
 

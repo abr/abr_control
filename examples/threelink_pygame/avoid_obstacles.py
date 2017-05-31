@@ -1,5 +1,5 @@
 """
-Running the threelink arm with the pygame display, using the
+Running the threelink arm with the PyGame display, using the
 obstacle avoidance signal. The obstacle location can be moved
 by clicking on the background.
 """
@@ -11,12 +11,17 @@ from abr_control.interfaces.maplesim import MapleSim
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.Config(use_cython=True)
 
+def on_click(self, mouse_x, mouse_y):
+    self.circles[0][0] = mouse_x
+    self.circles[0][1] = mouse_y
+
 # create our environment
-interface = MapleSim(robot_config, dt=.001, on_click_move='obstacle')
+interface = MapleSim(robot_config, dt=.001,
+                     on_click=on_click)
 interface.connect()
 
 ctrlr = abr_control.controllers.OSC(
-    robot_config, kp=100, vmax=10)
+    robot_config, kp=20, vmax=10)
 avoid = abr_control.controllers.signals.AvoidObstacles(
     robot_config, threshold=1)
 
@@ -44,8 +49,9 @@ try:
             dq=feedback['dq'],
             target_pos=target_xyz)
         # add in obstacle avoidance
-        obs_x, obs_y = interface.display.get_mousexy()
-        avoid.set_obstacles(obstacles=[[obs_x, obs_y, 0, .2]])
+        obs_xy = interface.display.get_mousexy()
+        if obs_xy is not None:
+            avoid.set_obstacles(obstacles=[[obs_xy[0], obs_xy[1], 0, .2]])
         u += avoid.generate(q=feedback['q'])
 
         # apply the control signal, step the sim forward
@@ -56,7 +62,7 @@ try:
         if (np.sqrt(np.sum((target_xyz - hand_xyz)**2)) < .005):
             target_xyz = np.array([
                 np.random.random() * 2 - 1,
-                np.random.random() * 2,
+                np.random.random() * 2 + 1,
                 0])
             # update the position of the target
             interface.set_target(target_xyz)

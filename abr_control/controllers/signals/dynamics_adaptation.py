@@ -72,20 +72,18 @@ class DynamicsAdaptation(Signal):
         intercepts list: voltage threshold range for neurons
         spiking boolean: use spiking or rate mode neurons
         use_area_intercepts boolean: set intercepts to be distributed or not
-        extra_dimensions boolean: add an extra dimension for putting things
-                                  on the hypersphere, or not
         filter_error boolean: apply low pass filter to the error signal or not
         weights_file string: path to file where learned weights are saved
         backend string: {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
         """
         self.robot_config = robot_config
 
-        self.u_adapt = np.zeros(self.robot_config.num_joints)
+        self.u_adapt = np.zeros(self.robot_config.N_JOINTS)
 
         weights_file = (['']*n_adapt_pop if
                         weights_file is None else weights_file)
 
-        dim = self.robot_config.num_joints
+        dim = self.robot_config.N_JOINTS
         nengo_model = nengo.Network(seed=10)
         with nengo_model:
 
@@ -97,7 +95,6 @@ class DynamicsAdaptation(Signal):
                 output = np.hstack([
                     self.robot_config.scaledown('q', q)])#,
                     #self.robot_config.scaledown('dq', self.dq)])
-                #print('input: ', output)
                 return output
             qdq_input = nengo.Node(qdq_input, size_out=dim)#*2)
 
@@ -108,19 +105,16 @@ class DynamicsAdaptation(Signal):
 
             def u_adapt_output(t, x):
                 """ stores the adaptive output for use in control() """
-                # self.u_adapt = np.copy(x)
                 self.u_adapt = np.copy(x)
-                # print('u_adapt: ', self.u_adapt)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
+
             adapt_ens = []
             conn_learn = []
             for ii in range(n_adapt_pop):
-                num_ens_dims = self.robot_config.num_joints #* 2
-                if extra_dimension:
-                    num_ens_dims = self.robot_config.num_joints +1 # * 2 + 1
-
-                intercepts = AreaIntercepts(dimensions=num_ens_dims,
-                                            base=intercepts)
+                N_DIMS = self.robot_config.N_JOINTS #* 2
+                intercepts = AreaIntercepts(
+                    dimensions=N_DIMS,
+                    base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
 
                 if spiking:
                     neuron_type = nengo.LIF()
@@ -129,7 +123,7 @@ class DynamicsAdaptation(Signal):
 
                 adapt_ens.append(nengo.Ensemble(
                     n_neurons=n_neurons,
-                    dimensions=num_ens_dims,
+                    dimensions=N_DIMS,
                     encoders=nengolib.stats.ScatteredHypersphere(
                         surface=True),
                     intercepts=intercepts,
@@ -137,7 +131,7 @@ class DynamicsAdaptation(Signal):
 
                 nengo.Connection(
                     qdq_input,
-                    adapt_ens[ii][:num_ens_dims],
+                    adapt_ens[ii][:N_DIMS],
                     synapse=0.005)
 
                 # load weights from file if they exist, otherwise use zeros
@@ -149,7 +143,7 @@ class DynamicsAdaptation(Signal):
                 else:
                     print('Transform is zeros')
                     transform = np.zeros((adapt_ens[ii].n_neurons,
-                                          self.robot_config.num_joints)).T
+                                          self.robot_config.N_JOINTS)).T
                 if backend == 'nengo_spinnaker':
                     conn_learn.append(
                         nengo.Connection(
@@ -198,9 +192,9 @@ class DynamicsAdaptation(Signal):
                 raise Exception('Nengo SpiNNaker not installed, ' +
                                 'cannot use this backend.')
             self.sim = nengo_spinnaker.Simulator(nengo_model)
-            self.q = np.zeros(self.robot_config.num_joints)
-            self.dq = np.zeros(self.robot_config.num_joints)
-            self.training_signal = np.zeros(self.robot_config.num_joints)
+            self.q = np.zeros(self.robot_config.N_JOINTS)
+            self.dq = np.zeros(self.robot_config.N_JOINTS)
+            self.training_signal = np.zeros(self.robot_config.N_JOINTS)
             # start running the spinnaker model
             self.sim.async_run_forever()
         else:

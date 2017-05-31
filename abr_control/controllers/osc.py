@@ -23,7 +23,9 @@ class OSC(controller.Controller):
         Apply a secondary control signal which
         drives the arm to specified resting joint angles without
         affecting the movement of the end-effector
-    use_C : boolean,optional (Default: False)
+    use_g : boolean, optional (Default: True)
+        calcule and compensate for the effects of gravity
+    use_C : boolean, optional (Default: False)
         calculate and compensate for the Coriolis and
         centripetal effects of the arm
     use_dJ : boolean, optional (Default: False)
@@ -39,7 +41,7 @@ class OSC(controller.Controller):
     """
     #TODO what are the null indices? explain above
     def __init__(self, robot_config, kp=1, kv=None, vmax=0.5,
-                 null_control=True, use_C=False, use_dJ=False):
+                 null_control=True, use_g=True, use_C=False, use_dJ=False):
 
 
         super(OSC, self).__init__(robot_config)
@@ -49,6 +51,7 @@ class OSC(controller.Controller):
         self.vmax = vmax
         self.lamb = self.kp / self.kv
         self.null_control = null_control
+        self.use_g = use_g
         self.use_C = use_C
         self.use_dJ = use_dJ
 
@@ -176,21 +179,23 @@ class OSC(controller.Controller):
         if self.vmax is None:
             self.training_signal -= np.dot(M, dq)
 
-        if self.use_dJ is True:
+        if self.use_dJ:
             # add in estimate of current acceleration
             dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
             # apply mask
             dJ = dJ[:3]
             self.training_signal -= np.dot(Mx, np.dot(dJ, dq))
 
+        u = self.training_signal
         # cancel out effects of gravity
-        u = self.training_signal - self.robot_config.g(q=q)
+        if self.use_g:
+            u -=  self.robot_config.g(q=q)
 
-        if self.use_C is True:
+        if self.use_C:
             # add in estimation of centripetal and Coriolis effects
             u -= self.robot_config.C(q=q, dq=dq)
 
-        if self.null_control is True:
+        if self.null_control:
             # calculated desired joint angle acceleration using rest angles
             q_des = ((self.robot_config.REST_ANGLES - q + np.pi) %
                      (np.pi * 2) - np.pi)

@@ -5,11 +5,14 @@ import pygame.locals
 
 class Display():
 
-    def __init__(self, L, on_click_move=None):
+    def __init__(self, L, on_click=None, on_keypress=None):
         """ Set up the PyGame visualization window.
 
         L np.array: the length of the arm segments
-        on_click_move string: on mouse click: [target, obstacle, None]
+        on_click function: function to call on mouse click, parameters
+                           are (Display, mouse_x, mouse_y)
+        on_keypress function: function to call on keypress, parameters
+                            are (Display, key)
         """
         # set up size of pygame window
         self.width = 642
@@ -20,8 +23,6 @@ class Display():
 
         self.scaling_term = 105
         line_width = .15 * self.scaling_term
-        # self.scaling_term = 505
-        # line_width = .05 * self.scaling_term
 
         self.white = (255, 255, 255)
         self.red = (255, 0, 0)
@@ -29,13 +30,14 @@ class Display():
         self.arm_color = (75, 75, 75)
         line_color = (50, 50, 50, 200)  # fourth value is transparency
 
-        self.on_click_move = on_click_move
+        self.on_click = on_click
+        self.on_keypress = on_keypress
 
         self.L = np.asarray(L) * self.scaling_term
         self.target = None
         self.circles = []
-        self.mouse_x = 0
-        self.mouse_y = 0
+        self.mouse_x = None
+        self.mouse_y = None
 
         # create transparent arm lines
         self.lines_base = []
@@ -104,15 +106,14 @@ class Display():
 
         # check for events
         for event in pygame.event.get():
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if (event.type == pygame.MOUSEBUTTONDOWN and
+                    self.on_click is not None):
                 self.mouse_x, self.mouse_y = pygame.mouse.get_pos()
+                self.on_click(self, self.mouse_x, self.mouse_y)
 
-                if self.on_click_move == 'target':
-                    self.target[0] = self.mouse_x
-                    self.target[1] = self.mouse_y
-                elif self.on_click_move == 'obstacle':
-                    self.circles[0][0] = self.mouse_x
-                    self.circles[0][1] = self.mouse_y
+            if (event.type == pygame.KEYDOWN and
+                    self.on_keypress is not None):
+                self.on_keypress(self, event.key)
 
         pygame.display.update()
         self.fpsClock.tick(self.fps)
@@ -129,10 +130,6 @@ class Display():
         self.target = (xyz * np.array([1, -1]) *
                        self.scaling_term + self.base_offset)
 
-        if self.on_click_move == 'target':
-            self.mouse_x = self.target[0]
-            self.mouse_y = self.target[1]
-
     def add_circle(self, xyz, radius, color=[0, 0, 100]):
         """ Add an obstacle to the list.
 
@@ -148,6 +145,8 @@ class Display():
     def get_mousexy(self):
         """ Returns the (x,y) position of the mouse over the display.
         """
-        x = (self.mouse_x - self.base_offset[0]) / self.scaling_term
-        y = (self.mouse_y - self.base_offset[1]) / self.scaling_term * -1
-        return x, y
+        if self.mouse_x is not None and self.mouse_y is not None:
+            x = (self.mouse_x - self.base_offset[0]) / self.scaling_term
+            y = (self.mouse_y - self.base_offset[1]) / self.scaling_term * -1
+            return x, y
+        return None
