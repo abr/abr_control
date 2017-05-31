@@ -9,7 +9,7 @@ class Joint(controller.Controller):
 
     Parameters
     ----------
-    robot_config : class instance, required (Default: None)
+    robot_config : class instance
         passes in all relevant information about the arm
         from its config, such as: number of joints, number
         of links, mass information etc.
@@ -17,15 +17,6 @@ class Joint(controller.Controller):
         proportional gain term
     kv : float, optional (Default: None)
         derivative gain term, a good starting point is sqrt(kp)
-
-    Attributes
-    ----------
-    ZEROS_NUM_JOINTS : numpy.zeros array
-        for initialization purposes, it is the length of the
-        number of joints in the arm
-    q_tilde : float numpy array
-        in radians, the difference between target and current
-        joint angle position
     """
 
     def __init__(self, robot_config, kp=1, kv=None):
@@ -41,23 +32,14 @@ class Joint(controller.Controller):
 
         Parameters
         ----------
-        q : float numpy.array, required (Default: None)
+        q : float numpy.array
             current joint angles in radians
-        dq : float numpy.array, required (Default: None)
+        dq : float numpy.array
             current joint velocities in radians/second
-        target_pos : float numpy.array, required (Default: None)
+        target_pos : float numpy.array
             desired joint angles in radians
         target_vel : float numpy.array, optional (Default: None)
             desired joint velocities in radians/sec
-
-        Attributes
-        ----------
-        g : float numpy.array
-          gravity compensation term in joint space
-        M : float numpy.array
-          joint space inertia matrix
-        u : float numpy.array
-          control signal in joint space
         """
 
         self.q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi

@@ -7,7 +7,7 @@ class OSC(controller.Controller):
 
     Parameters
     ----------
-    robot_config : class instance, required (Default: None)
+    robot_config : class instance
         passes in all relevant information about the arm
         from its config, such as: number of joints, number
         of links, mass information etc.
@@ -32,14 +32,6 @@ class OSC(controller.Controller):
 
     Attributes
     ----------
-    lamb : float
-        the ratio of the proportional to the derivative gain
-        used for velocity limiting
-    null_indices
-    dq_des : float numpy.array
-        desired joint velocity for null controller
-    IDENTITY_N_JOINTS : numpy.eye
-        used for calculating null filter
     nkp : float
         proportional gain term for null controller
     nkv : float
@@ -72,19 +64,30 @@ class OSC(controller.Controller):
                 target_quat=None, target_w=np.zeros(3),
                 mask=[1, 1, 1, 0, 0, 0],
                 ref_frame='EE', offset=[0, 0, 0]):
-        """ Generates the control signal
+        """ Generates the control signal to move the EE to a target
 
-        q np.array: the current joint angles
-        dq np.array: the current joint velocities
-        target_pos np.array: the target end-effector position values, post-mask
-        target_vel np.array: the target end-effector velocity, post-mask
-        target_quat np.array: the target orientation as a quaternion
-                              in the form [w, x, y, z]
-        target_w np.array: the target angular velocities
-        mask list: indicates the [x, y, z, roll, pitch, yaw] values
-                   to be controlled, 1 = control, 0 = ignore
-        ref_frame string: the frame of reference of control point
-        offset list: point of interest from the frame of reference
+        Parameters
+        ----------
+        q : float numpy.array
+            current joint angles in radians
+        dq : float numpy.array
+            current joint velocities in radians/second
+        target_pos : float numpy.array
+            desired joint angles in radians
+        target_vel : float numpy.array, optional (Default: numpy.zeros)
+            desired joint velocities in radians/sec
+        target_quat : float numpy.array, optional Default: None)
+            the target orientation as a quaternion in the form [w, x, y, z]
+        target_w : float numpy.array, optional (Default: numpy.zeros)
+            the target angular velocities
+        mask : list, optional (Default: [1, 1, 1, 0, 0, 0])
+            indicates the [x, y, z, roll, pitch, yaw] values
+            to be controlled, 1 = control, 0 = ignore
+        ref_frame : string, optional (Default: 'EE')
+            the frame of reference of control point, default is the end
+            effector. Names are set in the robot's config file
+        offset : list, optional (Default: [0, 0, 0])
+            point of interest from the frame of reference
         """
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
@@ -140,7 +143,7 @@ class OSC(controller.Controller):
             else:
                 # generate (x,y,z) force without velocity limiting)
                 u_task[:3] = -self.kp * x_tilde
-
+        #TODO add orientation control to a separate branch
         # # generate the orientation control signal in task space if a target
         # # orientation was provided, and the mask includes orientation angles
         # if target_quat is not None and np.sum(mask[3:]) > 0:
