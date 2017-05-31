@@ -3,18 +3,27 @@ import numpy as np
 from .signal import Signal
 
 class AvoidJointLimits(Signal):
-    """ An implementation of dynamics adaptation using a Nengo model
+    """ A signal to add to a controller to push joints away from set limits
+
+    Pass in a set of maximum and minimum joint angles, along with a maximum
+    force to push away with. As the joints near their limit the opposing force
+    gets larger until it reaches max_torque
+
+    Parameters
+    ----------
+    min_joint_angles : np.array
+      the lower bound on joint angles [radians]
+    max_joint_angles : np.array
+      the upper bound on joint angles [radians]
+    max_torque : np.array, optional (Default: 1)
+      the maximum force to push away with [Nm]
+
+    NOTE: use None as a placeholder for joints that have no limits
     """
 
     def __init__(self, robot_config,
                  min_joint_angles, max_joint_angles,
                  max_torque=None):
-        """
-        min_joint_angles np.array: the lower bound on joint angles (radians)
-        max_joint_angles np.array: the upper bound on joint angles (radians)
-        NOTE: use None as a placeholder for joints that have no limits
-        max_torque np.array: default is 1
-        """
 
         self.min_joint_angles = np.asarray(min_joint_angles, dtype='float32')
         self.max_joint_angles = np.asarray(max_joint_angles, dtype='float32')
@@ -34,7 +43,8 @@ class AvoidJointLimits(Signal):
     def generate(self, q):
         """ Generates the control signal
 
-        q np.array: the current joint angles
+        q : np.array
+          the current joint angles [radians]
         """
 
         avoid_min = np.zeros(self.robot_config.N_JOINTS)

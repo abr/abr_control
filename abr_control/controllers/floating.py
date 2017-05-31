@@ -28,9 +28,9 @@ class Floating(controller.Controller):
         Parameters
         ----------
         q : float numpy.array
-            the current joint angles in radians
+            the current joint angles [radians]
         dq : float numpy.array
-            the current joint velocities in radians/second
+            the current joint velocities [radians/second]
         """
 
         # calculate the effect of gravity in joint space
