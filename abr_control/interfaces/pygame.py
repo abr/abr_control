@@ -4,16 +4,29 @@ import pygame.locals
 
 
 class PyGame():
+    """ Set up the PyGame visualization window.
+
+    Parameters
+    ----------
+    robot_config : class instance
+        passes in all relevant information about the arm
+        from its config, such as: number of joints, number
+        of links, mass information etc.
+    arm_sim
+    dt: float, optional (Default: 0.001)
+        simulation timestep
+    q_init: numpy.array, optional (Default: None)
+        joint start position [radians]
+    on_click: function
+        function to call on mouse click, parameters
+        are (Display, mouse_x, mouse_y)
+    on_keypress : function
+        function to call on keypress, parameters
+        are (Display, key)
+    """
 
     def __init__(self, robot_config, arm_sim, dt=0.001, q_init=None,
                  on_click=None, on_keypress=None):
-        """ Set up the PyGame visualization window.
-
-        on_click function: function to call on mouse click, parameters
-                           are (Display, mouse_x, mouse_y)
-        on_keypress function: function to call on keypress, parameters
-                            are (Display, key)
-        """
         self.robot_config = robot_config
         self.arm_sim = arm_sim
 
@@ -95,11 +108,18 @@ class PyGame():
         return self.arm_sim.get_feedback()
 
     def send_forces(self, u, dt=None):
-        """ Apply the specified forces to the robot,
+        """ Apply the specified torque to the robot
+
+        Apply the specified forces to the robot,
         move the simulation one time step forward, and update
         the PyGame display.
 
-        u np.array: an array of the torques to apply to the robot
+        Parameters
+        ----------
+        u : numpy.array
+            an array of the torques to apply to the robot [Nm]
+        dt : float, optional (Default: None)
+            time step [seconds]
         """
 
         # update the arm sim
@@ -110,7 +130,10 @@ class PyGame():
     def set_target(self, xyz):
         """ Set the position of the target object.
 
-        xyz np.array: the [x,y,z] location of the target (in meters)
+        Parameters
+        ----------
+        xyz : np.array
+            the [x,y,z] location of the target [meters]
         """
 
         self.target = (xyz[:2] * np.array([1, -1]) *
@@ -119,8 +142,14 @@ class PyGame():
     def add_circle(self, xyz, radius, color=[0, 0, 100]):
         """ Add an obstacle to the list.
 
-        xyz np.array: the [x,y,z] center location of the obstacle (in meters)
-        size float: the radius of the obstacle (in meters)
+        Parameters
+        ----------
+        xyz : np.array
+            the [x,y,z] location of the target [meters]
+        radius : float
+            the radius of the obstacle [meters]
+        color : list, optional (Default: [0, 0, 100])
+            colour of the circle
         """
 
         circle = list(xyz[:2] * np.array([1, -1]) *
@@ -140,13 +169,18 @@ class PyGame():
         return None
 
     def get_xyz(self, name):
+        """ Not available in the pygame interface"""
+
         raise NotImplementedError(
             "Not an available method in the PyGame interface")
 
     def _update(self, q):
         """ Update the arm using the provided joint angles.
 
-        q np.array: the current joint angles
+        Parameters
+        ----------
+        q : np.array
+            the current joint angles
         """
 
         self.display.fill(self.white)

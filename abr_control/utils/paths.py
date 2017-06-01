@@ -1,6 +1,7 @@
 import os
 import sys
 
+""" Set the path based on the operating system"""
 
 if sys.platform.startswith('win'):
     cache_dir = os.path.join(config_dir, "cache")

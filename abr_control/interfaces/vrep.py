@@ -2,6 +2,7 @@ import numpy as np
 from .vrep_files import vrep
 
 import abr_control
+from abr_control.utils import transformations
 from .interface import Interface
 
 
@@ -68,7 +69,7 @@ class VREP(Interface):
         self.joint_handles = [vrep.simxGetObjectHandle(self.clientID,
                               name,
                               vrep.simx_opmode_blocking)[1] for name in
-                              self.robot_config.joint_names]
+                              self.robot_config.JOINT_NAMES]
 
         # get handle for target and set up streaming
         _, self.misc_handles['target'] = \
@@ -97,7 +98,7 @@ class VREP(Interface):
         vrep.simxStartSimulation(self.clientID,
                                  vrep.simx_opmode_blocking)
 
-        print('Connected to remote API server')
+        print('Connected to VREP remote API server')
 
     def disconnect(self):
         """ Stop and reset the simulation. """
@@ -111,7 +112,7 @@ class VREP(Interface):
 
         # Now close the connection to V-REP:
         vrep.simxFinish(self.clientID)
-        print('connection closed...')
+        print('VREP connection closed...')
 
     def get_orientation(self, name):
         """ Returns the orientation of an object in VREP
@@ -220,7 +221,7 @@ class VREP(Interface):
 
         # Update orientation of hand object
         quaternion = self.robot_config.orientation('EE', q=self.q)
-        angles = abr_control.utils.transformations.euler_from_quaternion(
+        angles = transformations.euler_from_quaternion(
             quaternion, axes='rxyz')
         self.set_orientation('hand', angles)
 

@@ -5,17 +5,16 @@ by clicking on the background.
 """
 import numpy as np
 
-import abr_control
-from abr_control.arms.threelink.arm_sim import ArmSim
-# from abr_control.arms.twolink.arm_sim import ArmSim
-from abr_control.interfaces.pygame import PyGame
+from abr_control.arms import threelink as arm
+# from abr_control.arms import twolink as arm
+from abr_control.interfaces import PyGame
+from abr_control.controllers import OSC, signals
+
 
 # initialize our robot config
-robot_config = abr_control.arms.threelink.Config(use_cython=True)
-# robot_config = abr_control.arms.twolink.Config(use_cython=True)
-
+robot_config = arm.Config(use_cython=True)
 # create our arm simulation
-arm_sim = ArmSim(robot_config)
+arm_sim = arm.ArmSim(robot_config)
 
 def on_click(self, mouse_x, mouse_y):
     self.circles[0][0] = mouse_x
@@ -26,10 +25,8 @@ interface = PyGame(robot_config, arm_sim,
                    on_click=on_click)
 interface.connect()
 
-ctrlr = abr_control.controllers.OSC(
-    robot_config, kp=20, vmax=10)
-avoid = abr_control.controllers.signals.AvoidObstacles(
-    robot_config, threshold=1)
+ctrlr = OSC(robot_config, kp=20, vmax=10)
+avoid = signals.AvoidObstacles(robot_config, threshold=1)
 
 # create an obstacle
 interface.add_circle(xyz=[0, 0, 0], radius=.2)

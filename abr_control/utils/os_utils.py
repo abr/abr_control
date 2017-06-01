@@ -1,8 +1,16 @@
 import os
 
 def makedirs(folder):
-    """ Checks to see if folder exists, if it does not, then
-    it creates the folder and all other folders in the path required. """
+    """ Create the folder if it does not exist
+
+    Checks to see if folder exists, if it does not, then
+    it creates the folder and all other folders in the path required.
+
+    Parameters
+    ----------
+    folder : string
+        name of the folder
+    """
 
     if os.path.isdir(folder):
         pass

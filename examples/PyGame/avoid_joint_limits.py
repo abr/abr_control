@@ -5,19 +5,19 @@ The target location can be moved by clicking on the background.
 """
 import numpy as np
 
-import abr_control
-from abr_control.arms.threelink.arm_sim import ArmSim
-# from abr_control.arms.twolink.arm_sim import ArmSim
-from abr_control.interfaces.pygame import PyGame
+from abr_control.arms import threelink as arm
+# from abr_control.arms import twolink as arm
+from abr_control.interfaces import PyGame
+from abr_control.controllers import OSC, signals
+
 
 print('\nClick to move the target.\n')
 
 # initialize our robot config
-robot_config = abr_control.arms.threelink.Config(use_cython=True)
-# robot_config = abr_control.arms.twolink.Config(use_cython=True)
+robot_config = arm.Config(use_cython=True)
 
 # create our arm simulation
-arm_sim = ArmSim(robot_config)
+arm_sim = arm.ArmSim(robot_config)
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
@@ -25,13 +25,12 @@ def on_click(self, mouse_x, mouse_y):
 
 # create our interface
 interface = PyGame(robot_config, arm_sim,
-    dt=.001, on_click=on_click,
-    q_init=[np.pi/4, np.pi/2, np.pi/2])
+                   dt=.001, on_click=on_click,
+                   q_init=[np.pi/4, np.pi/2, np.pi/2])
 interface.connect()
 
-ctrlr = abr_control.controllers.OSC(
-    robot_config, kp=100, vmax=10)
-avoid = abr_control.controllers.signals.AvoidJointLimits(
+ctrlr = OSC(robot_config, kp=100, vmax=10)
+avoid = signals.AvoidJointLimits(
     robot_config,
     min_joint_angles=[np.pi/5]*robot_config.N_JOINTS,
     max_joint_angles=[np.pi/2]*robot_config.N_JOINTS,
@@ -45,7 +44,6 @@ interface.set_target(target_xyz)
 ee_path = []
 target_path = []
 
-print('\nClick to move the obstacle.\n')
 try:
     while 1:
         # get arm feedback

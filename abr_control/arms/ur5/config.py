@@ -61,7 +61,7 @@ class Config(BaseConfig):
         # TODO: automate getting all this information from VREP
 
         # create the inertia matrices for each link of the ur5
-        self._M_links = [
+        self._M_LINKS = [
             sp.diag(1.0, 1.0, 1.0, 0.02, 0.02, 0.02),  # link0
             sp.diag(2.5, 2.5, 2.5, 0.04, 0.04, 0.04),  # link1
             sp.diag(5.7, 5.7, 5.7, 0.06, 0.06, 0.04),  # link2
@@ -71,7 +71,7 @@ class Config(BaseConfig):
             sp.diag(0.7, 0.7, 0.7, 0.01, 0.01, 0.01)]  # link6
 
         # the joints don't weigh anything in VREP
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
+        self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
         # segment lengths associated with each transform
         # ignoring lengths < 1e-6
