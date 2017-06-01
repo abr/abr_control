@@ -4,16 +4,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def plot_trajectory(ee_path, target_path, save_file_name=None):
+def plot_3D(ee_path, target_path=None, save_file_name=None):
     """ 3D plot of the end-effector and target trajectory
 
-    ee_path np.array: the ee trajectory [[x0,y0,z0],...,[xN,yN,zN]]
-    target_path np.array: the target trajectory [[x0,y0,z0],...,[xN,yN,zN]]
-    save_file_name string: saves the figure with this name
+    Parameters
+    ----------
+    ee_path : numpy.array
+        the ee trajectory [[x0,y0,z0],...,[xN,yN,zN]]
+    target_path : numpy.array (Default: None)
+        the target trajectory [[x0,y0,z0],...,[xN,yN,zN]]
+        if None nothing is plotted
+    save_file_name : string (Default: None)
+        name to save the figure as
+        if None nothing is saved
     """
 
     ee_path = np.asarray(ee_path)
-    target_path = np.asarray(target_path)
 
     fig = plt.figure(figsize=(6, 6))
 
@@ -24,9 +30,15 @@ def plot_trajectory(ee_path, target_path, save_file_name=None):
     # plot trajectory of hand
     ax.plot(ee_path[:, 0], ee_path[:, 1],
             ee_path[:, 2])
-    # plot trajectory of target
-    ax.plot(target_path[:, 0], target_path[:, 1],
-            target_path[:, 2], 'rx', mew=10)
+
+    if target_path is not None:
+        # plot trajectory of target
+        target_path = np.asarray(target_path)
+        ax.plot(target_path[:, 0], target_path[:, 1],
+                target_path[:, 2], 'g--')
+        # plot the final position of the target
+        ax.plot([target_path[-1, 0]], [target_path[-1, 1]],
+                [target_path[-1, 2]], 'gx', mew=10)
 
     ax.set_xlim([-1, 1])
     ax.set_ylim([-.5, .5])
@@ -39,4 +51,4 @@ def plot_trajectory(ee_path, target_path, save_file_name=None):
         plt.savefig(save_file_name + '.pdf', format='pdf')
         plt.savefig(save_file_name)
 
-    plt.show()
+    return ax

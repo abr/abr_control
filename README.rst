@@ -1,4 +1,5 @@
+***********
 ABR Control
-==========
+***********
 
-Repository for ABR control projects
+The ABR_Control library.

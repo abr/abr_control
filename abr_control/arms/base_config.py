@@ -7,7 +7,6 @@ import sympy as sp
 from sympy.utilities.autowrap import autowrap
 import sys
 
-import abr_control
 import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
 
@@ -78,6 +77,13 @@ class BaseConfig():
         self.ROBOT_NAME = ROBOT_NAME
 
         self.use_cython = use_cython
+        # check to make sure cython is installed
+        if self.use_cython:
+            try:
+                import cython
+            except ImportError:
+                print('Warning: Cython not installed, cython ' +
+                      'optimizations cannot be used.')
 
         # create function dictionaries
         self._C = None

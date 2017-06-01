@@ -34,5 +34,5 @@ setup(
     license="",
     description=description,
     long_description=long_description,
-    install_requires=["numpy", "sympy", "cloudpickle"],
+    install_requires=["numpy", "cloudpickle", "sympy"],
 )

@@ -3,6 +3,20 @@ import numpy as np
 
 class ArmSim():
     """ An interface for a Python implementation of a 2 link arm.
+
+    An interface for the two-link MapleSim model that has been exported
+    to C and turned into shared libraries using Cython.
+
+    Parameters
+    ----------
+    robot_config : class instance
+        passes in all relevant information about the arm
+        from its config, such as: number of joints, number
+        of links, mass information etc.
+    dt: float, optional (Default: 0.001)
+        simulation time step [seconds]
+    q_init : numpy.array, optional (Default: None)
+        start joint angles [radians]
     """
 
     def __init__(self, robot_config, dt=.001, q_init=None):
@@ -60,7 +74,12 @@ class ArmSim():
         move the simulation one time step forward, and update
         the plot.
 
-        u np.array: an array of the torques to apply to the robot
+        Parameters
+        ----------
+        u : numpy.array
+            an array of the torques to apply to the robot [Nm]
+        dt : float, optional (Default: None)
+            time step [seconds]
         """
 
         self._step(u, dt=self.dt if dt is None else dt)
@@ -84,7 +103,15 @@ class ArmSim():
         return np.array([self.joints_x, self.joints_y])
 
     def _step(self, u, dt=None):
-        """ Simulate the system one time step """
+        """ Simulate the system one time step
+
+        Parameters
+        ----------
+        u : numpy.array
+            an array of the torques to apply to the robot
+        dt : float, optional (Default: None)
+            time step [seconds]
+        """
 
         dt = self.dt if dt is None else dt
 
@@ -112,5 +139,6 @@ class ArmSim():
 
     def _update_state(self):
         """ Update local variables """
+
         self._position()
         self.x = np.array([self.joints_x[-1], self.joints_y[-1]])

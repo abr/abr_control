@@ -7,31 +7,29 @@ To turn adaptation on or off, press the spacebar.
 import numpy as np
 import pygame
 
-import abr_control
-from abr_control.arms.threelink.arm_sim import ArmSim
-# from abr_control.arms.twolink.arm_sim import ArmSim
-from abr_control.interfaces.pygame import PyGame
+from abr_control.arms import threelink as arm
+# from abr_control.arms import twolink as arm
+from abr_control.interfaces import PyGame
+from abr_control.controllers import OSC, signals
 
-print('\nClick to move the target.\n')
+
+print('\nClick to move the target.')
+print('\nPress space to turn on adaptation.\n\n')
 
 # initialize our robot config
-robot_config = abr_control.arms.threelink.Config(use_cython=True)
-# robot_config = abr_control.arms.twolink.Config(use_cython=True)
-
+robot_config = arm.Config(use_cython=True)
 # get Jacobians to each link for calculating perturbation
 J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
            for ii in range(robot_config.N_LINKS)]
 
 # create our arm simulation
-arm_sim = ArmSim(robot_config)
+arm_sim = arm.ArmSim(robot_config)
 
 # create an operational space controller
-ctrlr = abr_control.controllers.OSC(
-    robot_config, kp=20, vmax=10)
+ctrlr = OSC(robot_config, kp=20, vmax=10)
 
 # create our nonlinear adaptation controller
-adapt = abr_control.controllers.signals.DynamicsAdaptation(
-    robot_config, pes_learning_rate=1e-4)
+adapt = signals.DynamicsAdaptation(robot_config, pes_learning_rate=1e-4)
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
@@ -44,8 +42,8 @@ def on_keypress(self, key):
 
 # create our interface
 interface = PyGame(robot_config, arm_sim,
-                     on_click=on_click,
-                     on_keypress=on_keypress)
+                   on_click=on_click,
+                   on_keypress=on_keypress)
 interface.connect()
 interface.adaptation = False  # set adaptation False to start
 

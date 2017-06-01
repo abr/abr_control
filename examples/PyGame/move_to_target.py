@@ -4,34 +4,29 @@ move the end-effector to the target, which can be moved by
 clicking on the background.
 """
 import numpy as np
-import sys
 
-import abr_control
-from abr_control.arms.threelink.arm_sim import ArmSim
-# from abr_control.arms.twolink.arm_sim import ArmSim
-from abr_control.interfaces.pygame import PyGame
+from abr_control.arms import threelink as arm
+# from abr_control.arms import twolink as arm
+from abr_control.interfaces import PyGame
+from abr_control.controllers import OSC
 
 
 print('\nClick to move the target.\n')
 
 # initialize our robot config
-robot_config = abr_control.arms.threelink.Config(use_cython=True)
-# robot_config = abr_control.arms.twolink.Config(use_cython=True)
-
+robot_config = arm.Config(use_cython=True)
 # create our arm simulation
-arm_sim = ArmSim(robot_config)
+arm_sim = arm.ArmSim(robot_config)
 
 # create an operational space controller
-ctrlr = abr_control.controllers.OSC(
-    robot_config, kp=100, vmax=10)
+ctrlr = OSC(robot_config, kp=100, vmax=10)
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
     self.target[1] = self.mouse_y
 
 # create our interface
-interface = PyGame(robot_config, arm_sim,
-                   dt=.001, on_click=on_click)
+interface = PyGame(robot_config, arm_sim, dt=.001, on_click=on_click)
 interface.connect()
 
 # create a target
