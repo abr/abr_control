@@ -8,12 +8,15 @@ import numpy as np
 
 import abr_control
 from abr_control.arms.threelink.arm_sim import ArmSim
+# from abr_control.arms.twolink.arm_sim import ArmSim
 from abr_control.interfaces.pygame import PyGame
 
 print('\nClick to move the target.\n')
 
 # initialize our robot config for the ur5
 robot_config = abr_control.arms.threelink.Config(use_cython=True)
+# robot_config = abr_control.arms.twolink.Config(use_cython=True)
+
 # create our arm simulation
 arm_sim = ArmSim(robot_config)
 
@@ -23,7 +26,8 @@ ctrlr = abr_control.controllers.OSC(
 
 # create our path planner
 n_timesteps = 100
-path_planner = abr_control.controllers.path_planners.SecondOrder(robot_config)
+path_planner = abr_control.controllers.path_planners.SecondOrder(
+    robot_config)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)
