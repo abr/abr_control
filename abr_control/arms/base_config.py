@@ -52,10 +52,10 @@ class BaseConfig():
             for Jacobian time derivative calculations
         _J  : dictionary
             for Jacobian calculations
-        _M_links : dictionary
-            placeholder for (x,y,z) inertia matrices
-        _M_joints : dictionary
-            placeholder for (x,y,z) inertia matrices
+        _M_LINKS : dictionary
+            inertia matrices of the robot links
+        _M_JOINTS : dictionary
+            inertia matrices of the robot joints
         _M : dictionary
             placeholder for joint space inertia matrix function
         _orientation : dictionary
@@ -84,8 +84,8 @@ class BaseConfig():
         self._g = None
         self._dJ = {}
         self._J = {}
-        self._M_links = []
-        self._M_joints = []
+        self._M_LINKS = []
+        self._M_JOINTS = []
         self._M = None
         self._orientation = {}
         self._T_inv = {}
@@ -473,11 +473,11 @@ class BaseConfig():
             g = sp.zeros(self.N_JOINTS, 1)
             for ii in range(self.N_LINKS):
                 # transform each inertia matrix into joint space
-                g += (J_links[ii].T * self._M_links[ii] * self.gravity)
+                g += (J_links[ii].T * self._M_LINKS[ii] * self.gravity)
             # sum together the effects of each joint's inertia on each motor
             for ii in range(self.N_JOINTS):
                 # transform each inertia matrix into joint space
-                g += (J_joints[ii].T * self._M_joints[ii] * self.gravity)
+                g += (J_joints[ii].T * self._M_JOINTS[ii] * self.gravity)
             g = sp.Matrix(g)
 
             # save to file
@@ -653,11 +653,11 @@ class BaseConfig():
             M = sp.zeros(self.N_JOINTS)
             for ii in range(self.N_LINKS):
                 # transform each inertia matrix into joint space
-                M += (J_links[ii].T * self._M_links[ii] * J_links[ii])
+                M += (J_links[ii].T * self._M_LINKS[ii] * J_links[ii])
             # sum together the effects of each joint's inertia on each motor
             for ii in range(self.N_JOINTS):
                 # transform each inertia matrix into joint space
-                M += (J_joints[ii].T * self._M_joints[ii] * J_joints[ii])
+                M += (J_joints[ii].T * self._M_JOINTS[ii] * J_joints[ii])
             M = sp.Matrix(M)
 
             # save to file

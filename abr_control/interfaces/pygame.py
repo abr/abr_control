@@ -36,9 +36,20 @@ class PyGame():
         self.on_click = on_click
         self.on_keypress = on_keypress
 
-        # NOTE: need to get the arm lengths here from the transforms
-        L = [2.0, 1.2, .7]
+        # NOTE: assuming that the arm lengths are entirely in the x dimension
+        # To get the distance between links we add up couples of transforms,
+        # because the robot_config.L is defined as sets of [joint_to_com,
+        # com_to_joint] distances. We ignore the first offset because it's
+        # from the origin to joint 0 and we want joint 0 centered.
+        # TODO: make this more robust, for systems with offsets
+        #       along several dimensions
+        L = []
+        for ii in range(int(self.robot_config.L.shape[0] / 2)):
+            L.append(np.sum(self.robot_config.L[ii*2:ii*2+2]))
         self.L = np.asarray(L) * self.scaling_term
+        # for plotting minimum distance is 1 pixel, otherwise seg fault
+        self.L[self.L < 1] = 1
+
         self.target = None
         self.circles = []
         self.mouse_x = None
@@ -136,6 +147,8 @@ class PyGame():
 
         self.display.fill(self.white)
 
+        # need to pad q with a 0 for the origin -> joint 0 offset
+        q = [0] + list(q)
         # get (x,y) positions of the joints
         joints_x = np.array(np.cumsum([0] + [
             int(self.L[ii] * np.cos(np.sum(q[:ii+1])))
