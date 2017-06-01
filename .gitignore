@@ -8,7 +8,6 @@ __pycache__/
 
 # save files
 *~
-saved_functions/
 
 # Distribution / packaging
 .Python
@@ -101,4 +100,3 @@ ENV/
 
 *.swo
 
-saved_functions*
