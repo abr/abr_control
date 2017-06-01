@@ -57,6 +57,7 @@ class ArmSim():
 
         for ii in range(int(np.ceil(dt/1e-5))):
             self.sim.step(self.state, u)
+        self._update_state()
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller. """
