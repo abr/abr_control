@@ -7,10 +7,11 @@ import numpy as np
 
 import pydmps
 
-import abr_control
-from abr_control.arms.threelink.arm_sim import ArmSim
-# from abr_control.arms.twolink.arm_sim import ArmSim
-from abr_control.interfaces.pygame import PyGame
+from abr_control.arms import threelink as arm
+# from abr_control.arms import twolink as arm
+from abr_control.interfaces import PyGame
+from abr_control.controllers import OSC
+
 
 # create a dmp that traces a circle
 x = np.linspace(0, np.pi*2, 100)
@@ -19,15 +20,13 @@ dmps = pydmps.DMPs_rhythmic(n_dmps=2, n_bfs=50, dt=.01)
 dmps.imitate_path(dmps_traj)
 
 # initialize our robot config
-robot_config = abr_control.arms.threelink.Config()
-# robot_config = abr_control.arms.twolink.Config(use_cython=True)
+robot_config = arm.Config(use_cython=True)
 
 # create our arm simulation
-arm_sim = ArmSim(robot_config)
+arm_sim = arm.ArmSim(robot_config)
 
 # create an operational space controller
-ctrlr = abr_control.controllers.OSC(
-    robot_config, kp=500, vmax=20)
+ctrlr = OSC(robot_config, kp=500, vmax=20)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)

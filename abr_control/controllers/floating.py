@@ -21,6 +21,7 @@ class Floating(controller.Controller):
 
     def __init__(self, robot_config, dynamic=False):
         super(Floating, self).__init__(robot_config)
+        self.dynamic = dynamic
 
     def generate(self, q, dq=None):
         """ Generates the control signal to compensate for gravity

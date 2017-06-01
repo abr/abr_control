@@ -4,8 +4,21 @@ from .arm_files.py3LinkArm import pySim
 
 
 class ArmSim():
-    """ An interface for the three-link MapleSim model that has been exported
+    """ An interface for the three-link MapleSim model
+
+    An interface for the three-link MapleSim model that has been exported
     to C and turned into shared libraries using Cython.
+
+    Parameters
+    ----------
+    robot_config : class instance
+        passes in all relevant information about the arm
+        from its config, such as: number of joints, number
+        of links, mass information etc.
+    dt: float, optional (Default: 0.001)
+        simulation time step [seconds]
+    q_init : numpy.array, optional (Default: None)
+        start joint angles [radians]
     """
 
     def __init__(self, robot_config, dt=.001, q_init=None):
@@ -28,6 +41,7 @@ class ArmSim():
     def connect(self):
         """ Creates the MapleSim model and set up PyGame.
         """
+
         # stores information returned from maplesim
         self.state = np.zeros(7)
         self.sim = pySim(dt=1e-5)
@@ -49,7 +63,12 @@ class ArmSim():
         move the simulation one time step forward, and update
         the plot.
 
-        u np.array: an array of the torques to apply to the robot
+        Parameters
+        ----------
+        u : numpy.array
+            an array of the torques to apply to the robot [Nm]
+        dt : float, optional (Default: None)
+            time step [seconds]
         """
 
         dt = self.dt if dt is None else dt
@@ -66,6 +85,8 @@ class ArmSim():
                 'dq': self.dq}
 
     def get_xyz(self, name):
+        """ Not available in the MapleSim Interface"""
+
         raise NotImplementedError("Not an available method" +
                                   "in the MapleSim interface")
 
@@ -82,6 +103,7 @@ class ArmSim():
 
     def _update_state(self):
         """Update the local variables"""
+
         self.t = self.state[0]
         self.q = self.state[1:4]
         self.dq = self.state[4:]
