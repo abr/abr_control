@@ -74,6 +74,10 @@ class PyGame():
 
         pygame.init()
         self.display = pygame.display.set_mode((self.width, self.height))
+
+        # initialize font
+        self.myfont = pygame.font.SysFont("monospace", 15)
+
         print('Connected to PyGame display')
 
     def disconnect(self):
@@ -206,6 +210,12 @@ class PyGame():
             if (event.type == pygame.KEYDOWN and
                     self.on_keypress is not None):
                 self.on_keypress(self, event.key)
+
+        # render text
+        label = self.myfont.render(
+            "Time: %0.3fs" % self.arm_sim.t, 1, (0, 0, 0))
+        self.display.blit(label, (10, 10))
+
 
         pygame.display.update()
         self.fpsClock.tick(self.fps)
