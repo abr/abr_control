@@ -1,20 +1,29 @@
 """
-Running the threelink arm with the PyGame display, using an exponential
-additive signal when to push away from joints and  avoid self collision.
-The target location can be moved by clicking on the background.
+Running the threelink arm with the pygame display. The arm will
+move the end-effector to the target, which can be moved by
+clicking on the background.
 """
 import numpy as np
+import sys
 
 import abr_control
 from abr_control.arms.threelink.arm_sim import ArmSim
+# from abr_control.arms.twolink.arm_sim import ArmSim
 from abr_control.interfaces.pygame import PyGame
+
 
 print('\nClick to move the target.\n')
 
-# initialize our robot config for the ur5
+# initialize our robot config
 robot_config = abr_control.arms.threelink.Config(use_cython=True)
+# robot_config = abr_control.arms.twolink.Config(use_cython=True)
+
 # create our arm simulation
 arm_sim = ArmSim(robot_config)
+
+# create an operational space controller
+ctrlr = abr_control.controllers.OSC(
+    robot_config, kp=100, vmax=10)
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
@@ -22,27 +31,18 @@ def on_click(self, mouse_x, mouse_y):
 
 # create our interface
 interface = PyGame(robot_config, arm_sim,
-    dt=.001, on_click=on_click,
-    q_init=[np.pi/4, np.pi/2, np.pi/2])
+                   dt=.001, on_click=on_click)
 interface.connect()
 
-ctrlr = abr_control.controllers.OSC(
-    robot_config, kp=100, vmax=10)
-avoid = abr_control.controllers.signals.AvoidJointLimits(
-    robot_config,
-    min_joint_angles=[np.pi/5, np.pi/5.0, np.pi/4.0],
-    max_joint_angles=[np.pi/2, 4*np.pi/5.0, 3*np.pi/4.0],
-    max_torque=[10, 100, 1000])
-
 # create a target
-target_xyz = [0, 2, 0]
+feedback = interface.get_feedback()
+target_xyz = robot_config.Tx('EE', feedback['q'])
 interface.set_target(target_xyz)
 
 # set up lists for tracking data
 ee_path = []
 target_path = []
 
-print('\nClick to move the obstacle.\n')
 try:
     while 1:
         # get arm feedback
@@ -54,12 +54,10 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_xyz)
-        # add in joint limit avoidance
-        u += avoid.generate(feedback['q'])
 
         new_target = interface.get_mousexy()
         if new_target is not None:
-            target_xyz[:2] = new_target
+            target_xyz[0:2] = new_target
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward

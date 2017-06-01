@@ -9,12 +9,15 @@ import pygame
 
 import abr_control
 from abr_control.arms.threelink.arm_sim import ArmSim
+# from abr_control.arms.twolink.arm_sim import ArmSim
 from abr_control.interfaces.pygame import PyGame
 
 print('\nClick to move the target.\n')
 
-# initialize our robot config for the ur5
+# initialize our robot config
 robot_config = abr_control.arms.threelink.Config(use_cython=True)
+# robot_config = abr_control.arms.twolink.Config(use_cython=True)
+
 # get Jacobians to each link for calculating perturbation
 J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
            for ii in range(robot_config.N_LINKS)]
@@ -28,7 +31,7 @@ ctrlr = abr_control.controllers.OSC(
 
 # create our nonlinear adaptation controller
 adapt = abr_control.controllers.signals.DynamicsAdaptation(
-    robot_config, pes_learning_rate=1e-3)
+    robot_config, pes_learning_rate=1e-4)
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x

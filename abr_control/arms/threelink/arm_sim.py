@@ -24,7 +24,6 @@ class ArmSim():
             self.q_init = None
 
         self.dt = dt  # time step
-        self.count = 0  # keep track of how many times forces have been sent
 
     def connect(self):
         """ Creates the MapleSim model and set up PyGame.
@@ -41,11 +40,7 @@ class ArmSim():
         """ Reset the simulation and close PyGame display.
         """
 
-        state = np.hstack([
-            self.robot_config.REST_ANGLES,
-            np.zeros(self.robot_config.N_JOINTS)])
-
-        self.sim.reset(self.state, state)
+        self.sim.reset(self.state, self.q_init)
         self._update_state()
         print('MapleSim connection closed...')
 
