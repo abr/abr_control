@@ -2,6 +2,7 @@ import numpy as np
 
 from .signal import Signal
 
+
 class AvoidObstacles(Signal):
     """ Implements an obstacle avoidance algorithm from (Khatib, 1987).
 
@@ -14,7 +15,7 @@ class AvoidObstacles(Signal):
     obstacles : list of list of floats
         a list of obstacles, where the obstacles are a list of the
         corresponding Cartesian coordinates and obstacle radius
-        ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius] etc.
+        ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius]
         The first three entires are the cartesian coordinates of the
         obstacle and the fourth is the approximate radius of the obstacle
         coordinates are in [meters]
@@ -63,7 +64,8 @@ class AvoidObstacles(Signal):
                 # the vector from the obstacle to the first line point
                 vec_ob_line = v - p1
                 # calculate the projection normalized by length of arm segment
-                projection = np.dot(vec_ob_line, vec_line) / np.sum((vec_line)**2)
+                projection = (np.dot(vec_ob_line, vec_line)
+                              / np.sum((vec_line)**2))
                 if projection < 0:
                     # then closest point is the start of the segment
                     closest = p1
@@ -109,7 +111,7 @@ class AvoidObstacles(Signal):
         obstacles : list of list of floats
             a list of obstacles, where the obstacles are a list of the
             corresponding Cartesian coordinates and obstacle radius
-            ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius] etc.
+            ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius]
             The first three entires are the cartesian coordinates of the
             obstacle and the fourth is the approximate radius of the obstacle
             coordinates are in [meters]

@@ -2,6 +2,7 @@ import numpy as np
 
 from .path_planner import PathPlanner
 
+
 class Linear(PathPlanner):
     """ Implement a trajectory controller on top of a controller
 
@@ -58,7 +59,7 @@ class Linear(PathPlanner):
 
         # get the next target state if we're not at the end of the trajectory
         self.target = (self.trajectory[self.n]
-                             if self.n < self.n_timesteps else self.target)
+                       if self.n < self.n_timesteps else self.target)
         self.n += 1
 
         return self.target

@@ -68,7 +68,6 @@ class Config(BaseConfig):
         self.REST_ANGLES = np.array(
             [None, 2.42, 2.42, 0.0, 0.0, 0.0], dtype='float32')
 
-        # TODO: check if using sp or np diag makes a difference
         # inertia values in VREP are divided by mass, account for that here
         self._M_LINKS = [
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
@@ -264,7 +263,7 @@ class Config(BaseConfig):
                 [0, 0, 0, 1]])
 
         # orientation part of the Jacobian (compensating for angular velocity)
-        KZ= sp.Matrix([0, 0, 1])
+        KZ = sp.Matrix([0, 0, 1])
         self.J_orientation = [
             self._calc_T('joint0')[:3, :3] * KZ,  # joint 0 orientation
             self._calc_T('joint1')[:3, :3] * KZ,  # joint 1 orientation
@@ -274,13 +273,13 @@ class Config(BaseConfig):
             self._calc_T('joint5')[:3, :3] * KZ]  # joint 5 orientation
         # dictionaries set by the sub-config, used for scaling input into
         # neural systems. Calculate by recording data from movement of interest
-        self.MEANS = { # expected mean of joint angles / velocities
+        self.MEANS = {  # expected mean of joint angles / velocities
             'q': np.ones(self.N_JOINTS) * np.pi,
             'dq': np.array([-0.01337, 0.00192, 0.00324,
                             0.02502, -0.02226, -0.01342])
             }
 
-        self.SCALES = { # expected variance of joint angles / velocities
+        self.SCALES = {  # expected variance of joint angles / velocities
             'q': np.ones(self.N_JOINTS) * np.pi * np.sqrt(self.N_JOINTS),
             'dq': (np.array([1.22826, 2.0, 1.42348,
                             2.58221, 2.50768, 1.27004])

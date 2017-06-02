@@ -31,13 +31,15 @@ ctrlr = OSC(robot_config, kp=20, vmax=10)
 # create our nonlinear adaptation controller
 adapt = signals.DynamicsAdaptation(robot_config, pes_learning_rate=1e-4)
 
+
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
     self.target[1] = self.mouse_y
 
+
 def on_keypress(self, key):
     if key == pygame.K_SPACE:
-        self.adaptation =  not self.adaptation
+        self.adaptation = not self.adaptation
         print('adaptation: ', self.adaptation)
 
 # create our interface

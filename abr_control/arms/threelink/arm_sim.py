@@ -19,22 +19,25 @@ class ArmSim():
         simulation time step [seconds]
     q_init : numpy.array, optional (Default: None)
         start joint angles [radians]
+    dq_init : numpy.array, optional (Default: None)
+        start joint velocity [radians/second]
     """
 
-    def __init__(self, robot_config, dt=.001, q_init=None):
+    def __init__(self, robot_config, dt=.001, q_init=None, dq_init=None):
 
         self.robot_config = robot_config
 
-        self.q = np.zeros(self.robot_config.N_JOINTS)  # joint angles
-        self.dq = np.zeros(self.robot_config.N_JOINTS)  # joint_velocities
+        # create placeholders for joint angles and velocity
+        self.q = np.zeros(self.robot_config.N_JOINTS)
+        self.dq = np.zeros(self.robot_config.N_JOINTS)
 
-        if q_init is not None:
-            self.q_init = np.zeros(self.robot_config.N_JOINTS*2)
-            self.q_init[::2] = q_init
-            # TODO: add in ability to set starting velocity, if useful
-            # self.q_init[1::2] = dq_init
+        self.init_state= np.zeros(self.robot_config.N_JOINTS*2)
+        if q_init is None:
+            self.init_state[::2] = self.robot_config.REST_ANGLES
         else:
-            self.q_init = None
+            self.init_state[::2] = q_init
+        if dq_init is not None:
+            self.init_state[1::2] = dq_init
 
         self.dt = dt  # time step
 
@@ -46,7 +49,7 @@ class ArmSim():
         self.state = np.zeros(7)
         self.sim = pySim(dt=1e-5)
 
-        self.sim.reset(self.state, self.q_init)
+        self.sim.reset(self.state, self.init_state)
         self._update_state()
         print('Connected to MapleSim model')
 
@@ -54,7 +57,7 @@ class ArmSim():
         """ Reset the simulation and close PyGame display.
         """
 
-        self.sim.reset(self.state, self.q_init)
+        self.sim.reset(self.state, self.init_state)
         self._update_state()
         print('MapleSim connection closed...')
 
