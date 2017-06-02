@@ -1,5 +1,6 @@
 import os
 
+
 def makedirs(folder):
     """ Create the folder if it does not exist
 

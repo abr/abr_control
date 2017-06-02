@@ -1,3 +1,3 @@
 include *.ttt
-include arm_files
-include vrep_files
+graft arm_files
+graft vrep_files

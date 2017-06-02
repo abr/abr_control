@@ -3,6 +3,9 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
 
+assert mpl
+assert Axes3D
+
 
 def plot_3D(ee_path, target_path=None, save_file_name=None):
     """ 3D plot of the end-effector and target trajectory

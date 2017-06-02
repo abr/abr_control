@@ -39,7 +39,6 @@ class Config(BaseConfig):
     rotations and the latter accounts for translations and axes flips
     """
 
-
     def __init__(self, **kwargs):
 
         super(Config, self).__init__(

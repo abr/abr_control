@@ -24,7 +24,7 @@ arm_sim = arm.ArmSim(robot_config)
 ctrlr = OSC(robot_config, kp=100, vmax=10)
 
 # create our path planner
-n_timesteps = 250 # give .25s to reach target
+n_timesteps = 250  # give .25s to reach target
 path_planner = path_planners.Linear(robot_config)
 
 # create our interface

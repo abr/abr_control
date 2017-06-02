@@ -2,6 +2,7 @@ import numpy as np
 
 from .signal import Signal
 
+
 class AvoidJointLimits(Signal):
     """ A signal to add to a controller to push joints away from set limits
 
@@ -39,7 +40,6 @@ class AvoidJointLimits(Signal):
         self.max_torque = (np.ones(robot_config.N_JOINTS)
                            if max_torque is None else np.asarray(max_torque))
 
-
     def generate(self, q):
         """ Generates the control signal
 
@@ -48,13 +48,15 @@ class AvoidJointLimits(Signal):
         """
 
         avoid_min = np.zeros(self.robot_config.N_JOINTS)
-        avoid_min = np.minimum(np.exp(-1.0/(self.min_joint_angles - q)), self.max_torque)
+        avoid_min = np.minimum(np.exp(-1.0/(self.min_joint_angles - q)),
+                               self.max_torque)
         min_index = (q - self.min_joint_angles) < 0
         avoid_min[min_index] = self.max_torque[min_index]
         avoid_min[self.no_limits_min] = 0.0
 
         avoid_max = np.zeros(self.robot_config.N_JOINTS)
-        avoid_max = -np.minimum(np.exp(-1.0/(q - self.max_joint_angles)), self.max_torque)
+        avoid_max = -np.minimum(np.exp(-1.0/(q - self.max_joint_angles)),
+                                self.max_torque)
         max_index = (self.min_joint_angles - q) < 0
         avoid_max[max_index] = -self.max_torque[max_index]
         avoid_max[self.no_limits_max] = 0.0

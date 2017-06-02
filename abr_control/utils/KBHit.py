@@ -7,7 +7,7 @@ import sys
 class KBHit:
     '''Class for dealing with keyboard inputs'''
     def __init__(self):
-        '''Creates a KBHit object that you can call to do various keyboard things.
+        '''Creates a KBHit object that you can call to do keyboard inputs.
         '''
         # Save the terminal settings
         self.fd = sys.stdin.fileno()

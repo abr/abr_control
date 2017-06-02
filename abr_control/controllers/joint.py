@@ -2,6 +2,7 @@ import numpy as np
 
 from . import controller
 
+
 class Joint(controller.Controller):
     """ Implements a joint space controller
 

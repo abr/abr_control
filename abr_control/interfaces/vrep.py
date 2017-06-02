@@ -1,7 +1,6 @@
 import numpy as np
 from .vrep_files import vrep
 
-import abr_control
 from abr_control.utils import transformations
 from .interface import Interface
 
@@ -39,7 +38,7 @@ class VREP(Interface):
                                         10000.0)
 
         self.dt = dt  # time step
-        self.count = 0  # keep track of how many times send forces has been called
+        self.count = 0  # keep track of how many times send forces is called
         self.misc_handles = {}  # for tracking miscellaneous object handles
 
     def connect(self):
