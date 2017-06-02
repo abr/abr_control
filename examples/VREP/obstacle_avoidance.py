@@ -5,7 +5,8 @@ of the end-effector is plotted in 3D.
 """
 import numpy as np
 
-from abr_control.arms import ur5 as arm
+# from abr_control.arms import ur5 as arm
+from abr_control.arms import jaco2 as arm
 from abr_control.controllers import OSC, signals
 from abr_control.interfaces import VREP
 
@@ -35,7 +36,7 @@ try:
     # set up the values to be used by the Jacobian for the object end effector
     start = robot_config.Tx('EE', q=feedback['q'])
 
-    target_xyz = start + np.array([.25, -.25, 0.0])
+    target_xyz = start + np.array([.2, -.2, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
 
     moving_obstacle = True
@@ -45,34 +46,33 @@ try:
     count = 0.0
     obs_count = 0.0
     while count < 1500:
-        # get arm feedback from VREP
+        # get joint angle and velocity feedback
         feedback = interface.get_feedback()
-
-        # use visual feedback to get object endpoint position
-        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
-
-        # generate control signal
+        # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_xyz,
             target_vel=np.zeros(3))
 
-        # locate obstacle
+        # get obstacle position from VREP
         obs_x, obs_y, obs_z = interface.get_xyz('obstacle')
         # update avoidance system about obstacle position
         avoid.set_obstacles([[obs_x, obs_y, obs_z, 0.05]])
         if moving_obstacle is True:
             obs_x = .125 + .25 * np.sin(obs_count)
             obs_count += .01
-            interface.set_xyz(name='obstacle', xyz=[obs_x, obs_y, obs_z])
+            interface.set_xyz(name='obstacle',
+                              xyz=[obs_x, obs_y, obs_z])
 
         # add in obstacle avoidance control signal
         u += avoid.generate(q=feedback['q'])
 
-        # apply the control signal, step the sim forward
+        # send forces into VREP, step the sim forward
         interface.send_forces(u)
 
+        # calculate end-effector position
+        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
         # track data
         ee_track.append(np.copy(ee_xyz))
         target_track.append(np.copy(target_xyz))

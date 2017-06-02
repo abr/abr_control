@@ -6,7 +6,9 @@ trajectory of the end-effector is plotted in 3D.
 import numpy as np
 import traceback
 
-from abr_control.arms import ur5 as arm
+# from abr_control.arms import ur5 as arm
+from abr_control.arms import jaco2 as arm
+# from abr_control.arms import onelink as arm
 from abr_control.controllers import OSC
 from abr_control.interfaces import VREP
 
@@ -30,25 +32,23 @@ try:
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', feedback['q'])
     # make the target offset from that start position
-    target_xyz = start + np.array([0.25, -0.25, 0.0])
+    target_xyz = start + np.array([0.2, -0.2, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
     while count < 1500:
-        # get arm feedback from VREP
+        # get joint angle and velocity feedback
         feedback = interface.get_feedback()
-
-        # generate control signal
+        # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_xyz)
-
-        # use visual feedback to get object endpoint position
-        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
-        # apply the control signal, step the sim forward
+        # send forces into VREP, step the sim forward
         interface.send_forces(u)
 
+        # calculate end-effector position
+        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
         # track data
         ee_track.append(np.copy(ee_xyz))
         target_track.append(np.copy(target_xyz))

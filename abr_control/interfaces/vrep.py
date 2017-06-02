@@ -192,7 +192,8 @@ class VREP(Interface):
                 joint_handle,
                 vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception('Error retrieving joint torque.')
+                raise Exception('Error retrieving joint torque, ' +
+                                'return code ', _)
 
             # if force has changed signs,
             # we need to change the target velocity sign
@@ -205,7 +206,8 @@ class VREP(Interface):
                     self.joint_target_velocities[ii],
                     vrep.simx_opmode_blocking)
                 if _ != 0:
-                    raise Exception('Error setting joint target velocity.')
+                    raise Exception('Error setting joint target velocity, ' +
+                                    'return code ', _)
 
             # and now modulate the force
             _ = vrep.simxSetJointForce(self.clientID,
@@ -213,7 +215,8 @@ class VREP(Interface):
                                        abs(u[ii]),  # force to apply
                                        vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception('Error setting max joint force.')
+                raise Exception('Error setting max joint force, ' +
+                                'return code ', _)
 
         # Update position of hand object
         hand_xyz = self.robot_config.Tx(name='EE', q=self.q)
@@ -261,14 +264,14 @@ class VREP(Interface):
         """
 
         for ii, joint_handle in enumerate(self.joint_handles):
-
             # get the joint angles
             _, self.q[ii] = vrep.simxGetJointPosition(
                 self.clientID,
                 joint_handle,
                 vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception('Error retrieving joint angle.')
+                raise Exception('Error retrieving joint angle, ' +
+                                'return code ', _)
 
             # get the joint velocity
             _, self.dq[ii] = vrep.simxGetObjectFloatParameter(
@@ -277,7 +280,8 @@ class VREP(Interface):
                 2012,  # ID for joint angular velocity
                 vrep.simx_opmode_blocking)
             if _ != 0:
-                raise Exception('Error retrieving joint velocity.')
+                raise Exception('Error retrieving joint velocity, ' +
+                                'return code ', _)
 
         return {'q': self.q,
                 'dq': self.dq}

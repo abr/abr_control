@@ -38,20 +38,19 @@ class Config(BaseConfig):
         self.JOINT_NAMES = ['joint0']
         self.REST_ANGLES = np.array([np.pi/2.0])
 
-        # create the inertia matrices for each link of the ur5
-        self._M_links.append(np.diag([1.0, 1.0, 1.0,
+        # create the inertia matrices for each link
+        self._M_LINKS.append(np.diag([1.0, 1.0, 1.0,
                                       0.02, 0.02, 0.02]))  # link0
 
         # the joints don't weigh anything
-        self._M_joints = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
+        self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
         # segment lengths associated with each joint
         self.L = np.array([
-            [0.0, 0.0, 0.05],
-            [0.0, 0.0, 0.05],
-            [0.22, 0.0, 0.0],
-            [0.0, 0.0, .15]],
-            dtype='float32')
+            [0.0, 0.0, 0.05],  # from origin to l0 COM
+            [0.0, 0.0, 0.05],  # from l0 COM to j0
+            [0.22, 0.0, 0.0],  # from j0 to l1 COM
+            [0.0, 0.0, .15]])  # from l1 COM to EE
 
         # ---- Transform Matrices ----
 
@@ -92,7 +91,6 @@ class Config(BaseConfig):
             [0, 1, 0, self.L[3, 1]],
             [0, 0, 1, self.L[3, 2]],
             [0, 0, 0, 1]])
-        print(self.Torgl0 * self.Tl0j0 * self.Tj0l1 * self.Tl1ee)
 
         # orientation part of the Jacobian (compensating for angular velocity)
         KZ = sp.Matrix([0, 0, 1])

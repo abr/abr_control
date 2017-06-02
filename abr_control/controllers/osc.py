@@ -43,7 +43,6 @@ class OSC(controller.Controller):
     def __init__(self, robot_config, kp=1, kv=None, vmax=0.5,
                  null_control=True, use_g=True, use_C=False, use_dJ=False):
 
-
         super(OSC, self).__init__(robot_config)
 
         self.kp = kp
