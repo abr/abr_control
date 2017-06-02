@@ -78,14 +78,6 @@ class BaseConfig():
         self.ROBOT_NAME = ROBOT_NAME
 
         self.use_cython = use_cython
-        # check to make sure cython is installed
-        if self.use_cython:
-            try:
-                import cython
-            except ImportError:
-                print('Warning: Cython not installed, cython ' +
-                      'optimizations cannot be used.')
-                self.use_cython = False
 
         # create function dictionaries
         self._C = None
