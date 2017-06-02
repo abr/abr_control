@@ -1,5 +1,0 @@
-cloudpickle==0.2.1
-matplotlib==2.0.0
--e git+https://github.com/nengo/nengo@33829ee4b7814f13e06d1a8a389d937c9af893c0#egg=nengo
-numpy==1.11.1
-sympy==1.0

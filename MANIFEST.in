@@ -1,3 +1,12 @@
-include *.ttt
-graft arm_files
-graft vrep_files
+include *.rst
+include *.txt
+recursive-include abr_control *.cpp
+recursive-include abr_control *.dll
+recursive-include abr_control *.dylib
+recursive-include abr_control *.h
+recursive-include abr_control *.msim
+recursive-include abr_control *.py
+recursive-include abr_control *.pyx
+recursive-include abr_control *.so
+recursive-include abr_control *.ttt
+recursive-include examples *.py
