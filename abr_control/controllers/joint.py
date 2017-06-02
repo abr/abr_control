@@ -42,19 +42,18 @@ class Joint(controller.Controller):
             desired joint velocities [radians/sec]
         """
 
-        self.q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi
         if target_vel is None:
             target_vel = self.ZEROS_N_JOINTS
-        # TODO: do we want to include vel compensation?
-        # get the joint space inertia matrix
-        # M = self.robot_config.M(q)
-        # get the gravity compensation signal
-        g = self.robot_config.g(q)
 
-        # calculated desired joint control signal
-        # self.training_signal = np.dot(M, (self.kp * self.q_tilde +
-        #                               self.kv * (target_vel - dq)))
-        self.training_signal = self.kp * self.q_tilde - self.kv * dq
-        u = self.training_signal - g
+        # calculate the direction for each joint to move, wrapping
+        # around the -pi to pi limits to find the shortest distance
+        self.q_tilde = ((target_pos - q + np.pi) % (np.pi * 2)) - np.pi
+
+        # get the joint space inertia matrix
+        M = self.robot_config.M(q)
+        u = np.dot(M, (self.kp * self.q_tilde +
+                       self.kv * (target_vel - dq)))
+        # account for gravity
+        u -= self.robot_config.g(q)
 
         return u
