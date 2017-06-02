@@ -1,12 +1,14 @@
 """
 A basic script for connecting and moving the arm to a target
-configuration in joint space.
+configuration in joint space, offset from its starting position.
+The simulation simulates 1.5s and then plots the results.
 """
 import numpy as np
 import traceback
 
-# from abr_control.arms import jaco2 as arm
-from abr_control.arms import ur5 as arm
+# from abr_control.arms import ur5 as arm
+from abr_control.arms import jaco2 as arm
+# from abr_control.arms import onelink as arm
 from abr_control.controllers import Joint
 from abr_control.interfaces import VREP
 
@@ -14,17 +16,17 @@ from abr_control.interfaces import VREP
 robot_config = arm.Config(use_cython=True)
 
 # instantiate the REACH controller for the jaco2 robot
-ctrlr = Joint(robot_config, kp=20, kv=6)
-
-zeros = np.zeros(robot_config.N_JOINTS)
-ctrlr.generate(zeros, zeros, zeros)
+ctrlr = Joint(robot_config, kp=50)
 
 # create interface and connect
 interface = VREP(robot_config=robot_config, dt=.001)
 interface.connect()
 
-target_pos = np.array([2.0, 1.4, 1.8, 1.0, .5, .6], dtype='float32')
+# make the target an offset of the current configuration
+feedback = interface.get_feedback()
+target_pos = feedback['q'] + np.ones(robot_config.N_JOINTS) * .3
 
+# For VREP files that have a shadow arm to show the target configuration
 # get joint handles for shadow
 names = ['joint%i_shadow' % ii for ii in range(robot_config.N_JOINTS)]
 joint_handles = []
@@ -39,16 +41,21 @@ q_track = []
 
 
 try:
-    while 1:
+    count = 0
+    while count < 1500:
+        # get joint angle and velocity feedback
         feedback = interface.get_feedback()
-
+        # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_pos)
-        interface.send_forces(np.array(u, dtype='float32'))
+        # send forces into VREP, step the sim forward
+        interface.send_forces(u)
 
+        # track joint angles
         q_track.append(np.copy(feedback['q']))
+        count += 1
 
 except:
     print(traceback.format_exc())

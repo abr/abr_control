@@ -6,8 +6,9 @@ is recorded and plotted when the script is exited (with ctrl-c).
 import numpy as np
 import traceback
 
+# from abr_control.arms import ur5 as arm
 # from abr_control.arms import jaco2 as arm
-from abr_control.arms import ur5 as arm
+from abr_control.arms import onelink as arm
 from abr_control.controllers import Floating
 from abr_control.interfaces import VREP
 
@@ -28,14 +29,18 @@ try:
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', q=feedback['q'])
     while 1:
+        # get joint angle and velocity feedback
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('EE', q=feedback['q'])
-
+        # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],)
-        interface.send_forces(np.array(u, dtype='float32'))
+        # send forces into VREP
+        interface.send_forces(u)
 
+        # calculate the position of the hand
+        hand_xyz = robot_config.Tx('EE', q=feedback['q'])
+        # track end effector position
         ee_track.append(hand_xyz)
 
 except:
