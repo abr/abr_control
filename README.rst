@@ -7,15 +7,13 @@ ABR_Control: Robotic arm control in Python
 Installation
 ============
 
-The ABR_Control library depends on NumPy, SymPy, CloudPickle, and Cython,
-and we recommend that you install these libraries before ABR_Control.
-If you're not sure how to do this, we recommend using
+The ABR_Control library depends on NumPy, SymPy, SciPy, CloudPickle, and
+Cython, and we recommend that you install these libraries before
+ABR_Control. If you're not sure how to do this, we recommend using
 `Anaconda <https://store.continuum.io/cshop/anaconda/>`_.
+Note that installing in a clean environment will require compiling of the
+dependent libraries, and will take a few minutes.
 
-To install required libraries::
-
-    pip install -r requirements.txt
-    
 To install ABR_Control::
 
     pip install abr_control
@@ -23,7 +21,8 @@ To install ABR_Control::
 If you'd like to install ABR_Control from source,
 clone this repository and run::
 
-    python setup.py develop build_ext -i
+    python setupy.py install
+    python setup.py develop
 
 ABR_Control is tested to work on Python 3.4+.
 
@@ -93,7 +92,10 @@ the different interfaces and controllers.
 
 By default all of the PyGame examples run with the three-link MapleSim arm.
 You can also run the examples using the two-link Python arm by changing the
-import statement at the top of the example scripts.
+import statement at the top of the example scripts. Note that to run the PyGame
+examples, you will also need to install Pygame::
+
+    pip install pygame
 
 To run the VREP examples, have VREP version > 3.2 open, and load the .ttt
 file from the corresponding `abr_control/arms/` folder for the arm of interest.
