@@ -16,99 +16,6 @@ try:
 except ImportError:
     print('Nengo lib not installed, encoder placement will be sub-optimal.')
 
-class DummySolver(nengo.solvers.Solver):
-    """ one line Function description
-
-    Parameters
-    ----------
-    fixed : variable_type
-        description
-    """
-    #TODO fill in parameter and description info above
-
-    def __init__(self, fixed):
-        self.fixed=fixed
-        self.weights=False
-    def __call__(self, A, Y, rng=None, E=None):
-        """ one line Function description
-
-        Parameters
-        ----------
-        A : variable_type
-            description
-        Y : variable_type
-            description
-        rng : variable_type, optional (Default: None)
-            description
-        E : variable_type, optional (Default: None)
-            description
-        """
-        #TODO fill in parameter and description info above
-
-        return self.fixed, {}
-
-class AreaIntercepts(nengo.dists.Distribution):
-    dimensions = nengo.params.NumberParam('dimensions')
-    base = nengo.dists.DistributionParam('base')
-    """ one line Function description
-
-    Parameters
-    ----------
-    dimensions : variable_type
-        description
-    base : variable_type, optional (Default: nengo.dists.Uniform(-1,1))
-        description
-    """
-    #TODO fill in parameter and description info above
-
-    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
-        super(AreaIntercepts, self).__init__()
-        self.dimensions = dimensions
-        self.base = base
-
-    def __repr(self):
-        """ one line Function description"""
-        #TODO fill in description info above
-
-        return "AreaIntercepts(dimensions=%r, base=%r)" % (self.dimensions,
-                                                           self.base)
-
-    def transform(self, x):
-        """ one line Function description
-
-        Parameters
-        ----------
-        x : variable_type
-            description
-        """
-        #TODO fill in parameter and description info above
-
-        sign = 1
-        if x > 0:
-            x = -x
-            sign = -1
-        return sign * np.sqrt(1 - scipy.special.betaincinv(
-            (self.dimensions + 1) / 2.0, 0.5, x + 1))
-
-    def sample(self, n, d=None, rng=np.random):
-        """ one line Function description
-
-        Parameters
-        ----------
-        n : variable_type
-            description
-        d : variable_type, optional (Default: None)
-            description
-        rng : variable_type, optional (Default: numpy.random)
-            description
-        """
-        #TODO fill in parameter and description info above
-
-        s = self.base.sample(n=n, d=d, rng=rng)
-        for i in range(len(s)):
-            s[i] = self.transform(s[i])
-        return s
-
 
 class DynamicsAdaptation(Signal):
     """ An implementation of dynamics adaptation using a Nengo model
@@ -139,6 +46,9 @@ class DynamicsAdaptation(Signal):
         path to file where learned weights are saved
     backend : string, optional (Default: nengo)
         {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
+    use_dq : boolean, optional (Default: False)
+        set true to pass in position and velocity,
+        false if only passing in position
     """
 
     def __init__(self, robot_config,
@@ -149,10 +59,18 @@ class DynamicsAdaptation(Signal):
                  spiking=False,
                  filter_error=False,
                  weights_file=None,
-                 backend='nengo'):
+                 backend='nengo',
+                 use_dq=False):
         self.robot_config = robot_config
 
         self.u_adapt = np.zeros(self.robot_config.N_JOINTS)
+
+        self.use_dq = use_dq
+
+        if self.use_dq is True:
+            self.N_INPUTS = 2
+        else:
+            self.N_INPUTS = 1
 
         weights_file = (['']*n_adapt_pop if
                         weights_file is None else weights_file)
@@ -162,50 +80,29 @@ class DynamicsAdaptation(Signal):
         with nengo_model:
 
             def qdq_input(t):
-                """ returns q and dq
-
-                Returns q and dq scaled and bias to be
-                around -1 to 1
-
-                Parameters
-                ----------
-                t : variable_type
-                    description
-                """
-                #TODO fill in parameter info above
+                """ returns q and dq """
 
                 q = ((self.q + np.pi) % (np.pi*2)) - np.pi
 
-                output = np.hstack([
-                    self.robot_config.scaledown('q', q)])#,
-                    #self.robot_config.scaledown('dq', self.dq)])
+                if self.use_dq is True:
+                    output = (np.hstack([
+                              self.robot_config.scaledown('q', q),
+                              self.robot_config.scaledown('dq', self.dq)]))
+                else:
+                    output = np.hstack([
+                        self.robot_config.scaledown('q', q)])
+
                 return output
-            qdq_input = nengo.Node(qdq_input, size_out=dim)#*2)
+            qdq_input = nengo.Node(qdq_input, size_out=dim * self.N_INPUTS)
 
             def u_input(t):
-                """ returns the control signal for training
-
-                Parameters
-                ----------
-                t : variable_type
-                    description
-                """
-                #TODO fill in parameter info above
+                """ returns the control signal for training """
 
                 return self.training_signal
             u_input = nengo.Node(u_input, size_out=dim)
 
             def u_adapt_output(t, x):
-                """ stores the adaptive output for use in control()
-
-                Parameters
-                ----------
-                t : variable_type
-                    description
-                x : variable_type
-                    description
-                """
-                #TODO fill in parameter info above
+                """ stores the adaptive output for use in control() """
 
                 self.u_adapt = np.copy(x)
             output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
@@ -213,7 +110,7 @@ class DynamicsAdaptation(Signal):
             adapt_ens = []
             conn_learn = []
             for ii in range(n_adapt_pop):
-                N_DIMS = self.robot_config.N_JOINTS #* 2
+                N_DIMS = self.robot_config.N_JOINTS * self.N_INPUTS
                 intercepts = AreaIntercepts(
                     dimensions=N_DIMS,
                     base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
@@ -237,7 +134,7 @@ class DynamicsAdaptation(Signal):
                     synapse=0.005)
 
                 # load weights from file if they exist, otherwise use zeros
-                print ('%s' % weights_file[ii])
+                print('%s' % weights_file[ii])
                 if os.path.isfile('%s' % weights_file[ii]):
                     transform = np.load(weights_file[ii])['weights'][-1][0]
                     print('Loading transform: \n', transform)
@@ -261,17 +158,9 @@ class DynamicsAdaptation(Signal):
                             learning_rule_type=nengo.PES(pes_learning_rate),
                             transform=transform))
 
-
                 # Allow filtering of error signal
                 def gate_error(x):
-                    """ one line Function description
-
-                    Parameters
-                    ----------
-                    x : variable_type
-                        description
-                    """
-                    #TODO fill in parameter and description info above
+                    """ Filters the error, if filter_error is True """
 
                     if filter_error:
                         if np.linalg.norm(x) > 2.0:
@@ -340,3 +229,46 @@ class DynamicsAdaptation(Signal):
             self.sim.run(time_in_seconds=.001)
 
         return self.u_adapt
+
+
+class DummySolver(nengo.solvers.Solver):
+    """ A Nengo weights solver that returns a provided set of weights.
+    """
+
+    def __init__(self, fixed):
+        self.fixed = fixed
+        self.weights = False
+
+    def __call__(self, A, Y, rng=None, E=None):
+        return self.fixed, {}
+
+
+class AreaIntercepts(nengo.dists.Distribution):
+    """ Generate an optimally distributed set of intercepts in
+    high-dimensional space.
+    """
+    dimensions = nengo.params.NumberParam('dimensions')
+    base = nengo.dists.DistributionParam('base')
+
+    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
+        super(AreaIntercepts, self).__init__()
+        self.dimensions = dimensions
+        self.base = base
+
+    def __repr(self):
+        return ("AreaIntercepts(dimensions=%r, base=%r)" %
+                (self.dimensions, self.base))
+
+    def transform(self, x):
+        sign = 1
+        if x > 0:
+            x = -x
+            sign = -1
+        return sign * np.sqrt(1 - scipy.special.betaincinv(
+            (self.dimensions + 1) / 2.0, 0.5, x + 1))
+
+    def sample(self, n, d=None, rng=np.random):
+        s = self.base.sample(n=n, d=d, rng=rng)
+        for i in range(len(s)):
+            s[i] = self.transform(s[i])
+        return s

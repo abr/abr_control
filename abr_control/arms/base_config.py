@@ -22,10 +22,11 @@ class BaseConfig():
     Jacobians, the inertia matrix in joint space, and the effects
     of gravity. Uses SymPy and lambdify to do this.
 
-    Throughout the class functions, setting lambdify to True will return a function
-    to calculate the matrix being generated. This returns a function that can
-    be used for mathematical manipulation. If the user desires a symbolic expression,
-    then lambdify can be set to False. Lambdify will be set to True by default where it
+    Throughout the class functions, setting lambdify to True will return a
+    function to calculate the matrix being generated. This returns a
+    function that can be used for mathematical manipulation. If the user
+    desires a symbolic expression, then lambdify can be set to False.
+    Lambdify will be set to True by default where it
     is required, such as in the calculation of derivatives.
 
     Parameters
@@ -84,6 +85,7 @@ class BaseConfig():
             except ImportError:
                 print('Warning: Cython not installed, cython ' +
                       'optimizations cannot be used.')
+                self.use_cython = False
 
         # create function dictionaries
         self._C = None
@@ -102,7 +104,6 @@ class BaseConfig():
         self.config_folder = (cache_dir + '/%s/saved_functions/' % ROBOT_NAME)
         # create a unique hash for the config file
         hasher = hashlib.md5()
-        # TODO: make it so this file also affects hash
         with open(sys.modules[self.__module__].__file__, 'rb') as afile:
             buf = afile.read()
             hasher.update(buf)
@@ -244,11 +245,11 @@ class BaseConfig():
         return np.array(self._g(*parameters), dtype='float32').flatten()
 
     def dJ(self, name, q, dq, x=[0, 0, 0]):
-        """ Loads or calculates the derivative of the Jacobian with respect to time
+        """ Loads or calculates the derivative of the Jacobian wrt time
 
         If the function exists, it will load it from file, otherwise
-        it calls _calc_dJ to generate the derivative of a Jacobian for a joint or link
-        with respect to time
+        it calls _calc_dJ to generate the derivative of a Jacobian for a joint
+        or link with respect to time
 
         Parameters
         ----------
@@ -415,8 +416,7 @@ class BaseConfig():
 
             # first get the inertia matrix
             M = self._calc_M(lambdify=False)
-            # TODO do we want to keep this link?
-            # http://www.diag.uniroma1.it/~deluca/rob2_en/03_LagrangianDynamics_1.pdf
+            # www.diag.uniroma1.it/~deluca/rob2_en/03_LagrangianDynamics_1.pdf
             # c_k = dq.T * C_k * dq
             # C_k = .5 * (\frac{\partial m_k}{\partial q} +
             #           \frac{\partial m_k}{\partial q}^T +

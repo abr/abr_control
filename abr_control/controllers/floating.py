@@ -1,4 +1,7 @@
+import numpy as np
+
 from . import controller
+
 
 class Floating(controller.Controller):
     """Implements a controller to compensate for gravity

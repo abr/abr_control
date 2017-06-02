@@ -2,6 +2,7 @@ import numpy as np
 
 from . import controller
 
+
 class OSC(controller.Controller):
     """ Implements an operational space controller (OSC)
 
@@ -39,7 +40,6 @@ class OSC(controller.Controller):
     nkv : float
         derivative gain term for null controller
     """
-    #TODO what are the null indices? explain above
     def __init__(self, robot_config, kp=1, kv=None, vmax=0.5,
                  null_control=True, use_g=True, use_C=False, use_dJ=False):
 
@@ -54,6 +54,7 @@ class OSC(controller.Controller):
         self.use_C = use_C
         self.use_dJ = use_dJ
 
+        # null_indices is a mask for identifying which joints have REST_ANGLES
         self.null_indices = ~np.isnan(self.robot_config.REST_ANGLES)
         self.dq_des = np.zeros(self.robot_config.N_JOINTS)
         self.IDENTITY_N_JOINTS = np.eye(self.robot_config.N_JOINTS)
@@ -62,10 +63,9 @@ class OSC(controller.Controller):
         self.nkv = np.sqrt(self.nkp)
 
     def generate(self, q, dq,
-                target_pos, target_vel=np.zeros(3),
-                target_quat=None, target_w=np.zeros(3),
-                mask=[1, 1, 1, 0, 0, 0],
-                ref_frame='EE', offset=[0, 0, 0]):
+                 target_pos, target_vel=np.zeros(3),
+                 target_quat=None, target_w=np.zeros(3),
+                 ref_frame='EE', offset=[0, 0, 0]):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -82,9 +82,6 @@ class OSC(controller.Controller):
             the target orientation as a quaternion in the form [w, x, y, z]
         target_w : float numpy.array, optional (Default: numpy.zeros)
             the target angular velocities
-        mask : list, optional (Default: [1, 1, 1, 0, 0, 0])
-            indicates the [x, y, z, roll, pitch, yaw] values
-            to be controlled, 1 = control, 0 = ignore
         ref_frame : string, optional (Default: 'EE')
             the frame of reference of control point, default is the end
             effector. Names are set in the robot's config file
@@ -98,15 +95,11 @@ class OSC(controller.Controller):
         J = self.robot_config.J(ref_frame, q, x=offset)
         # isolate position component of Jacobian
         J = J[:3]
-
-        # calculate the end-effector linear and angular velocity
-        full_velocity_signal = np.dot(J, dq)
+        dx = np.dot(J, dq)
 
         # calculate the inertia matrix in joint space
         M = self.robot_config.M(q)
 
-        # apply mask to Jacobian before
-        # J *= np.array(mask).reshape(6, 1)
         # calculate the inertia matrix in task space
         M_inv = np.linalg.inv(M)
         # calculate the Jacobian for end-effector with no offset
@@ -117,57 +110,29 @@ class OSC(controller.Controller):
         # singular values < (rcond * max(singular_values)) set to 0
         Mx = np.linalg.pinv(Mx_inv, rcond=.01)
 
-        u_task = np.zeros(3)  # task space control signal before masking
+        u_task = np.zeros(3)  # task space control signal
 
-        # generate the position control signal in task space if a target
-        # position was provided, and the mask includes positions
-        if target_pos is not None and np.sum(mask[:3]) > 0:
-            # calculate the position error
-            x_tilde = np.array(xyz - target_pos)
-            # isolate the linear velocity
-            dx = full_velocity_signal[:3]
+        # calculate the position error
+        x_tilde = np.array(xyz - target_pos)
 
-            if self.vmax is not None:
-                # implement velocity limiting
-                sat = self.vmax / (self.lamb * np.abs(x_tilde))
-                if np.any(sat < 1):
-                    index = np.argmin(sat)
-                    unclipped = self.kp * x_tilde[index]
-                    clipped = self.kv * self.vmax * np.sign(x_tilde[index])
-                    scale = np.ones(3, dtype='float32') * clipped / unclipped
-                    scale[index] = 1
-                else:
-                    scale = np.ones(3, dtype='float32')
-
-                u_task[:3] = -self.kv * (dx - target_vel -
-                                         np.clip(sat / scale, 0, 1) *
-                                         -self.lamb * scale * x_tilde)
+        if self.vmax is not None:
+            # implement velocity limiting
+            sat = self.vmax / (self.lamb * np.abs(x_tilde))
+            if np.any(sat < 1):
+                index = np.argmin(sat)
+                unclipped = self.kp * x_tilde[index]
+                clipped = self.kv * self.vmax * np.sign(x_tilde[index])
+                scale = np.ones(3, dtype='float32') * clipped / unclipped
+                scale[index] = 1
             else:
-                # generate (x,y,z) force without velocity limiting)
-                u_task[:3] = -self.kp * x_tilde
-        #TODO add orientation control to a separate branch
-        # # generate the orientation control signal in task space if a target
-        # # orientation was provided, and the mask includes orientation angles
-        # if target_quat is not None and np.sum(mask[3:]) > 0:
-        #     # get the quaternion describing orientation of ref_frame
-        #     quat = self.robot_config.orientation(ref_frame, q)
-        #     w = full_velocity_signal[3:]  # angular velocity
-        #
-        #     # calculate the error between the two quaternions as
-        #     # described in (Nakanishi et al, 2008)
-        #     target_e = np.array([
-        #         [0, -target_quat[3], target_quat[2]],
-        #         [target_quat[3], 0, -target_quat[1]],
-        #         [-target_quat[2], target_quat[1], 0]])
-        #     error_quat = (target_quat[0] * quat[1:] -
-        #                   quat[0] * target_quat[1:] +
-        #                   np.dot(target_e, quat[1:]))
-        #
-        #     ko = self.kp
-        #     ka = np.sqrt(ko)
-        #     u_task[3:] = (ka * (target_w - w) - ko * error_quat)
-        # # apply mask
-        # u_task *= mask
+                scale = np.ones(3, dtype='float32')
+
+            u_task[:3] = -self.kv * (dx - target_vel -
+                                     np.clip(sat / scale, 0, 1) *
+                                     -self.lamb * scale * x_tilde)
+        else:
+            # generate (x,y,z) force without velocity limiting)
+            u_task[:3] = -self.kp * x_tilde
 
         # TODO: This is really awkward, but how else to get out
         # this signal for dynamics adaptation training?
@@ -188,7 +153,7 @@ class OSC(controller.Controller):
         u = self.training_signal
         # cancel out effects of gravity
         if self.use_g:
-            u -=  self.robot_config.g(q=q)
+            u -= self.robot_config.g(q=q)
 
         if self.use_C:
             # add in estimation of centripetal and Coriolis effects

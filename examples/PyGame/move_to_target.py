@@ -21,9 +21,11 @@ arm_sim = arm.ArmSim(robot_config)
 # create an operational space controller
 ctrlr = OSC(robot_config, kp=100, vmax=10)
 
+
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
     self.target[1] = self.mouse_y
+
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001, on_click=on_click)

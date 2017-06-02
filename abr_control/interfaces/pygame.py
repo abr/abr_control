@@ -101,7 +101,6 @@ class PyGame():
         self.arm_sim.disconnect()
         print('PyGame connection closed...')
 
-
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller. """
 
@@ -153,7 +152,7 @@ class PyGame():
         """
 
         circle = list(xyz[:2] * np.array([1, -1]) *
-                        self.scaling_term + self.base_offset)
+                      self.scaling_term + self.base_offset)
         circle.append(radius * self.scaling_term)
         circle += color
         self.circles.append(circle)
@@ -225,9 +224,9 @@ class PyGame():
         # draw circles
         for circle in self.circles:
             pygame.draw.circle(
-                self.display, circle[3:7], # circle color
+                self.display, circle[3:7],  # circle color
                 [int(circle[0]), int(circle[1])],
-                 int(circle[2]))  # circle size
+                int(circle[2]))  # circle size
         # draw target
         if self.target is not None:
             pygame.draw.circle(
@@ -249,7 +248,6 @@ class PyGame():
         label = self.myfont.render(
             "Time: %0.3fs" % self.arm_sim.t, 1, (0, 0, 0))
         self.display.blit(label, (10, 10))
-
 
         pygame.display.update()
         self.fpsClock.tick(self.fps)

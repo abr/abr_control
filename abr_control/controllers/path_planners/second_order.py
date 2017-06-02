@@ -2,6 +2,7 @@ import numpy as np
 
 from .path_planner import PathPlanner
 
+
 class SecondOrder(PathPlanner):
     """ Implement a trajectory controller on top of a controller
 
@@ -75,7 +76,7 @@ class SecondOrder(PathPlanner):
 
         # get the next target state if we're not at the end of the trajectory
         self.target = (np.hstack([self.y[self.n], self.dy[self.n]])
-                             if self.n < self.n_timesteps else self.target)
+                       if self.n < self.n_timesteps else self.target)
         self.n += 1
 
         return self.target

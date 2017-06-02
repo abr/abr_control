@@ -1,5 +1,3 @@
-import numpy as np
-
 class Signal:
     """ Base class for additive control signals
 
