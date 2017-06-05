@@ -2,10 +2,17 @@
 Running the threelink arm with a PyGame display, and using the pydmps
 library to specify a trajectory for the end-effector to follow, in
 this case, a circle.
+
+To install the pydmps library, clone https://github.com/studywolf/pydmps
+and run 'python setup.py develop'
 """
 import numpy as np
 
-import pydmps
+try:
+    import pydmps
+except ImportError:
+    print('\npydmps library required, see ' +
+          'https://github.com/studywolf/pydmps\n')
 
 from abr_control.arms import threelink as arm
 # from abr_control.arms import twolink as arm

@@ -13,7 +13,7 @@ from abr_control.controllers import OSC
 from abr_control.interfaces import VREP
 
 # initialize our robot config for the ur5
-robot_config = arm.Config(use_cython=True)
+robot_config = arm.Config(use_cython=True, hand_attached=True)
 
 # instantiate controller
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)

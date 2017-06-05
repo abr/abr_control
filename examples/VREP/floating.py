@@ -6,9 +6,9 @@ is recorded and plotted when the script is exited (with ctrl-c).
 import numpy as np
 import traceback
 
-# from abr_control.arms import ur5 as arm
+from abr_control.arms import ur5 as arm
 # from abr_control.arms import jaco2 as arm
-from abr_control.arms import onelink as arm
+# from abr_control.arms import onelink as arm
 from abr_control.controllers import Floating
 from abr_control.interfaces import VREP
 
