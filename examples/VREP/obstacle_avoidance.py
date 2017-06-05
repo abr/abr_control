@@ -5,8 +5,8 @@ of the end-effector is plotted in 3D.
 """
 import numpy as np
 
-# from abr_control.arms import ur5 as arm
-from abr_control.arms import jaco2 as arm
+from abr_control.arms import ur5 as arm
+# from abr_control.arms import jaco2 as arm
 from abr_control.controllers import OSC, signals
 from abr_control.interfaces import VREP
 

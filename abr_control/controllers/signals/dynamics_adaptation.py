@@ -1,6 +1,6 @@
 import numpy as np
 import os
-import scipy
+import scipy.special
 
 from .signal import Signal
 
@@ -123,10 +123,15 @@ class DynamicsAdaptation(Signal):
                 adapt_ens.append(nengo.Ensemble(
                     n_neurons=n_neurons,
                     dimensions=N_DIMS,
-                    encoders=nengolib.stats.ScatteredHypersphere(
-                        surface=True),
                     intercepts=intercepts,
                     neuron_type=neuron_type))
+
+                try:
+                    adapt_ens.encoders = (
+                        nengolib.stats.ScatteredHypersphere(
+                            surface=True))
+                except AttributeError:
+                    pass
 
                 nengo.Connection(
                     qdq_input,
