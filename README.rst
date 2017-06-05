@@ -14,12 +14,7 @@ ABR_Control. If you're not sure how to do this, we recommend using
 Note that installing in a clean environment will require compiling of the
 dependent libraries, and will take a few minutes.
 
-To install ABR_Control::
-
-    pip install abr_control
-
-If you'd like to install ABR_Control from source,
-clone this repository and run::
+To install ABR_Control, clone this repository and run::
 
     python setupy.py install
     python setup.py develop
