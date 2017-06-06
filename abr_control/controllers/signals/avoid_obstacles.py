@@ -77,7 +77,9 @@ class AvoidObstacles(Signal):
                 # calculate distance from obstacle vertex to the closest point
                 dist = np.sqrt(np.sum((v - closest)**2))
                 # account for size of obstacle
-                rho = dist - obstacle[3]
+                # also set a minimum distance so the control signal
+                # doesn't grow unbounded, value chosen empirically
+                rho = max(dist - obstacle[3], self.threshold/50)
 
                 if rho < self.threshold:
 
@@ -87,10 +89,12 @@ class AvoidObstacles(Signal):
                             1.0/rho**1.5 * drhodx)
 
                     # get offset of closest point from link's reference frame
-                    T_inv = self.robot_config.T_inv('link%i' % ii, q=q)
+                    # NOTE: the relevant link is i+1, because the configuration
+                    # scripts are set up so link 0 is from origin to joint 0
+                    T_inv = self.robot_config.T_inv('link%i' % (ii+1), q=q)
                     m = np.dot(T_inv, np.hstack([closest, [1]]))[:-1]
                     # calculate the Jacobian for this point
-                    Jpsp = self.robot_config.J('link%i' % ii, x=m, q=q)[:3]
+                    Jpsp = self.robot_config.J('link%i' % (ii+1), x=m, q=q)[:3]
 
                     # calculate the inertia matrix for the
                     # point subjected to the potential space

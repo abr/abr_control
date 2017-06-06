@@ -79,7 +79,7 @@ static unsigned char dsn_posinfC[8] = { 0, 0, 0, 0, 0, 0, 0xF0, 0x7F };
 static double *dsn_posinf = (double *)&dsn_posinfC;
 static unsigned char dsn_neginfC[8] = { 0, 0, 0, 0, 0, 0, 0xF0, 0xFF };
 static double *dsn_neginf = (double *)&dsn_neginfC;
-#define trunc(v) ( (v>0.0) ? floor(v) : ceil(v) )
+// #define trunc(v) ( (v>0.0) ? floor(v) : ceil(v) )
 
 
 static void DecompCInc(long n, double *A, long Ainc, long *ip)
