@@ -60,22 +60,40 @@ class SecondOrder(PathPlanner):
             #TODO have to account for dt somewhere, used loop time previously
             # to implicitly add it
             if np.linalg.norm(y - target) > 0.002:
-                dy += (-1.0 / fc1 * dy - fc2 * y * dt + (2. / fc1) * target)
-                y += (-1.0 / fc1 * y + fc2 * dy * dt)
+                dy += (-1.0 / fc1 * dy - fc2 * y + (2. / fc1) * target) * dt
+                print('dy: ', dy)
+                y += (-1.0 / fc1 * y + fc2 * dy) * dt
+                print('y: ', y)
             else:
                 y = target
             self.y.append(y)
+            print('next: ', self.y[ii])
             self.dy.append(dy)
-
         # reset trajectory index
         self.n = 0
         self.n_timesteps = n_timesteps
+
+        import matplotlib
+        matplotlib.use("TKAgg")
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.plot(range(0,len(self.y)), np.array(self.y)[:,0], 'r', label='x')
+        plt.plot(range(0,len(self.y)), np.array(self.y)[:,1], 'b', label='y')
+        plt.plot(range(0,len(self.y)), np.array(self.y)[:,2], 'k', label='z')
+        plt.plot(np.arange(len(self.y)), np.ones(len(self.y)) * target[0],
+                 '--r', label = 'target_x')
+        plt.plot(np.arange(len(self.y)), np.ones(len(self.y)) * target[1],
+                 '--b', label = 'target_y')
+        plt.plot(np.arange(len(self.y)), np.ones(len(self.y)) * target[2],
+                 '--k', label = 'target_z')
+        plt.legend()
+        plt.show()
 
     def next(self):
         """ Return the next target point along the generated trajectory """
 
         # get the next target state if we're not at the end of the trajectory
-        self.target = (np.hstack([self.y[self.n], self.dy[self.n]])
+        self.target = (self.y[self.n] #  np.hstack([self.y[self.n], self.dy[self.n]])
                        if self.n < self.n_timesteps else self.target)
         self.n += 1
 

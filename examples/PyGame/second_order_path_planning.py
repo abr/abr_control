@@ -23,7 +23,7 @@ arm_sim = arm.ArmSim(robot_config)
 ctrlr = OSC(robot_config, kp=100, vmax=10)
 
 # create our path planner
-n_timesteps = 100
+n_timesteps = 250
 # NOTE: delete above n_timesteps if it can be used in this example
 path_planner = path_planners.SecondOrder(robot_config)
 
@@ -42,8 +42,8 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
-        #if count % n_timesteps == 0:
-        if count == 0:
+        if count % n_timesteps == 0:
+        #  if count == 0:
             target_xyz = np.array([
                 np.random.random() * 2 - 1,
                 np.random.random() * 2 + 1,
@@ -60,8 +60,7 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target[:3],
-            target_vel=target[3:])
+            target_pos=target)
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)
