@@ -240,9 +240,16 @@ class PyGame():
                 self.mouse_x, self.mouse_y = pygame.mouse.get_pos()
                 self.on_click(self, self.mouse_x, self.mouse_y)
 
-            if (event.type == pygame.KEYDOWN and
-                    self.on_keypress is not None):
-                self.on_keypress(self, event.key)
+            if event.type == pygame.KEYDOWN:
+                if (event.key == pygame.K_w and
+                        pygame.key.get_mods() & pygame.KMOD_CTRL):
+                    pygame.quit()
+
+                elif self.on_keypress is not None:
+                    self.on_keypress(self, event.key)
+
+            if event.type == pygame.QUIT:
+                pygame.quit()
 
         # render text
         label = self.myfont.render(
