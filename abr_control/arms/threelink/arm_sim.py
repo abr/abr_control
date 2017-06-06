@@ -41,6 +41,8 @@ class ArmSim():
 
         self.dt = dt  # time step
 
+        self.torque_limit = 1e7  # max amplitude of torque signal allowed
+
     def connect(self):
         """ Creates the MapleSim model and set up PyGame.
         """
@@ -66,6 +68,9 @@ class ArmSim():
         move the simulation one time step forward, and update
         the plot.
 
+        NOTE: For this simulation, torques are clipped to 1e7
+        to prevent seg faults being thrown.
+
         Parameters
         ----------
         u : numpy.array
@@ -75,7 +80,12 @@ class ArmSim():
         """
 
         dt = self.dt if dt is None else dt
-        u = -1 * np.array(u, dtype='float')
+        # clip the torque signal to prevent seg faults
+        u = np.minimum(
+                np.maximum(
+                    -1 * np.array(u, dtype='float'),
+                    -self.torque_limit),
+                self.torque_limit)
 
         for ii in range(int(np.ceil(dt/1e-5))):
             self.sim.step(self.state, u)
