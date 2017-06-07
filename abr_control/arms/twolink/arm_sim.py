@@ -4,18 +4,16 @@ import numpy as np
 class ArmSim():
     """ An interface for a Python implementation of a 2 link arm.
 
-    An interface for the two-link MapleSim model that has been exported
-    to C and turned into shared libraries using Cython.
+    An interface for the two-link Python model arm.
 
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     dt: float, optional (Default: 0.001)
         simulation time step [seconds]
-    q_init : numpy.array, optional (Default: None)
+    q_init : numpy.array, optional (Default: robot_config.REST_ANGLES)
         start joint angles [radians]
     """
 
@@ -82,7 +80,7 @@ class ArmSim():
             time step [seconds]
         """
 
-        self._step(u, dt=self.dt if dt is None else dt)
+        self._step(u, dt)
 
     def reset(self):
         """ Resets the state of the arm to starting conditions.
@@ -109,7 +107,7 @@ class ArmSim():
         ----------
         u : numpy.array
             an array of the torques to apply to the robot
-        dt : float, optional (Default: None)
+        dt : float, optional (Default: self.dt)
             time step [seconds]
         """
 

@@ -4,9 +4,8 @@ class PathPlanner(object):
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     """
 
     def __init__(self, robot_config):
@@ -22,10 +21,10 @@ class PathPlanner(object):
             the current position of the system [meters]
         target : numpy.array
             the target position [radians]
-        n_timesteps : int, optional (Default: 200)
+        n_timesteps : int, optional
             the number of time steps to reach the target
-        raise NotImplementedError
         """
+        raise NotImplementedError
 
     def next(self):
         """ Return the next target point along the path """

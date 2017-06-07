@@ -7,15 +7,6 @@ from ..base_config import BaseConfig
 class Config(BaseConfig):
     """ Robot config file for the UR5
 
-    Parameters
-    ----------
-    N_JOINTS : int, optional (Default: 6)
-        the number of joint in the UR5 arm
-    N_LINKS : int, optional (Default: 7)
-        the number of links in the UR5
-    ROBOT_NAME : string, optional (Default: ur5)
-        name of robot
-
     Attributes
     ----------
     REST_ANGLES : numpy.array
@@ -29,8 +20,6 @@ class Config(BaseConfig):
         segment lengths of arm [meters]
     L_HANDCOM : numpy.array
         offset to the center of mass of the hand [meters]
-    KZ : sympy.Matrix
-        z isolation vector in orientational part of Jacobian
 
     Transform Naming Convention: Tpoint1point2
     ex: Tj1l1 tranforms from joint 1 reference frame to link 1
@@ -239,14 +228,13 @@ class Config(BaseConfig):
         self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
         # orientation part of the Jacobian (compensating for angular velocity)
-        KZ = sp.Matrix([0, 0, 1])
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * KZ,  # joint 0 orientation
-            self._calc_T('joint1')[:3, :3] * KZ,  # joint 1 orientation
-            self._calc_T('joint2')[:3, :3] * KZ,  # joint 2 orientation
-            self._calc_T('joint3')[:3, :3] * KZ,  # joint 3 orientation
-            self._calc_T('joint4')[:3, :3] * KZ,  # joint 4 orientation
-            self._calc_T('joint5')[:3, :3] * KZ]  # joint 5 orientation
+            self._calc_T('joint0')[:3, :3] * self._KZ,  # joint 0 orientation
+            self._calc_T('joint1')[:3, :3] * self._KZ,  # joint 1 orientation
+            self._calc_T('joint2')[:3, :3] * self._KZ,  # joint 2 orientation
+            self._calc_T('joint3')[:3, :3] * self._KZ,  # joint 3 orientation
+            self._calc_T('joint4')[:3, :3] * self._KZ,  # joint 4 orientation
+            self._calc_T('joint5')[:3, :3] * self._KZ]  # joint 5 orientation
 
         # dictionaries set by the sub-config, used for scaling input into
         # neural systems. Calculate by recording data from movement of interest

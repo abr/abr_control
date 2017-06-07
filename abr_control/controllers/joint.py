@@ -11,9 +11,8 @@ class Joint(controller.Controller):
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     kp : float, optional (Default: 1)
         proportional gain term
     kv : float, optional (Default: None)
