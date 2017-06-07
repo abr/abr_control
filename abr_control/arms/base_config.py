@@ -16,18 +16,16 @@ from abr_control.utils.paths import cache_dir
 
 class BaseConfig():
     """
-    Class defines a bunch of useful functions for controlling a given robot
+    Defines useful functions for controlling a robot
 
-    Functions include transformation to joints and COMs,
+    Creates functions for calculating transformation to joints and COMs,
     Jacobians, the inertia matrix in joint space, and the effects
     of gravity. Uses SymPy and lambdify to do this.
 
-    Throughout the class functions, setting lambdify to True will return a
-    function to calculate the matrix being generated. This returns a
-    function that can be used for mathematical manipulation. If the user
-    desires a symbolic expression, then lambdify can be set to False.
-    Lambdify will be set to True by default where it
-    is required, such as in the calculation of derivatives.
+    In the _calc_* methods, setting lambdify = True will return a
+    function to calculate the matrix being generated. If the user
+    desires a symbolic expression, call the _calc_* methods with
+    lambdify = False. Lambdify is True by default.
 
     Parameters
     ----------
@@ -44,30 +42,33 @@ class BaseConfig():
 
     Attributes
     ----------
-        _C : dictionary
+        _C : function
             placeholder for the centripetal and Coriolis function
-        _g : dictionary
+        _g : function
             placeholder for joint space gravity function
         _dJ : dictionary
-            for Jacobian time derivative calculations
+            for Jacobian time derivative functions of joints and COMs
         _J  : dictionary
             for Jacobian calculations
-        _M_LINKS : dictionary
+        _KZ : sympy.Matrix
+            z isolation vector for calculating orientation part of Jacobian
+        _M_LINKS : list
             inertia matrices of the robot links
-        _M_JOINTS : dictionary
+        _M_JOINTS : list
             inertia matrices of the robot joints
-        _M : dictionary
+        _M : function
             placeholder for joint space inertia matrix function
         _orientation : dictionary
-            placeholder for orientation functions
+            placeholder for orientation functions of joints and COMs
         _T_inv : dictionary
-            for inverse transform calculations
+            for inverse transform calculations for joints and COMs
         _Tx : dictionary
-            for point transform calculations
+            for point transform calculations for joints and COMs
         _R : dictionary
-            for transform matrix calculations
+            for transform matrix calculations for joints and COMs
         config_folder : string
-            location to save to and load functions from
+            location to save to and load functions from, based on the hash
+            of the subclass, so that generated functions are saved uniquely
     """
 
     def __init__(self, N_JOINTS, N_LINKS, ROBOT_NAME="robot",
@@ -79,18 +80,21 @@ class BaseConfig():
 
         self.use_cython = use_cython
 
-        # create function dictionaries
+        # create function placeholders and dictionaries
         self._C = None
         self._g = None
         self._dJ = {}
         self._J = {}
-        self._M_LINKS = []
-        self._M_JOINTS = []
         self._M = None
         self._orientation = {}
         self._T_inv = {}
         self._Tx = {}
         self._R = {}
+        self._KZ = sp.Matrix([0, 0, 1])
+
+        # inertia matrix lists, to be filled out by subclasses
+        self._M_LINKS = []
+        self._M_JOINTS = []
 
         # specify / create the folder to save to and load from
         self.config_folder = (cache_dir + '/%s/saved_functions/' % ROBOT_NAME)
@@ -118,15 +122,13 @@ class BaseConfig():
         self.SCALES = None  # expected variance of joint angles / velocities
 
     def _generate_and_save_function(self, filename, expression, parameters):
-        """ Creates a hashed folder for saved generated functions for later use
+        """ Creates a folder, saves generated cython functions
 
-        Create a folder in the saved_functions folder, based on a hash
-        of the current robot_config subclass, save the functions created
-        into this folder.
+        Create a folder in the users cache directory, named based on a hash
+        of the current robot_config subclass.
 
-        If use_cython is True, specify a working directory for the autowrap
-        function, so that binaries are saved inside and can be loaded in
-        quickly later.
+        If use_cython is True, uses the created folder to save the autowrap
+        binaries, so that they can be loaded in quickly later.
         """
 
         # check for / create the save folder for this expression
@@ -142,21 +144,20 @@ class BaseConfig():
         return function
 
     def _load_from_file(self, filename, lambdify):
-        """ Attempts to load the files for the corresponding hash
+        """ Attempts to load in saved files
 
         Attempt to load in the specified function or expression from
         saved file, in a subfolder based on the hash of the robot_config.
-        Takes a filename as an input and returns the corresponding saved
-        expression or function
+        Takes a filename as an input and returns the function or expression,
+        depending on if lambdify is True or False, respectively.
 
         Parameters
         ----------
         filename : string
             the desired function to load in
         lambdify : boolean
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
 
         expression = None
@@ -201,9 +202,6 @@ class BaseConfig():
     def C(self, q, dq):
         """ Loads or calculates the centripetal and Coriolis forces
 
-        If the function exists, it will load it from file, otherwise
-        it calls _calc_C to generate the function
-
         Parameters
         ----------
         q : numpy.array
@@ -221,9 +219,6 @@ class BaseConfig():
     def g(self, q):
         """ Loads or calculates the force of gravity in joint space
 
-        If the function exists, it will load it from file, otherwise
-        it calls _calc_g to generate the function
-
         Parameters
         ----------
         q : numpy.array
@@ -239,10 +234,6 @@ class BaseConfig():
     def dJ(self, name, q, dq, x=[0, 0, 0]):
         """ Loads or calculates the derivative of the Jacobian wrt time
 
-        If the function exists, it will load it from file, otherwise
-        it calls _calc_dJ to generate the derivative of a Jacobian for a joint
-        or link with respect to time
-
         Parameters
         ----------
         name : string
@@ -251,6 +242,8 @@ class BaseConfig():
             joint angles [radians]
         x : numpy.array, optional (Default: [0,0,0])
             the [x,y,z] offset inside reference frame of 'name' [meters]
+            if not specified, (0, 0, 0) is hard coded in, rather than using
+            variable (x, y, z), which results in significant speedups.
 
         """
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -263,9 +256,6 @@ class BaseConfig():
     def J(self, name, q, x=[0, 0, 0]):
         """ Loads or calculates the Jacobian for a joint or link
 
-        If the function exists, it will load it from file, otherwise
-        it calls _calc_J to generate the function
-
         Parameters
         ----------
         name : string
@@ -274,6 +264,8 @@ class BaseConfig():
             joint angles [radians]
         x : numpy.array, optional (Default: [0,0,0])
             the [x,y,z] offset inside reference frame of 'name' [meters]
+            if not specified, (0, 0, 0) is hard coded in, rather than using
+            variable (x, y, z), which results in significant speedups.
         """
 
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -285,9 +277,6 @@ class BaseConfig():
 
     def M(self, q):
         """ Loads or calculates the joint space inertia matrix
-
-        If the function exists, it will load it from file, otherwise
-        it calls _calc_M to generate the function
 
         Parameters
         ----------
@@ -303,10 +292,6 @@ class BaseConfig():
 
     def orientation(self, name, q):
         """ Loads or calculates the orientation of a point as a quaternion
-
-        If the function exists, it will load it from file, otherwise
-        it calls _calc_R and uses Sympy to generate the orientation for a
-        joint or link calculated as a quaternion.
 
         Parameters
         ----------
@@ -328,6 +313,13 @@ class BaseConfig():
         """ Scales down the input to the -1 to 1 range, based on the
         mean and max, min values recorded from some stereotyped movements.
         Used for projecting into neural systems.
+
+        Parameters
+        ----------
+        name : string
+            name of MEANS and SCALES element to access
+        x : numpy.array
+            signal to scale down
         """
         if self.MEANS is None or self.SCALES is None:
             raise Exception('Mean and/or scaling not defined')
@@ -335,6 +327,13 @@ class BaseConfig():
 
     def scaleup(self, name, x):
         """ Undoes the scaledown transformation.
+
+        Parameters
+        ----------
+        name : string
+            name of MEANS and SCALES element to access
+        x : numpy.array
+            signal to scale up
         """
         if self.MEANS is None or self.SCALES is None:
             raise Exception('Mean and/or scaling not defined')
@@ -342,9 +341,6 @@ class BaseConfig():
 
     def Tx(self, name, q, x=[0, 0, 0]):
         """ Loads or calculates the transformation Matrix for a joint or link
-
-        If the function exists, it will load it from file, otherwise
-        it calls _calc_Tx to generate the function
 
         Parameters
         ----------
@@ -354,6 +350,8 @@ class BaseConfig():
             joint angles [radians]
         x : numpy.array, optional (Default: [0,0,0])
             the [x,y,z] offset inside reference frame of 'name' [meters]
+            if not specified, (0, 0, 0) is hard coded in, rather than using
+            variable (x, y, z), which results in significant speedups.
         """
 
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -366,9 +364,6 @@ class BaseConfig():
     def T_inv(self, name, q, x=[0, 0, 0]):
         """ Loads or calculates the inverse transform for a joint or link
 
-        If the function exists, it will load it from file, otherwise
-        it calls _calc_T_inv to generate the function
-
         Parameters
         ----------
         name : string
@@ -377,6 +372,8 @@ class BaseConfig():
             joint angles [radians]
         x : numpy.array, optional (Default: [0,0,0])
             the [x,y,z] offset inside reference frame of 'name' [meters]
+            if not specified, (0, 0, 0) is hard coded in, rather than using
+            variable (x, y, z), which results in significant speedups.
         """
 
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
@@ -392,9 +389,8 @@ class BaseConfig():
         Parameters
         ----------
         lambdify : boolean, optional (Default: True)
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
 
         C = None
@@ -440,15 +436,13 @@ class BaseConfig():
     def _calc_g(self, lambdify=True):
         """ Generate the force of gravity in joint space
 
-        Uses Sympy to generate the force of gravity in
-        joint space
+        Uses Sympy to generate the force of gravity in joint space
 
         Parameters
         ----------
         lambdify : boolean, optional (Default: True)
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
         g = None
         g_func = None
@@ -506,10 +500,11 @@ class BaseConfig():
             name of the joint, link, or end-effector
         x : numpy.array
             the [x,y,z] offset inside the reference frame of 'name' [meters]
+            if not specified, (0, 0, 0) is hard coded in, rather than using
+            variable (x, y, z), which results in significant speedups.
         lambdify : boolean, optional (Default: True)
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
 
         dJ = None
@@ -559,10 +554,11 @@ class BaseConfig():
             name of the joint, link, or end-effector
         x : numpy.array
             the [x,y,z] offset inside the reference frame of 'name' [meters]
+            if not specified, (0, 0, 0) is hard coded in, rather than using
+            variable (x, y, z), which results in significant speedups.
         lambdify : boolean, optional (Default: True)
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
 
         J = None
@@ -624,9 +620,8 @@ class BaseConfig():
         Parameters
         ----------
         lambdify : boolean, optional (Default: True)
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
 
         M = None
@@ -682,9 +677,8 @@ class BaseConfig():
         name : string
             name of the joint, link, or end-effector
         lambdify : boolean, optional (Default: True)
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
         R = None
         R_func = None
@@ -733,10 +727,11 @@ class BaseConfig():
             name of the joint, link, or end-effector
         x : numpy.array
             the [x,y,z] offset inside the reference frame of 'name' [meters]
+            if not specified, (0, 0, 0) is hard coded in, rather than using
+            variable (x, y, z), which results in significant speedups.
         lambdify : boolean, optional (Default: True)
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
 
         Tx = None
@@ -789,10 +784,11 @@ class BaseConfig():
             name of the joint, link, or end-effector
         x : numpy.array
             the [x,y,z] offset inside the reference frame of 'name' [meters]
+            if not specified, (0, 0, 0) is hard coded in, rather than using
+            variable (x, y, z), which results in significant speedups.
         lambdify : boolean, optional (Default: True)
-            if True returns a function to calculate
-            the matrix. If False returns the Sympy
-            matrix
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
 
         T_inv = None

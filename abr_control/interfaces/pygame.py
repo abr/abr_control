@@ -4,25 +4,26 @@ import pygame.locals
 
 
 class PyGame():
-    """ Set up the PyGame visualization window.
+    """ Set up the PyGame visualization window, control the simulation
+    of the provided arm model.
 
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
-    arm_sim
+        contains in all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
+    arm_sim : class instance
+        a simulation of the arm dynamics, interfaces through send_forces(u, dt)
     dt: float, optional (Default: 0.001)
         simulation timestep
     q_init: numpy.array, optional (Default: None)
         joint start position [radians]
     on_click: function
-        function to call on mouse click, parameters
-        are (Display, mouse_x, mouse_y)
+        function to call on mouse click
+        parameters are (Display, mouse_x, mouse_y)
     on_keypress : function
-        function to call on keypress, parameters
-        are (Display, key)
+        function to call on keypress
+        parameters are (Display, key)
     """
 
     def __init__(self, robot_config, arm_sim, dt=0.001, q_init=None,
@@ -109,9 +110,8 @@ class PyGame():
     def send_forces(self, u, dt=None):
         """ Apply the specified torque to the robot
 
-        Apply the specified forces to the robot,
-        move the simulation one time step forward, and update
-        the PyGame display.
+        Apply the specified forces to the robot, move the simulation
+        one time step forward, and update the PyGame display.
 
         Parameters
         ----------

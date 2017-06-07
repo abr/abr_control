@@ -18,8 +18,6 @@ class Config(BaseConfig):
         inertia matrix of the joints
     L : numpy.array
         segment lengths of arm [meters]
-    KZ : sympy.Matrix
-        z isolation vector in orientational part of Jacobian
 
     Transform Naming Convention: Tpoint1point2
     ex: Tj1l1 tranforms from joint 1 reference frame to link 1
@@ -120,11 +118,10 @@ class Config(BaseConfig):
             [0, 0, 1, self.L[5, 2]],
             [0, 0, 0, 1]])
 
-        # orientation part of the Jacobian
-        KZ = sp.Matrix([0, 0, 1])  # all joints rotate around their z axis
+        # orientation part of the Jacobian (compensating for angular velocity)
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * KZ,  # joint 0 angular velocity
-            self._calc_T('joint1')[:3, :3] * KZ]  # joint 1 angular velocity
+            self._calc_T('joint0')[:3, :3] * self._KZ,  # joint 0 orientation
+            self._calc_T('joint1')[:3, :3] * self._KZ]  # joint 1 orientation
 
         # dictionaries set by the sub-config, used for scaling input into
         # neural systems. Calculate by recording data from movement of interest

@@ -18,24 +18,23 @@ except ImportError:
 
 
 class DynamicsAdaptation(Signal):
-    """ An implementation of dynamics adaptation using a Nengo model
+    """ An implementation of nonlinear dynamics adaptation using Nengo,
+    as described in (DeWolf, Stewart, Slotine, and Eliasmith, 2016)
 
-    The model learns to account for unknown forces and accounts for them
-    with the goal of maintaining target position of the end effector
+    The model learns to account for unknown / unmodelled external or
+    internal forces, using an efferent copy of the control signal to train.
 
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     n_neurons : int, optional (Default: 1000)
         number of neurons per adaptive population
     n_adapt_pop : int, optional (Default: 1)
         number of adaptive populations
     pes_learning_rate : float, optional (Default: 1e-6)
-        controls the speed of neural adaptation for training the dynamics
-        compensation term
+        controls the speed of neural adaptation
     intercepts list : list of two floats, optional (Default: (0.5, 1.0))
         voltage threshold range for neurons
     spiking : boolean, optional (Default: False)
@@ -47,8 +46,8 @@ class DynamicsAdaptation(Signal):
     backend : string, optional (Default: nengo)
         {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
     use_dq : boolean, optional (Default: False)
-        set true to pass in position and velocity,
-        false if only passing in position
+        set True to pass in position and velocity,
+        False if only passing in position
     """
 
     def __init__(self, robot_config,
@@ -79,6 +78,7 @@ class DynamicsAdaptation(Signal):
         nengo_model = nengo.Network(seed=10)
         with nengo_model:
 
+            # create a Node for passing in the scaled system feedback
             def qdq_input(t):
                 """ returns q and dq """
 
@@ -95,12 +95,14 @@ class DynamicsAdaptation(Signal):
                 return output
             qdq_input = nengo.Node(qdq_input, size_out=dim * self.N_INPUTS)
 
+            # create a Node for passing in the training signal
             def u_input(t):
                 """ returns the control signal for training """
 
                 return self.training_signal
             u_input = nengo.Node(u_input, size_out=dim)
 
+            # create a Node for saving the adaptive population output
             def u_adapt_output(t, x):
                 """ stores the adaptive output for use in control() """
 
@@ -120,6 +122,7 @@ class DynamicsAdaptation(Signal):
                 else:
                     neuron_type = nengo.LIFRate()
 
+                # create the adaptive ensembles
                 adapt_ens.append(nengo.Ensemble(
                     n_neurons=n_neurons,
                     dimensions=N_DIMS,
@@ -127,12 +130,15 @@ class DynamicsAdaptation(Signal):
                     neuron_type=neuron_type))
 
                 try:
+                    # if the NengoLib is installed, use it
+                    # to optimize encoder placement
                     adapt_ens.encoders = (
                         nengolib.stats.ScatteredHypersphere(
                             surface=True))
                 except AttributeError:
                     pass
 
+                # proved context signal to adaptive population
                 nengo.Connection(
                     qdq_input,
                     adapt_ens[ii][:N_DIMS],
@@ -148,6 +154,7 @@ class DynamicsAdaptation(Signal):
                     print('Transform is zeros')
                     transform = np.zeros((adapt_ens[ii].n_neurons,
                                           self.robot_config.N_JOINTS)).T
+                # set up learning connections
                 if backend == 'nengo_spinnaker':
                     conn_learn.append(
                         nengo.Connection(
@@ -239,6 +246,7 @@ class DynamicsAdaptation(Signal):
 class DummySolver(nengo.solvers.Solver):
     """ A Nengo weights solver that returns a provided set of weights.
     """
+
 
     def __init__(self, fixed):
         self.fixed = fixed

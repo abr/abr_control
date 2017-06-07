@@ -8,9 +8,8 @@ class Interface:
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     """
 
     def __init__(self, robot_config):
@@ -22,13 +21,14 @@ class Interface:
         raise NotImplementedError
 
     def disconnect(self):
-        """ Any socket closing etc that must be done
+        """ Any socket closing etc that must be done to properly shut down
         """
 
         raise NotImplementedError
 
     def send_forces(self, u):
-        """ Applies the set of torques u to the arm.
+        """ Applies the set of torques u to the arm. If interfacing to
+        a simulation, also moves dynamics forward one time step.
 
         u : np.array
             An array of joint torques [Nm]

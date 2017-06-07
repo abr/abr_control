@@ -9,9 +9,8 @@ class OSC(controller.Controller):
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     kp : float, optional (Default: 1)
         proportional gain term
     kv : float, optional (Default: None)
@@ -25,13 +24,12 @@ class OSC(controller.Controller):
         drives the arm to specified resting joint angles without
         affecting the movement of the end-effector
     use_g : boolean, optional (Default: True)
-        calcule and compensate for the effects of gravity
+        calculate and compensate for the effects of gravity
     use_C : boolean, optional (Default: False)
         calculate and compensate for the Coriolis and
         centripetal effects of the arm
     use_dJ : boolean, optional (Default: False)
-        use the Jacobian derivative to estimate and
-        cancel out the current acceleration
+        use the Jacobian derivative wrt time
 
     Attributes
     ----------
@@ -83,10 +81,9 @@ class OSC(controller.Controller):
         target_w : float numpy.array, optional (Default: numpy.zeros)
             the target angular velocities
         ref_frame : string, optional (Default: 'EE')
-            the frame of reference of control point, default is the end
-            effector. Names are set in the robot's config file
+            the point being controlled, default is the end-effector.
         offset : list, optional (Default: [0, 0, 0])
-            point of interest from the frame of reference [meters]
+            point of interest inside the frame of reference [meters]
         """
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)

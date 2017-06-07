@@ -18,8 +18,7 @@ def plot_3D(ee_path, target_path=None, save_file_name=None):
         the target trajectory [[x0,y0,z0],...,[xN,yN,zN]]
         if None nothing is plotted
     save_file_name : string (Default: None)
-        name to save the figure as
-        if None nothing is saved
+        name to save the figure as, if None nothing is saved
     """
 
     ee_path = np.asarray(ee_path)
