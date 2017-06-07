@@ -20,7 +20,7 @@ robot_config = arm.Config(use_cython=True)
 arm_sim = arm.ArmSim(robot_config)
 
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=100, vmax=10)
+ctrlr = OSC(robot_config, kp=200, vmax=10)
 
 # create our path planner
 n_timesteps = 250
@@ -50,8 +50,9 @@ try:
                 0])
             # update the position of the target
             interface.set_target(target_xyz)
-            path_planner.generate(state=hand_xyz, target=target_xyz,
-                                  n_timesteps=n_timesteps)
+            path_planner.generate(
+                state=hand_xyz, target=target_xyz,
+                n_timesteps=n_timesteps, plot_path=True)
 
         # returns desired [position, velocity]
         target = path_planner.next()
@@ -60,7 +61,8 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target)
+            target_pos=target[:3],  # (x, y, z)
+            target_vel=target[3:])  # (dx, dy, dz)
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)

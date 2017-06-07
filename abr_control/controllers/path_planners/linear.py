@@ -16,19 +16,22 @@ class Linear(PathPlanner):
     def __init__(self, robot_config):
         super(Linear, self).__init__(robot_config)
 
-    def generate(self, state, target, n_timesteps=200, dt=0.001):
+    def generate(self, state, target, n_timesteps=200,
+                 dt=0.001, plot_path=False):
         """ Generates a linear trajectory to the target
 
         Parameters
         ----------
         state : numpy.array
-            the current position of the system [meters]
+            the current position of the system
         target : numpy.array
-            the target position [radians]
+            the target position
         n_timesteps : int, optional (Default: 200)
             the number of time steps to reach the target
         dt : float, optional (Default: 0.001)
             the time step for calculating desired velocities [seconds]
+        plot_path : boolean, optional (Default: False)
+            plot the path after generating if True
         """
 
         n_states = len(state)
@@ -40,11 +43,36 @@ class Linear(PathPlanner):
                                                  n_timesteps)
             # calculate target velocities
             self.trajectory[:-1, ii+n_states] = (
-                np.diff(self.trajectory[:, ii]) / 0.001)
+                np.diff(self.trajectory[:, ii]) / dt)
 
         # reset trajectory index
         self.n = 0
         self.n_timesteps = n_timesteps
+
+        if plot_path:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.subplot(2, 1, 1)
+            plt.plot(np.ones((n_timesteps, n_states)) *
+                              np.arange(n_timesteps)[:, None],
+                     self.trajectory[:, :n_states])
+            plt.gca().set_prop_cycle(None)
+            plt.plot(np.ones((n_timesteps, n_states)) *
+                              np.arange(n_timesteps)[:, None],
+                     np.ones((n_timesteps, n_states)) * target, '--')
+            plt.legend(['%i' % ii for ii in range(n_states)] +
+                       ['%i_target' % ii for ii in range(n_states)])
+            plt.title('Trajectory positions')
+
+            plt.subplot(2, 1, 2)
+            plt.plot(np.ones((n_timesteps, n_states)) *
+                              np.arange(n_timesteps)[:, None],
+                     self.trajectory[:, n_states:])
+            plt.legend(['d%i' % ii for ii in range(n_states)])
+            plt.title('Trajectory velocities')
+            plt.tight_layout()
+
+            plt.show()
 
     def next(self):
         """ Return the next target point along the generated trajectory """
