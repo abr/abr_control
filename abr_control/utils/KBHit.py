@@ -5,7 +5,25 @@ import sys
 
 
 class KBHit:
-    """ Class for dealing with keyboard inputs """
+    """ Class for dealing with keyboard inputs
+
+    Allows the user to log what key has been pressed. This can be used as a
+    trigger for function calls, starting and stopping scripts etc. To use,
+    you must first call set_normal_term to set the terminal to its initial
+    state. Then you can monitor the keyboard in your main loop.
+
+    KBHIT.set_normal_term()
+
+    if KBHit.kbhit():
+        c = KBHIT.getch # variabe to store key press
+
+        if ord(c) == ord('s'):
+            print('Starting Script')
+    
+    Further examples can be found at
+    http://home.wlu.edu/~levys/software/kbhit.py
+    http://code.activestate.com/recipes/572182-how-to-implement-kbhit-on-linux/
+    """
 
     def __init__(self):
         # Save the terminal settings
