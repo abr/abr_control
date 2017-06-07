@@ -89,8 +89,7 @@ class DynamicsAdaptation(Signal):
                               self.robot_config.scaledown('q', q),
                               self.robot_config.scaledown('dq', self.dq)]))
                 else:
-                    output = np.hstack([
-                        self.robot_config.scaledown('q', q)])
+                    output = self.robot_config.scaledown('q', q)
 
                 return output
             qdq_input = nengo.Node(qdq_input, size_out=dim * self.N_INPUTS)

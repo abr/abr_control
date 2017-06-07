@@ -49,8 +49,9 @@ try:
                 0])
             # update the position of the target
             interface.set_target(target_xyz)
-            path_planner.generate(hand_xyz, target_xyz,
-                                  n_timesteps=n_timesteps)
+            path_planner.generate(
+                state=hand_xyz, target=target_xyz,
+                n_timesteps=n_timesteps, plot_path=False)
 
         # returns desired [position, velocity]
         target = path_planner.next()
