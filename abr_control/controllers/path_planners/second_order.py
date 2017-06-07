@@ -21,79 +21,77 @@ class SecondOrder(PathPlanner):
     def __init__(self, robot_config):
         super(SecondOrder, self).__init__(robot_config)
 
-    def generate(self, state, target, dy=np.zeros(3), fc1=200, fc2=0.005,
-                 n_timesteps=100, dt=0.005):
+    def generate(self, state, target, n_timesteps=100,
+                 plot_path=False, tau=200, k=0.005, dt=0.001):
         """ filter the target so that it doesn't jump, but moves smoothly
 
         Parameters
         ----------
-        dy : numpy.array, optional (Default: numpy.zeros(3))
-            cartesian velocity [meters]
         state : numpy.array
-            the current position of the system [meters]
+            the current state of the system
         target : numpy.array
-            the target position [radians]
-        fc1 : float, optional (Default:200)
+            the target state
+        tau: float, optional (Default:200)
             filter constant 1
-        fc2 : float, optional (Default:0.005)
+        k: float, optional (Default:0.005)
             filter constant 2
         n_timesteps : int, optional (Default: 100)
             the number of time steps to reach the target
-        dt : float, optional (Default: 0.005)
-            the time step for the filter [seconds]
-
-        Attributes
-        ----------
-        y : numpy.array
-            position cartesian coordinates [meters]
+        plot_path : boolean, optional (Default: False)
+            plot the path after generating if True
         """
 
-        self.y = []
-        self.dy = []
+        n_states = len(state)
+        x = np.zeros((n_timesteps, n_states))
+        x1 = np.zeros((n_timesteps, n_states))
+
+        gain = 1250 / n_timesteps  # gain to converge in the desired time
 
         # initialize the filters to the starting position of the end effector
-        y = state
-        dy = state
+        x[0] = np.copy(state)
 
-        for ii in range(0, n_timesteps):
-            # if filtered target is within 2cm of the target, use target
-            #TODO have to account for dt somewhere, used loop time previously
-            # to implicitly add it
-            if np.linalg.norm(y - target) > 0.002:
-                dy += (-1.0 / fc1 * dy - fc2 * y + (2. / fc1) * target) * dt
-                print('dy: ', dy)
-                y += (-1.0 / fc1 * y + fc2 * dy) * dt
-                print('y: ', y)
-            else:
-                y = target
-            self.y.append(y)
-            print('next: ', self.y[ii])
-            self.dy.append(dy)
+        for i in np.arange(n_timesteps - 1):
+            x1[i+1] = x1[i] + (-1.0 / tau * x1[i] -k * x[i] +
+                               2.0 / tau * target) * gain
+            x[i+1] = x[i] + (-1.0 / tau * x[i] + k * x1[i]) * gain
+
+        dx = np.vstack([np.diff(x, axis=0) / dt, np.zeros(x[0].shape)])
+        self.trajectory = np.hstack([x, dx])
+
         # reset trajectory index
         self.n = 0
         self.n_timesteps = n_timesteps
 
-        import matplotlib
-        matplotlib.use("TKAgg")
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.plot(range(0,len(self.y)), np.array(self.y)[:,0], 'r', label='x')
-        plt.plot(range(0,len(self.y)), np.array(self.y)[:,1], 'b', label='y')
-        plt.plot(range(0,len(self.y)), np.array(self.y)[:,2], 'k', label='z')
-        plt.plot(np.arange(len(self.y)), np.ones(len(self.y)) * target[0],
-                 '--r', label = 'target_x')
-        plt.plot(np.arange(len(self.y)), np.ones(len(self.y)) * target[1],
-                 '--b', label = 'target_y')
-        plt.plot(np.arange(len(self.y)), np.ones(len(self.y)) * target[2],
-                 '--k', label = 'target_z')
-        plt.legend()
-        plt.show()
+        if plot_path:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.subplot(2, 1, 1)
+            plt.plot(np.ones((n_timesteps, n_states)) *
+                              np.arange(n_timesteps)[:, None],
+                     self.trajectory[:, :n_states])
+            plt.gca().set_prop_cycle(None)
+            plt.plot(np.ones((n_timesteps, n_states)) *
+                              np.arange(n_timesteps)[:, None],
+                     np.ones((n_timesteps, n_states)) * target, '--')
+            plt.legend(['%i' % ii for ii in range(n_states)] +
+                       ['%i_target' % ii for ii in range(n_states)])
+            plt.title('Trajectory positions')
+
+            plt.subplot(2, 1, 2)
+            plt.plot(np.ones((n_timesteps, n_states)) *
+                              np.arange(n_timesteps)[:, None],
+                     self.trajectory[:, n_states:])
+            plt.legend(['d%i' % ii for ii in range(n_states)])
+            plt.title('Trajectory velocities')
+            plt.tight_layout()
+
+            plt.show()
 
     def next(self):
         """ Return the next target point along the generated trajectory """
 
         # get the next target state if we're not at the end of the trajectory
-        self.target = (self.y[self.n] #  np.hstack([self.y[self.n], self.dy[self.n]])
+        self.target = (self.trajectory[self.n]
                        if self.n < self.n_timesteps else self.target)
         self.n += 1
 
