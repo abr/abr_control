@@ -12,14 +12,13 @@ class ArmSim():
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     dt: float, optional (Default: 0.001)
         simulation time step [seconds]
-    q_init : numpy.array, optional (Default: None)
+    q_init : numpy.array, optional (Default: robot_config.REST_ANGLES)
         start joint angles [radians]
-    dq_init : numpy.array, optional (Default: None)
+    dq_init : numpy.array, optional (Default: np.zeros)
         start joint velocity [radians/second]
     """
 
@@ -65,8 +64,7 @@ class ArmSim():
 
     def send_forces(self, u, dt=None):
         """ Apply the specified forces to the robot,
-        move the simulation one time step forward, and update
-        the plot.
+        moving the simulation one time step forward.
 
         NOTE: For this simulation, torques are clipped to 1e7
         to prevent seg faults being thrown.
@@ -75,7 +73,7 @@ class ArmSim():
         ----------
         u : numpy.array
             an array of the torques to apply to the robot [Nm]
-        dt : float, optional (Default: None)
+        dt : float, optional (Default: self.dt)
             time step [seconds]
         """
 

@@ -9,19 +9,17 @@ from .interface import Interface
 class VREP(Interface):
     """ An interface for VREP.
 
-    Implements force control using VREP's force-limiting method.
+    Implements force control using VREP's torque-limiting method.
     Lock-steps the simulation so that it only moves forward one dt
     every time send_forces is called.
-    Expects that there is a 'hand' object in the VREP environment
 
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     dt : float, optional (Default: 0.001)
-        simulation timestep in seconds
+        simulation time step in seconds
     """
 
     def __init__(self, robot_config, dt=.001):
@@ -44,8 +42,8 @@ class VREP(Interface):
     def connect(self):
         """ Connect to the current scene open in VREP
 
-        find the VREP references to the joints of the robot,
-        specify the time step for simulation and put into lock-step mode.
+        Finds the VREP references to the joints of the robot.
+        Sets the time step for simulation and put into lock-step mode.
 
         NOTE: the joints and links must follow the naming convention of
         'joint#' and 'link#', starting from 'joint0' and 'link0'
@@ -117,6 +115,7 @@ class VREP(Interface):
         """ Returns the orientation of an object in VREP
 
         the Euler angles [radians] are returned in the relative xyz frame.
+        http://www.coppeliarobotics.com/helpFiles/en/eulerAngles.htm
 
         Parameters
         ----------
@@ -170,17 +169,16 @@ class VREP(Interface):
     def send_forces(self, u):
         """ Apply the specified torque to the robot joints
 
-        Apply the specified torque to the robot joints,
-        move the simulation one time step forward, and update
-        the position of the hand object.
+        Apply the specified torque to the robot joints, move the simulation
+        one time step forward, and update the position of the hand object.
 
         Parameters
         ----------
         u : np.array
-            an array of the torques to apply to the robot
+            the torques to apply to the robot
         """
 
-        # invert because torque directions are opposite of expected
+        # invert because VREP torque directions are opposite of expected
         u *= -1
 
         for ii, joint_handle in enumerate(self.joint_handles):
@@ -258,7 +256,7 @@ class VREP(Interface):
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller.
 
-        Returns the joint angles and joint velocities in [rad] and [rad/sec]
+        Returns the joint angles and joint velocities in [rad] and [rad/sec],
         respectively
         """
 

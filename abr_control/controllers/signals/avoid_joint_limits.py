@@ -4,7 +4,7 @@ from .signal import Signal
 
 
 class AvoidJointLimits(Signal):
-    """ A signal to add to a controller to push joints away from set limits
+    """ Pushes  joints away from set limits
 
     Pass in a set of maximum and minimum joint angles, along with a maximum
     force to push away with. As the joints near their limit the opposing force

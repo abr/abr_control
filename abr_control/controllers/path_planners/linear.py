@@ -4,18 +4,13 @@ from .path_planner import PathPlanner
 
 
 class Linear(PathPlanner):
-    """ Implement a trajectory controller on top of a controller
-
-    Implements an trajectory controller on top of a given
-    point to point control system. Returns a set of desired positions
-    and velocities.
+    """ Creates a linear trajectory from current to target state
 
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     """
 
     def __init__(self, robot_config):
@@ -23,9 +18,6 @@ class Linear(PathPlanner):
 
     def generate(self, state, target, n_timesteps=200, dt=0.001):
         """ Generates a linear trajectory to the target
-
-        Generates a trajectory to move from the current position
-        to the target position in a straight line.
 
         Parameters
         ----------

@@ -9,19 +9,14 @@ class AvoidObstacles(Signal):
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     obstacles : list of list of floats
         a list of obstacles, where the obstacles are a list of the
-        corresponding Cartesian coordinates and obstacle radius
-        ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius]
-        The first three entires are the cartesian coordinates of the
-        obstacle and the fourth is the approximate radius of the obstacle
-        coordinates are in [meters]
+        corresponding Cartesian coordinates and obstacle radius [metres]
+        ex: obstacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius]
     threshold : float, optional (Default: 0.2)
-        radius of the sphere with the obstacle at its center [meters] to
-        avoid
+        how close is the system allowed to get to obstacles
     """
 
     def __init__(self, robot_config, obstacles=[], threshold=.2):
@@ -36,7 +31,7 @@ class AvoidObstacles(Signal):
         Parameters
         ----------
         q : np.array
-        the current joint angles [radians]
+            the current joint angles [radians]
         """
 
         u_psp = np.zeros(self.robot_config.N_JOINTS, dtype='float32')
@@ -114,12 +109,8 @@ class AvoidObstacles(Signal):
         ----------
         obstacles : list of list of floats
             a list of obstacles, where the obstacles are a list of the
-            corresponding Cartesian coordinates and obstacle radius
+            corresponding Cartesian coordinates and obstacle radius [metres]
             ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius]
-            The first three entires are the cartesian coordinates of the
-            obstacle and the fourth is the approximate radius of the obstacle
-            coordinates are in [meters]
-
         """
 
         self.obstacles = np.copy(obstacles)

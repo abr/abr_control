@@ -4,9 +4,8 @@ class Signal:
     Parameters
     ----------
     robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
     """
 
     def __init__(self, robot_config):

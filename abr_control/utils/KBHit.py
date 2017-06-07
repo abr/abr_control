@@ -5,10 +5,9 @@ import sys
 
 
 class KBHit:
-    '''Class for dealing with keyboard inputs'''
+    """ Class for dealing with keyboard inputs """
+
     def __init__(self):
-        '''Creates a KBHit object that you can call to do keyboard inputs.
-        '''
         # Save the terminal settings
         self.fd = sys.stdin.fileno()
         self.new_term = termios.tcgetattr(self.fd)
@@ -22,17 +21,17 @@ class KBHit:
         atexit.register(self.set_normal_term)
 
     def set_normal_term(self):
-        ''' Resets to normal terminal.
-        '''
+        """ Resets to normal terminal.
+        """
         termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.old_term)
 
     def getch(self):
-        ''' Returns a keyboard character after kbhit() has been called.
-        '''
+        """ Returns a keyboard character after kbhit() has been called.
+        """
         return sys.stdin.read(1)
 
     def kbhit(self):
-        ''' Returns True if keyboard character was hit, False otherwise.
-        '''
+        """ Returns True if keyboard character was hit, False otherwise.
+        """
         dr, dw, de = select([sys.stdin], [], [], 0)
         return dr != []
