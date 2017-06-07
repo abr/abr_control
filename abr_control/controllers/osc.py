@@ -131,30 +131,31 @@ class OSC(controller.Controller):
             # generate (x,y,z) force without velocity limiting)
             u_task[:3] = -self.kp * x_tilde
 
-        # TODO: This is really awkward, but how else to get out
-        # this signal for dynamics adaptation training?
-
         # incorporate task space inertia matrix
-        self.training_signal = np.dot(J.T, np.dot(Mx, u_task))
+        u = np.dot(J.T, np.dot(Mx, u_task))
 
         if self.vmax is None:
-            self.training_signal -= np.dot(M, dq)
+            u -= np.dot(M, dq)
 
         if self.use_dJ:
             # add in estimate of current acceleration
             dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
             # apply mask
             dJ = dJ[:3]
-            self.training_signal -= np.dot(Mx, np.dot(dJ, dq))
-
-        u = self.training_signal
-        # cancel out effects of gravity
-        if self.use_g:
-            u -= self.robot_config.g(q=q)
+            u -= np.dot(Mx, np.dot(dJ, dq))
 
         if self.use_C:
             # add in estimation of centripetal and Coriolis effects
             u -= self.robot_config.C(q=q, dq=dq)
+
+        # TODO: self.training_signal is a hack, but keeps API
+        # cleaner than returning something other than just u
+        # NOTE: training signal should not include gravity compensation
+        self.training_signal = np.copy(u)
+
+        # cancel out effects of gravity
+        if self.use_g:
+            u -= self.robot_config.g(q=q)
 
         if self.null_control:
             # calculated desired joint angle acceleration using rest angles

@@ -72,7 +72,7 @@ try:
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
             u += adapt.generate(feedback['q'], feedback['dq'],
-                                training_signal=u)
+                                training_signal=ctrlr.training_signal)
 
         fake_gravity = np.array([[0, -981, 0, 0, 0, 0]]).T
         g = np.zeros((robot_config.N_LINKS, 1))
