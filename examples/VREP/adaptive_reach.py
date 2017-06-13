@@ -12,11 +12,18 @@ from abr_control.arms import jaco2 as arm
 from abr_control.controllers import OSC, signals
 from abr_control.interfaces import VREP
 
-# initialize our robot config for the ur5
+# initialize our robot config for the jaco2 
 robot_config = arm.Config(use_cython=True, hand_attached=True)
+
+# get Jacobians to each link for calculating perturbation
+J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
+           for ii in range(robot_config.N_LINKS)]
 
 # instantiate controller
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)
+
+# 1 sec of simulation takes 5 minutes 30 seconds
+time_scale = 1/330
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
@@ -24,7 +31,7 @@ adapt = signals.DynamicsAdaptation(
     n_neurons=500,
     n_adapt_pop=1,
     weights_file=None,
-    pes_learning_rate=1e-6,
+    pes_learning_rate=1e-4,
     intercepts=(-0.1, 1.0),
     spiking=True)
  
@@ -46,7 +53,7 @@ try:
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
-    while count < 1500:
+    while 1:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
         # calculate the control signal
@@ -54,8 +61,21 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_xyz)
-        u += adapt.generate(feedback['q'], feedback['dq'],
+        u_adapt = adapt.generate(feedback['q'], feedback['dq'],
                             training_signal=ctrlr.training_signal)
+        u += u_adapt * time_scale
+        if count % 10 == 0:
+            print('adapt: ', u_adapt * time_scale)
+
+        # add an additional force for the controller to adapt to
+        fake_gravity = np.array([[0, -9.81, 0, 0, 0, 0]]).T
+        g = np.zeros((robot_config.N_JOINTS, 1))
+        for ii in range(robot_config.N_LINKS):
+            pars = tuple(feedback['q']) + tuple([0, 0, 0])
+            g += np.dot(J_links[ii](*pars).T, fake_gravity)
+        u += g.squeeze()
+
+
         # send forces into VREP, step the sim forward
         interface.send_forces(u)
 
