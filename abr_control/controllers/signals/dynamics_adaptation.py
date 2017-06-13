@@ -2,6 +2,8 @@ import numpy as np
 import os
 import scipy.special
 
+import abr_control.utils.os_utils
+from abr_control.utils.paths import cache_dir
 from .signal import Signal
 
 try:
@@ -166,7 +168,64 @@ class DynamicsAdaptation(Signal):
 
         return self.output
 
+    def save_weights(self, weights, trial=None, run=None,
+                     location='test'):
+        """ Save the current weights to the specified location
 
+        Saved weights for individual runs. A group of runs is
+        classified as a trial. Multiple trials can then be used
+        to average over a set of learned runs. If trial is set
+        to 0 then it is assumed that there will only be one set
+        of runs.
+        
+        Parameters
+        ----------
+        weights
+        trial: int, optional (Default: None)
+            if doing multiple trials of n runs to average over.
+            if set to None will assume no averaging over trials
+        run: int, optional (Default: None)
+            the current run number. This value will automatically
+            increment based on the last run saved in the location
+            folder. The user can specify a run if they desire to
+            overwrite a previous run
+        location: string, optional (Default: 'test')
+            the save location
+        """
+        
+        location = cache_dir + '/saved_weights/' + location
+        try to open location
+        else print location does not exist, saving to default location
+
+        if trial is not None:
+            location += '/trial%i' % trial
+        else:
+            look in location for most recent trial
+        if run is not None:
+            location += '/run%i' 
+        else:
+            look in location for most recent run and save as next run
+        save file in location
+
+    def load_weights(self, trial, run, location='test'):
+        """ load the last set of weights
+
+        Checks location to load the most recent set of weights, unless
+        otherwise specified in trial and run
+
+        Parameters
+        ----------
+        trial: int, optional (Default: 0)
+            The trial to load the weights from, if not specified will
+            take the most recent weights from location
+        run: int, optional (Default: 0)
+            the run to load the weights from, if not specified will take
+            the most recent weights from location
+        location: string, optional (Default: 'test')
+            the save location
+        """
+        location = cache_dir + '/saved_weights/' + location
+        # same as for saving weights, except end with load instead of save
 class DummySolver(nengo.solvers.Solver):
     """ A Nengo weights solver that returns a provided set of weights.
     """
