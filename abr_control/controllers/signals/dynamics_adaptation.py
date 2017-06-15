@@ -214,13 +214,14 @@ class DynamicsAdaptation(Signal):
 
         # if no run is specified, check what the most recent run saved is and save as
         # the next one in the series. If no run exists then save it as 'run0'
+        # if saving, if loading throw an error that no weights file exists
         if run is None:
             prev_runs = glob.glob(test_name + '/*.npz')
             if prev_runs:
                 run = max(prev_runs)
-                run_num = int(run[run.rfind('/')+1:run.find('.npz')])
+                run_num = int(run[run.rfind('/')+4:run.find('.npz')])
             else:
-                run_num = 0
+                run_num = -1
         else:
             # save as the run specified by the user
             run_num = run
@@ -239,13 +240,13 @@ class DynamicsAdaptation(Signal):
 
         [test_name, run_num] = self.weights_location(**kwargs)
 
-        print('saving weights as run', run_num)
+        print('saving weights as run%i'% (run_num+1))
         if self.backend == 'nengo_spinnaker':
             import nengo_spinnaker.utils.learning
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
                 weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
-                         self.sim, self.adapt_ens)]))
+                         self.sim, self.adapt_ens[0])]))
         else:
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
@@ -261,6 +262,10 @@ class DynamicsAdaptation(Signal):
 
         [test_name, run_num] = self.weights_location(self, **kwargs)
 
+        if run_num == -1:
+            print('The weights file does not exist...')
+            print('Please omit the load_weights function to pass in a'
+                  + 'zero array as starting weights')
         weights_file = test_name + run_num + '.npz'
         return weights_file
 
