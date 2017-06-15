@@ -11,8 +11,7 @@ from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onelink as arm
 from abr_control.controllers import OSC, signals
 from abr_control.interfaces import VREP
-
-# initialize our robot config for the jaco2 
+# initialize our robot config for the jaco2
 robot_config = arm.Config(use_cython=True, hand_attached=True)
 
 # get Jacobians to each link for calculating perturbation
@@ -34,7 +33,7 @@ adapt = signals.DynamicsAdaptation(
     pes_learning_rate=1e-4,
     intercepts=(-0.1, 1.0),
     spiking=True)
- 
+
 # create our VREP interface
 interface = VREP(robot_config, dt=.001)
 interface.connect()
@@ -62,7 +61,7 @@ try:
             dq=feedback['dq'],
             target_pos=target_xyz)
         u_adapt = adapt.generate(feedback['q'], feedback['dq'],
-                            training_signal=ctrlr.training_signal)
+                                 training_signal=ctrlr.training_signal)
         u += u_adapt * time_scale
         if count % 10 == 0:
             print('adapt: ', u_adapt * time_scale)
@@ -104,7 +103,7 @@ finally:
 
         plt.figure()
         plt.plot(np.sqrt(np.sum((np.array(target_track) -
-                                np.array(ee_track))**2, axis=1)))
+                                 np.array(ee_track))**2, axis=1)))
         plt.ylabel('Distance (m)')
         plt.xlabel('Time (ms)')
         plt.title('Distance to target')
