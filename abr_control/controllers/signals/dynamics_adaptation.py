@@ -1,8 +1,9 @@
+import glob
 import numpy as np
 import os
 import scipy.special
 
-import abr_control.utils.os_utils
+# import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
 from .signal import Signal
 
@@ -71,14 +72,14 @@ class DynamicsAdaptation(Signal):
                 dimensions=n_input,
                 base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
 
-            adapt_ens = nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
+            self.adapt_ens = nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
                                        intercepts=intercepts, **kwargs)
 
             try:
                 # if the NengoLib is installed, use it
                 # to optimize encoder placement
                 import nengolib
-                adapt_ens.encoders = (
+                self.adapt_ens.encoders = (
                     nengolib.stats.ScatteredHypersphere(surface=True))
                 print('NengoLib used to optimize encoders placement')
             except ImportError:
@@ -86,7 +87,7 @@ class DynamicsAdaptation(Signal):
                       'placement will be sub-optimal.')
 
             # hook up input signal to adaptive population to provide context
-            nengo.Connection(input_signals[:n_input], adapt_ens, synapse=0.005)
+            nengo.Connection(input_signals[:n_input], self.adapt_ens, synapse=0.005)
 
             # load weights from file if they exist, otherwise use zeros
             if os.path.isfile('%s' % weights_file):
@@ -95,17 +96,17 @@ class DynamicsAdaptation(Signal):
                 print('Loaded weights all zeros: ', np.allclose(transform, 0))
             else:
                 print('No weights found, starting with zeros')
-                transform = np.zeros((adapt_ens.n_neurons, n_output)).T
+                transform = np.zeros((self.adapt_ens.n_neurons, n_output)).T
 
             # set up learning connections
             if backend == 'nengo_spinnaker':
                 conn_learn = nengo.Connection(
-                    adapt_ens, output,
+                    self.adapt_ens, output,
                     learning_rule_type=nengo.PES(pes_learning_rate),
                     solver=DummySolver(transform.T))
             else:
                 conn_learn = nengo.Connection(
-                    adapt_ens.neurons, output,
+                    self.adapt_ens.neurons, output,
                     learning_rule_type=nengo.PES(pes_learning_rate),
                     transform=transform)
 
@@ -168,64 +169,129 @@ class DynamicsAdaptation(Signal):
 
         return self.output
 
-    def save_weights(self, weights, trial=None, run=None,
-                     location='test'):
-        """ Save the current weights to the specified location
+    def get_latest_weights(self, trial=None, run=None, test_name='test'):
+        """ Search for most recent saved weights
 
-        Saved weights for individual runs. A group of runs is
-        classified as a trial. Multiple trials can then be used
-        to average over a set of learned runs. If trial is set
-        to 0 then it is assumed that there will only be one set
-        of runs.
-        
+        Searches the specified test_name for the highest numbered run in the
+        highest numbered trial, unless otherwise specified. Returns the file
+        location and the number of the most recent run.
+
         Parameters
         ----------
-        weights
         trial: int, optional (Default: None)
             if doing multiple trials of n runs to average over.
-            if set to None will assume no averaging over trials
+            if set to None it will search for the most recent trial
+            to save to, saving to 'trial0' if none exist
         run: int, optional (Default: None)
             the current run number. This value will automatically
-            increment based on the last run saved in the location
+            increment based on the last run saved in the test_name
             folder. The user can specify a run if they desire to
-            overwrite a previous run
-        location: string, optional (Default: 'test')
-            the save location
+            overwrite a previous run. If set to None then the test_name
+            folder will be searched for the next run to save as
+        test_name: string, optional (Default: 'test')
+            the test name to save the weights under
         """
-        
-        location = cache_dir + '/saved_weights/' + location
-        try to open location
-        else print location does not exist, saving to default location
 
+        test_name = cache_dir + '/saved_weights/' + test_name
+
+        # if trial is not None, then the user has specified what trial to save the
+        # current weights in
         if trial is not None:
-            location += '/trial%i' % trial
+            test_name += '/trial%i' % trial
+        # If no trial is specified, check if there is already one created, if not
+        # then save the run to 'trial0'
         else:
-            look in location for most recent trial
-        if run is not None:
-            location += '/run%i' 
+            prev_trials = glob.glob(test_name + '/trial*')
+            if prev_trials:
+                test_name = max(prev_trials)
+            else:
+                test_name += '/trial0'
+
+        # check if the provided test_name exists, if not, create it
+        if not os.path.exists(test_name):
+            print("The provided directory does not exist, creating folder...")
+            os.makedirs(test_name)
+
+        # if no run is specified, check what the most recent run saved is and save as
+        # the next one in the series. If no run exists then save it as 'run0'
+        if run is None:
+            prev_runs = glob.glob(test_name + '/*.npz')
+            if prev_runs:
+                run = max(prev_runs)
+                run_num = int(run[run.rfind('/')+1:run.find('.npz')])
+            else:
+                run_num = 0
         else:
-            look in location for most recent run and save as next run
-        save file in location
+            # save as the run specified by the user
+            run_num = run
 
-    def load_weights(self, trial, run, location='test'):
-        """ load the last set of weights
+        return [test_name, run_num]
 
-        Checks location to load the most recent set of weights, unless
-        otherwise specified in trial and run
+    def save_weights(self, trial=None, run=None, test_name='test'):
+        """ Save the current weights to the specified test_name folder
+
+        Save weights for individual runs. A group of runs is
+        classified as a trial. Multiple trials can then be used
+        to average over a set of learned runs. If trial or run are set to None
+        then the test_name location will be searched for the highest numbered
+        folder and file respectively
 
         Parameters
         ----------
-        trial: int, optional (Default: 0)
-            The trial to load the weights from, if not specified will
-            take the most recent weights from location
-        run: int, optional (Default: 0)
-            the run to load the weights from, if not specified will take
-            the most recent weights from location
-        location: string, optional (Default: 'test')
-            the save location
+        trial: int, optional (Default: None)
+            if doing multiple trials of n runs to average over.
+            if set to None it will search for the most recent trial
+            to save to, saving to 'trial0' if none exist
+        run: int, optional (Default: None)
+            the current run number. This value will automatically
+            increment based on the last run saved in the test_name
+            folder. The user can specify a run if they desire to
+            overwrite a previous run. If set to None then the test_name
+            folder will be searched for the next run to save as
+        test_name: string, optional (Default: 'test')
+            the test name to save the weights under
         """
-        location = cache_dir + '/saved_weights/' + location
-        # same as for saving weights, except end with load instead of save
+        [test_name, run_num] = get_latest_weights(self, trial=trial, run=run,
+                                                  test_name=test_name)
+        print('saving weights as run', run_num)
+        if self.backend == 'nengo_spinnaker':
+            import nengo_spinnaker.utils.learning
+            np.savez_compressed(
+                test_name + 'run%i' % run_num + 1,
+                weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
+                         self.sim, self.adapt_ens)]))
+        else:
+            np.savez_compressed(
+                test_name + 'run%i' % run_num + 1,
+                weights=[self.sim.data[self.probe_weights[0]]])
+
+    def load_weights(self, trial, run, test_name='test'):
+        """ Loads the most recently saved weights unless otherwise specified
+
+        Checks test_name to load the most recent set of weights, unless
+        otherwise specified in trial and run. Assumes the most recent is the
+        highest trial and run number.
+
+        Parameters
+        ----------
+        trial: int, optional (Default: None)
+            if doing multiple trials of n runs to average over.
+            if set to None it will search for the most recent trial
+            to save to, saving to 'trial0' if none exist
+        run: int, optional (Default: None)
+            the current run number. This value will automatically
+            increment based on the last run saved in the test_name
+            folder. The user can specify a run if they desire to
+            overwrite a previous run. If set to None then the test_name
+            folder will be searched for the next run to save as
+        test_name: string, optional (Default: 'test')
+            the test name to save the weights under
+        """
+        [test_name, run_num] = get_latest_weights(self, trial=trial, run=run,
+                                                  test_name=test_name)
+        weights_file = test_name + run_num + '.npz'
+        return weights_file
+
 class DummySolver(nengo.solvers.Solver):
     """ A Nengo weights solver that returns a provided set of weights.
     """
