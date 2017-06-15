@@ -169,7 +169,7 @@ class DynamicsAdaptation(Signal):
 
         return self.output
 
-    def get_latest_weights(self, trial=None, run=None, test_name='test'):
+    def weights_location(self, trial=None, run=None, test_name='test'):
         """ Search for most recent saved weights
 
         Searches the specified test_name for the highest numbered run in the
@@ -227,7 +227,7 @@ class DynamicsAdaptation(Signal):
 
         return [test_name, run_num]
 
-    def save_weights(self, trial=None, run=None, test_name='test'):
+    def save_weights(self, **kwargs):
         """ Save the current weights to the specified test_name folder
 
         Save weights for individual runs. A group of runs is
@@ -235,60 +235,32 @@ class DynamicsAdaptation(Signal):
         to average over a set of learned runs. If trial or run are set to None
         then the test_name location will be searched for the highest numbered
         folder and file respectively
-
-        Parameters
-        ----------
-        trial: int, optional (Default: None)
-            if doing multiple trials of n runs to average over.
-            if set to None it will search for the most recent trial
-            to save to, saving to 'trial0' if none exist
-        run: int, optional (Default: None)
-            the current run number. This value will automatically
-            increment based on the last run saved in the test_name
-            folder. The user can specify a run if they desire to
-            overwrite a previous run. If set to None then the test_name
-            folder will be searched for the next run to save as
-        test_name: string, optional (Default: 'test')
-            the test name to save the weights under
         """
-        [test_name, run_num] = get_latest_weights(self, trial=trial, run=run,
-                                                  test_name=test_name)
+
+        [test_name, run_num] = self.weights_location(**kwargs)
+
         print('saving weights as run', run_num)
         if self.backend == 'nengo_spinnaker':
             import nengo_spinnaker.utils.learning
             np.savez_compressed(
-                test_name + 'run%i' % run_num + 1,
+                test_name + '/run%i' % (run_num + 1),
                 weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
                          self.sim, self.adapt_ens)]))
         else:
             np.savez_compressed(
-                test_name + 'run%i' % run_num + 1,
+                test_name + '/run%i' % (run_num + 1),
                 weights=[self.sim.data[self.probe_weights[0]]])
 
-    def load_weights(self, trial, run, test_name='test'):
+    def load_weights(self, **kwargs):
         """ Loads the most recently saved weights unless otherwise specified
 
         Checks test_name to load the most recent set of weights, unless
         otherwise specified in trial and run. Assumes the most recent is the
         highest trial and run number.
-
-        Parameters
-        ----------
-        trial: int, optional (Default: None)
-            if doing multiple trials of n runs to average over.
-            if set to None it will search for the most recent trial
-            to save to, saving to 'trial0' if none exist
-        run: int, optional (Default: None)
-            the current run number. This value will automatically
-            increment based on the last run saved in the test_name
-            folder. The user can specify a run if they desire to
-            overwrite a previous run. If set to None then the test_name
-            folder will be searched for the next run to save as
-        test_name: string, optional (Default: 'test')
-            the test name to save the weights under
         """
-        [test_name, run_num] = get_latest_weights(self, trial=trial, run=run,
-                                                  test_name=test_name)
+
+        [test_name, run_num] = self.weights_location(self, **kwargs)
+
         weights_file = test_name + run_num + '.npz'
         return weights_file
 
