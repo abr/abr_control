@@ -2,6 +2,7 @@ import glob
 import numpy as np
 import os
 import scipy.special
+import time
 
 # import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
@@ -243,6 +244,8 @@ class DynamicsAdaptation(Signal):
         print('saving weights as run%i'% (run_num+1))
         if self.backend == 'nengo_spinnaker':
             import nengo_spinnaker.utils.learning
+            self.sim.close()
+            time.sleep(5)
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
                 weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
