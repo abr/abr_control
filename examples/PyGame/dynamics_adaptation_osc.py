@@ -26,11 +26,11 @@ J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
 arm_sim = arm.ArmSim(robot_config)
 
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=20, vmax=10)
+ctrlr = OSC(robot_config, kp=50, vmax=10)
 
 # create our nonlinear adaptation controller
-adapt = signals.DynamicsAdaptation(robot_config, pes_learning_rate=1e-4)
-
+adapt = signals.DynamicsAdaptation(
+    robot_config, pes_learning_rate=1e-4)
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
@@ -71,8 +71,10 @@ try:
             target_pos=target_xyz)
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
-            u += adapt.generate(feedback['q'], feedback['dq'],
-                                training_signal=ctrlr.training_signal)
+            u += adapt.generate(
+                feedback['q'],
+                feedback['dq'],
+                training_signal=ctrlr.training_signal)
 
         fake_gravity = np.array([[0, -981, 0, 0, 0, 0]]).T
         g = np.zeros((robot_config.N_LINKS, 1))
