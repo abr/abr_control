@@ -42,12 +42,12 @@ class BaseConfig():
 
     Attributes
     ----------
-        _C : function
-            placeholder for the centripetal and Coriolis function
-        _g : function
-            placeholder for joint space gravity function
+        _c : function
+            placeholder for the full centripetal and Coriolis function
         _dJ : dictionary
             for Jacobian time derivative functions of joints and COMs
+        _g : function
+            placeholder for joint space gravity function
         _J  : dictionary
             for Jacobian calculations
         _KZ : sympy.Matrix
@@ -60,12 +60,14 @@ class BaseConfig():
             placeholder for joint space inertia matrix function
         _orientation : dictionary
             placeholder for orientation functions of joints and COMs
+        _R : dictionary
+            for transform matrix calculations for joints and COMs
+        _S : function
+            placeholder for the partial centripetal and Coriolis function
         _T_inv : dictionary
             for inverse transform calculations for joints and COMs
         _Tx : dictionary
             for point transform calculations for joints and COMs
-        _R : dictionary
-            for transform matrix calculations for joints and COMs
         config_folder : string
             location to save to and load functions from, based on the hash
             of the subclass, so that generated functions are saved uniquely
@@ -81,15 +83,17 @@ class BaseConfig():
         self.use_cython = use_cython
 
         # create function placeholders and dictionaries
-        self._C = None
-        self._g = None
+        self._c = None
         self._dJ = {}
+        self._g = None
         self._J = {}
         self._M = None
         self._orientation = {}
+        self._R = {}
+        self._S = None
         self._T_inv = {}
         self._Tx = {}
-        self._R = {}
+
         self._KZ = sp.Matrix([0, 0, 1])
 
         # inertia matrix lists, to be filled out by subclasses
@@ -199,8 +203,9 @@ class BaseConfig():
 
         return expression, function
 
-    def C(self, q, dq):
-        """ Loads or calculates the centripetal and Coriolis forces
+    def c(self, q, dq):
+        """ Loads or calculates the complete centripetal and Coriolis forces
+        NOTE: the partial effects are calculated in the S method
 
         Parameters
         ----------
@@ -211,10 +216,10 @@ class BaseConfig():
 
         """
         # check for function in dictionary
-        if self._C is None:
-            self._C = self._calc_C()
+        if self._c is None:
+            self._c = self._calc_c()
         parameters = tuple(q) + tuple(dq)
-        return np.array(self._C(*parameters), dtype='float32').flatten()
+        return np.array(self._c(*parameters), dtype='float32').flatten()
 
     def g(self, q):
         """ Loads or calculates the force of gravity in joint space
@@ -309,6 +314,26 @@ class BaseConfig():
         R = self._R[name](*parameters)
         return abr_control.utils.transformations.quaternion_from_matrix(R)
 
+    def S(self, q, dq):
+        """ Loads or calculates the centripetal and Coriolis forces matrix
+        such that np.dot(S, dq) is the full term
+        NOTE: the full effects are calculated in the c method
+
+        Parameters
+        ----------
+        q : numpy.array
+            joint angles [radians]
+        dq : numpy.array
+            joint velocities [radians/second]
+
+        """
+        # check for function in dictionary
+        if self._S is None:
+            self._S = self._calc_S()
+        parameters = tuple(q) + tuple(dq)
+        return np.array(self._S(*parameters), dtype='float32')
+
+
     def scaledown(self, name, x):
         """ Scales down the input to the -1 to 1 range, based on the
         mean and max, min values recorded from some stereotyped movements.
@@ -383,8 +408,11 @@ class BaseConfig():
         parameters = tuple(q) + tuple(x)
         return self._T_inv[funcname](*parameters)
 
-    def _calc_C(self, lambdify=True):
-        """ Uses Sympy to generate the centripetal and Coriolis forces
+    def _calc_c(self, lambdify=True):
+        """ Uses Sympy to generate the centrifugal and Coriolis forces
+        Derivation from vector form 1 on slide 22 at:
+        www.diag.uniroma1.it/~deluca/rob2_en/03_LagrangianDynamics_1.pdf
+        NOTE: the partial effects are calculated in the _calc_S method
 
         Parameters
         ----------
@@ -393,45 +421,44 @@ class BaseConfig():
             If False returns the Sympy matrix
         """
 
-        C = None
-        C_func = None
-        # check to see if we have our gravity term saved in file
-        C, C_func = self._load_from_file('C', lambdify)
+        c = None
+        c_func = None
+        # check to see if we have our term saved in file
+        c, c_func = self._load_from_file('c', lambdify)
 
-        if C is None and C_func is None:
+        if c is None and c_func is None:
             # if no saved file was loaded, generate function
             print('Generating centripetal and Coriolis compensation function')
 
             # first get the inertia matrix
             M = self._calc_M(lambdify=False)
-            # www.diag.uniroma1.it/~deluca/rob2_en/03_LagrangianDynamics_1.pdf
             # c_k = dq.T * C_k * dq
             # C_k = .5 * (\frac{\partial m_k}{\partial q} +
             #           \frac{\partial m_k}{\partial q}^T +
             #           \frac{\partial M}{\partia q_k})
-            # where c_k and m_k are the kth element of C and column of M
-            C = sp.zeros(6, 1)
-            for kk in range(6):
+            # where c_k and m_k are the kth element of c and column of M
+            c = sp.zeros(self.N_JOINTS, 1)
+            for kk in range(self.N_JOINTS):
                 dMkdq = M[:, kk].jacobian(sp.Matrix(self.q))
                 Ck = 0.5 * (dMkdq + dMkdq.T - M.diff(self.q[kk]))
-                C[kk] = sp.Matrix(self.dq).T * Ck * sp.Matrix(self.dq)
-            C = sp.Matrix(C)
+                c[kk] = sp.Matrix(self.dq).T * Ck * sp.Matrix(self.dq)
+            c = sp.Matrix(c)
 
             # save to file
             abr_control.utils.os_utils.makedirs(
-                '%s/C' % self.config_folder)
-            cloudpickle.dump(C, open(
-                '%s/C/C' % self.config_folder, 'wb'))
+                '%s/c' % self.config_folder)
+            cloudpickle.dump(c, open(
+                '%s/c/c' % self.config_folder, 'wb'))
 
         if lambdify is False:
             # if should return expression not function
-            return C
+            return c
 
-        if C_func is None:
-            C_func = self._generate_and_save_function(
-                filename='C', expression=C,
+        if c_func is None:
+            c_func = self._generate_and_save_function(
+                filename='c', expression=c,
                 parameters=self.q+self.dq)
-        return C_func
+        return c_func
 
     def _calc_g(self, lambdify=True):
         """ Generate the force of gravity in joint space
@@ -704,6 +731,60 @@ class BaseConfig():
                 filename=filename, expression=R,
                 parameters=self.q)
         return R_func
+
+    def _calc_S(self, lambdify=True):
+        """ Uses Sympy to generate the centrifugal and Coriolis forces
+        Derivation from vector format 2 on slide 22 at:
+        www.diag.uniroma1.it/~deluca/rob2_en/03_LagrangianDynamics_1.pdf
+        NOTE: the full effects are calculated in the _calc_c method
+
+        Parameters
+        ----------
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
+        """
+
+        S = None
+        S_func = None
+        # check to see if we have our term saved in file
+        S, S_func = self._load_from_file('S', lambdify)
+
+        if S is None and S_func is None:
+            # if no saved file was loaded, generate function
+            print('Generating centripetal and Coriolis compensation function')
+
+            # first get the inertia matrix
+            M = self._calc_M(lambdify=False)
+            # C_k = .5 * (\frac{\partial m_k}{\partial q} +
+            #           \frac{\partial m_k}{\partial q}^T +
+            #           \frac{\partial M}{\partia q_k})
+            # S_kj = sum_i (C_{kij}(q) * dq[i])
+            # where c_k and m_k are the kth element of c and column of M
+            S = sp.zeros(self.N_JOINTS, self.N_JOINTS)
+            for kk in range(self.N_JOINTS):
+                dMkdq = M[:, kk].jacobian(sp.Matrix(self.q))
+                Ck = 0.5 * (dMkdq + dMkdq.T - M.diff(self.q[kk]))
+                for jj in range(self.N_JOINTS):
+                    S[kk] = np.sum([Ck[ii, jj] * self.dq[ii]
+                                    for ii in range(self.N_JOINTS)])
+            S = sp.Matrix(S)
+
+            # save to file
+            abr_control.utils.os_utils.makedirs(
+                '%s/S' % self.config_folder)
+            cloudpickle.dump(S, open(
+                '%s/S/S' % self.config_folder, 'wb'))
+
+        if lambdify is False:
+            # if should return expression not function
+            return S
+
+        if S_func is None:
+            S_func = self._generate_and_save_function(
+                filename='S', expression=S,
+                parameters=self.q+self.dq)
+        return S_func
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
