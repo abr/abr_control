@@ -92,7 +92,6 @@ class OSC(controller.Controller):
         J = self.robot_config.J(ref_frame, q, x=offset)
         # isolate position component of Jacobian
         J = J[:3]
-        dx = np.dot(J, dq)
 
         # calculate the inertia matrix in joint space
         M = self.robot_config.M(q)
@@ -124,6 +123,7 @@ class OSC(controller.Controller):
             else:
                 scale = np.ones(3, dtype='float32')
 
+            dx = np.dot(J, dq)
             u_task[:3] = -self.kv * (dx - target_vel -
                                      np.clip(sat / scale, 0, 1) *
                                      -self.lamb * scale * x_tilde)
@@ -131,25 +131,25 @@ class OSC(controller.Controller):
             # generate (x,y,z) force without velocity limiting)
             u_task[:3] = -self.kp * x_tilde
 
+        if self.use_dJ:
+            # add in estimate of current acceleration
+            dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
+            # apply mask
+            dJ = dJ[:3]
+            u_task -= np.dot(dJ, dq)
+
         # incorporate task space inertia matrix
         u = np.dot(J.T, np.dot(Mx, u_task))
 
         if self.vmax is None:
             u -= np.dot(M, dq)
 
-        if self.use_dJ:
-            # add in estimate of current acceleration
-            dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
-            # apply mask
-            dJ = dJ[:3]
-            u -= np.dot(Mx, np.dot(dJ, dq))
-
         if self.use_C:
-            # add in estimation of centripetal and Coriolis effects
-            u -= self.robot_config.C(q=q, dq=dq)
+            # add in estimation of full centrifugal and Coriolis effects
+            u -= self.robot_config.c(q=q, dq=dq)
 
-        # TODO: self.training_signal is a hack, but keeps API
-        # cleaner than returning something other than just u
+        # store the current control signal u for training in case
+        # dynamics adaptation signal is being used
         # NOTE: training signal should not include gravity compensation
         self.training_signal = np.copy(u)
 
