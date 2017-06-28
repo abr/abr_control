@@ -1,8 +1,8 @@
 import glob
-import numpy as np
 import os
-import scipy.special
 import time
+import numpy as np
+import scipy.special
 
 # import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
@@ -71,11 +71,12 @@ class DynamicsAdaptation(Signal):
 
         # if a weights_file is not specified and auto_load is desired,
         # check the test_name directory for the most recent weights
-        if weights_file is None and not autoload:
-            weights_file = ['']
-        elif weights_file is None and autoload:
+        if weights_file is None and autoload:
             weights_file = self.load_weights(
                 trial=trial, run=run, test_name=test_name)
+
+        if weights_file is None:
+            weights_file = ''
 
         nengo_model = nengo.Network(seed=seed)
 
@@ -117,7 +118,8 @@ class DynamicsAdaptation(Signal):
             nengo.Connection(input_signals[:n_input], self.adapt_ens, synapse=0.005)
 
             # load weights from file if they exist, otherwise use zeros
-            weights_file = os.path.expanduser(weights_file)
+            if weights_file == '~':
+                weights_file = os.path.expanduser(weights_file)
             print('Backend: backend')
             print('Weights file: %s' % weights_file)
             if not os.path.isfile('%s' % weights_file):
@@ -239,6 +241,7 @@ class DynamicsAdaptation(Signal):
         # then save the run to 'trial0'
         else:
             prev_trials = glob.glob(test_name + '/trial???')
+            run_cache = []
             if prev_trials:
                 test_name = max(prev_trials)
             else:
@@ -254,9 +257,11 @@ class DynamicsAdaptation(Signal):
         # if saving, if loading throw an error that no weights file exists
         if run is None:
             prev_runs = glob.glob(test_name + '/*.npz')
+            run_cache = []
             if prev_runs:
-                run = max(prev_runs)
-                run_num = int(run[run.rfind('/')+4:run.find('.npz')])
+                for ii in range(0, len(prev_runs)):
+                    run_cache.append(int(prev_runs[ii][prev_runs[ii].rfind('/')+4:prev_runs[ii].find('.npz')]))
+                run_num = max(run_cache)
             else:
                 run_num = -1
         else:
@@ -282,12 +287,13 @@ class DynamicsAdaptation(Signal):
             import nengo_spinnaker.utils.learning
             self.sim.close()
             time.sleep(5)
+            print('save location: ', test_name + '/run%i' % (run_num +1))
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
                 weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
                          self.sim, self.adapt_ens[0])]))
-            print('Spinnaker output: ', nengo_spinnaker.utils.learning.get_learnt_decoders(self.sim,
-                self.adapt_ens[0]))
+            # print('Spinnaker output: ', nengo_spinnaker.utils.learning.get_learnt_decoders(self.sim,
+            #     self.adapt_ens[0]))
 
         else:
             np.savez_compressed(
@@ -306,7 +312,7 @@ class DynamicsAdaptation(Signal):
 
         if run_num == -1:
             print('No weights found in the specified directory...')
-            weights_file = ''
+            weights_file = None
         else:
             weights_file = test_name + '/run%i.npz' % run_num
         return weights_file
