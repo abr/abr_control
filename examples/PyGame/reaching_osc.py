@@ -19,7 +19,8 @@ robot_config = arm.Config(use_cython=True)
 arm_sim = arm.ArmSim(robot_config)
 
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=100, vmax=10)
+ctrlr = OSC(robot_config, kp=300, vmax=100,
+            use_dJ=False, use_C=True)
 
 
 def on_click(self, mouse_x, mouse_y):
