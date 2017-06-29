@@ -41,7 +41,7 @@ class DynamicsAdaptation(Signal):
                  pes_learning_rate=1e-6, intercepts=(0.5, 1.0),
                  weights_file=None, backend='nengo', **kwargs):
 
-        self.input = np.zeros(n_input)
+        self.input_signal = np.zeros(n_input)
         self.training_signal = np.zeros(n_output)
         self.output = np.zeros(n_output)
 
@@ -53,7 +53,7 @@ class DynamicsAdaptation(Signal):
 
             def input_signals_func(t):
                 """ Get the input and -1 * training signal """
-                return np.hstack([self.input, -self.training_signal])
+                return np.hstack([self.input_signal, -self.training_signal])
             input_signals = nengo.Node(
                 input_signals_func, size_out=n_input+n_output)
 
@@ -107,7 +107,7 @@ class DynamicsAdaptation(Signal):
                     learning_rule_type=nengo.PES(pes_learning_rate),
                     transform=transform)
 
-            # hook up the output
+            # hook up the training signal to the learning rule
             nengo.Connection(
                 input_signals[n_input:], conn_learn.learning_rule,
                 synapse=0.01)
@@ -152,7 +152,7 @@ class DynamicsAdaptation(Signal):
         """
 
         # store local copies to feed in to the adaptive population
-        self.input = input_signal
+        self.input_signal = input_signal
         self.training_signal = training_signal
 
         # run the simulation t generate the adaptive signal
