@@ -30,8 +30,9 @@ ctrlr = Sliding(robot_config)
 
 # create our nonlinear adaptation controller
 adapt = signals.DynamicsAdaptation(
-    robot_config, pes_learning_rate=1e-2)
-
+    n_input=robot_config.N_JOINTS,
+    n_output=robot_config.N_JOINTS,
+    pes_learning_rate=1e-2, backend='nengo')
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
@@ -73,8 +74,7 @@ try:
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
             sig = adapt.generate(
-                feedback['q'],
-                feedback['dq'],
+                input_signal=robot_config.scaledown('q', feedback['q']),
                 training_signal=-ctrlr.s)
             u += sig
 
