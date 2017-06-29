@@ -10,12 +10,6 @@ except ImportError:
     raise Exception('Nengo module needs to be installed to ' +
                     'use adaptive dynamics.')
 
-nengolib = None
-try:
-    import nengolib
-except ImportError:
-    print('Nengo lib not installed, encoder placement will be sub-optimal.')
-
 
 class DynamicsAdaptation(Signal):
     """ An implementation of nonlinear dynamics adaptation using Nengo,
@@ -31,157 +25,92 @@ class DynamicsAdaptation(Signal):
         such as: number of joints, number of links, mass information etc.
     n_neurons : int, optional (Default: 1000)
         number of neurons per adaptive population
-    n_adapt_pop : int, optional (Default: 1)
-        number of adaptive populations
     pes_learning_rate : float, optional (Default: 1e-6)
         controls the speed of neural adaptation
     intercepts list : list of two floats, optional (Default: (0.5, 1.0))
         voltage threshold range for neurons
     spiking : boolean, optional (Default: False)
         use spiking or rate mode neurons
-    filter_error : boolean, optional (Default: False)
-        apply low pass filter to the error signal or not
     weights_file : string, optional (Default: None)
         path to file where learned weights are saved
     backend : string, optional (Default: nengo)
         {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
-    use_dq : boolean, optional (Default: False)
-        set True to pass in position and velocity,
-        False if only passing in position
     """
 
-    def __init__(self, robot_config,
-                 n_neurons=1000,
-                 n_adapt_pop=1,
-                 pes_learning_rate=1e-6,
-                 intercepts=(0.5, 1.0),
-                 spiking=False,
-                 filter_error=False,
-                 weights_file=None,
-                 backend='nengo',
-                 use_dq=False):
-        self.robot_config = robot_config
+    def __init__(self, n_input, n_output, n_neurons=1000, seed=1,
+                 pes_learning_rate=1e-6, intercepts=(0.5, 1.0),
+                 weights_file=None, backend='nengo', **kwargs):
 
-        self.u_adapt = np.zeros(self.robot_config.N_JOINTS)
+        self.input = np.zeros(n_input)
+        self.training_signal = np.zeros(n_output)
+        self.output = np.zeros(n_output)
 
-        self.use_dq = use_dq
+        if weights_file is None:
+            weights_file = ['']
 
-        if self.use_dq is True:
-            self.N_INPUTS = 2
-        else:
-            self.N_INPUTS = 1
-
-        weights_file = (['']*n_adapt_pop if
-                        weights_file is None else weights_file)
-
-        dim = self.robot_config.N_JOINTS
-        nengo_model = nengo.Network(seed=10)
+        nengo_model = nengo.Network(seed=seed)
         with nengo_model:
 
-            # create a Node for passing in the scaled system feedback
-            def qdq_input(t):
-                """ returns q and dq """
+            def input_signals_func(t):
+                """ Get the input and -1 * training signal """
+                return np.hstack([self.input, -self.training_signal])
+            input_signals = nengo.Node(
+                input_signals_func, size_out=n_input+n_output)
 
-                q = ((self.q + np.pi) % (np.pi*2)) - np.pi
-
-                if self.use_dq is True:
-                    output = (np.hstack([
-                              self.robot_config.scaledown('q', q),
-                              self.robot_config.scaledown('dq', self.dq)]))
-                else:
-                    output = self.robot_config.scaledown('q', q)
-
-                return output
-            qdq_input = nengo.Node(qdq_input, size_out=dim * self.N_INPUTS)
-
-            # create a Node for passing in the training signal
-            def u_input(t):
-                """ returns the control signal for training """
-
-                return self.training_signal
-            u_input = nengo.Node(u_input, size_out=dim)
-
-            # create a Node for saving the adaptive population output
-            def u_adapt_output(t, x):
+            # make the adaptive population output accessible
+            def output_func(t, x):
                 """ stores the adaptive output for use in control() """
+                self.output = np.copy(x)
+            output = nengo.Node(output_func, size_in=n_output, size_out=0)
 
-                self.u_adapt = np.copy(x)
-            output = nengo.Node(u_adapt_output, size_in=dim, size_out=0)
+            # specify intercepts such that neurons are
+            # active throughout the whole range specified
+            intercepts = AreaIntercepts(
+                dimensions=n_input,
+                base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
 
-            adapt_ens = []
-            conn_learn = []
-            for ii in range(n_adapt_pop):
-                N_DIMS = self.robot_config.N_JOINTS * self.N_INPUTS
-                intercepts = AreaIntercepts(
-                    dimensions=N_DIMS,
-                    base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
+            adapt_ens = nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
+                                       intercepts=intercepts, **kwargs)
 
-                if spiking:
-                    neuron_type = nengo.LIF()
-                else:
-                    neuron_type = nengo.LIFRate()
+            try:
+                # if the NengoLib is installed, use it
+                # to optimize encoder placement
+                import nengolib
+                adapt_ens.encoders = (
+                    nengolib.stats.ScatteredHypersphere(surface=True))
+                print('NengoLib used to optimize encoders placement')
+            except ImportError:
+                print('Nengo lib not installed, encoder ' +
+                      'placement will be sub-optimal.')
 
-                # create the adaptive ensembles
-                adapt_ens.append(nengo.Ensemble(
-                    n_neurons=n_neurons,
-                    dimensions=N_DIMS,
-                    intercepts=intercepts,
-                    neuron_type=neuron_type))
+            # hook up input signal to adaptive population to provide context
+            nengo.Connection(input_signals[:n_input], adapt_ens, synapse=0.005)
 
-                try:
-                    # if the NengoLib is installed, use it
-                    # to optimize encoder placement
-                    adapt_ens.encoders = (
-                        nengolib.stats.ScatteredHypersphere(
-                            surface=True))
-                except AttributeError:
-                    pass
+            # load weights from file if they exist, otherwise use zeros
+            if os.path.isfile('%s' % weights_file):
+                transform = np.load(weights_file)['weights'][-1][0]
+                print('Loading weights: \n', transform)
+                print('Loaded weights all zeros: ', np.allclose(transform, 0))
+            else:
+                print('No weights found, starting with zeros')
+                transform = np.zeros((adapt_ens.n_neurons, n_output)).T
 
-                # proved context signal to adaptive population
-                nengo.Connection(
-                    qdq_input,
-                    adapt_ens[ii][:N_DIMS],
-                    synapse=0.005)
+            # set up learning connections
+            if backend == 'nengo_spinnaker':
+                conn_learn = nengo.Connection(
+                    adapt_ens, output,
+                    learning_rule_type=nengo.PES(pes_learning_rate),
+                    solver=DummySolver(transform.T))
+            else:
+                conn_learn = nengo.Connection(
+                    adapt_ens.neurons, output,
+                    learning_rule_type=nengo.PES(pes_learning_rate),
+                    transform=transform)
 
-                # load weights from file if they exist, otherwise use zeros
-                print('%s' % weights_file[ii])
-                if os.path.isfile('%s' % weights_file[ii]):
-                    transform = np.load(weights_file[ii])['weights'][-1][0]
-                    print('Loading transform: \n', transform)
-                    print('Transform all zeros: ', np.allclose(transform, 0))
-                else:
-                    print('Transform is zeros')
-                    transform = np.zeros((adapt_ens[ii].n_neurons,
-                                          self.robot_config.N_JOINTS)).T
-                # set up learning connections
-                if backend == 'nengo_spinnaker':
-                    conn_learn.append(
-                        nengo.Connection(
-                            adapt_ens[ii],
-                            output,
-                            learning_rule_type=nengo.PES(pes_learning_rate),
-                            solver=DummySolver(transform.T)))
-                else:
-                    conn_learn.append(
-                        nengo.Connection(
-                            adapt_ens[ii].neurons,
-                            output,
-                            learning_rule_type=nengo.PES(pes_learning_rate),
-                            transform=transform))
-
-                # Allow filtering of error signal
-                def gate_error(x):
-                    """ Filters the error, if filter_error is True """
-
-                    if filter_error:
-                        if np.linalg.norm(x) > 2.0:
-                            x /= np.linalg.norm(x) * 0.5
-                    return x
-                nengo.Connection(u_input, conn_learn[ii].learning_rule,
-                                 # invert to provide error not reward
-                                 transform=-1,
-                                 function=gate_error,
-                                 synapse=0.01)
+            # hook up the output
+            nengo.Connection(
+                input_signals[n_input:], conn_learn.learning_rule,
+                synapse=0.01)
 
         nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
@@ -203,16 +132,13 @@ class DynamicsAdaptation(Signal):
                 raise Exception('Nengo SpiNNaker not installed, ' +
                                 'cannot use this backend.')
             self.sim = nengo_spinnaker.Simulator(nengo_model)
-            self.q = np.zeros(self.robot_config.N_JOINTS)
-            self.dq = np.zeros(self.robot_config.N_JOINTS)
-            self.training_signal = np.zeros(self.robot_config.N_JOINTS)
             # start running the spinnaker model
             self.sim.async_run_forever()
         else:
             raise Exception('Invalid backend specified')
         self.backend = backend
 
-    def generate(self, q, dq, training_signal):
+    def generate(self, input_signal, training_signal):
         """ Generates the control signal
 
         Parameters
@@ -226,8 +152,7 @@ class DynamicsAdaptation(Signal):
         """
 
         # store local copies to feed in to the adaptive population
-        self.q = q
-        self.dq = dq
+        self.input = input_signal
         self.training_signal = training_signal
 
         # run the simulation t generate the adaptive signal
@@ -239,14 +164,12 @@ class DynamicsAdaptation(Signal):
         else:
             self.sim.run(time_in_seconds=.001)
 
-        return self.u_adapt
+        return self.output
 
 
 class DummySolver(nengo.solvers.Solver):
     """ A Nengo weights solver that returns a provided set of weights.
     """
-
-
     def __init__(self, fixed):
         self.fixed = fixed
         self.weights = False

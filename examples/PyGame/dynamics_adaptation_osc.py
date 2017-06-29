@@ -30,8 +30,9 @@ ctrlr = OSC(robot_config, kp=50, vmax=10)
 
 # create our nonlinear adaptation controller
 adapt = signals.DynamicsAdaptation(
-    robot_config, pes_learning_rate=1e-4,
-    backend='nengo', spiking=True)
+    n_input=robot_config.N_JOINTS*2,
+    n_output=robot_config.N_JOINTS,
+    pes_learning_rate=1e-4, backend='nengo')
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
@@ -73,8 +74,9 @@ try:
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
             u += adapt.generate(
-                feedback['q'],
-                feedback['dq'],
+                input_signal=np.hstack([
+                    robot_config.scaledown('q', feedback['q']),
+                    robot_config.scaledown('dq', feedback['dq'])]),
                 training_signal=ctrlr.training_signal)
 
         fake_gravity = np.array([[0, -981, 0, 0, 0, 0]]).T
