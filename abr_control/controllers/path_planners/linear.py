@@ -16,7 +16,7 @@ class Linear(PathPlanner):
     def __init__(self, robot_config):
         super(Linear, self).__init__(robot_config)
 
-    def generate(self, state, target, n_timesteps=200,
+    def generate_path(self, state, target, n_timesteps=200,
                  dt=0.001, plot_path=False):
         """ Generates a linear trajectory to the target
 
@@ -74,7 +74,7 @@ class Linear(PathPlanner):
 
             plt.show()
 
-    def next(self):
+    def next_target(self):
         """ Return the next target point along the generated trajectory """
 
         # get the next target state if we're not at the end of the trajectory

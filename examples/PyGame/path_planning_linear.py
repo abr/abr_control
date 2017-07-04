@@ -49,12 +49,12 @@ try:
                 0])
             # update the position of the target
             interface.set_target(target_xyz)
-            path_planner.generate(
+            path_planner.generate_path(
                 state=hand_xyz, target=target_xyz,
                 n_timesteps=n_timesteps, plot_path=False)
 
         # returns desired [position, velocity]
-        target = path_planner.next()
+        target = path_planner.next_target()
 
         # generate an operational space control signal
         u = ctrlr.generate(
