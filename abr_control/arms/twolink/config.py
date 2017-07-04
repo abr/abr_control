@@ -20,10 +20,12 @@ class Config(BaseConfig):
         segment lengths of arm [meters]
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 tranforms from joint 1 reference frame to link 1
-    some transforms are broken up into two matrices for simplification
+    ex: Tj1l1 tranforms from joint 1 to link 1
+
+    Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for
-    rotations and the latter accounts for translations and axes flips
+    joint rotations and the latter accounts for static rotations
+    and translations
     """
 
     def __init__(self, **kwargs):
