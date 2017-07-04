@@ -78,9 +78,9 @@ class DynamicsAdaptation(Signal):
         if weights_file is None:
             weights_file = ''
 
-        nengo_model = nengo.Network(seed=seed)
-
-        with nengo_model:
+        dim = self.robot_config.N_JOINTS
+        self.nengo_model = nengo.Network(seed=1)
+        with self.nengo_model:
 
             def input_signals_func(t):
                 """ Get the input and -1 * training signal """
@@ -133,7 +133,7 @@ class DynamicsAdaptation(Signal):
                     print('Loading weights: \n', transform)
                     print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
-                conn_learn = nengo.Connection(
+                self.conn_learn = nengo.Connection(
                     self.adapt_ens, output,
                     learning_rule_type=nengo.PES(pes_learning_rate),
                     solver=DummySolver(transform.T))
@@ -144,19 +144,19 @@ class DynamicsAdaptation(Signal):
                     print('Loading weights: \n', transform)
                     print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
-                conn_learn = nengo.Connection(
+                self.conn_learn = nengo.Connection(
                     self.adapt_ens.neurons, output,
                     learning_rule_type=nengo.PES(pes_learning_rate),
                     transform=transform)
 
             # hook up the training signal to the learning rule
             nengo.Connection(
-                input_signals[n_input:], conn_learn.learning_rule,
+                input_signals[n_input:], self.conn_learn.learning_rule,
                 synapse=0.01)
 
         nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
-            self.sim = nengo.Simulator(nengo_model, dt=.001)
+            self.sim = nengo.Simulator(self.nengo_model, dt=.001)
         elif backend == 'nengo_ocl':
             try:
                 import nengo_ocl
@@ -166,14 +166,14 @@ class DynamicsAdaptation(Signal):
             import pyopencl as cl
             # Here, the context would be to use all devices from platform [0]
             ctx = cl.Context(cl.get_platforms()[0].get_devices())
-            self.sim = nengo_ocl.Simulator(nengo_model, context=ctx, dt=.001)
+            self.sim = nengo_ocl.Simulator(self.nengo_model, context=ctx, dt=.001)
         elif backend == 'nengo_spinnaker':
             try:
                 import nengo_spinnaker
             except ImportError:
                 raise Exception('Nengo SpiNNaker not installed, ' +
                                 'cannot use this backend.')
-            self.sim = nengo_spinnaker.Simulator(nengo_model)
+            self.sim = nengo_spinnaker.Simulator(self.nengo_model)
             # start running the spinnaker model
             self.sim.async_run_forever()
         else:
@@ -298,7 +298,7 @@ class DynamicsAdaptation(Signal):
         else:
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
-                weights=[self.sim.data[self.probe_weights[0]]])
+                weights=self.sim.signals[self.sim.model.sig[self.conn_learn]['weights']])
 
     def load_weights(self, **kwargs):
         """ Loads the most recently saved weights unless otherwise specified
