@@ -9,6 +9,8 @@ class SecondOrder(PathPlanner):
     Implements an trajectory controller on top of a given
     point to point control system. Returns a set of desired positions
     and velocities.
+    Implements the second order filter from
+    www.mathworks.com/help/physmod/sps/powersys/ref/secondorderfilter.html
 
     Parameters
     ----------
@@ -21,48 +23,62 @@ class SecondOrder(PathPlanner):
     def __init__(self, robot_config):
         super(SecondOrder, self).__init__(robot_config)
 
-    def generate(self, state, target, n_timesteps=100,
-                 plot_path=False, tau=200, k=0.005, dt=0.001):
-        """ filter the target so that it doesn't jump, but moves smoothly
+    def step(self, y, dy, target, w, zeta):
+        """ Calculates the next state given the current state and
+        system dynamics' parameters.
+
+        Parameters
+        ----------
+        y : numpy.array
+            the current position of the system
+        dy : numpy.array
+            the current velocity of the system
+        target : numpy.array
+            the target position of the system
+        w : float
+            the natural frequency
+        zeta : float
+            the damping ratio
+        """
+        ddy = w**2 * target - dy * zeta * w - y * w**2
+        return dy, ddy
+
+    def generate_path(self, state, target, n_timesteps=100,
+                      plot=False, zeta=2.0, dt=0.001):
+        """ Filter the target so that it doesn't jump, but moves smoothly
 
         Parameters
         ----------
         state : numpy.array
-            the current state of the system
+            the current position of the system
         target : numpy.array
             the target state
-        tau: float, optional (Default:200)
-            filter constant 1
-        k: float, optional (Default:0.005)
-            filter constant 2
         n_timesteps : int, optional (Default: 100)
             the number of time steps to reach the target
-        plot_path : boolean, optional (Default: False)
+        zeta  float, optional (Default: 2.0)
+            the damping ratio
+        plot: boolean, optional (Default: False)
             plot the path after generating if True
         """
 
         n_states = len(state)
-        x = np.zeros((n_timesteps, n_states))
-        x1 = np.zeros((n_timesteps, n_states))
 
-        gain = 1250 / n_timesteps  # gain to converge in the desired time
+        w = 1e4 / n_timesteps # gain to converge in the desired time
 
-        # initialize the filters to the starting position of the end effector
-        x[0] = np.copy(state)
-
-        for i in np.arange(n_timesteps - 1):
-            x1[i+1] = x1[i] + (-1.0 / tau * x1[i] -k * x[i] +
-                               2.0 / tau * target) * gain
-            x[i+1] = x[i] + (-1.0 / tau * x[i] + k * x1[i]) * gain
-
-        dx = np.vstack([np.diff(x, axis=0) / dt, np.zeros(x[0].shape)])
-        self.trajectory = np.hstack([x, dx])
+        self.trajectory = []
+        y = np.hstack([state, np.zeros(n_states)])
+        for ii in range(n_timesteps):
+            self.trajectory.append(np.copy(y))
+            y += np.hstack(self.step(
+                y[:n_states], y[n_states:], target, w, zeta)
+                ) * dt
+        self.trajectory = np.array(self.trajectory)
 
         # reset trajectory index
         self.n = 0
         self.n_timesteps = n_timesteps
 
-        if plot_path:
+        if plot:
             import matplotlib.pyplot as plt
             plt.figure()
             plt.subplot(2, 1, 1)
@@ -87,7 +103,7 @@ class SecondOrder(PathPlanner):
 
             plt.show()
 
-    def next(self):
+    def next_target(self):
         """ Return the next target point along the generated trajectory """
 
         # get the next target state if we're not at the end of the trajectory
