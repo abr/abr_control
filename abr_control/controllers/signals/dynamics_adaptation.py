@@ -78,7 +78,6 @@ class DynamicsAdaptation(Signal):
         if weights_file is None:
             weights_file = ''
 
-        dim = self.robot_config.N_JOINTS
         self.nengo_model = nengo.Network(seed=1)
         with self.nengo_model:
 
@@ -120,23 +119,23 @@ class DynamicsAdaptation(Signal):
             # load weights from file if they exist, otherwise use zeros
             if weights_file == '~':
                 weights_file = os.path.expanduser(weights_file)
-            print('Backend: backend')
+            print('Backend: ', backend)
             print('Weights file: %s' % weights_file)
             if not os.path.isfile('%s' % weights_file):
                 print('No weights found, starting with zeros')
-                transform = np.zeros((self.adapt_ens.n_neurons, n_output)).T
+                transform = np.zeros((n_output, self.adapt_ens.n_neurons))
 
             # set up learning connections
             if backend == 'nengo_spinnaker':
                 if os.path.isfile('%s' % weights_file):
-                    transform = np.load(weights_file)['weights'].squeeze().T
+                    transform = np.load(weights_file)['weights'].squeeze()
                     print('Loading weights: \n', transform)
                     print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
                 self.conn_learn = nengo.Connection(
                     self.adapt_ens, output,
                     learning_rule_type=nengo.PES(pes_learning_rate),
-                    solver=DummySolver(transform.T))
+                    solver=DummySolver(transform))
             else:
 
                 if os.path.isfile('%s' % weights_file):
