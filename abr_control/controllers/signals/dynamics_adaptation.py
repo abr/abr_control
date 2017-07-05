@@ -135,7 +135,7 @@ class DynamicsAdaptation(Signal):
 
             # set up learning connections
             if backend == 'nengo_spinnaker':
-                print(transform.shape)
+                # print(transform.shape)
                 if os.path.isfile('%s' % weights_file):
                     transform = np.squeeze(np.load(weights_file)['weights']).T
                     print('Loading weights: \n', transform)
