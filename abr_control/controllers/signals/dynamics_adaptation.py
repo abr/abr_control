@@ -128,14 +128,14 @@ class DynamicsAdaptation(Signal):
             # set up learning connections
             if backend == 'nengo_spinnaker':
                 if os.path.isfile('%s' % weights_file):
-                    transform = np.load(weights_file)['weights'].squeeze()
+                    transform = np.load(weights_file)['weights'].squeeze().T
                     print('Loading weights: \n', transform)
                     print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
                 self.conn_learn = nengo.Connection(
                     self.adapt_ens, output,
                     learning_rule_type=nengo.PES(pes_learning_rate),
-                    solver=DummySolver(transform))
+                    solver=DummySolver(transform.T))
             else:
 
                 if os.path.isfile('%s' % weights_file):
