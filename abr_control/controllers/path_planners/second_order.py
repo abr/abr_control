@@ -41,7 +41,7 @@ class SecondOrder(PathPlanner):
         self.zeta = zeta
         self.w = w/n_timesteps # gain to converge in the desired time
 
-    def step(self, state, target):
+    def step(self, y, dy, target, w, zeta, dt=0.001):
         """ Calculates the next state given the current state and
         system dynamics' parameters.
 
@@ -53,11 +53,10 @@ class SecondOrder(PathPlanner):
         target : numpy.array
             the target position of the system
         """
-        y = state[:3]
-        dy = state[3:]
-        ddy = self.w**2 * target - dy * self.zeta * self.w - y * self.w**2
-        state += np.hstack((dy, ddy)) * self.dt
-        return state
+        ddy = w**2 * target - dy * zeta * w - y * w**2
+        dy = dy + ddy * dt
+        y = y + dy * dt
+        return np.hstack((y, dy))
 
     def generate_path(self, state, target, plot=False):
         """ Filter the target so that it doesn't jump, but moves smoothly
@@ -76,9 +75,11 @@ class SecondOrder(PathPlanner):
         n_states = int(len(state)/2)
 
         self.trajectory = []
-        for ii in range(self.n_timesteps):
-            self.trajectory.append(np.copy(state))
-            state = self.step(state=state, target=target)
+        y = np.hstack([state, np.zeros(n_states)])
+        for ii in range(n_timesteps):
+            self.trajectory.append(np.copy(y))
+            y += np.hstack(self.step(
+                y[:n_states], y[n_states:], target, w, zeta, dt=dt))
         self.trajectory = np.array(self.trajectory)
 
         # reset trajectory index
