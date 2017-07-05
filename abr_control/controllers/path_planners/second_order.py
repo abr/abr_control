@@ -78,8 +78,8 @@ class SecondOrder(PathPlanner):
         y = np.hstack([state, np.zeros(n_states)])
         for ii in range(n_timesteps):
             self.trajectory.append(np.copy(y))
-            y += np.hstack(self.step(
-                y[:n_states], y[n_states:], target, w, zeta, dt=dt))
+            y = self.step(
+                y[:n_states], y[n_states:], target, w, zeta, dt=dt)
         self.trajectory = np.array(self.trajectory)
 
         # reset trajectory index
