@@ -78,14 +78,21 @@ class DynamicsAdaptation(Signal):
         if weights_file is None:
             weights_file = ''
 
-        self.nengo_model = nengo.Network(seed=1)
+        self.nengo_model = nengo.Network(seed=10)
         with self.nengo_model:
 
             def input_signals_func(t):
                 """ Get the input and -1 * training signal """
-                return np.hstack([self.input_signal, -self.training_signal])
+                # return np.hstack([self.input_signal, -self.training_signal])
+                return self.input_signal
             input_signals = nengo.Node(
-                input_signals_func, size_out=n_input+n_output)
+                # input_signals_func, size_out=n_input+n_output)
+                input_signals_func, size_out=n_input)
+
+            def training_signals_func(t):
+                return -self.training_signal
+            training_signals = nengo.Node(
+                training_signals_func, size_out=n_output)
 
             # make the adaptive population output accessible
             def output_func(t, x):
@@ -114,7 +121,8 @@ class DynamicsAdaptation(Signal):
                       'placement will be sub-optimal.')
 
             # hook up input signal to adaptive population to provide context
-            nengo.Connection(input_signals[:n_input], self.adapt_ens, synapse=0.005)
+            # nengo.Connection(input_signals[:n_input], self.adapt_ens, synapse=0.005)
+            nengo.Connection(input_signals, self.adapt_ens, synapse=0.005)
 
             # load weights from file if they exist, otherwise use zeros
             if weights_file == '~':
@@ -127,8 +135,9 @@ class DynamicsAdaptation(Signal):
 
             # set up learning connections
             if backend == 'nengo_spinnaker':
+                print(transform.shape)
                 if os.path.isfile('%s' % weights_file):
-                    transform = np.load(weights_file)['weights'].squeeze().T
+                    transform = np.squeeze(np.load(weights_file)['weights']).T
                     print('Loading weights: \n', transform)
                     print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
@@ -150,7 +159,8 @@ class DynamicsAdaptation(Signal):
 
             # hook up the training signal to the learning rule
             nengo.Connection(
-                input_signals[n_input:], self.conn_learn.learning_rule,
+                # input_signals[n_input:], self.conn_learn.learning_rule,
+                training_signals, self.conn_learn.learning_rule,
                 synapse=0.01)
 
         nengo.cache.DecoderCache().invalidate()
@@ -290,7 +300,7 @@ class DynamicsAdaptation(Signal):
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
                 weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
-                         self.sim, self.adapt_ens[0])]))
+                         self.sim, self.adapt_ens)]))
             # print('Spinnaker output: ', nengo_spinnaker.utils.learning.get_learnt_decoders(self.sim,
             #     self.adapt_ens[0]))
 
