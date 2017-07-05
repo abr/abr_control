@@ -51,7 +51,7 @@ try:
             interface.set_target(target_xyz)
             path_planner.generate_path(
                 state=hand_xyz, target=target_xyz,
-                n_timesteps=n_timesteps, plot_path=False)
+                n_timesteps=n_timesteps, plot=False)
 
         # returns desired [position, velocity]
         target = path_planner.next_target()
