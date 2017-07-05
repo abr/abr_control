@@ -17,7 +17,7 @@ class Linear(PathPlanner):
         super(Linear, self).__init__(robot_config)
 
     def generate_path(self, state, target, n_timesteps=200,
-                 dt=0.001, plot_path=False):
+                 dt=0.001, plot=False):
         """ Generates a linear trajectory to the target
 
         Parameters
@@ -30,7 +30,7 @@ class Linear(PathPlanner):
             the number of time steps to reach the target
         dt : float, optional (Default: 0.001)
             the time step for calculating desired velocities [seconds]
-        plot_path : boolean, optional (Default: False)
+        plot : boolean, optional (Default: False)
             plot the path after generating if True
         """
 
@@ -49,7 +49,7 @@ class Linear(PathPlanner):
         self.n = 0
         self.n_timesteps = n_timesteps
 
-        if plot_path:
+        if plot:
             import matplotlib.pyplot as plt
             plt.figure()
             plt.subplot(2, 1, 1)
