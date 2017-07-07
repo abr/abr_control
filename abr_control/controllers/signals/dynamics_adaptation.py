@@ -141,14 +141,17 @@ class DynamicsAdaptation(Signal):
                     print('Loading weights: \n', transform)
                     print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
+                print(transform.T.shape)
+
                 self.conn_learn = nengo.Connection(
                     self.adapt_ens, output,
+                    function=lambda x: np.zeros(n_output),
                     learning_rule_type=nengo.PES(pes_learning_rate),
                     solver=DummySolver(transform.T))
             else:
 
                 if os.path.isfile('%s' % weights_file):
-                    transform = np.load(weights_file)['weights'][-1][0]
+                    transform = np.load(weights_file)['weights']
                     print('Loading weights: \n', transform)
                     print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
