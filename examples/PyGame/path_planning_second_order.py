@@ -25,8 +25,12 @@ n_timesteps = 250
 # NOTE: delete above n_timesteps if it can be used in this example
 path_planner = path_planners.SecondOrder(robot_config, n_timesteps=n_timesteps)
 
+w = 1e4/n_timesteps
+zeta = 2
+dt = 0.001
+
 # create our interface
-interface = PyGame(robot_config, arm_sim, dt=.001)
+interface = PyGame(robot_config, arm_sim, dt=dt)
 interface.connect()
 
 # set up lists for tracking data
@@ -35,8 +39,6 @@ target_path = []
 
 pregenerate_path = False
 print('\nPregenerating path to follow: ', pregenerate_path, '\n')
-
-
 try:
     # run ctrl.generate once to load all functions
     zeros = np.zeros(robot_config.N_JOINTS)
@@ -54,20 +56,30 @@ try:
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
         if count % n_timesteps == 0:
-        #  if count == 0:
-            state = np.hstack((hand_xyz, np.zeros(3)))
             target_xyz = np.array([
                 np.random.random() * 2 - 1,
                 np.random.random() * 2 + 1,
                 0])
             # update the position of the target
             interface.set_target(target_xyz)
-            path_planner.generate_path(
-                state=hand_xyz, target=target_xyz,
-                n_timesteps=n_timesteps, plot=True)
+
+            if pregenerate_path:
+                path_planner.generate_path(
+                    state=hand_xyz, target=target_xyz,
+                    n_timesteps=n_timesteps, plot=True)
+            else:
+                target = np.hstack([
+                    hand_xyz,
+                    np.dot(robot_config.J('EE', feedback['q']),
+                           feedback['dq'])[:3]])
 
         # returns desired [position, velocity]
-        target = path_planner.next_target()
+        if pregenerate_path:
+            target = path_planner.next_target()
+        else:
+            target = path_planner.step(
+                y=target[:3], dy=target[3:], target=target_xyz,
+                w=w, zeta=zeta, dt=dt)
 
         # generate an operational space control signal
         u = ctrlr.generate(
