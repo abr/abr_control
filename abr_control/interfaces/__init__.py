@@ -1,2 +1,6 @@
 from .vrep import VREP
-from .pygame import PyGame
+try:
+    from .pygame import PyGame
+    HAS_PYGAME = True
+except ImportError:
+    HAS_PYGAME = False
