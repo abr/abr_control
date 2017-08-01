@@ -25,7 +25,7 @@ ctrlr = OSC(robot_config, kp=200, vmax=10)
 # create our path planner
 n_timesteps = 250
 # NOTE: delete above n_timesteps if it can be used in this example
-path_planner = path_planners.SecondOrder(robot_config)
+path_planner = path_planners.SecondOrder(robot_config, n_timesteps=n_timesteps)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)
@@ -44,6 +44,7 @@ try:
 
         if count % n_timesteps == 0:
         #  if count == 0:
+            state = np.hstack((hand_xyz, np.zeros(3)))
             target_xyz = np.array([
                 np.random.random() * 2 - 1,
                 np.random.random() * 2 + 1,
@@ -51,8 +52,8 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
             path_planner.generate_path(
-                state=hand_xyz, target=target_xyz,
-                n_timesteps=n_timesteps, plot=True)
+                state=state, target=target_xyz,
+                plot=True)
 
         # returns desired [position, velocity]
         target = path_planner.next_target()
