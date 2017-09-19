@@ -18,7 +18,8 @@ class Training:
 
     def run_test(self, time_scale=1, test_name="adaptive_training", trial=None, run=None,
              weights_file=None ,pes_learning_rate=1e-6, backend=None,
-             autoload=False, time_limit=30, vision_target=False, offset=None):
+             autoload=False, time_limit=30, vision_target=False, offset=None,
+             avoid_limits=False):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -77,6 +78,8 @@ class Training:
         offset: float array, Optional (Default: None)
             Set the offset to the end effector if something other than the default
             is desired. Use the form [x_offset, y_offset, z_offset]
+        avoid_limits: boolean, Optional (Default: False)
+            set true if there are limits you would like to avoid
         """
 
         # try to setup redis server if vision targets are desired
@@ -115,6 +118,14 @@ class Training:
 
         # instantiate controller and path planner
         ctrlr = OSC(robot_config, kp=20, kv=6, vmax=1, null_control=True)
+        if avoid_limits:
+            avoid = signals.AvoidJointLimits(
+                      robot_config,
+                      min_joint_angles=[0.97, None, None, None, None, None],
+                      max_joint_angles=[4.06, None, None, None, None, None],
+                      max_torque=[5]*robot_config.N_JOINTS,
+                      cross_zero=True,
+                      gradient=False)
         path = path_planners.SecondOrder(robot_config)
         n_timesteps = 4000
         w = 1e4/n_timesteps
@@ -244,6 +255,9 @@ class Training:
                                         0])
                     u = u_base + u_adapt
 
+                    # add limit avoidance if True
+                    if avoid_limits:
+                        u += avoid.generate(q)
 
                     # send forces
                     interface.send_forces(np.array(u, dtype='float32'))
