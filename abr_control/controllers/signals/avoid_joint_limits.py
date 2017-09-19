@@ -76,38 +76,36 @@ class AvoidJointLimits(Signal):
           the current joint angles [radians]
         """
         q = q - (np.ones(len(q)) * np.pi)  # shift to -pi to pi range
-        
+
         # determines which direction to push based on what limit is closer
         closer_to_min_index = abs(q - self.min_joint_angles) >= abs(q - self.max_joint_angles)
         closer_to_max_index = abs(q - self.min_joint_angles) <= abs(q - self.max_joint_angles)
 
+        # initialize arrays
         avoid_min = np.zeros(self.robot_config.N_JOINTS)
-        
-        # get the minimum force between the exponential curve as q
-        # approaches limit and max force
+        avoid_max = np.zeros(self.robot_config.N_JOINTS)
 
-        # if user wants gradient force field instead of hard stop
+        # get the minimum force between the exponential curve as q
+        # approaches limit and max force if user wants a gradient
+        # force field instead of hard stop
         if self.gradient:
             avoid_min = np.minimum(np.exp(1.0/(q - self.min_joint_angles)),
                                    self.max_torque)
+            avoid_max = -np.minimum(np.exp(-1.0/(q - self.max_joint_angles)),
+                                    self.max_torque)
+
         # if passed limit set max torque
         min_index = (q - self.min_joint_angles) < 0
+        max_index = (q - self.max_joint_angles) > 0
         if self.cross_zero:
             # check if in negative half of working area
             min_index = min_index * ((q-self.max_joint_angles) > 0) * closer_to_max_index
+            # check if in positive half of working area
+            max_index = max_index * ((q-self.min_joint_angles) < 0) * closer_to_min_index
 
         avoid_min[min_index] = self.max_torque[min_index]
         avoid_min[self.no_limits_min] = 0.0
 
-        avoid_max = np.zeros(self.robot_config.N_JOINTS)
-        # if user wants gradient force field instead of hard stop
-        if self.gradient:
-            avoid_max = -np.minimum(np.exp(-1.0/(q - self.max_joint_angles)),
-                                    self.max_torque)
-        # accounts for case where working area crosses 0-2pi line
-        max_index = (q - self.max_joint_angles) > 0
-        if self.cross_zero:
-            max_index = max_index * ((q-self.min_joint_angles) < 0) * closer_to_min_index
         avoid_max[max_index] = -self.max_torque[max_index]
         avoid_max[self.no_limits_max] = 0.0
 
