@@ -41,7 +41,7 @@ class SecondOrder(PathPlanner):
         self.zeta = zeta
         self.w = w/n_timesteps # gain to converge in the desired time
 
-    def step(self, y, dy, target, w, zeta, dt=0.001):
+    def step(self, y, dy, target, w, zeta, dt=0.001, threshold=0.02):
         """ Calculates the next state given the current state and
         system dynamics' parameters.
 
@@ -52,11 +52,22 @@ class SecondOrder(PathPlanner):
             use the format state=np.array([posx, posy, posz, velx, vely, velz])
         target : numpy.array
             the target position of the system
+        w : float
+            the natural frequency
+        zeta : float
+            the damping ratio
+        threshold: float, Optional (Default: 0.02)
+            in the units of y and target, the distance from the target before
+            the filtered target becomes the target
         """
-        ddy = w**2 * target - dy * zeta * w - y * w**2
-        dy = dy + ddy * dt
-        y = y + dy * dt
-        return np.hstack((y, dy))
+        # check if within distance threshold
+        if np.linalg.norm(y-target) < threshold:
+            return np.hstack((target, dy))
+        else:
+            ddy = w**2 * target - dy * zeta * w - y * w**2
+            dy = dy + ddy * dt
+            y = y + dy * dt
+            return np.hstack((y, dy))
 
     def generate_path(self, state, target, plot=False):
         """ Filter the target so that it doesn't jump, but moves smoothly
