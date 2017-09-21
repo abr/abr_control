@@ -62,12 +62,11 @@ class SecondOrder(PathPlanner):
         """
         # check if within distance threshold
         if np.linalg.norm(y-target) < threshold:
-            return np.hstack((target, dy))
-        else:
-            ddy = w**2 * target - dy * zeta * w - y * w**2
-            dy = dy + ddy * dt
-            y = y + dy * dt
-            return np.hstack((y, dy))
+            w *= 3
+        ddy = w**2 * target - dy * zeta * w - y * w**2
+        dy = dy + ddy * dt
+        y = y + dy * dt
+        return np.hstack((y, dy))
 
     def generate_path(self, state, target, plot=False):
         """ Filter the target so that it doesn't jump, but moves smoothly
