@@ -121,11 +121,16 @@ class Training:
         if avoid_limits:
             avoid = signals.AvoidJointLimits(
                       robot_config,
-                      min_joint_angles=[0.97, None, None, None, None, None],
-                      max_joint_angles=[4.06, None, None, None, None, None],
+                      # joint 4 flipped because does not cross 0-2pi line
+                      # min_joint_angles=[0.8, None, None, 6.0, 2.0, None],
+                      # max_joint_angles=[4.75, None, None, 3.5, 5.0, None],
+                      min_joint_angles=[0.8, 1.1, 0.5, 3.5, 2.0, 1.6],
+                      max_joint_angles=[4.75, 3.65, 6.25, 6.0, 5.0, 4.6],
+                      # min_joint_angles=[0.8, None, None, None, None, None],
+                      # max_joint_angles=[4.75, None, None, None, None, None],
                       max_torque=[5]*robot_config.N_JOINTS,
-                      cross_zero=True,
-                      gradient=False)
+                      cross_zero=[True, False, False, False, True, False],
+                      gradient = [False, True, True, True, True, False])
         path = path_planners.SecondOrder(robot_config)
         n_timesteps = 4000
         w = 1e4/n_timesteps
@@ -205,7 +210,7 @@ class Training:
                     start = timeit.default_timer()
                     prev_xyz = ee_xyz
                     target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
-                                       zeta=zeta, dt=dt)
+                                       zeta=zeta, dt=dt, threshold=0.05)
 
                     # get joint angle and velocity feedback
                     feedback = interface.get_feedback()
@@ -227,7 +232,7 @@ class Training:
                     if u_base[0] > 0:
                         u_base[0] *= 3.0
                     else:
-                        u_base[0] *= 2.0
+                        u_base[0] *= 3.0 #2.0
                     training_signal = np.array([ctrlr.training_signal[1],
                                                 ctrlr.training_signal[2],
                                                 ctrlr.training_signal[4]])
@@ -251,7 +256,7 @@ class Training:
                                         u_adapt[0]/time_scale,
                                         u_adapt[1]/time_scale,
                                         0,
-                                        (u_adapt[2]/time_scale)/2,
+                                        u_adapt[2]/4,
                                         0])
                     u = u_base + u_adapt
 
@@ -278,7 +283,8 @@ class Training:
 
                     if count % 1000 == 0:
                         print('error: ', error)
-                        print('adapt: ', u_adapt/time_scale)
+                        print('dt: ', end)
+                        #print('adapt: ', u_adapt/time_scale)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
                         #print('control: ', u_base)
