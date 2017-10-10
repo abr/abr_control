@@ -16,7 +16,7 @@ class Training:
     def __init__(self):
         pass
 
-    def run_test(self, time_scale=1, test_name="adaptive_training", trial=None, run=None,
+    def run_test(self, decimal_scale=1, test_name="adaptive_training", trial=None, run=None,
              weights_file=None ,pes_learning_rate=1e-6, backend=None,
              autoload=False, time_limit=30, vision_target=False, offset=None,
              avoid_limits=False):
@@ -40,7 +40,7 @@ class Training:
 
         Parameters
         ----------
-        time_scale: int, Optional (Default: 1)
+        decimal_scale: int, Optional (Default: 1)
             used for scaling the spinnaker input. Due to precision limit, spinnaker
             input gets scaled to allow for more decimals, then scaled back once
             extracted. Also can be used to account for learning speed since
@@ -92,7 +92,7 @@ class Training:
                 print('ERROR: Install redis to use vision targets, using preset targets')
                 vision_target = False
 
-        PRESET_TARGET = np.array([[.03, -.57, .87]])
+        PRESET_TARGET = np.array([[.57, 0.03, .87]])
 
         # initialize our robot config
         robot_config = abr_jaco2.Config(
@@ -122,12 +122,8 @@ class Training:
             avoid = signals.AvoidJointLimits(
                       robot_config,
                       # joint 4 flipped because does not cross 0-2pi line
-                      # min_joint_angles=[0.8, None, None, 6.0, 2.0, None],
-                      # max_joint_angles=[4.75, None, None, 3.5, 5.0, None],
                       min_joint_angles=[0.8, 1.1, 0.5, 3.5, 2.0, 1.6],
                       max_joint_angles=[4.75, 3.65, 6.25, 6.0, 5.0, 4.6],
-                      # min_joint_angles=[0.8, None, None, None, None, None],
-                      # max_joint_angles=[4.75, None, None, None, None, None],
                       max_torque=[5]*robot_config.N_JOINTS,
                       cross_zero=[True, False, False, False, True, False],
                       gradient = [False, True, True, True, True, False])
@@ -145,14 +141,17 @@ class Training:
 
         # temporarily set backend to nengo if non adaptive if selected so we can
         # still use the weight saving function in dynamics_adaptation
-        backend_save = backend
+        backend_save = np.copy(backend)
         if backend is None:
             backend = 'nengo'
         # create our adaptive controller
+        n_input = 4
+        n_output = 2
+
         adapt = signals.DynamicsAdaptation(
-            n_input=5,
-            n_output=3,
-            n_neurons=10000,
+            n_input=n_input,
+            n_output=n_output,
+            n_neurons=1000,
             pes_learning_rate=pes_learning_rate,
             intercepts=(-0.1, 1.0),
             weights_file=weights_file,
@@ -234,29 +233,28 @@ class Training:
                     else:
                         u_base[0] *= 3.0 #2.0
                     training_signal = np.array([ctrlr.training_signal[1],
-                                                ctrlr.training_signal[2],
-                                                ctrlr.training_signal[4]])
+                                                ctrlr.training_signal[2]])
+                                                # ctrlr.training_signal[4]])
 
-                    if backend != None:
+                    if backend is not None:
                         # calculate the adaptive control signal
                         u_adapt = adapt.generate(
                             input_signal=np.array([robot_config.scaledown('q',q)[1],
                                                    robot_config.scaledown('q',q)[2],
-                                                   robot_config.scaledown('q',q)[4],
+                                                   # robot_config.scaledown('q',q)[4],
                                                    robot_config.scaledown('dq',dq)[1],
                                                    robot_config.scaledown('dq',dq)[2]]),
                                     training_signal=training_signal)
                     else:
-                        u_adapt = np.zeros(4)
+                        u_adapt = np.zeros(6)
 
                     # add adaptive signal to base controller
-                    # u = u_base  + np.concatenate(((u_adapt / time_scale),
-                    #                              np.array([0,0,0])), axis=0)
                     u_adapt = np.array([0,
-                                        u_adapt[0]/time_scale,
-                                        u_adapt[1]/time_scale,
+                                        u_adapt[0]/decimal_scale,
+                                        u_adapt[1]/decimal_scale,
                                         0,
-                                        u_adapt[2]/4,
+                                        0,
+                                        #u_adapt[2]/decimal_scale,
                                         0])
                     u = u_base + u_adapt
 
@@ -284,7 +282,7 @@ class Training:
                     if count % 1000 == 0:
                         print('error: ', error)
                         print('dt: ', end)
-                        #print('adapt: ', u_adapt/time_scale)
+                        print('adapt: ', u_adapt)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
                         #print('control: ', u_base)
