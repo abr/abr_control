@@ -1,8 +1,11 @@
 import glob
+import redis
+import struct
 import os
 import time
 import numpy as np
 import scipy.special
+r = redis.StrictRedis(host='127.0.0.1')
 
 # import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
@@ -165,6 +168,29 @@ class DynamicsAdaptation(Signal):
                 # input_signals[n_input:], self.conn_learn.learning_rule,
                 training_signals, self.conn_learn.learning_rule,
                 synapse=0.01)
+
+
+
+
+            if backend != 'nengo_spinnaker':
+                    # Send spikes via redis
+                    def send_spikes(t, x):
+                            v = np.where(x != 0)[0]
+                            if len(v) > 0:
+                                msg = struct.pack('%dI' % len(v), *v)
+                            else:
+                                msg = ''
+                            r.set('spikes', msg)
+                    source_node = nengo.Node(send_spikes, size_in=25)
+                    print("SPIKES SENT")
+                    nengo.Connection(
+                        self.adapt_ens.neurons[:25],
+                        source_node,
+                        synapse=None)
+
+
+
+
 
         nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
