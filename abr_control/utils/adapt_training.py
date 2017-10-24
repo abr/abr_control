@@ -16,10 +16,10 @@ class Training:
     def __init__(self):
         pass
 
-    def run_test(self, decimal_scale=1, test_name="adaptive_training", trial=None, run=None,
-             weights_file=None ,pes_learning_rate=1e-6, backend=None,
+    def run_test(self, n_neurons=1000, decimal_scale=1, test_name="adaptive_training", session=None,
+             run=None,weights_file=None ,pes_learning_rate=1e-6, backend=None,
              autoload=False, time_limit=30, vision_target=False, offset=None,
-             avoid_limits=False):
+             avoid_limits=False, additional_mass=0):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -29,8 +29,8 @@ class Training:
         adaptive controller and the type of backend can be specified. The script is
         also automated to use the correct weights files for continuous learning.
         The standard naming convention used is runs are consecutive tests where the previous
-        learned weights are used. The whole of these runs are a single trial.
-        Multiple trials of these runs can then be used for averaging and
+        learned weights are used. The whole of these runs are a single session.
+        Multiple sessions of these runs can then be used for averaging and
         statictical purposes.
 
         The adaptive controller uses a 6 dimensional input and returns a 3 dimensional
@@ -40,6 +40,8 @@ class Training:
 
         Parameters
         ----------
+        n_neurons: int, Optional (Default: 1000)
+            the number of neurons in the adaptive population
         decimal_scale: int, Optional (Default: 1)
             used for scaling the spinnaker input. Due to precision limit, spinnaker
             input gets scaled to allow for more decimals, then scaled back once
@@ -47,9 +49,9 @@ class Training:
             spinnaker runs in real time
         test_name: string, Optional (Default: "dewolf_2017_data")
             folder name where data is saved
-        trial: int, Optional (Default: None)
-            The current trial number, if left to None then it will be automatically
-            updated based on the current trial. If the next trial is desired then
+        session: int, Optional (Default: None)
+            The current session number, if left to None then it will be automatically
+            updated based on the current session. If the next session is desired then
             this will need to be updated.
         run: int, Optional (Default: None)
             The current nth run that specifies to use the weights from the n-1 run.
@@ -80,6 +82,8 @@ class Training:
             is desired. Use the form [x_offset, y_offset, z_offset]
         avoid_limits: boolean, Optional (Default: False)
             set true if there are limits you would like to avoid
+        additional_mass: float, Optional (Default: 0)
+            any extra mass added to the EE if known
         """
 
         # try to setup redis server if vision targets are desired
@@ -141,26 +145,47 @@ class Training:
 
         # temporarily set backend to nengo if non adaptive if selected so we can
         # still use the weight saving function in dynamics_adaptation
-        backend_save = np.copy(backend)
         if backend is None:
-            backend = 'nengo'
+            adapt_backend = 'nengo'
+        else:
+            adapt_backend = backend
         # create our adaptive controller
         n_input = 4
         n_output = 2
 
-        adapt = signals.DynamicsAdaptation(
-            n_input=n_input,
-            n_output=n_output,
-            n_neurons=1000,
-            pes_learning_rate=pes_learning_rate,
-            intercepts=(-0.1, 1.0),
-            weights_file=weights_file,
-            backend=backend,
-            trial=trial,
-            run=run,
-            test_name=test_name,
-            autoload=autoload)
-        backend = backend_save
+        self.additional_mass = additional_mass
+        if self.additional_mass != 0 and weights_file is None:
+            # if the user knows about the mass at the EE, try and improve
+            # our starting point
+            print('Using mass estimate of %f kg as starting point'
+                  %self.additional_mass)
+            adapt = signals.DynamicsAdaptation(
+                n_input=n_input,
+                n_output=n_output,
+                n_neurons=n_neurons,
+                pes_learning_rate=pes_learning_rate,
+                intercepts=(-0.1, 1.0),
+                weights_file=weights_file,
+                backend=adapt_backend,
+                session=session,
+                run=run,
+                test_name=test_name,
+                autoload=autoload,
+                function=self.gravity_estimate)
+
+        else:
+            adapt = signals.DynamicsAdaptation(
+                n_input=n_input,
+                n_output=n_output,
+                n_neurons=n_neurons,
+                pes_learning_rate=pes_learning_rate,
+                intercepts=(-0.1, 1.0),
+                weights_file=weights_file,
+                backend=adapt_backend,
+                session=session,
+                run=run,
+                test_name=test_name,
+                autoload=autoload)
 
         # connect to and initialize the arm
         interface.connect()
@@ -175,6 +200,7 @@ class Training:
         error_track = []
         training_track = []
         target_track = []
+        #input_signal = []
         try:
             interface.init_force_mode()
             for ii in range(0,len(PRESET_TARGET)):
@@ -238,13 +264,13 @@ class Training:
 
                     if backend is not None:
                         # calculate the adaptive control signal
-                        u_adapt = adapt.generate(
-                            input_signal=np.array([robot_config.scaledown('q',q)[1],
+                        adapt_input = np.array([robot_config.scaledown('q',q)[1],
                                                    robot_config.scaledown('q',q)[2],
                                                    # robot_config.scaledown('q',q)[4],
                                                    robot_config.scaledown('dq',dq)[1],
-                                                   robot_config.scaledown('dq',dq)[2]]),
-                                    training_signal=training_signal)
+                                                   robot_config.scaledown('dq',dq)[2]])
+                        u_adapt = adapt.generate(input_signal=adapt_input,
+                                                 training_signal=training_signal)
                     else:
                         u_adapt = np.zeros(6)
 
@@ -278,6 +304,7 @@ class Training:
                     loop_time += end
                     time_track.append(np.copy(end))
                     target_track.append(np.copy(TARGET_XYZ))
+                    #input_signal.append(np.copy(adapt_input))
 
                     if count % 1000 == 0:
                         print('error: ', error)
@@ -295,16 +322,17 @@ class Training:
         finally:
             # close the connection to the arm
             interface.init_position_mode()
-            interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
-            interface.disconnect()
 
             if backend != None:
                 # Save the learned weights
-                adapt.save_weights(test_name=test_name, trial=trial, run=run)
+                adapt.save_weights(test_name=test_name, session=session, run=run)
+
+            interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+            interface.disconnect()
 
             # get save location of weights to save tracked data in same directory
             [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
-                                                         trial=trial)
+                                                         session=session)
             if run_num == -1:
                 run_num = 0
                 print("RUN NUM IS -1 !!!!!!!!!!!!!!!!!!")
@@ -319,6 +347,7 @@ class Training:
             adapt_track = np.array(adapt_track)
             error_track = np.array(error_track)
             training_track = np.array(training_track)
+            #input_signal = np.array(input_signal)
 
             if not os.path.exists(location + '/run%i_data' % (run_num)):
                 os.makedirs(location + '/run%i_data' % (run_num))
@@ -337,6 +366,8 @@ class Training:
                                 error=[error_track])
             np.savez_compressed(location + '/run%i_data/training%i' % (run_num, run_num),
                                 training=[training_track])
+            # np.savez_compressed(location + '/run%i_data/input_signal%i' % (run_num, run_num),
+            #                     input_signal=[input_signal])
     def get_target_from_camera(self):
         # read from server
         camera_xyz = self.redis_server.get('target_xyz').decode('ascii')
@@ -359,4 +390,11 @@ class Training:
             target = ((target - joint1_offset) / norm) * magnitude + joint1_offset
         return target
 
-
+    def gravity_estimate(self, x):
+        fake_gravity = np.array([[0, -9.81*self.additional_mass, 0, 0, 0, 0]]).T
+        q = self.robot_config.scaleup('q', x[:2])
+        g = np.zeros((self.robot_config.N_JOINTS, 1))
+        for ii in range(self.robot_config.N_LINKS):
+            pars = tuple(q) + tuple([0, 0, 0])
+            g += np.dot(J_links[ii](*pars).T, fake_gravity)
+        return -g[[1,2]]
