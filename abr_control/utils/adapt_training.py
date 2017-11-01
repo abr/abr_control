@@ -10,6 +10,7 @@ import redis
 
 from abr_control.controllers import OSC, signals, path_planners
 import abr_jaco2
+import nengo
 
 class Training:
 
@@ -83,7 +84,7 @@ class Training:
         avoid_limits: boolean, Optional (Default: False)
             set true if there are limits you would like to avoid
         additional_mass: float, Optional (Default: 0)
-            any extra mass added to the EE if known
+            any extra mass added to the EE if known [kg]
         """
 
         # try to setup redis server if vision targets are desired
@@ -106,8 +107,10 @@ class Training:
         zeros = np.zeros(robot_config.N_JOINTS)
 
         # get Jacobians to each link for calculating perturbation
-        J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
+        self.J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
                    for ii in range(robot_config.N_LINKS)]
+
+        self.JEE  = robot_config._calc_J('EE', x=[0, 0, 0])
 
         # account for wrist to fingers offset
         R_func = robot_config._calc_R('EE')
@@ -152,11 +155,15 @@ class Training:
         # create our adaptive controller
         n_input = 4
         n_output = 2
+        # number of joint angle dim in
+        self.adapt_dim = 2
 
         self.additional_mass = additional_mass
         if self.additional_mass != 0 and weights_file is None:
             # if the user knows about the mass at the EE, try and improve
             # our starting point
+            # starting estimate of mass if using function
+            self.fake_gravity = np.array([[0, 0, -9.81*self.additional_mass, 0, 0, 0]]).T
             print('Using mass estimate of %f kg as starting point'
                   %self.additional_mass)
             adapt = signals.DynamicsAdaptation(
@@ -200,6 +207,7 @@ class Training:
         error_track = []
         training_track = []
         target_track = []
+        ee_track = []
         #input_signal = []
         try:
             interface.init_force_mode()
@@ -305,11 +313,13 @@ class Training:
                     time_track.append(np.copy(end))
                     target_track.append(np.copy(TARGET_XYZ))
                     #input_signal.append(np.copy(adapt_input))
+                    ee_track.append(np.copy(ee_xyz))
 
                     if count % 1000 == 0:
                         print('error: ', error)
                         print('dt: ', end)
                         print('adapt: ', u_adapt)
+                        print('q: ', q)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
                         #print('control: ', u_base)
@@ -348,6 +358,7 @@ class Training:
             error_track = np.array(error_track)
             training_track = np.array(training_track)
             #input_signal = np.array(input_signal)
+            ee_track = np.array(ee_track)
 
             if not os.path.exists(location + '/run%i_data' % (run_num)):
                 os.makedirs(location + '/run%i_data' % (run_num))
@@ -368,6 +379,8 @@ class Training:
                                 training=[training_track])
             # np.savez_compressed(location + '/run%i_data/input_signal%i' % (run_num, run_num),
             #                     input_signal=[input_signal])
+            np.savez_compressed(location + '/run%i_data/ee_xyz%i' % (run_num, run_num),
+                                ee_xyz=[ee_track])
     def get_target_from_camera(self):
         # read from server
         camera_xyz = self.redis_server.get('target_xyz').decode('ascii')
@@ -390,11 +403,41 @@ class Training:
             target = ((target - joint1_offset) / norm) * magnitude + joint1_offset
         return target
 
+    # def gravity_estimate(self, x):
+    #     fake_gravity = np.array([[0, -9.81*self.additional_mass, 0, 0, 0, 0]]).T
+    #     q = self.robot_config.scaleup('q', x[:2])
+    #     g = np.zeros((self.robot_config.N_JOINTS, 1))
+    #     for ii in range(self.robot_config.N_LINKS):
+    #         pars = tuple(q) + tuple([0, 0, 0])
+    #         g += np.dot(J_links[ii](*pars).T, fake_gravity)
+    #     return -g[[1,2]]
+
+    # def gravity_estimate(self, x):
+    #     q1, q2 = x[:self.adapt_dim]  # x = [q, dq]
+    #     g_avg = []
+    #     dist = nengo.dists.UniformHypersphere()
+    #     samples = dist.sample(1000, d=self.robot_config.N_JOINTS - self.adapt_dim)
+    #     for sample in samples:
+    #         q = np.hstack([sample[0], q1, q2, sample[1:]])
+    #         q = self.robot_config.scaleup('q', q)
+    #         g = np.zeros((self.robot_config.N_JOINTS, 1))
+    #         for ii in range(self.robot_config.N_LINKS):
+    #             pars = tuple(q) + tuple([0, 0, 0])
+    #             g += np.dot(self.J_links[ii](*pars).T, self.fake_gravity)
+    #         g_avg.append(g.squeeze())
+    #     g_avg = np.mean(np.array(g_avg), axis=0)[[1, 2]]
+    #     return -g_avg
+
     def gravity_estimate(self, x):
-        fake_gravity = np.array([[0, -9.81*self.additional_mass, 0, 0, 0, 0]]).T
-        q = self.robot_config.scaleup('q', x[:2])
-        g = np.zeros((self.robot_config.N_JOINTS, 1))
-        for ii in range(self.robot_config.N_LINKS):
+        q1, q2 = x[:self.adapt_dim]  # x = [q, dq]
+        g_avg = []
+        dist = nengo.dists.UniformHypersphere()
+        samples = dist.sample(1000, d=self.robot_config.N_JOINTS - self.adapt_dim)
+        for sample in samples:
+            q = np.hstack([sample[0], q1, q2, sample[1:]])
+            q = self.robot_config.scaleup('q', q)
             pars = tuple(q) + tuple([0, 0, 0])
-            g += np.dot(J_links[ii](*pars).T, fake_gravity)
-        return -g[[1,2]]
+            g = np.dot(self.JEE(*pars).T, self.fake_gravity)
+            g_avg.append(g.squeeze())
+        g_avg = np.mean(np.array(g_avg), axis=0)[[1, 2]]
+        return -g_avg
