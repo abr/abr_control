@@ -140,8 +140,9 @@ class DynamicsAdaptation(Signal):
                 transform = np.zeros((n_output, self.adapt_ens.n_neurons))
 
             # set up learning connections
-            if function is not None and weights_file is not None:
-                conn_learn = nengo.Connection(
+            if function is not None and (weights_file is None or weights_file is ''):
+                print("Using mass estimation function")
+                self.conn_learn = nengo.Connection(
                     self.adapt_ens, output,
                     learning_rule_type=nengo.PES(pes_learning_rate),
                     function=function)
@@ -295,7 +296,8 @@ class DynamicsAdaptation(Signal):
 
         # check if the provided test_name exists, if not, create it
         if not os.path.exists(test_name):
-            print("The provided directory does not exist, creating folder...")
+            print("The provided directory: '%s' does not exist, creating folder..."
+                % test_name)
             os.makedirs(test_name)
 
         # if no run is specified, check what the most recent run saved is and save as
