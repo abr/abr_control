@@ -21,7 +21,7 @@ To install ABR_Control, clone this repository and run::
     sudo apt-get install libfreetype6-dev
     pip install scipy
     pip install cython
-    python setupy.py install
+    python setup.py install
     python setup.py develop
 
 ABR_Control is tested to work on Python 3.4+.
