@@ -17,10 +17,12 @@ class Training:
     def __init__(self):
         pass
 
-    def run_test(self, n_neurons=1000, decimal_scale=1, test_name="adaptive_training", session=None,
-             run=None,weights_file=None ,pes_learning_rate=1e-6, backend=None,
-             autoload=False, time_limit=30, vision_target=False, offset=None,
-             avoid_limits=False, additional_mass=0):
+    def run_test(self, n_neurons=1000, n_ensembles=1, decimal_scale=1,
+                 test_name="adaptive_training", session=None, run=None,
+                 weights_file=None ,pes_learning_rate=1e-6, backend=None,
+                 autoload=False, time_limit=30, vision_target=False,
+                 offset=None, avoid_limits=False, additional_mass=0,
+                 kp=20, kv=6, ki=0, multi_target=False):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -43,6 +45,8 @@ class Training:
         ----------
         n_neurons: int, Optional (Default: 1000)
             the number of neurons in the adaptive population
+        n_ensembles: int, Optional (Default: 1)
+            the number of ensembles of n_neurons number of neurons
         decimal_scale: int, Optional (Default: 1)
             used for scaling the spinnaker input. Due to precision limit, spinnaker
             input gets scaled to allow for more decimals, then scaled back once
@@ -85,7 +89,18 @@ class Training:
             set true if there are limits you would like to avoid
         additional_mass: float, Optional (Default: 0)
             any extra mass added to the EE if known [kg]
+        kp: float, Optional (Default: 20)
+            proportional gain term
+        kv: float, Optional (Default: 6)
+            derivative gain term
+        ki: float, Optional (Default: 0)
+            integral gain term
+        multi_target: boolean, Optional (Default: False)
+            False: single target
+            True: multiple targets
         """
+
+        self.decimal_scale = decimal_scale
 
         # try to setup redis server if vision targets are desired
         if vision_target:
@@ -97,7 +112,15 @@ class Training:
                 print('ERROR: Install redis to use vision targets, using preset targets')
                 vision_target = False
 
-        PRESET_TARGET = np.array([[.57, 0.03, .87]])
+        if multi_target:
+            PRESET_TARGET = np.array([[.56, -.09, .95],
+                                      [.62, .15, .80],
+                                      [.59, .35, .61],
+                                      [.38, .55, .81],
+                                      [.10, .51, .95]])
+            time_limit /= len(PRESET_TARGET)
+        else:
+            PRESET_TARGET = np.array([[.57, 0.03, .87]])
 
         # initialize our robot config
         robot_config = abr_jaco2.Config(
@@ -123,29 +146,6 @@ class Training:
 
         robot_config.Tx('EE', q=zeros, x=OFFSET)
 
-        # instantiate controller and path planner
-        ctrlr = OSC(robot_config, kp=20, kv=6, vmax=1, null_control=True)
-        if avoid_limits:
-            avoid = signals.AvoidJointLimits(
-                      robot_config,
-                      # joint 4 flipped because does not cross 0-2pi line
-                      min_joint_angles=[0.8, 1.1, 0.5, 3.5, 2.0, 1.6],
-                      max_joint_angles=[4.75, 3.65, 6.25, 6.0, 5.0, 4.6],
-                      max_torque=[5]*robot_config.N_JOINTS,
-                      cross_zero=[True, False, False, False, True, False],
-                      gradient = [False, True, True, True, True, False])
-        path = path_planners.SecondOrder(robot_config)
-        n_timesteps = 4000
-        w = 1e4/n_timesteps
-        zeta = 2
-        dt = 0.003
-
-        # run controller once to generate functions / take care of overhead
-        # outside of the main loop, because force mode auto-exits after 200ms
-        ctrlr.generate(zeros, zeros, np.zeros(3), offset=OFFSET)
-
-        interface = abr_jaco2.Interface(robot_config)
-
         # temporarily set backend to nengo if non adaptive if selected so we can
         # still use the weight saving function in dynamics_adaptation
         if backend is None:
@@ -170,6 +170,7 @@ class Training:
                 n_input=n_input,
                 n_output=n_output,
                 n_neurons=n_neurons,
+                n_ensembles=n_ensembles,
                 pes_learning_rate=pes_learning_rate,
                 intercepts=(-0.1, 1.0),
                 weights_file=weights_file,
@@ -185,6 +186,7 @@ class Training:
                 n_input=n_input,
                 n_output=n_output,
                 n_neurons=n_neurons,
+                n_ensembles=n_ensembles,
                 pes_learning_rate=pes_learning_rate,
                 intercepts=(-0.1, 1.0),
                 weights_file=weights_file,
@@ -193,6 +195,45 @@ class Training:
                 run=run,
                 test_name=test_name,
                 autoload=autoload)
+
+        # get save location of weights to save tracked data in same directory
+        [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
+                                                     session=session)
+        if ki != 0:
+            if run_num < 1:
+                run_num = 0
+                int_err_prev = [0,0,0]
+            else:
+                int_err_prev = np.squeeze(np.load(location + '/run%i_data/int_err%i.npz'
+                                       % (run_num-1, run_num-1))['int_err'])[-1]
+        else:
+            int_err_prev = [0, 0, 0]
+
+        # instantiate controller and path planner
+        ctrlr = OSC(robot_config, kp=kp, kv=kv, ki=ki, vmax=1,
+                    null_control=True, int_err=int_err_prev)
+        if avoid_limits:
+            avoid = signals.AvoidJointLimits(
+                      robot_config,
+                      # joint 4 flipped because does not cross 0-2pi line
+                      min_joint_angles=[0.8, 1.1, 0.5, 3.5, 2.0, 1.6],
+                      max_joint_angles=[4.75, 3.65, 6.25, 6.0, 5.0, 4.6],
+                      max_torque=[5]*robot_config.N_JOINTS,
+                      cross_zero=[True, False, False, False, True, False],
+                      gradient = [False, True, True, True, True, False])
+        path = path_planners.SecondOrder(robot_config)
+        n_timesteps = 4000
+        w = 1e4/n_timesteps
+        zeta = 2
+        dt = 0.003
+
+        # run controller once to generate functions / take care of overhead
+        # outside of the main loop, because force mode auto-exits after 200ms
+        ctrlr.generate(zeros, zeros, np.zeros(3), offset=OFFSET)
+
+        interface = abr_jaco2.Interface(robot_config)
+
+
 
         # connect to and initialize the arm
         interface.connect()
@@ -209,6 +250,8 @@ class Training:
         target_track = []
         ee_track = []
         #input_signal = []
+        if ki != 0:
+            int_err_track = []
         try:
             interface.init_force_mode()
             for ii in range(0,len(PRESET_TARGET)):
@@ -314,12 +357,15 @@ class Training:
                     target_track.append(np.copy(TARGET_XYZ))
                     #input_signal.append(np.copy(adapt_input))
                     ee_track.append(np.copy(ee_xyz))
+                    if ki != 0:
+                        int_err_track.append(np.copy(ctrlr.int_err))
 
                     if count % 1000 == 0:
                         print('error: ', error)
                         print('dt: ', end)
                         print('adapt: ', u_adapt)
-                        print('q: ', q)
+                        print('int_err: ', ctrlr.int_err*ki)
+                        #print('q: ', q)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
                         #print('control: ', u_base)
@@ -340,16 +386,13 @@ class Training:
             interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
             interface.disconnect()
 
-            # get save location of weights to save tracked data in same directory
-            [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
-                                                         session=session)
-            if run_num == -1:
-                run_num = 0
-                print("RUN NUM IS -1 !!!!!!!!!!!!!!!!!!")
-
             print('Average loop speed: ', sum(time_track)/len(time_track))
             print('Run number ', run_num)
             print('Saving tracked data to ', location + '/run%i_data' % (run_num))
+
+            # get save location of weights to save tracked data in same directory
+            [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
+                                                         session=session)
 
             time_track = np.array(time_track)
             q_track = np.array(q_track)
@@ -359,6 +402,8 @@ class Training:
             training_track = np.array(training_track)
             #input_signal = np.array(input_signal)
             ee_track = np.array(ee_track)
+            if ki != 0:
+                int_err_track = np.array(int_err_track)
 
             if not os.path.exists(location + '/run%i_data' % (run_num)):
                 os.makedirs(location + '/run%i_data' % (run_num))
@@ -381,6 +426,9 @@ class Training:
             #                     input_signal=[input_signal])
             np.savez_compressed(location + '/run%i_data/ee_xyz%i' % (run_num, run_num),
                                 ee_xyz=[ee_track])
+            if ki != 0:
+                np.savez_compressed(location + '/run%i_data/int_err%i' % (run_num, run_num),
+                                    int_err=[int_err_track])
     def get_target_from_camera(self):
         # read from server
         camera_xyz = self.redis_server.get('target_xyz').decode('ascii')
@@ -440,4 +488,4 @@ class Training:
             g = np.dot(self.JEE(*pars).T, self.fake_gravity)
             g_avg.append(g.squeeze())
         g_avg = np.mean(np.array(g_avg), axis=0)[[1, 2]]
-        return -g_avg
+        return -g_avg*self.decimal_scale
