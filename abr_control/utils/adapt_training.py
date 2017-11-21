@@ -20,9 +20,9 @@ class Training:
     def run_test(self, n_neurons=1000, n_ensembles=1, decimal_scale=1,
                  test_name="adaptive_training", session=None, run=None,
                  weights_file=None ,pes_learning_rate=1e-6, backend=None,
-                 autoload=False, time_limit=30, vision_target=False,
+                 autoload=False, time_limit=30, target_type='single',
                  offset=None, avoid_limits=False, additional_mass=0,
-                 kp=20, kv=6, ki=0, multi_target=False):
+                 kp=20, kv=6, ki=0):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -79,9 +79,11 @@ class Training:
                    zero
         time_limit: float, Optional (Default: 30)
             the time limit for each run in seconds
-        vision_target: boolean, Optional (Default: False)
-            True: check redis server for targets sent from vision
-            False: use hardcoded target locations
+        target_type: string, Optional (Default: single)
+            single: one target
+            multi: five targets
+            figure8: move in figure8 pattern
+            vision: get target from vision system
         offset: float array, Optional (Default: None)
             Set the offset to the end effector if something other than the default
             is desired. Use the form [x_offset, y_offset, z_offset]
@@ -95,32 +97,48 @@ class Training:
             derivative gain term
         ki: float, Optional (Default: 0)
             integral gain term
-        multi_target: boolean, Optional (Default: False)
-            False: single target
-            True: multiple targets
+        TARGET_XYZ: array of floats
+            the goal target, used for calculating error
+        target: array of floats [x, y, z, vx, vy, vz]
+            the filtered target, used for calculating error for figure8
+            test since following trajectory and not moving to a single final
+            point
         """
 
-        self.decimal_scale = decimal_scale
+        PRESET_TARGET = np.array([[.57, 0.03, .87]])
 
-        # try to setup redis server if vision targets are desired
-        if vision_target:
-            try:
-                import redis
-                redis_server = redis.StrictRedis(host='localhost')
-                self.redis_server = redis_server
-            except ImportError:
-                print('ERROR: Install redis to use vision targets, using preset targets')
-                vision_target = False
-
-        if multi_target:
+        if target_type == 'multi':
             PRESET_TARGET = np.array([[.56, -.09, .95],
                                       [.62, .15, .80],
                                       [.59, .35, .61],
                                       [.38, .55, .81],
                                       [.10, .51, .95]])
             time_limit /= len(PRESET_TARGET)
-        else:
-            PRESET_TARGET = np.array([[.57, 0.03, .87]])
+
+        elif target_type == 'vision':
+            # try to setup redis server if vision targets are desired
+            try:
+                import redis
+                redis_server = redis.StrictRedis(host='localhost')
+                self.redis_server = redis_server
+            except ImportError:
+                print('ERROR: Install redis to use vision targets, using preset targets')
+
+
+        elif target_type == 'figure8':
+            try:
+                import pydmps
+            except ImportError:
+                print('\npydmps library required, see ' +
+                      'https://github.com/studywolf/pydmps\n')
+
+            # create a dmp that traces a figure8
+            x = np.linspace(0, np.pi*2, 100)
+            #dmps_traj = np.array([x/3 + 0.2, 0.125*np.sin(x)+0.5, 0.125*np.sin(2*x)+0.5])
+            dmps_traj = np.array([0.2*np.sin(x), 0.2*np.sin(2*x)+0.7])
+            dmps = pydmps.DMPs_rhythmic(n_dmps=2, n_bfs=50, dt=.01)
+            dmps.imitate_path(dmps_traj)
+
 
         # initialize our robot config
         robot_config = abr_jaco2.Config(
@@ -196,9 +214,11 @@ class Training:
                 test_name=test_name,
                 autoload=autoload)
 
-        # get save location of weights to save tracked data in same directory
+        # get save location of saved data
         [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
                                                      session=session)
+        # if using integral term for PID control, check if previous weights
+        # have been saved
         if ki != 0:
             if run_num < 1:
                 run_num = 0
@@ -221,19 +241,22 @@ class Training:
                       max_torque=[5]*robot_config.N_JOINTS,
                       cross_zero=[True, False, False, False, True, False],
                       gradient = [False, True, True, True, True, False])
-        path = path_planners.SecondOrder(robot_config)
-        n_timesteps = 4000
-        w = 1e4/n_timesteps
-        zeta = 2
-        dt = 0.003
+        # if not planning the trajectory (figure8 target) then use a second
+        # order filter to smooth out the trajectory to target(s)
+        if target_type != 'figure8':
+            path = path_planners.SecondOrder(robot_config)
+            n_timesteps = 4000
+            w = 1e4/n_timesteps
+            zeta = 2
+            dt = 0.003
+
+        self.decimal_scale = decimal_scale
 
         # run controller once to generate functions / take care of overhead
         # outside of the main loop, because force mode auto-exits after 200ms
         ctrlr.generate(zeros, zeros, np.zeros(3), offset=OFFSET)
 
         interface = abr_jaco2.Interface(robot_config)
-
-
 
         # connect to and initialize the arm
         interface.connect()
@@ -252,6 +275,7 @@ class Training:
         #input_signal = []
         if ki != 0:
             int_err_track = []
+
         try:
             interface.init_force_mode()
             for ii in range(0,len(PRESET_TARGET)):
@@ -275,18 +299,33 @@ class Training:
                 # last three terms used as started point for target velocity of
                 # base 3 joints
                 target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
+                if target_type == 'figure8':
+                    # calculate euclidean distance to target
+                    error = np.sqrt(np.sum((ee_xyz - target[:3])**2))
 
+                # M A I N   C O N T R O L   L O O P
                 while loop_time < time_limit:
-                    if vision_target is False:
-                        TARGET_XYZ = PRESET_TARGET[ii]
-                    else:
-                        TARGET_XYZ = self.get_target_from_camera()
-                        TARGET_XYZ = self.normalize_target(TARGET_XYZ)
-
                     start = timeit.default_timer()
                     prev_xyz = ee_xyz
-                    target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
-                                       zeta=zeta, dt=dt, threshold=0.05)
+
+                    if target_type == 'vision':
+                        TARGET_XYZ = self.get_target_from_camera()
+                        TARGET_XYZ = self.normalize_target(TARGET_XYZ)
+                        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
+                                           zeta=zeta, dt=dt, threshold=0.05)
+
+                    elif target_type == 'figure8':
+                        y, dy, ddy = dmps.step(error=error*1e2)
+                        target = [0.65, y[0], y[1], 0, dy[0], dy[1]]
+                        TARGET_XYZ = target[:3]
+
+                    else:
+                        TARGET_XYZ = PRESET_TARGET[ii]
+                        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
+                                           zeta=zeta, dt=dt, threshold=0.05)
+
+                    # calculate euclidean distance to target
+                    error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ)**2))
 
                     # get joint angle and velocity feedback
                     feedback = interface.get_feedback()
@@ -308,7 +347,7 @@ class Training:
                     if u_base[0] > 0:
                         u_base[0] *= 3.0
                     else:
-                        u_base[0] *= 3.0 #2.0
+                        u_base[0] *= 2.0
                     training_signal = np.array([ctrlr.training_signal[1],
                                                 ctrlr.training_signal[2]])
                                                 # ctrlr.training_signal[4]])
@@ -342,9 +381,6 @@ class Training:
                     # send forces
                     interface.send_forces(np.array(u, dtype='float32'))
 
-                    # calculate euclidean distance to target
-                    error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ)**2))
-
                     # track data
                     q_track.append(np.copy(q))
                     u_track.append(np.copy(u))
@@ -364,7 +400,7 @@ class Training:
                         print('error: ', error)
                         print('dt: ', end)
                         print('adapt: ', u_adapt)
-                        print('int_err: ', ctrlr.int_err*ki)
+                        #print('int_err: ', ctrlr.int_err*ki)
                         #print('q: ', q)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
