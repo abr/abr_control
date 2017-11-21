@@ -15,6 +15,8 @@ class OSC(controller.Controller):
         proportional gain term
     kv : float, optional (Default: None)
         derivative gain term, a good starting point is sqrt(kp)
+    ki : float, optional (Default: 0)
+        integral gain term
     vmax : float, optional (Default: 0.5)
         The max allowed velocity of the end-effector [meters/second].
         If the control signal specifies something above this
@@ -30,6 +32,9 @@ class OSC(controller.Controller):
         centripetal effects of the arm
     use_dJ : boolean, optional (Default: False)
         use the Jacobian derivative wrt time
+    int_err : float list, optional (Default: [0,0,0])
+        integral term of PID control, can pass value in if have prelearned
+        weights
 
     Attributes
     ----------
@@ -38,19 +43,22 @@ class OSC(controller.Controller):
     nkv : float
         derivative gain term for null controller
     """
-    def __init__(self, robot_config, kp=1, kv=None, vmax=0.5,
-                 null_control=True, use_g=True, use_C=False, use_dJ=False):
+    def __init__(self, robot_config, kp=1, kv=None, ki=0, vmax=0.5,
+                 null_control=True, use_g=True, use_C=False, use_dJ=False,
+                 int_err=[0,0,0]):
 
         super(OSC, self).__init__(robot_config)
 
         self.kp = kp
         self.kv = np.sqrt(self.kp) if kv is None else kv
+        self.ki = ki
         self.vmax = vmax
         self.lamb = self.kp / self.kv
         self.null_control = null_control
         self.use_g = use_g
         self.use_C = use_C
         self.use_dJ = use_dJ
+        self.int_err = int_err
 
         # null_indices is a mask for identifying which joints have REST_ANGLES
         self.null_indices = ~np.isnan(self.robot_config.REST_ANGLES)
@@ -137,6 +145,9 @@ class OSC(controller.Controller):
             # apply mask
             dJ = dJ[:3]
             u_task -= np.dot(dJ, dq)
+
+        self.int_err += x_tilde
+        u_task += -self.ki * self.int_err
 
         # incorporate task space inertia matrix
         u = np.dot(J.T, np.dot(Mx, u_task))

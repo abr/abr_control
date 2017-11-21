@@ -5,6 +5,7 @@ import os
 import time
 import numpy as np
 import scipy.special
+import logging
 r = redis.StrictRedis(host='127.0.0.1')
 
 # import abr_control.utils.os_utils
@@ -32,6 +33,8 @@ class DynamicsAdaptation(Signal):
         such as: number of joints, number of links, mass information etc.
     n_neurons : int, optional (Default: 1000)
         number of neurons per adaptive population
+    n_ensembles : int, option (Default: 1)
+        number of ensembles of n_neurons number of neurons
     pes_learning_rate : float, optional (Default: 1e-6)
         controls the speed of neural adaptation
     intercepts list : list of two floats, optional (Default: (0.5, 1.0))
@@ -62,14 +65,16 @@ class DynamicsAdaptation(Signal):
         directory for the most recent saved weights, False to start
         with a zeros array of weights, or a specified 'weights_file'
     function:
+    redis_comm: boolean, optional (Default: False)
+        True to send spiking information to redis for display purposes
     """
     #TODO add description of function
 
-    def __init__(self, n_input, n_output, n_neurons=1000, seed=1,
-                 pes_learning_rate=1e-6, intercepts=(0.5, 1.0),
+    def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
+                 seed=None, pes_learning_rate=1e-6, intercepts=(0.5, 1.0),
                  weights_file=None, backend='nengo', session=None,
                  run=None, test_name='test', autoload=False,
-                 function=None, **kwargs):
+                 function=None, redis_comm=False, **kwargs):
 
         self.input_signal = np.zeros(n_input)
         self.training_signal = np.zeros(n_output)
@@ -84,7 +89,7 @@ class DynamicsAdaptation(Signal):
         if weights_file is None:
             weights_file = ''
 
-        self.nengo_model = nengo.Network(seed=10)
+        self.nengo_model = nengo.Network(seed=seed)
         with self.nengo_model:
 
             def input_signals_func(t):
@@ -112,77 +117,93 @@ class DynamicsAdaptation(Signal):
                 dimensions=n_input,
                 base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
 
-            self.adapt_ens = nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
-                                       intercepts=intercepts, seed=10, **kwargs)
+            self.adapt_ens = []
+            self.conn_learn = []
 
-            try:
-                # if the NengoLib is installed, use it
-                # to optimize encoder placement
-                import nengolib
-                self.adapt_ens.encoders = (
-                    nengolib.stats.ScatteredHypersphere(surface=True))
-                print('NengoLib used to optimize encoders placement')
-            except ImportError:
-                print('Nengo lib not installed, encoder ' +
-                      'placement will be sub-optimal.')
+            for ii in range(n_ensembles):
+                self.adapt_ens.append(nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
+                                           intercepts=intercepts, **kwargs))
+                print('*** ENSEMBLE %i ***' % ii)
 
-            # hook up input signal to adaptive population to provide context
-            # nengo.Connection(input_signals[:n_input], self.adapt_ens, synapse=0.005)
-            nengo.Connection(input_signals, self.adapt_ens, synapse=0.005)
+                try:
+                    # if the NengoLib is installed, use it
+                    # to optimize encoder placement
+                    import nengolib
+                    self.adapt_ens[ii].encoders = (
+                        nengolib.stats.ScatteredHypersphere(surface=True))
+                    print('NengoLib used to optimize encoders placement')
+                except ImportError:
+                    print('Nengo lib not installed, encoder ' +
+                          'placement will be sub-optimal.')
 
-            # load weights from file if they exist, otherwise use zeros
-            if weights_file == '~':
-                weights_file = os.path.expanduser(weights_file)
-            print('Backend: ', backend)
-            print('Weights file: %s' % weights_file)
-            if not os.path.isfile('%s' % weights_file):
-                print('No weights found, starting with zeros')
-                transform = np.zeros((n_output, self.adapt_ens.n_neurons))
+                # hook up input signal to adaptive population to provide context
+                # nengo.Connection(input_signals[:n_input], self.adapt_ens, synapse=0.005)
+                nengo.Connection(input_signals, self.adapt_ens[ii], synapse=0.005)
 
-            # set up learning connections
-            if function is not None and (weights_file is None or weights_file is ''):
-                print("Using mass estimation function")
-                self.conn_learn = nengo.Connection(
-                    self.adapt_ens, output,
-                    learning_rule_type=nengo.PES(pes_learning_rate),
-                    function=function)
-            else:
-                if backend == 'nengo_spinnaker':
-                    # print(transform.shape)
-                    if os.path.isfile('%s' % weights_file):
-                        transform = np.squeeze(np.load(weights_file)['weights']).T
-                        print('Loading weights: \n', transform)
-                        print('Loaded weights all zeros: ', np.allclose(transform, 0))
+                # load weights from file if they exist, otherwise use zeros
+                if weights_file == '~':
+                    weights_file = os.path.expanduser(weights_file)
+                print('Backend: ', backend)
+                print('Weights file: %s' % weights_file)
+                if not os.path.isfile('%s' % weights_file):
+                    print('No weights found, starting with zeros')
+                    transform = np.zeros((n_output, self.adapt_ens[ii].n_neurons))
 
-                    print(transform.T.shape)
-
-                    self.conn_learn = nengo.Connection(
-                        self.adapt_ens, output,
-                        function=lambda x: np.zeros(n_output),
-                        learning_rule_type=nengo.PES(pes_learning_rate),
-                        solver=DummySolver(transform.T))
+                # set up learning connections
+                if function is not None and (weights_file is None or weights_file is ''):
+                    print("Using mass estimation function")
+                    self.conn_learn.append(nengo.Connection(
+                                           self.adapt_ens[ii], output,
+                                           learning_rule_type=nengo.PES(pes_learning_rate),
+                                           function=function))
                 else:
-
-                    if os.path.isfile('%s' % weights_file):
-                        transform = np.load(weights_file)['weights']
-                        print('Loading weights: \n', transform)
-                        print('Loaded weights all zeros: ', np.allclose(transform, 0))
-
-                    self.conn_learn = nengo.Connection(
-                        self.adapt_ens.neurons, output,
-                        learning_rule_type=nengo.PES(pes_learning_rate),
-                        transform=transform)
-
-            # hook up the training signal to the learning rule
-            nengo.Connection(
-                # input_signals[n_input:], self.conn_learn.learning_rule,
-                training_signals, self.conn_learn.learning_rule,
-                synapse=0.01)
+                    if backend == 'nengo_spinnaker':
+                        if os.path.isfile('%s' % weights_file):
+                            if n_ensembles == 1:
+                                transform = np.squeeze(np.load(weights_file)['weights']).T
+                            else:
+                                transform = np.squeeze(np.load(weights_file)['weights'])[ii].T
+                            print('Loading weights: \n', transform)
+                            print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
 
 
+                        print(transform.T.shape)
 
-            if backend != 'nengo_spinnaker':
+                        self.conn_learn.append(nengo.Connection(
+                                               self.adapt_ens[ii], output,
+                                               function=lambda x: np.zeros(n_output),
+                                               learning_rule_type=nengo.PES(pes_learning_rate),
+                                               solver=DummySolver(transform.T)))
+                    else:
+
+                        if os.path.isfile('%s' % weights_file):
+                            if n_ensembles ==1:
+                                transform = np.load(weights_file)['weights']
+                            else:
+                                transform = np.load(weights_file)['weights'][ii]
+                            # remove third dimension if present
+                            if len(transform.shape) > 2:
+                                transform = np.squeeze(transform)
+                            print('Loading weights: \n', transform)
+                            print('Loaded weights all zeros: ', np.allclose(transform, 0))
+
+                        self.conn_learn.append(nengo.Connection(
+                                               self.adapt_ens[ii].neurons, output,
+                                               learning_rule_type=nengo.PES(pes_learning_rate),
+                                               transform=transform))
+
+                # hook up the training signal to the learning rule
+                nengo.Connection(
+                    # input_signals[n_input:], self.conn_learn.learning_rule,
+                    training_signals, self.conn_learn[ii].learning_rule,
+                    synapse=0.01)
+
+
+
+
+            # TODO: add parameter to use redis display as an option
+            if backend != 'nengo_spinnaker' and redis_comm:
                     # Send spikes via redis
                     def send_spikes(t, x):
                             v = np.where(x != 0)[0]
@@ -193,7 +214,7 @@ class DynamicsAdaptation(Signal):
                             r.set('spikes', msg)
                     source_node = nengo.Node(send_spikes, size_in=25)
                     nengo.Connection(
-                        self.adapt_ens.neurons[:25],
+                        self.adapt_ens[0].neurons[:25],
                         source_node,
                         synapse=None)
 
@@ -220,6 +241,9 @@ class DynamicsAdaptation(Signal):
             except ImportError:
                 raise Exception('Nengo SpiNNaker not installed, ' +
                                 'cannot use this backend.')
+            # TODO: parameterize this
+            # turn on debug printing
+            # logging.basicConfig(level=logging.DEBUG)
             self.sim = nengo_spinnaker.Simulator(self.nengo_model)
             # start running the spinnaker model
             self.sim.async_run_forever()
@@ -287,7 +311,7 @@ class DynamicsAdaptation(Signal):
         # If no session is specified, check if there is already one created, if not
         # then save the run to 'session0'
         else:
-            prev_sessions = glob.glob(test_name + '/session???')
+            prev_sessions = glob.glob(test_name + '/session*')
             run_cache = []
             if prev_sessions:
                 test_name = max(prev_sessions)
@@ -339,14 +363,15 @@ class DynamicsAdaptation(Signal):
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
                 weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
-                         self.sim, self.adapt_ens)]))
+                         self.sim, ens) for ens in self.adapt_ens]))
             # print('Spinnaker output: ', nengo_spinnaker.utils.learning.get_learnt_decoders(self.sim,
             #     self.adapt_ens[0]))
 
         else:
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
-                weights=self.sim.signals[self.sim.model.sig[self.conn_learn]['weights']])
+                weights=([self.sim.signals[self.sim.model.sig[conn]['weights']]
+                         for conn in self.conn_learn]))
 
     def load_weights(self, **kwargs):
         """ Loads the most recently saved weights unless otherwise specified
