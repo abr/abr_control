@@ -74,7 +74,7 @@ class DynamicsAdaptation(Signal):
                  seed=None, pes_learning_rate=1e-6, intercepts=(0.5, 1.0),
                  weights_file=None, backend='nengo', session=None,
                  run=None, test_name='test', autoload=False,
-                 function=None, redis_comm=False, **kwargs):
+                 function=None, redis_comm=False, encoders=None, **kwargs):
 
         self.input_signal = np.zeros(n_input)
         self.training_signal = np.zeros(n_output)
@@ -116,29 +116,37 @@ class DynamicsAdaptation(Signal):
             intercepts = AreaIntercepts(
                 dimensions=n_input,
                 base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
+            #intercepts = nengo.dists.Uniform(intercepts[0], intercepts[1])
 
             self.adapt_ens = []
             self.conn_learn = []
 
             for ii in range(n_ensembles):
                 self.adapt_ens.append(nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
-                                           intercepts=intercepts, **kwargs))
+                                           intercepts=intercepts,#neuron_type=nengo.RectifiedLinear(),
+                                           #max_rates=nengo.dists.Uniform(0, 1), **kwargs))
+                                           radius=np.sqrt(n_input), **kwargs))
+                                           #**kwargs))
                 print('*** ENSEMBLE %i ***' % ii)
 
                 try:
                     # if the NengoLib is installed, use it
                     # to optimize encoder placement
                     import nengolib
-                    self.adapt_ens[ii].encoders = (
-                        nengolib.stats.ScatteredHypersphere(surface=True))
-                    print('NengoLib used to optimize encoders placement')
+                    if encoders is None:
+                        self.adapt_ens[ii].encoders = (
+                            nengolib.stats.ScatteredHypersphere(surface=True))
+                        print('NengoLib used to optimize encoders placement')
+                    else:
+                        self.adapt_ens[ii].encoders = encoders
+                        print('Using user defined encoder values')
                 except ImportError:
                     print('Nengo lib not installed, encoder ' +
                           'placement will be sub-optimal.')
 
                 # hook up input signal to adaptive population to provide context
                 # nengo.Connection(input_signals[:n_input], self.adapt_ens, synapse=0.005)
-                nengo.Connection(input_signals, self.adapt_ens[ii], synapse=0.005)
+                nengo.Connection(input_signals, self.adapt_ens[ii]) #, synapse=0.005)
 
                 # load weights from file if they exist, otherwise use zeros
                 if weights_file == '~':
@@ -212,11 +220,16 @@ class DynamicsAdaptation(Signal):
                             else:
                                 msg = ''
                             r.set('spikes', msg)
-                    source_node = nengo.Node(send_spikes, size_in=25)
+                            self.activity = x
+                    source_node = nengo.Node(send_spikes, size_in=n_neurons)
                     nengo.Connection(
-                        self.adapt_ens[0].neurons[:25],
+                        self.adapt_ens[0].neurons[:n_neurons],
                         source_node,
                         synapse=None)
+            def save_x(t, x):
+                self.x = x
+            x_node = nengo.Node(save_x, size_in=n_input)
+            nengo.Connection(self.adapt_ens[0], x_node, synapse=.01)
 
 
 
@@ -357,7 +370,7 @@ class DynamicsAdaptation(Signal):
         print('saving weights as run%i'% (run_num+1))
         if self.backend == 'nengo_spinnaker':
             import nengo_spinnaker.utils.learning
-            self.sim.close()
+            #self.sim.close()
             #time.sleep(5)
             print('save location: ', test_name + '/run%i' % (run_num +1))
             np.savez_compressed(
