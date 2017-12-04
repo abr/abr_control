@@ -90,6 +90,15 @@ class DynamicsAdaptation(Signal):
             weights_file = ''
 
         self.nengo_model = nengo.Network(seed=seed)
+
+        small_tau = 0.005
+        if backend == 'nengo_spinnaker':
+            tau = 0.015  # TODO: this could be more exact
+            # i.e. 0.005 * control_loop_time / 0.001 ... i think
+        # NOTE: SHOULD THE FILTER ON THE ERROR SIGNAL BE small_tau NOT big_tau?
+        big_tau = small_tau * 2  # filter on the training signal
+        self.nengo_model.config[nengo.Connection].synapse = small_tau
+
         with self.nengo_model:
 
             def input_signals_func(t):
@@ -205,7 +214,7 @@ class DynamicsAdaptation(Signal):
                 nengo.Connection(
                     # input_signals[n_input:], self.conn_learn.learning_rule,
                     training_signals, self.conn_learn[ii].learning_rule,
-                    synapse=0.01)
+                    synapse=big_tau)
 
 
 
@@ -229,7 +238,7 @@ class DynamicsAdaptation(Signal):
             def save_x(t, x):
                 self.x = x
             x_node = nengo.Node(save_x, size_in=n_input)
-            nengo.Connection(self.adapt_ens[0], x_node, synapse=.01)
+            nengo.Connection(self.adapt_ens[0], x_node, synapse=big_tau)
 
 
 
