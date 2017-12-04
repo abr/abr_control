@@ -71,7 +71,7 @@ class OSC(controller.Controller):
     def generate(self, q, dq,
                  target_pos, target_vel=np.zeros(3),
                  target_quat=None, target_w=np.zeros(3),
-                 ref_frame='EE', offset=[0, 0, 0]):
+                 ref_frame='EE', offset=[0, 0, 0], ee_adapt=None):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -92,7 +92,12 @@ class OSC(controller.Controller):
             the point being controlled, default is the end-effector.
         offset : list, optional (Default: [0, 0, 0])
             point of interest inside the frame of reference [meters]
+        ee_adapt: float array, Optional, (Default: None)
+            if doing adaptation in task space, pass change in target in
         """
+
+        self.ee_adapt = ee_adapt
+
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
 
@@ -146,8 +151,14 @@ class OSC(controller.Controller):
             dJ = dJ[:3]
             u_task -= np.dot(dJ, dq)
 
-        self.int_err += x_tilde
-        u_task += -self.ki * self.int_err
+        if self.ee_adapt != None:
+            self.ee_adapt += x_tilde
+            u_task += -self.ki * self.ee_adapt
+
+        elif self.int_err != [0,0,0]:
+            self.int_err += x_tilde
+            u_task += -self.ki * self.int_err
+
 
         # incorporate task space inertia matrix
         u = np.dot(J.T, np.dot(Mx, u_task))
