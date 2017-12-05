@@ -153,7 +153,7 @@ class OSC(controller.Controller):
 
         if self.ee_adapt != None:
             self.ee_adapt += x_tilde
-            u_task += -self.ki * self.ee_adapt
+            u_task += self.ki * self.ee_adapt
 
         elif self.int_err != [0,0,0]:
             self.int_err += x_tilde
