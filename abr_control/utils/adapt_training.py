@@ -23,7 +23,7 @@ class Training:
                  autoload=False, time_limit=30, target_type='single',
                  offset=None, avoid_limits=False, additional_mass=0,
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
-                 joint_adaptation=False):
+                 joint_adaptation=False, simulate_wear=False):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -112,14 +112,6 @@ class Training:
             True if doing neural adaptation in joint space
         """
 
-        if ee_adaptation and joint_adaptation:
-            print('ERROR: cannot use both joint and ee adaptation at the same'
-                  + ' time...')
-            print('* * * Setting both ee and joint adaptation to False, Please check'
-                  + ' your settings * * *')
-            ee_adaptation = False
-            joint_adaptation = False
-
         # Set the target based on the source and type of test
         PRESET_TARGET = np.array([[.57, 0.03, .87]])
 
@@ -203,11 +195,14 @@ class Training:
         else:
             adapt_backend = backend
         # create our adaptive controller
-        if ee_adaptation:
+        if ee_adaptation and joint_adaptation:
+            n_input = 4
+            n_output = 3
+        elif ee_adaptation and not joint_adaptation:
             n_input = 3
             n_output = 3
             pes_learning_rate /= ki
-        elif joint_adaptation:
+        elif joint_adaptation and not ee_adaptation:
             n_input = 4
             n_output = 2
         else:
@@ -268,14 +263,15 @@ class Training:
         if integrate_err:
             if run_num < 1:
                 run_num = 0
-                int_err_prev = [0,0,0]
+                int_err_prev = [0, 0, 0]
             else:
                 int_err_prev = np.squeeze(np.load(location + '/run%i_data/int_err%i.npz'
                                        % (run_num-1, run_num-1))['int_err'])[-1]
         else:
-            int_err_prev = [0, 0, 0]
+            int_err_prev = None
 
         # instantiate operational space controller
+        print('using int err of: ', int_err_prev)
         ctrlr = OSC(robot_config, kp=kp, kv=kv, ki=ki, vmax=1,
                     null_control=True, int_err=int_err_prev)
 
@@ -324,6 +320,9 @@ class Training:
         input_signal = []
         if integrate_err:
             int_err_track = []
+        if simulate_wear:
+            self.F_prev = np.array([0, 0])
+            friction_track = []
 
         try:
             interface.init_force_mode()
@@ -348,9 +347,9 @@ class Training:
                 # last three terms used as started point for target EE velocity
                 target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
-                if target_type == 'figure8':
-                    # calculate euclidean distance to target
-                    error = np.sqrt(np.sum((ee_xyz - target[:3])**2))
+                # if target_type == 'figure8':
+                #     # calculate euclidean distance to target
+                #     error = np.sqrt(np.sum((ee_xyz - target[:3])**2))
 
 
                 # M A I N   C O N T R O L   L O O P
@@ -385,7 +384,23 @@ class Training:
                     # calculate end-effector position
                     ee_xyz = robot_config.Tx('EE', q=q, x= OFFSET)
 
-                    if ee_adaptation:
+                    if ee_adaptation and joint_adaptation:
+                        # adaptive control in state space
+                        training_signal = TARGET_XYZ - ee_xyz
+                        # calculate the adaptive control signal
+                        adapt_input = np.array([robot_config.scaledown('q',q)[1],
+                                                   robot_config.scaledown('q',q)[2],
+                                                   #robot_config.scaledown('q',q)[2],
+                                                   # robot_config.scaledown('q',q)[3],
+                                                   # robot_config.scaledown('q',q)[4],
+                                                   robot_config.scaledown('dq',dq)[1],
+                                                   robot_config.scaledown('dq',dq)[2]])#,
+                                                   #robot_config.scaledown('dq',dq)[2]])
+                        u_adapt = adapt.generate(input_signal=adapt_input,
+                                                 training_signal=training_signal)
+                        u_adapt /= decimal_scale
+
+                    elif ee_adaptation and not joint_adaptation:
                         # adaptive control in state space
                         training_signal = TARGET_XYZ - ee_xyz
                         # scale inputs
@@ -393,6 +408,7 @@ class Training:
                                                 (ee_xyz[1] - y_avg) / y_scale,
                                                 (ee_xyz[2] - z_avg) / z_scale])
 
+                        #adapt_input *= 0
                         u_adapt = adapt.generate(input_signal=adapt_input,
                                                  training_signal=training_signal)
                         u_adapt /= decimal_scale
@@ -417,7 +433,7 @@ class Training:
                     else:
                         u_base[0] *= 2.0
 
-                    if joint_adaptation:
+                    if joint_adaptation and not ee_adaptation:
                         training_signal = np.array([ctrlr.training_signal[1],
                                                     ctrlr.training_signal[2]]) #,
                                                     # ctrlr.training_signal[2]])#,
@@ -453,6 +469,12 @@ class Training:
                     if avoid_limits:
                         u += avoid.generate(q)
 
+                    if simulate_wear:
+                        # u *= np.array([1, 0.65, 0.8, 1, 1, 1])
+                        u_friction = self.friction(dq[1:3], u[1:3])
+                        u += [0, u_friction[0], u_friction[1], 0, 0, 0]
+                        friction_track.append(np.copy(u_friction))
+
                     # send forces
                     interface.send_forces(np.array(u, dtype='float32'))
 
@@ -476,7 +498,7 @@ class Training:
                         #print('error: ', error)
                         print('dt: ', end)
                         print('adapt: ', u_adapt)
-                        #print('int_err: ', ctrlr.int_err*ki)
+                        print('int_err/ki: ', ctrlr.int_err)
                         #print('q: ', q)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
@@ -520,6 +542,8 @@ class Training:
             dq_track = np.array(dq_track)
             if integrate_err:
                 int_err_track = np.array(int_err_track)
+            if simulate_wear:
+                friction_track = np.array(friction_track)
 
             if not os.path.exists(location + '/run%i_data' % (run_num)):
                 os.makedirs(location + '/run%i_data' % (run_num))
@@ -547,6 +571,9 @@ class Training:
             if integrate_err:
                 np.savez_compressed(location + '/run%i_data/int_err%i' % (run_num, run_num),
                                     int_err=[int_err_track])
+            if simulate_wear:
+                np.savez_compressed(location + '/run%i_data/friction%i' % (run_num, run_num),
+                                    friction=[friction_track])
     def get_target_from_camera(self):
         # read from server
         camera_xyz = self.redis_server.get('target_xyz').decode('ascii')
@@ -587,3 +614,36 @@ class Training:
         #g_avg = np.mean(np.array(g_avg), axis=0)[[1, 2]]
         g_avg = np.mean(np.array(g_avg), axis=0)[:3]
         return -g_avg*self.decimal_scale
+
+    def friction(self, vel, u_base):
+        v = np.copy(vel)
+        u_in = np.copy(u_base)
+        sgn_v = np.sign(v)
+        # sgn_v = np.zeros(len(v))
+        # for ii in range(0, len(v)):
+        #     if abs(v[ii]) < 0.1:
+        #         sgn_v[ii] = np.sign(u_in[ii])
+        #     else:
+        #         sgn_v[ii] = np.sign(v[ii])
+        Fn = 2
+        uk = 0.42
+        us = 0.74
+        vs = 0.05
+        Fc = -uk * Fn * sgn_v
+        Fs = -us * Fn * sgn_v
+        Fv = 1.2
+        Ff = Fc + (Fs-Fc) * np.exp(-sgn_v * v/vs) - Fv * v
+        for ii in range(0,len(Ff)):
+            if np.sign(Ff[ii]) == np.sign(u_in[ii]):
+                Ff[ii] *= -1
+            if u_in[ii] > 0:
+                if Ff[ii] + u_in[ii] < 0:
+                    Ff[ii] = -u_in[ii]
+            elif u_in[ii] < 0:
+                if Ff[ii] + u_in[ii] > 0:
+                    Ff[ii] = -u_in[ii]
+            else:
+                Ff[ii] = 0
+        # F_return = 0.9 * self.F_prev + 0.1 * Ff
+        # self.F_prev = Ff
+        return(Ff)

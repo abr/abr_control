@@ -45,7 +45,7 @@ class OSC(controller.Controller):
     """
     def __init__(self, robot_config, kp=1, kv=None, ki=0, vmax=0.5,
                  null_control=True, use_g=True, use_C=False, use_dJ=False,
-                 int_err=[0,0,0]):
+                 int_err=None):
 
         super(OSC, self).__init__(robot_config)
 
@@ -155,7 +155,9 @@ class OSC(controller.Controller):
             self.ee_adapt += x_tilde
             u_task += self.ki * self.ee_adapt
 
-        elif self.int_err != [0,0,0]:
+        # elif np.any(val in np.array(self.int_err) != 0 for val in
+        #             np.array(self.int_err)):
+        elif self.int_err is not None:
             self.int_err += x_tilde
             u_task += -self.ki * self.int_err
 
