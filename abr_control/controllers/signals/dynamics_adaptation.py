@@ -93,10 +93,10 @@ class DynamicsAdaptation(Signal):
 
         small_tau = 0.005
         if backend == 'nengo_spinnaker':
-            tau = 0.015  # TODO: this could be more exact
+            small_tau = 0.015  # TODO: this could be more exact
             # i.e. 0.005 * control_loop_time / 0.001 ... i think
         # NOTE: SHOULD THE FILTER ON THE ERROR SIGNAL BE small_tau NOT big_tau?
-        big_tau = small_tau * 2  # filter on the training signal
+        big_tau = small_tau #* 2  # filter on the training signal
         self.nengo_model.config[nengo.Connection].synapse = small_tau
 
         with self.nengo_model:
