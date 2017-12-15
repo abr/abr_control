@@ -40,6 +40,8 @@ interface.set_target(target_xyz)
 ee_path = []
 target_path = []
 
+
+print('Simulation starting...')
 try:
     while 1:
         # get arm feedback
@@ -67,3 +69,5 @@ try:
 finally:
     # stop and reset the simulation
     interface.disconnect()
+
+    print('Simulation terminated...')

@@ -9,11 +9,13 @@ import traceback
 # from abr_control.arms import ur5 as arm
 from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onelink as arm
-from abr_control.controllers import OSC, Sliding
+from abr_control.controllers import Sliding
 from abr_control.interfaces import VREP
 
-# initialize our robot config for the ur5
-robot_config = arm.Config(use_cython=True, hand_attached=True)
+# initialize our robot config
+robot_config = arm.Config(use_cython=True)
+# if using the Jaco 2 arm with the hand attached, use the following instead:
+# robot_config = arm.Config(use_cython=True, hand_attached=False)
 
 # instantiate controller
 ctrlr = Sliding(robot_config, kd=16.0, lamb=3.00)
@@ -27,6 +29,7 @@ ee_track = []
 target_track = []
 
 
+print('Simulation starting...')
 try:
     # get the end-effector's initial position
     feedback = interface.get_feedback()
@@ -61,6 +64,8 @@ except:
 finally:
     # stop and reset the VREP simulation
     interface.disconnect()
+
+    print('Simulation terminated...')
 
     ee_track = np.array(ee_track)
     target_track = np.array(target_track)
