@@ -152,11 +152,9 @@ class OSC(controller.Controller):
             u_task -= np.dot(dJ, dq)
 
         if self.ee_adapt != None:
-            self.ee_adapt += x_tilde
+            #self.ee_adapt += x_tilde
             u_task += self.ki * self.ee_adapt
 
-        # elif np.any(val in np.array(self.int_err) != 0 for val in
-        #             np.array(self.int_err)):
         elif self.int_err is not None:
             self.int_err += x_tilde
             u_task += -self.ki * self.int_err

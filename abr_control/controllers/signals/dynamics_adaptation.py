@@ -74,7 +74,8 @@ class DynamicsAdaptation(Signal):
                  seed=None, pes_learning_rate=1e-6, intercepts=(0.5, 1.0),
                  weights_file=None, backend='nengo', session=None,
                  run=None, test_name='test', autoload=False,
-                 function=None, redis_comm=False, encoders=None, **kwargs):
+                 function=None, redis_comm=False, encoders=None,
+                 probe_weights=False, **kwargs):
 
         self.input_signal = np.zeros(n_input)
         self.training_signal = np.zeros(n_output)
@@ -122,9 +123,12 @@ class DynamicsAdaptation(Signal):
 
             # specify intercepts such that neurons are
             # active throughout the whole range specified
+            # intercepts = AreaIntercepts(
+            #     dimensions=n_input,
+            #     base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
             intercepts = AreaIntercepts(
                 dimensions=n_input,
-                base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
+                base=Triangular(-0.9, -0.9, 0.0))
             #intercepts = nengo.dists.Uniform(intercepts[0], intercepts[1])
 
             self.adapt_ens = []
@@ -239,6 +243,9 @@ class DynamicsAdaptation(Signal):
                 self.x = x
             x_node = nengo.Node(save_x, size_in=n_input)
             nengo.Connection(self.adapt_ens[0], x_node, synapse=big_tau)
+
+            if backend == 'nengo' and probe_weights:
+                self.nengo_model.weights_probe = nengo.Probe(self.conn_learn[0], 'weights', synapse=None)
 
 
 
@@ -452,3 +459,24 @@ class AreaIntercepts(nengo.dists.Distribution):
         for i in range(len(s)):
             s[i] = self.transform(s[i])
         return s
+
+class Triangular(nengo.dists.Distribution):
+    left = nengo.params.NumberParam('dimensions')
+    right = nengo.params.NumberParam('dimensions')
+    mode = nengo.params.NumberParam('dimensions')
+
+    def __init__(self, left, mode, right):
+        super(Triangular, self).__init__()
+        self.left = left
+        self.right = right
+        self.mode = mode
+
+    def __repr__(self):
+        return ("Triangular(left=%r, mode=%r, right=%r)" %
+                (self.left, self.mode, self.right))
+
+    def sample(self, n, d=None, rng=np.random):
+        if d is None:
+            return rng.triangular(self.left, self.mode, self.right, size=n)
+        else:
+            return rng.triangular(self.left, self.mode, self.right, size=(n, d))
