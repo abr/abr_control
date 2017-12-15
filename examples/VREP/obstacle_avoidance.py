@@ -29,7 +29,6 @@ target_track = []
 obstacle_track = []
 
 
-print('Simulation starting...')
 try:
     num_targets = 0
     back_to_start = False
@@ -45,6 +44,13 @@ try:
     moving_obstacle = True
     obstacle_xyz = np.array([0.09596, -0.3661, 0.64204])
     interface.set_xyz(name='obstacle', xyz=obstacle_xyz)
+
+    # run ctrl.generate once to load all functions
+    zeros = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
+    robot_config.orientation('EE', q=zeros)
+
+    print('\nSimulation starting...\n')
 
     count = 0.0
     obs_count = 0.0
