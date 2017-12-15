@@ -14,6 +14,9 @@ from abr_control.interfaces import VREP
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
+# if using the Jaco 2 arm with the hand attached, use the following instead:
+# robot_config = arm.Config(use_cython=True, hand_attached=True)
+
 # instantiate the controller
 ctrlr = Floating(robot_config)
 
@@ -28,6 +31,13 @@ ee_track = []
 try:
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', q=feedback['q'])
+
+    # run ctrl.generate once to load all functions
+    zeros = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros, dq=zeros)
+    robot_config.orientation('EE', q=zeros)
+
+    print('\nSimulation starting...\n')
     while 1:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
@@ -49,6 +59,8 @@ except:
 finally:
     # close the connection to the arm
     interface.disconnect()
+
+    print('Simulation terminated...')
 
     ee_track = np.array(ee_track)
 

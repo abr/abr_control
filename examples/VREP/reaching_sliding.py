@@ -6,8 +6,8 @@ trajectory of the end-effector is plotted in 3D.
 import numpy as np
 import traceback
 
-# from abr_control.arms import ur5 as arm
-from abr_control.arms import jaco2 as arm
+from abr_control.arms import ur5 as arm
+# from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onelink as arm
 from abr_control.controllers import Sliding
 from abr_control.interfaces import VREP
@@ -18,7 +18,8 @@ robot_config = arm.Config(use_cython=True)
 # robot_config = arm.Config(use_cython=True, hand_attached=False)
 
 # instantiate controller
-ctrlr = Sliding(robot_config, kd=16.0, lamb=3.00)
+# NOTE: These values are non-optimal
+ctrlr = Sliding(robot_config, kd=10.0, lamb=30.00)
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.001)
@@ -29,7 +30,6 @@ ee_track = []
 target_track = []
 
 
-print('Simulation starting...')
 try:
     # get the end-effector's initial position
     feedback = interface.get_feedback()
@@ -38,7 +38,13 @@ try:
     target_xyz = start + np.array([0.2, -0.2, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
 
+    # run ctrl.generate once to load all functions
+    zeros = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
+    robot_config.orientation('EE', q=zeros)
+
     count = 0.0
+    print('\nSimulation starting...\n')
     while count < 1500:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()

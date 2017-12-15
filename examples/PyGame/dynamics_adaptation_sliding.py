@@ -13,9 +13,6 @@ from abr_control.interfaces import PyGame
 from abr_control.controllers import Sliding, signals
 
 
-print('\nClick to move the target.')
-print('\nPress space to turn on adaptation.\n\n')
-
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
 # get Jacobians to each link for calculating perturbation
@@ -61,8 +58,15 @@ ee_path = []
 target_path = []
 
 
-print('Simulation starting...')
 try:
+    # run ctrl.generate once to load all functions
+    zeros = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
+    robot_config.orientation('EE', q=zeros)
+
+    print('\nSimulation starting...\n')
+    print('\nClick to move the target.')
+    print('\nPress space to turn on adaptation.\n\n')
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()

@@ -15,7 +15,7 @@ from abr_control.interfaces import VREP
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
 # if using the Jaco 2 arm with the hand attached, use the following instead:
-# robot_config = arm.Config(use_cython=True, hand_attached=False)
+# robot_config = arm.Config(use_cython=True, hand_attached=True)
 
 # instantiate controller
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)
@@ -29,14 +29,20 @@ ee_track = []
 target_track = []
 
 
-print('Simulation starting...')
 try:
     # get the end-effector's initial position
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', feedback['q'])
     # make the target offset from that start position
-    target_xyz = start + np.array([0.2, -0.2, 0.0])
+    target_xyz = start + np.array([0.2, -0.2, 0.01])
     interface.set_xyz(name='target', xyz=target_xyz)
+
+    # run ctrl.generate once to load all functions
+    zeros = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
+    robot_config.orientation('EE', q=zeros)
+
+    print('\nSimulation starting...\n')
 
     count = 0.0
     while count < 1500:

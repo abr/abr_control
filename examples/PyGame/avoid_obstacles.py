@@ -5,8 +5,8 @@ by clicking on the background.
 """
 import numpy as np
 
-# from abr_control.arms import threelink as arm
-from abr_control.arms import twolink as arm
+from abr_control.arms import threelink as arm
+# from abr_control.arms import twolink as arm
 from abr_control.interfaces import PyGame
 from abr_control.controllers import OSC, signals
 
@@ -40,9 +40,14 @@ ee_path = []
 target_path = []
 
 
-print('Simulation starting...')
-print('\nClick to move the obstacle.\n')
 try:
+    # run ctrl.generate once to load all functions
+    zeros = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
+    robot_config.orientation('EE', q=zeros)
+
+    print('\nSimulation starting...\n')
+    print('\nClick to move the obstacle.\n')
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
