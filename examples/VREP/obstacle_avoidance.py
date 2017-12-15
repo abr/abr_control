@@ -10,8 +10,10 @@ from abr_control.arms import ur5 as arm
 from abr_control.controllers import OSC, signals
 from abr_control.interfaces import VREP
 
-# initialize our robot config for the ur5
+# initialize our robot config
 robot_config = arm.Config(use_cython=True)
+# if using the Jaco 2 arm with the hand attached, use the following instead:
+# robot_config = arm.Config(use_cython=True, hand_attached=False)
 
 # instantiate the REACH controller with obstacle avoidance
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)
@@ -27,6 +29,7 @@ target_track = []
 obstacle_track = []
 
 
+print('Simulation starting...')
 try:
     num_targets = 0
     back_to_start = False
@@ -83,6 +86,8 @@ try:
 finally:
     # stop and reset the VREP simulation
     interface.disconnect()
+
+    print('Simulation terminated...')
 
     ee_track = np.array(ee_track)
     target_track = np.array(target_track)

@@ -35,6 +35,8 @@ interface.connect()
 ee_path = []
 target_path = []
 
+
+print('Simulation starting...')
 try:
     count = 0
     while 1:
@@ -74,3 +76,5 @@ try:
 finally:
     # stop and reset the simulation
     interface.disconnect()
+
+    print('Simulation terminated...')
