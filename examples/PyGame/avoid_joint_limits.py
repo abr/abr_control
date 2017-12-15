@@ -46,8 +46,13 @@ ee_path = []
 target_path = []
 
 
-print('Simulation starting...')
 try:
+    # run ctrl.generate once to load all functions
+    zeros = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
+    robot_config.orientation('EE', q=zeros)
+
+    print('\nSimulation starting...\n')
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()

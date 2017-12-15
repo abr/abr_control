@@ -6,8 +6,8 @@ The simulation simulates 1.5s and then plots the results.
 import numpy as np
 import traceback
 
-from abr_control.arms import ur5 as arm
-# from abr_control.arms import jaco2 as arm
+# from abr_control.arms import ur5 as arm
+from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onelink as arm
 from abr_control.controllers import Joint
 from abr_control.interfaces import VREP
@@ -42,8 +42,15 @@ interface.send_target_angles(target_pos, joint_handles)
 q_track = []
 
 
-print('Simulation starting...')
 try:
+    # run ctrl.generate once to load all functions
+    zeros = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_pos)
+    robot_config.Tx('EE', q=zeros)
+    robot_config.orientation('EE', q=zeros)
+
+    print('\nSimulation starting...\n')
+
     count = 0
     while count < 1500:
         # get joint angle and velocity feedback
