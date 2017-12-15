@@ -11,6 +11,9 @@ from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onelink as arm
 from abr_control.controllers import OSC, signals
 from abr_control.interfaces import VREP
+
+#backend='nengo'
+backend='nengo_spinnaker'
 # initialize our robot config for the jaco2
 robot_config = arm.Config(use_cython=True, hand_attached=True)
 
@@ -21,8 +24,13 @@ J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
 # instantiate controller
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)
 
-# 1 sec of simulation takes 5 minutes 30 seconds
-time_scale = 1/330
+if backend == 'nengo_spinnaker'
+    # 1 sec of simulation takes 5 minutes 30 seconds, adjust
+    # learning rate since spinnaker runs in real time
+    # spinnaker_run_time/sim_run_time = (1sec/sec)/(330sec/sec)
+    time_scale = 1/330
+else:
+    time_scale = 1
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
