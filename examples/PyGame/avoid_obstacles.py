@@ -5,8 +5,8 @@ by clicking on the background.
 """
 import numpy as np
 
-from abr_control.arms import threelink as arm
-# from abr_control.arms import twolink as arm
+# from abr_control.arms import threelink as arm
+from abr_control.arms import twolink as arm
 from abr_control.interfaces import PyGame
 from abr_control.controllers import OSC, signals
 
@@ -39,6 +39,8 @@ interface.set_target(target_xyz)
 ee_path = []
 target_path = []
 
+
+print('Simulation starting...')
 print('\nClick to move the obstacle.\n')
 try:
     while 1:
@@ -77,3 +79,5 @@ try:
 finally:
     # stop and reset the simulation
     interface.disconnect()
+
+    print('Simulation terminated...')

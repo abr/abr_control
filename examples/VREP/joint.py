@@ -12,8 +12,10 @@ from abr_control.arms import ur5 as arm
 from abr_control.controllers import Joint
 from abr_control.interfaces import VREP
 
-# initialize our robot config for neural controllers
+# initialize our robot config
 robot_config = arm.Config(use_cython=True)
+# if using the Jaco 2 arm with the hand attached, use the following instead:
+# robot_config = arm.Config(use_cython=True, hand_attached=False)
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = Joint(robot_config, kp=50)
@@ -40,6 +42,7 @@ interface.send_target_angles(target_pos, joint_handles)
 q_track = []
 
 
+print('Simulation starting...')
 try:
     count = 0
     while count < 1500:
@@ -63,6 +66,8 @@ except:
 finally:
     # close the connection to the arm
     interface.disconnect()
+
+    print('Simulation terminated...')
 
     q_track = np.array(q_track)
     if q_track.shape[0] > 0:
