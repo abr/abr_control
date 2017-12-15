@@ -23,7 +23,8 @@ class Training:
                  autoload=False, time_limit=30, target_type='single',
                  offset=None, avoid_limits=False, additional_mass=0,
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
-                 joint_adaptation=False, simulate_wear=False):
+                 joint_adaptation=False, simulate_wear=False,
+                 probe_weights=False):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -237,7 +238,8 @@ class Training:
                 run=run,
                 test_name=test_name,
                 autoload=autoload,
-                function=self.gravity_estimate)
+                function=self.gravity_estimate,
+                probe_weights=probe_weights)
 
         else:
             adapt = signals.DynamicsAdaptation(
@@ -246,13 +248,14 @@ class Training:
                 n_neurons=n_neurons,
                 n_ensembles=n_ensembles,
                 pes_learning_rate=pes_learning_rate,
-                intercepts=(-0.1, 1.0),
+                intercepts=(-.5, -.2),
                 weights_file=weights_file,
                 backend=adapt_backend,
                 session=session,
                 run=run,
                 test_name=test_name,
-                autoload=autoload)#,
+                autoload=autoload,
+                probe_weights=probe_weights)#,
                 #encoders=encoders)
 
         # get save location of saved data
@@ -327,9 +330,6 @@ class Training:
         try:
             interface.init_force_mode()
             for ii in range(0,len(PRESET_TARGET)):
-                # get the end-effector's initial position
-                feedback = interface.get_feedback()
-
                 # counter for print statements
                 count = 0
 
@@ -340,7 +340,7 @@ class Training:
                 feedback = interface.get_feedback()
                 q = feedback['q']
                 dq = feedback['dq']
-
+                dq[abs(dq) < 0.05] = 0
                 # calculate end-effector position
                 ee_xyz = robot_config.Tx('EE', q=q, x= OFFSET)
 
@@ -380,6 +380,7 @@ class Training:
                     feedback = interface.get_feedback()
                     q = feedback['q']
                     dq = feedback['dq']
+                    dq[abs(dq) < 0.05] = 0
 
                     # calculate end-effector position
                     ee_xyz = robot_config.Tx('EE', q=q, x= OFFSET)
@@ -526,7 +527,7 @@ class Training:
 
             print('**** RUN STATS ****')
             print('Average loop speed: ', sum(time_track)/len(time_track))
-            print('Total Error*time: ', sum(error_track))
+            print('AVG Error/Step: ', sum(error_track)/len(error_track))
             print('Run number ', run_num)
             print('Saving tracked data to ', location + '/run%i_data' % (run_num))
             print('*******************')
@@ -568,6 +569,9 @@ class Training:
                                 ee_xyz=[ee_track])
             np.savez_compressed(location + '/run%i_data/dq%i' % (run_num, run_num),
                                 dq=[dq_track])
+            if probe_weights:
+                np.savez_compressed(location + '/run%i_data/probe%i' % (run_num, run_num),
+                                    probe=[adapt.sim.data[adapt.nengo_model.weights_probe]])
             if integrate_err:
                 np.savez_compressed(location + '/run%i_data/int_err%i' % (run_num, run_num),
                                     int_err=[int_err_track])
@@ -619,31 +623,24 @@ class Training:
         v = np.copy(vel)
         u_in = np.copy(u_base)
         sgn_v = np.sign(v)
-        # sgn_v = np.zeros(len(v))
-        # for ii in range(0, len(v)):
-        #     if abs(v[ii]) < 0.1:
-        #         sgn_v[ii] = np.sign(u_in[ii])
-        #     else:
-        #         sgn_v[ii] = np.sign(v[ii])
-        Fn = 2
+        Fn = 4
         uk = 0.42
         us = 0.74
-        vs = 0.05
+        vs = 0.1
         Fc = -uk * Fn * sgn_v
         Fs = -us * Fn * sgn_v
         Fv = 1.2
         Ff = Fc + (Fs-Fc) * np.exp(-sgn_v * v/vs) - Fv * v
-        for ii in range(0,len(Ff)):
-            if np.sign(Ff[ii]) == np.sign(u_in[ii]):
-                Ff[ii] *= -1
-            if u_in[ii] > 0:
-                if Ff[ii] + u_in[ii] < 0:
-                    Ff[ii] = -u_in[ii]
-            elif u_in[ii] < 0:
-                if Ff[ii] + u_in[ii] > 0:
-                    Ff[ii] = -u_in[ii]
-            else:
-                Ff[ii] = 0
-        # F_return = 0.9 * self.F_prev + 0.1 * Ff
-        # self.F_prev = Ff
+        # for ii in range(0,len(Ff)):
+        #     if np.sign(Ff[ii]) == np.sign(u_in[ii]):
+        #         Ff[ii] *= -1
+        #     if u_in[ii] > 0:
+        #         if Ff[ii] + u_in[ii] < 0:
+        #             Ff[ii] = -u_in[ii]
+        #     elif u_in[ii] < 0:
+        #         if Ff[ii] + u_in[ii] > 0:
+        #             Ff[ii] = -u_in[ii]
+        #     else:
+        #         Ff[ii] = 0
+        Ff *= np.array([0.9, 1.1])
         return(Ff)
