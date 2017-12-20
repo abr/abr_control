@@ -92,13 +92,16 @@ class DynamicsAdaptation(Signal):
 
         self.nengo_model = nengo.Network(seed=seed)
 
-        small_tau = 0.005
-        if backend == 'nengo_spinnaker':
-            small_tau = 0.015  # TODO: this could be more exact
+        # small_tau = 0.005
+        small_tau = None
+        # if backend == 'nengo_spinnaker':
+        #     small_tau = 0.015  # TODO: this could be more exact
             # i.e. 0.005 * control_loop_time / 0.001 ... i think
         # NOTE: SHOULD THE FILTER ON THE ERROR SIGNAL BE small_tau NOT big_tau?
         big_tau = small_tau #* 2  # filter on the training signal
-        self.nengo_model.config[nengo.Connection].synapse = small_tau
+        #self.nengo_model.config[nengo.Connection].synapse = small_tau
+        self.nengo_model.config[nengo.Connection].synapse = None
+        self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIFRate()
 
         with self.nengo_model:
 
@@ -130,6 +133,8 @@ class DynamicsAdaptation(Signal):
                 dimensions=n_input,
                 base=Triangular(-0.9, -0.9, 0.0))
             #intercepts = nengo.dists.Uniform(intercepts[0], intercepts[1])
+            # import nengolib
+            # pre_tau=nengolib.synapses.DiscreteDelay(20)
 
             self.adapt_ens = []
             self.conn_learn = []
@@ -175,7 +180,8 @@ class DynamicsAdaptation(Signal):
                     print("Using mass estimation function")
                     self.conn_learn.append(nengo.Connection(
                                            self.adapt_ens[ii], output,
-                                           learning_rule_type=nengo.PES(pes_learning_rate),
+                                           learning_rule_type=nengo.PES(
+                                               pes_learning_rate), #,pre_tau=pre_tau),
                                            function=function))
                 else:
                     if backend == 'nengo_spinnaker':
@@ -225,20 +231,20 @@ class DynamicsAdaptation(Signal):
 
             # TODO: add parameter to use redis display as an option
             if backend != 'nengo_spinnaker' and redis_comm:
-                    # Send spikes via redis
-                    def send_spikes(t, x):
-                            v = np.where(x != 0)[0]
-                            if len(v) > 0:
-                                msg = struct.pack('%dI' % len(v), *v)
-                            else:
-                                msg = ''
-                            r.set('spikes', msg)
-                            self.activity = x
-                    source_node = nengo.Node(send_spikes, size_in=n_neurons)
-                    nengo.Connection(
-                        self.adapt_ens[0].neurons[:n_neurons],
-                        source_node,
-                        synapse=None)
+                # Send spikes via redis
+                def send_spikes(t, x):
+                        v = np.where(x != 0)[0]
+                        if len(v) > 0:
+                            msg = struct.pack('%dI' % len(v), *v)
+                        else:
+                            msg = ''
+                        r.set('spikes', msg)
+                        self.activity = x
+                source_node = nengo.Node(send_spikes, size_in=n_neurons)
+                nengo.Connection(
+                    self.adapt_ens[0].neurons[:n_neurons],
+                    source_node,
+                    synapse=None)
             def save_x(t, x):
                 self.x = x
             x_node = nengo.Node(save_x, size_in=n_input)
