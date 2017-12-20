@@ -24,7 +24,7 @@ class Training:
                  offset=None, avoid_limits=False, additional_mass=0,
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
                  joint_adaptation=False, simulate_wear=False,
-                 probe_weights=False):
+                 probe_weights=False,seed=None):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -239,7 +239,8 @@ class Training:
                 test_name=test_name,
                 autoload=autoload,
                 function=self.gravity_estimate,
-                probe_weights=probe_weights)
+                probe_weights=probe_weights,
+                seed=seed)
 
         else:
             adapt = signals.DynamicsAdaptation(
@@ -255,7 +256,8 @@ class Training:
                 run=run,
                 test_name=test_name,
                 autoload=autoload,
-                probe_weights=probe_weights)#,
+                probe_weights=probe_weights,
+                seed=seed)#,
                 #encoders=encoders)
 
         # get save location of saved data
@@ -471,8 +473,7 @@ class Training:
                         u += avoid.generate(q)
 
                     if simulate_wear:
-                        # u *= np.array([1, 0.65, 0.8, 1, 1, 1])
-                        u_friction = self.friction(dq[1:3], u[1:3])
+                        u_friction = self.friction(dq[1:3])
                         u += [0, u_friction[0], u_friction[1], 0, 0, 0]
                         friction_track.append(np.copy(u_friction))
 
@@ -499,7 +500,7 @@ class Training:
                         #print('error: ', error)
                         print('dt: ', end)
                         print('adapt: ', u_adapt)
-                        print('int_err/ki: ', ctrlr.int_err)
+                        #print('int_err/ki: ', ctrlr.int_err)
                         #print('q: ', q)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
@@ -619,9 +620,9 @@ class Training:
         g_avg = np.mean(np.array(g_avg), axis=0)[:3]
         return -g_avg*self.decimal_scale
 
-    def friction(self, vel, u_base):
+    def friction(self, vel):#, u_base):
         v = np.copy(vel)
-        u_in = np.copy(u_base)
+        #u_in = np.copy(u_base)
         sgn_v = np.sign(v)
         Fn = 4
         uk = 0.42
@@ -644,3 +645,9 @@ class Training:
         #         Ff[ii] = 0
         Ff *= np.array([0.9, 1.1])
         return(Ff)
+
+    # def friction(self, qs, dqs):
+    #     qs = np.copy(qs)
+    #     dqs = np.copy(dqs)
+    #     Ff = qs + 10*dqs
+    #     return(Ff)
