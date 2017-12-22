@@ -119,7 +119,8 @@ class Training:
         if target_type == 'multi':
             PRESET_TARGET = np.array([[.56, -.09, .95],
                                       [.12, .15, .80],
-                                      [.87, .30, .61],
+                                      #[.87, .30, .61], ~3cm out of reach
+                                      [.80, .26, .61],
                                       [.38, .46, .81],
                                       [.0, .0, 1.15]])
             time_limit /= len(PRESET_TARGET)
@@ -500,7 +501,7 @@ class Training:
                         #print('error: ', error)
                         print('dt: ', end)
                         print('adapt: ', u_adapt)
-                        #print('int_err/ki: ', ctrlr.int_err)
+                        print('int_err/ki: ', ctrlr.int_err)
                         #print('q: ', q)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
