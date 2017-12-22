@@ -134,7 +134,7 @@ class DynamicsAdaptation(Signal):
                 base=Triangular(-0.9, -0.9, 0.0))
             #intercepts = nengo.dists.Uniform(intercepts[0], intercepts[1])
             # import nengolib
-            # pre_tau=nengolib.synapses.DiscreteDelay(20)
+            # pre_synapse=nengolib.synapses.DiscreteDelay(1)
 
             self.adapt_ens = []
             self.conn_learn = []
@@ -181,7 +181,7 @@ class DynamicsAdaptation(Signal):
                     self.conn_learn.append(nengo.Connection(
                                            self.adapt_ens[ii], output,
                                            learning_rule_type=nengo.PES(
-                                               pes_learning_rate), #,pre_tau=pre_tau),
+                                               pes_learning_rate),#, pre_synapse=pre_synapse),
                                            function=function))
                 else:
                     if backend == 'nengo_spinnaker':
@@ -200,7 +200,8 @@ class DynamicsAdaptation(Signal):
                         self.conn_learn.append(nengo.Connection(
                                                self.adapt_ens[ii], output,
                                                function=lambda x: np.zeros(n_output),
-                                               learning_rule_type=nengo.PES(pes_learning_rate),
+                                               learning_rule_type=nengo.PES(
+                                                 pes_learning_rate),#, pre_synapse=pre_synapse),
                                                solver=DummySolver(transform.T)))
                     else:
 
@@ -217,7 +218,9 @@ class DynamicsAdaptation(Signal):
 
                         self.conn_learn.append(nengo.Connection(
                                                self.adapt_ens[ii].neurons, output,
-                                               learning_rule_type=nengo.PES(pes_learning_rate),
+                                               learning_rule_type=nengo.PES(
+                                                 pes_learning_rate),#,
+                                                 #pre_synapse=pre_synapse),
                                                transform=transform))
 
                 # hook up the training signal to the learning rule
