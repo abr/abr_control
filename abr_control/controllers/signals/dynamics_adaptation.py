@@ -17,6 +17,11 @@ try:
 except ImportError:
     raise Exception('Nengo module needs to be installed to ' +
                     'use adaptive dynamics.')
+try:
+    from nengo_extras.dists import Concatenate
+except ImportError:
+    raise Exception('Nengo_extras module needs to be installed to ' +
+                    'bootstrap learning.')
 
 
 class DynamicsAdaptation(Signal):
@@ -101,7 +106,10 @@ class DynamicsAdaptation(Signal):
         big_tau = small_tau #* 2  # filter on the training signal
         #self.nengo_model.config[nengo.Connection].synapse = small_tau
         self.nengo_model.config[nengo.Connection].synapse = None
-        self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIFRate()
+        if backend == 'nengo':
+            self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
+        elif backend == 'nengo_spinnaker':
+            self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
 
         with self.nengo_model:
 
@@ -143,7 +151,9 @@ class DynamicsAdaptation(Signal):
                 self.adapt_ens.append(nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
                                            intercepts=intercepts,#neuron_type=nengo.RectifiedLinear(),
                                            #max_rates=nengo.dists.Uniform(0, 1), **kwargs))
-                                           radius=np.sqrt(n_input), **kwargs))
+                                           radius=np.sqrt(n_input),
+                                           #n_eval_points=100000,
+                                           **kwargs))
                                            #**kwargs))
                 print('*** ENSEMBLE %i ***' % ii)
 
@@ -177,12 +187,15 @@ class DynamicsAdaptation(Signal):
 
                 # set up learning connections
                 if function is not None and (weights_file is None or weights_file is ''):
-                    print("Using mass estimation function")
+                    print("Using provided function to bootstrap learning")
+                    eval_points = Concatenate([nengo.dists.Choice([0]), nengo.dists.Choice([0]),
+                        nengo.dists.Uniform(-1, 1), nengo.dists.Uniform(-1, 1)])
                     self.conn_learn.append(nengo.Connection(
                                            self.adapt_ens[ii], output,
                                            learning_rule_type=nengo.PES(
                                                pes_learning_rate),#, pre_synapse=pre_synapse),
-                                           function=function))
+                                           function=function,
+                                           eval_points=eval_points))
                 else:
                     if backend == 'nengo_spinnaker':
                         if os.path.isfile('%s' % weights_file):
@@ -376,6 +389,11 @@ class DynamicsAdaptation(Signal):
                 run_num = -1
         else:
             # save as the run specified by the user
+            # if run >0:
+            #     # user provides the current run, then we want to load data from
+            #     # one run back
+            #     run_num = run-1
+            # else:
             run_num = run
 
         return [test_name, run_num]
@@ -406,6 +424,7 @@ class DynamicsAdaptation(Signal):
             #     self.adapt_ens[0]))
 
         else:
+            print('save location: ', test_name + '/run%i' % (run_num +1))
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
                 weights=([self.sim.signals[self.sim.model.sig[conn]['weights']]

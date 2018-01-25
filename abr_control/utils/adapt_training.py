@@ -24,7 +24,7 @@ class Training:
                  offset=None, avoid_limits=False, additional_mass=0,
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
                  joint_adaptation=False, simulate_wear=False,
-                 probe_weights=False,seed=None):
+                 probe_weights=False,seed=None, friction_bootstrap=False):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -111,7 +111,11 @@ class Training:
             True if doing neural adaptation in task space
         joint_adaptation: Boolean Optional (Default: False)
             True if doing neural adaptation in joint space
+        friction_bootstrap: Boolean Optional (Defaul: False)
+            True if want to pass an estimate of friction signal as starting
+            point for adaptive population
         """
+        print("RUN PASSED IN IS: ", run)
 
         # Set the target based on the source and type of test
         PRESET_TARGET = np.array([[.57, 0.03, .87]])
@@ -232,7 +236,7 @@ class Training:
                 n_neurons=n_neurons,
                 n_ensembles=n_ensembles,
                 pes_learning_rate=pes_learning_rate,
-                intercepts=(-0.1, 1.0),
+                intercepts=(-0.5, -0.2),
                 weights_file=weights_file,
                 backend=adapt_backend,
                 session=session,
@@ -243,6 +247,26 @@ class Training:
                 probe_weights=probe_weights,
                 seed=seed)
 
+        elif friction_bootstrap and weights_file is None:
+            # if the user knows about the friction, try and improve
+            # our starting point
+            print('Using friction estimate as starting point')
+            adapt = signals.DynamicsAdaptation(
+                n_input=n_input,
+                n_output=n_output,
+                n_neurons=n_neurons,
+                n_ensembles=n_ensembles,
+                pes_learning_rate=pes_learning_rate,
+                intercepts=(-0.5, -0.2),
+                weights_file=weights_file,
+                backend=adapt_backend,
+                session=session,
+                run=run,
+                test_name=test_name,
+                autoload=autoload,
+                function=lambda x: self.friction(x) * -1,
+                probe_weights=probe_weights,
+                seed=seed)
         else:
             adapt = signals.DynamicsAdaptation(
                 n_input=n_input,
@@ -498,10 +522,10 @@ class Training:
                         int_err_track.append(np.copy(ctrlr.int_err))
 
                     if count % 1000 == 0:
-                        #print('error: ', error)
+                        print('error: ', error)
                         print('dt: ', end)
-                        print('adapt: ', u_adapt)
-                        print('int_err/ki: ', ctrlr.int_err)
+                        #print('adapt: ', u_adapt)
+                        #print('int_err/ki: ', ctrlr.int_err)
                         #print('q: ', q)
                         #print('hand: ', ee_xyz)
                         #print('target: ', target)
@@ -516,16 +540,19 @@ class Training:
             # close the connection to the arm
             interface.init_position_mode()
 
+            print("RUN IN IS: ", run)
+            # get save location of weights to save tracked data in same directory
+            [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
+                                                         session=session)
+            print("RUN OUT IS: ", run_num)
             if backend != None:
+                run_num += 1
+
                 # Save the learned weights
                 adapt.save_weights(test_name=test_name, session=session, run=run)
 
             interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
             interface.disconnect()
-
-            # get save location of weights to save tracked data in same directory
-            [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
-                                                         session=session)
 
             print('**** RUN STATS ****')
             print('Average loop speed: ', sum(time_track)/len(time_track))
@@ -580,6 +607,14 @@ class Training:
             if simulate_wear:
                 np.savez_compressed(location + '/run%i_data/friction%i' % (run_num, run_num),
                                     friction=[friction_track])
+
+            if backend != 'nengo_spinnaker':
+                import time
+                print('2 Seconds to pause: Hit ctrl z to pause, fg to resume')
+                time.sleep(1)
+                print('1 Second to pause')
+                time.sleep(1)
+                print('Starting next test...')
     def get_target_from_camera(self):
         # read from server
         camera_xyz = self.redis_server.get('target_xyz').decode('ascii')
@@ -621,9 +656,15 @@ class Training:
         g_avg = np.mean(np.array(g_avg), axis=0)[:3]
         return -g_avg*self.decimal_scale
 
-    def friction(self, vel):#, u_base):
-        v = np.copy(vel)
-        #u_in = np.copy(u_base)
+    def friction(self, x):
+        if len(x) > self.adapt_dim:
+            # if entire adaptive input is passed in, only take the velocity
+            # (second half)
+            v = np.copy(x[self.adapt_dim:])
+        else:
+            # if vel matches the length of adaptive dim then we have received
+            # velocity directly
+            v = np.copy(x)
         sgn_v = np.sign(v)
         Fn = 4
         uk = 0.42
@@ -633,17 +674,6 @@ class Training:
         Fs = -us * Fn * sgn_v
         Fv = 1.2
         Ff = Fc + (Fs-Fc) * np.exp(-sgn_v * v/vs) - Fv * v
-        # for ii in range(0,len(Ff)):
-        #     if np.sign(Ff[ii]) == np.sign(u_in[ii]):
-        #         Ff[ii] *= -1
-        #     if u_in[ii] > 0:
-        #         if Ff[ii] + u_in[ii] < 0:
-        #             Ff[ii] = -u_in[ii]
-        #     elif u_in[ii] < 0:
-        #         if Ff[ii] + u_in[ii] > 0:
-        #             Ff[ii] = -u_in[ii]
-        #     else:
-        #         Ff[ii] = 0
         Ff *= np.array([0.9, 1.1])
         return(Ff)
 
