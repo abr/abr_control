@@ -31,7 +31,22 @@ class Config(BaseConfig):
     def __init__(self, **kwargs):
 
         super(Config, self).__init__(
-            N_JOINTS=2, N_LINKS=2, ROBOT_NAME='twolink', **kwargs)
+            N_JOINTS=2, N_LINKS=2, ROBOT_NAME='twolink', MEANS=None,
+            SCALES=None, **kwargs)
+
+        if self.MEANS is None:
+            # dictionaries set by the sub-config, used for scaling input into
+            # neural systems. Calculate by recording data from movement of interest
+            self.MEANS = {  # expected mean of joints angles / velocities
+                'q': np.array([.88, 1.95]),
+                'dq': np.array([.645, 2.76])
+                }
+
+        if self.SCALES is None:
+            self.SCALES = {  # expected variance of joint angles / velocities
+                'q': np.array([.52, 1.3]),
+                'dq': np.array([6.7, 12.37])
+                }
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -124,18 +139,6 @@ class Config(BaseConfig):
         self.J_orientation = [
             self._calc_T('joint0')[:3, :3] * self._KZ,  # joint 0 orientation
             self._calc_T('joint1')[:3, :3] * self._KZ]  # joint 1 orientation
-
-        # dictionaries set by the sub-config, used for scaling input into
-        # neural systems. Calculate by recording data from movement of interest
-        self.MEANS = {  # expected mean of joints angles / velocities
-            'q': np.array([.88, 1.95]),
-            'dq': np.array([.645, 2.76])
-            }
-
-        self.SCALES = {  # expected variance of joint angles / velocities
-            'q': np.array([.52, 1.3]),
-            'dq': np.array([6.7, 12.37])
-            }
 
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
