@@ -43,7 +43,25 @@ class Config(BaseConfig):
         self.hand_attached = hand_attached
         N_LINKS = 7 if hand_attached is True else 6
         super(Config, self).__init__(
-            N_JOINTS=6, N_LINKS=N_LINKS, ROBOT_NAME='jaco2', **kwargs)
+            N_JOINTS=6, N_LINKS=N_LINKS, ROBOT_NAME='jaco2', MEANS=None,
+            SCALES=None, **kwargs)
+
+        if self.MEANS is None:
+            # dictionaries set by the sub-config, used for scaling input into
+            # neural systems. Calculate by recording data from movement of interest
+            self.MEANS = {  # expected mean of joint angles / velocities
+                'q': np.ones(self.N_JOINTS) * np.pi,
+                'dq': np.array([-0.01337, 0.00192, 0.00324,
+                                0.02502, -0.02226, -0.01342])
+                }
+
+        if self.SCALES is None:
+            self.SCALES = {  # expected variance of joint angles / velocities
+                'q': np.ones(self.N_JOINTS) * np.pi * np.sqrt(self.N_JOINTS),
+                'dq': (np.array([1.22826, 2.0, 1.42348,
+                                2.58221, 2.50768, 1.27004])
+                       * np.sqrt(self.N_JOINTS))
+                }
 
         self._T = {}  # dictionary for storing calculated transforms
 
@@ -261,20 +279,6 @@ class Config(BaseConfig):
             self._calc_T('joint3')[:3, :3] * self._KZ,  # joint 3 orientation
             self._calc_T('joint4')[:3, :3] * self._KZ,  # joint 4 orientation
             self._calc_T('joint5')[:3, :3] * self._KZ]  # joint 5 orientation
-        # dictionaries set by the sub-config, used for scaling input into
-        # neural systems. Calculate by recording data from movement of interest
-        self.MEANS = {  # expected mean of joint angles / velocities
-            'q': np.ones(self.N_JOINTS) * np.pi,
-            'dq': np.array([-0.01337, 0.00192, 0.00324,
-                            0.02502, -0.02226, -0.01342])
-            }
-
-        self.SCALES = {  # expected variance of joint angles / velocities
-            'q': np.ones(self.N_JOINTS) * np.pi * np.sqrt(self.N_JOINTS),
-            'dq': (np.array([1.22826, 2.0, 1.42348,
-                            2.58221, 2.50768, 1.27004])
-                   * np.sqrt(self.N_JOINTS))
-            }
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
