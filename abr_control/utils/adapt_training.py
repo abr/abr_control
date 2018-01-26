@@ -25,7 +25,7 @@ class Training:
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
                  joint_adaptation=False, simulate_wear=False,
                  probe_weights=False, seed=None, friction_bootstrap=False,
-                 redis_adaptation=False):
+                 redis_adaptation=False, SCALES=None, MEANS=None):
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The script is
@@ -181,7 +181,7 @@ class Training:
 
         # initialize our robot config
         robot_config = abr_jaco2.Config(
-            use_cython=True, hand_attached=True)
+            use_cython=True, hand_attached=True, SCALES=SCALES, MEANS=MEANS)
         self.robot_config = robot_config
 
         zeros = np.zeros(robot_config.N_JOINTS)
