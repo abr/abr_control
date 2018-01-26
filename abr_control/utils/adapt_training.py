@@ -24,12 +24,8 @@ class Training:
                  offset=None, avoid_limits=False, additional_mass=0,
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
                  joint_adaptation=False, simulate_wear=False,
-                 probe_weights=False,seed=None, friction_bootstrap=False,
+                 probe_weights=False, seed=None, friction_bootstrap=False,
                  redis_adaptation=False):
-        #TODO: Add name of paper once complete
-        #TODO: Do we want to include nengo_spinnaker install instructions?
-        #TODO: Add option to use our saved results incase user doesn't have
-        # spinnaker
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The script is
@@ -100,25 +96,35 @@ class Training:
             derivative gain term
         ki: float, Optional (Default: 0)
             integral gain term
-        TARGET_XYZ: array of floats
-            the goal target, used for calculating error
-        target: array of floats [x, y, z, vx, vy, vz]
-            the filtered target, used for calculating error for figure8
-            test since following trajectory and not moving to a single final
-            point
         integrate_err: Boolean, Optional (Default: False)
             True to add I term to PD control (PD -> PID)
         ee_adaptation: Booleanm Optional (Default: False)
             True if doing neural adaptation in task space
         joint_adaptation: Boolean Optional (Default: False)
             True if doing neural adaptation in joint space
+        simulate_wear: Boolean Optional (Default: False)
+            True to add a simulated wearing of the joints that mimics friction
+            by opposing motion
+        probe_weights: Boolean Optional (Default: False)
+            True to probe adaptive population for decoders
+        seed: int Optional, (Default: None)
+            seed used for random number generation in adaptive population
         friction_bootstrap: Boolean Optional (Default: False)
-            True if want to pass an estimate of friction signal as starting
+            True if want to pass an estimate of the friction signal as starting
             point for adaptive population
         redis_adaptation: Boolean Optional (Default: False)
             True to send adaptive inputs to redis and read outputs back, allows
             user to use any backend they like as long as it can read/write from
             redis
+
+        Attributes
+        ----------
+        TARGET_XYZ: array of floats
+            the goal target, used for calculating error
+        target: array of floats [x, y, z, vx, vy, vz]
+            the filtered target, used for calculating error for figure8
+            test since following trajectory and not moving to a single final
+            point
         """
         print("RUN PASSED IN IS: ", run)
 
@@ -136,7 +142,6 @@ class Training:
         if target_type == 'multi':
             PRESET_TARGET = np.array([[.56, -.09, .95],
                                       [.12, .15, .80],
-                                      #[.87, .30, .61], ~3cm out of reach
                                       [.80, .26, .61],
                                       [.38, .46, .81],
                                       [.0, .0, 1.15]])
@@ -161,7 +166,6 @@ class Training:
 
             # create a dmp that traces a figure8
             x = np.linspace(0, np.pi*2, 100)
-            #dmps_traj = np.array([x/3 + 0.2, 0.125*np.sin(x)+0.5, 0.125*np.sin(2*x)+0.5])
             dmps_traj = np.array([0.2*np.sin(x), 0.2*np.sin(2*x)+0.7])
             dmps = pydmps.DMPs_rhythmic(n_dmps=2, n_bfs=50, dt=0.001)
             dmps.imitate_path(dmps_traj)
@@ -174,13 +178,6 @@ class Training:
         x_scale = np.max(PRESET_TARGET[:,0]) - np.min(PRESET_TARGET[:,0])
         y_scale = np.max(PRESET_TARGET[:,1]) - np.min(PRESET_TARGET[:,1])
         z_scale = np.max(PRESET_TARGET[:,2]) - np.min(PRESET_TARGET[:,2])
-
-        # print('x_avg: ', x_avg)
-        # print('y_avg: ', y_avg)
-        # print('z_avg: ', z_avg)
-        # print('x_scale: ', x_scale)
-        # print('y_scale: ', y_scale)
-        # print('z_scale: ', z_scale)
 
         # initialize our robot config
         robot_config = abr_jaco2.Config(
@@ -213,6 +210,7 @@ class Training:
             adapt_backend = 'nengo'
         else:
             adapt_backend = backend
+
         # create our adaptive controller
         if ee_adaptation and joint_adaptation:
             n_input = 4
@@ -227,11 +225,10 @@ class Training:
         else:
             n_input = 1
             n_output = 1
+
         # for use with weight estimation, is the number of joint angles being
         # passed to the adaptive controller (not including velocities)
         self.adapt_dim = n_output
-        # input_signal_enc = np.squeeze(np.load('input_signal.npz')['input_signal'])
-        # encoders = nengo.dists.Choice(input_signal_enc[::10])
         self.decimal_scale = decimal_scale
 
         # if user specifies an additional mass, use the estimation function to
@@ -287,7 +284,7 @@ class Training:
                 n_neurons=n_neurons,
                 n_ensembles=n_ensembles,
                 pes_learning_rate=pes_learning_rate,
-                intercepts=(-.5, -.2),
+                intercepts=(-0.5, -0.2),
                 weights_file=weights_file,
                 backend=adapt_backend,
                 session=session,
@@ -295,8 +292,7 @@ class Training:
                 test_name=test_name,
                 autoload=autoload,
                 probe_weights=probe_weights,
-                seed=seed)#,
-                #encoders=encoders)
+                seed=seed)
 
         # get save location of saved data
         [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
@@ -323,8 +319,6 @@ class Training:
             avoid = signals.AvoidJointLimits(
                       robot_config,
                       # joint 4 flipped because does not cross 0-2pi line
-                      # min_joint_angles=[0.8, 1.1, 0.5, 3.5, 2.0, 1.6],
-                      # max_joint_angles=[4.75, 3.65, 6.25, 6.0, 5.0, 4.6],
                       min_joint_angles=[None, 1.1, 0.5, 3.5, 2.0, 1.6],
                       max_joint_angles=[None, 3.65, 6.25, 6.0, 5.0, 4.6],
                       max_torque=[4]*robot_config.N_JOINTS,
@@ -387,11 +381,6 @@ class Training:
                 # last three terms used as started point for target EE velocity
                 target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
-                # if target_type == 'figure8':
-                #     # calculate euclidean distance to target
-                #     error = np.sqrt(np.sum((ee_xyz - target[:3])**2))
-
-
                 # M A I N   C O N T R O L   L O O P
                 while loop_time < time_limit:
                     start = timeit.default_timer()
@@ -431,12 +420,8 @@ class Training:
                         # calculate the adaptive control signal
                         adapt_input = np.array([robot_config.scaledown('q',q)[1],
                                                    robot_config.scaledown('q',q)[2],
-                                                   #robot_config.scaledown('q',q)[2],
-                                                   # robot_config.scaledown('q',q)[3],
-                                                   # robot_config.scaledown('q',q)[4],
                                                    robot_config.scaledown('dq',dq)[1],
-                                                   robot_config.scaledown('dq',dq)[2]])#,
-                                                   #robot_config.scaledown('dq',dq)[2]])
+                                                   robot_config.scaledown('dq',dq)[2]])
                         u_adapt = adapt.generate(input_signal=adapt_input,
                                                  training_signal=training_signal)
                         u_adapt /= decimal_scale
@@ -449,7 +434,6 @@ class Training:
                                                 (ee_xyz[1] - y_avg) / y_scale,
                                                 (ee_xyz[2] - z_avg) / z_scale])
 
-                        #adapt_input *= 0
                         u_adapt = adapt.generate(input_signal=adapt_input,
                                                  training_signal=training_signal)
                         u_adapt /= decimal_scale
@@ -476,30 +460,21 @@ class Training:
 
                     if joint_adaptation and not ee_adaptation:
                         training_signal = np.array([ctrlr.training_signal[1],
-                                                    ctrlr.training_signal[2]]) #,
-                                                    # ctrlr.training_signal[2]])#,
-                                                    # ctrlr.training_signal[3],
-                                                    # ctrlr.training_signal[4]])
-                                                    # ctrlr.training_signal[4]])
-                                                    #
+                                                    ctrlr.training_signal[2]])
                         # calculate the adaptive control signal
                         adapt_input = np.array([robot_config.scaledown('q',q)[1],
                                                    robot_config.scaledown('q',q)[2],
-                                                   #robot_config.scaledown('q',q)[2],
-                                                   # robot_config.scaledown('q',q)[3],
-                                                   # robot_config.scaledown('q',q)[4],
                                                    robot_config.scaledown('dq',dq)[1],
-                                                   robot_config.scaledown('dq',dq)[2]])#,
-                                                   #robot_config.scaledown('dq',dq)[2]])
+                                                   robot_config.scaledown('dq',dq)[2]])
                         u_adapt = adapt.generate(input_signal=adapt_input,
                                                  training_signal=training_signal)
 
                         # add adaptive signal to base controller
-                        u_adapt = np.array([0, #u_adapt[0]/decimal_scale,
+                        u_adapt = np.array([0,
                                             u_adapt[0]/decimal_scale,
                                             u_adapt[1]/decimal_scale,
-                                            0, #u_adapt[3]/decimal_scale,
-                                            0, #u_adapt[4]/decimal_scale,
+                                            0,
+                                            0,
                                             0])
                         u = u_base + u_adapt
 
@@ -650,6 +625,8 @@ class Training:
                                     friction=[friction_track])
 
             if backend != 'nengo_spinnaker':
+                # give user time to pause before the next run starts, only
+                # works if looping through tests using a bash script
                 import time
                 print('2 Seconds to pause: Hit ctrl z to pause, fg to resume')
                 time.sleep(1)
@@ -671,7 +648,7 @@ class Training:
         return target_xyz
 
     def normalize_target(self, target, magnitude=0.9):
-        # set it so that target is not too far from joint 1
+        # set it so that target is not too far from shoulder
         joint1_offset = np.array([0, 0, 0.273])
         norm = np.linalg.norm(target - joint1_offset)
         if norm > magnitude:
@@ -703,11 +680,15 @@ class Training:
             # (second half)
             v = np.copy(x[self.adapt_dim:])
         else:
-            # if vel matches the length of adaptive dim then we have received
+            # if x matches the length of adaptive dim then we have received
             # velocity directly
             v = np.copy(x)
         sgn_v = np.sign(v)
+        # forces selected to have friction in a reasonable force range wrt the
+        # forces the arm moves with (friction in range of 2-4N for typical
+        # movement)
         Fn = 4
+        # using static and kinetic coefficients of friction for steel on steel
         uk = 0.42
         us = 0.74
         vs = 0.1
@@ -717,9 +698,3 @@ class Training:
         Ff = Fc + (Fs-Fc) * np.exp(-sgn_v * v/vs) - Fv * v
         Ff *= np.array([0.9, 1.1])
         return(Ff)
-
-    # def friction(self, qs, dqs):
-    #     qs = np.copy(qs)
-    #     dqs = np.copy(dqs)
-    #     Ff = qs + 10*dqs
-    #     return(Ff)

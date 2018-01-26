@@ -36,13 +36,19 @@ class DynamicsAdaptation(Signal):
     robot_config : class instance
         contains all relevant information about the arm
         such as: number of joints, number of links, mass information etc.
+    n_input : int
+        the number of inputs going into the adaptive population
+    n_output : int
+        the number of outputs expected from the adaptive population
     n_neurons : int, optional (Default: 1000)
         number of neurons per adaptive population
-    n_ensembles : int, option (Default: 1)
+    n_ensembles : int, optional (Default: 1)
         number of ensembles of n_neurons number of neurons
+    seed : int optional (Default: None)
+        the seed used for random number generation
     pes_learning_rate : float, optional (Default: 1e-6)
         controls the speed of neural adaptation
-    intercepts list : list of two floats, optional (Default: (0.5, 1.0))
+    intercepts : list of two floats, optional (Default: (0.5, 1.0))
         voltage threshold range for neurons
     spiking : boolean, optional (Default: False)
         use spiking or rate mode neurons
@@ -50,9 +56,6 @@ class DynamicsAdaptation(Signal):
         path to file where learned weights are saved
     backend : string, optional (Default: nengo)
         {'nengo', 'nengo_ocl', 'nengo_spinnaker'}
-    use_dq : boolean, optional (Default: False)
-        set True to pass in position and velocity,
-        False if only passing in position
     session: int, optional (Default: None)
         if doing multiple sessions of n runs to average over.
         if set to None it will search for the most recent session
@@ -69,18 +72,27 @@ class DynamicsAdaptation(Signal):
         set true if you would like the script to check the 'test_name'
         directory for the most recent saved weights, False to start
         with a zeros array of weights, or a specified 'weights_file'
-    function:
-    redis_comm: boolean, optional (Default: False)
-        True to send spiking information to redis for display purposes
+    function: function optional (Default: None)
+        the function that nengo will try to approximate to bootstrap learning.
+        This provides nengo with a starting point for adaptation instead of
+        learning from zeros
+    send_redis_spikes: boolean, optional (Default: False)
+        True to send spiking information to redis for display purposes (mainly
+        used with vrep_display.py)
+    probe_weights: boolean, optional (Default: False)
+        True to get decoders
+    debug_print: boolean optional (Default: False)
+        True to display debug print statements
     """
-    #TODO add description of function
 
     def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
                  seed=None, pes_learning_rate=1e-6, intercepts=(0.5, 1.0),
                  weights_file=None, backend='nengo', session=None,
                  run=None, test_name='test', autoload=False,
-                 function=None, redis_comm=False, encoders=None,
-                 probe_weights=False, **kwargs):
+                 function=None, send_redis_spikes=False, encoders=None,
+                 probe_weights=False, debug_print=False, **kwargs):
+
+        """ Create adaptive population with the provided parameters"""
 
         self.input_signal = np.zeros(n_input)
         self.training_signal = np.zeros(n_output)
@@ -96,16 +108,9 @@ class DynamicsAdaptation(Signal):
             weights_file = ''
 
         self.nengo_model = nengo.Network(seed=seed)
-
-        # small_tau = 0.005
-        small_tau = None
-        # if backend == 'nengo_spinnaker':
-        #     small_tau = 0.015  # TODO: this could be more exact
-            # i.e. 0.005 * control_loop_time / 0.001 ... i think
-        # NOTE: SHOULD THE FILTER ON THE ERROR SIGNAL BE small_tau NOT big_tau?
-        big_tau = small_tau #* 2  # filter on the training signal
-        #self.nengo_model.config[nengo.Connection].synapse = small_tau
         self.nengo_model.config[nengo.Connection].synapse = None
+
+        # Set the nerual model to use
         if backend == 'nengo':
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
         elif backend == 'nengo_spinnaker':
@@ -115,10 +120,8 @@ class DynamicsAdaptation(Signal):
 
             def input_signals_func(t):
                 """ Get the input and -1 * training signal """
-                # return np.hstack([self.input_signal, -self.training_signal])
                 return self.input_signal
             input_signals = nengo.Node(
-                # input_signals_func, size_out=n_input+n_output)
                 input_signals_func, size_out=n_input)
 
             def training_signals_func(t):
@@ -134,27 +137,18 @@ class DynamicsAdaptation(Signal):
 
             # specify intercepts such that neurons are
             # active throughout the whole range specified
-            # intercepts = AreaIntercepts(
-            #     dimensions=n_input,
-            #     base=nengo.dists.Uniform(intercepts[0], intercepts[1]))
             intercepts = AreaIntercepts(
                 dimensions=n_input,
                 base=Triangular(-0.9, -0.9, 0.0))
-            #intercepts = nengo.dists.Uniform(intercepts[0], intercepts[1])
-            # import nengolib
-            # pre_synapse=nengolib.synapses.DiscreteDelay(1)
 
             self.adapt_ens = []
             self.conn_learn = []
 
             for ii in range(n_ensembles):
                 self.adapt_ens.append(nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
-                                           intercepts=intercepts,#neuron_type=nengo.RectifiedLinear(),
-                                           #max_rates=nengo.dists.Uniform(0, 1), **kwargs))
+                                           intercepts=intercepts,
                                            radius=np.sqrt(n_input),
-                                           #n_eval_points=100000,
                                            **kwargs))
-                                           #**kwargs))
                 print('*** ENSEMBLE %i ***' % ii)
 
                 try:
@@ -173,8 +167,7 @@ class DynamicsAdaptation(Signal):
                           'placement will be sub-optimal.')
 
                 # hook up input signal to adaptive population to provide context
-                # nengo.Connection(input_signals[:n_input], self.adapt_ens, synapse=0.005)
-                nengo.Connection(input_signals, self.adapt_ens[ii]) #, synapse=0.005)
+                nengo.Connection(input_signals, self.adapt_ens[ii])
 
                 # load weights from file if they exist, otherwise use zeros
                 if weights_file == '~':
@@ -193,7 +186,7 @@ class DynamicsAdaptation(Signal):
                     self.conn_learn.append(nengo.Connection(
                                            self.adapt_ens[ii], output,
                                            learning_rule_type=nengo.PES(
-                                               pes_learning_rate),#, pre_synapse=pre_synapse),
+                                               pes_learning_rate),
                                            function=function,
                                            eval_points=eval_points))
                 else:
@@ -214,7 +207,7 @@ class DynamicsAdaptation(Signal):
                                                self.adapt_ens[ii], output,
                                                function=lambda x: np.zeros(n_output),
                                                learning_rule_type=nengo.PES(
-                                                 pes_learning_rate),#, pre_synapse=pre_synapse),
+                                                 pes_learning_rate),
                                                solver=DummySolver(transform.T)))
                     else:
 
@@ -232,21 +225,18 @@ class DynamicsAdaptation(Signal):
                         self.conn_learn.append(nengo.Connection(
                                                self.adapt_ens[ii].neurons, output,
                                                learning_rule_type=nengo.PES(
-                                                 pes_learning_rate),#,
-                                                 #pre_synapse=pre_synapse),
+                                                 pes_learning_rate),
                                                transform=transform))
 
                 # hook up the training signal to the learning rule
                 nengo.Connection(
-                    # input_signals[n_input:], self.conn_learn.learning_rule,
                     training_signals, self.conn_learn[ii].learning_rule,
-                    synapse=big_tau)
+                    synapse=None)
 
 
 
 
-            # TODO: add parameter to use redis display as an option
-            if backend != 'nengo_spinnaker' and redis_comm:
+            if backend != 'nengo_spinnaker' and send_redis_spikes:
                 # Send spikes via redis
                 def send_spikes(t, x):
                         v = np.where(x != 0)[0]
@@ -264,7 +254,7 @@ class DynamicsAdaptation(Signal):
             def save_x(t, x):
                 self.x = x
             x_node = nengo.Node(save_x, size_in=n_input)
-            nengo.Connection(self.adapt_ens[0], x_node, synapse=big_tau)
+            nengo.Connection(self.adapt_ens[0], x_node, synapse=None)
 
             if backend == 'nengo' and probe_weights:
                 self.nengo_model.weights_probe = nengo.Probe(self.conn_learn[0], 'weights', synapse=None)
@@ -292,12 +282,14 @@ class DynamicsAdaptation(Signal):
             except ImportError:
                 raise Exception('Nengo SpiNNaker not installed, ' +
                                 'cannot use this backend.')
-            # TODO: parameterize this
-            # turn on debug printing
-            # logging.basicConfig(level=logging.DEBUG)
+            if debug_print:
+                # turn on debug printing
+                logging.basicConfig(level=logging.DEBUG)
+
             self.sim = nengo_spinnaker.Simulator(self.nengo_model)
             # start running the spinnaker model
             self.sim.async_run_forever()
+
         else:
             raise Exception('Invalid backend specified')
         self.backend = backend
@@ -307,10 +299,9 @@ class DynamicsAdaptation(Signal):
 
         Parameters
         ----------
-        q : numpy.array
-            the current joint angles [radians]
-        dq : numpy.array
-            the current joint velocities [radians/second]
+        input_signal : numpy.array
+            the current desired input signal, typical joint positions and
+            velocities in [rad] and [rad/sec] respectively
         training_signal : numpy.array
             the learning signal to drive adaptation
         """
@@ -389,11 +380,6 @@ class DynamicsAdaptation(Signal):
                 run_num = -1
         else:
             # save as the run specified by the user
-            # if run >0:
-            #     # user provides the current run, then we want to load data from
-            #     # one run back
-            #     run_num = run-1
-            # else:
             run_num = run
 
         return [test_name, run_num]
@@ -413,6 +399,9 @@ class DynamicsAdaptation(Signal):
         print('saving weights as run%i'% (run_num+1))
         if self.backend == 'nengo_spinnaker':
             import nengo_spinnaker.utils.learning
+            # Need to power cycle spinnaker for repeated runs, so sim.close and
+            # sleep is unnecessary, unless power cycling is automated using two
+            # ethernet connections, then can uncomment the following two lines
             #self.sim.close()
             #time.sleep(5)
             print('save location: ', test_name + '/run%i' % (run_num +1))
@@ -420,8 +409,6 @@ class DynamicsAdaptation(Signal):
                 test_name + '/run%i' % (run_num + 1),
                 weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
                          self.sim, ens) for ens in self.adapt_ens]))
-            # print('Spinnaker output: ', nengo_spinnaker.utils.learning.get_learnt_decoders(self.sim,
-            #     self.adapt_ens[0]))
 
         else:
             print('save location: ', test_name + '/run%i' % (run_num +1))
@@ -489,6 +476,9 @@ class AreaIntercepts(nengo.dists.Distribution):
         return s
 
 class Triangular(nengo.dists.Distribution):
+    """ Generate an optimally distributed set of intercepts in
+    high-dimensional space using a triangular distribution.
+    """
     left = nengo.params.NumberParam('dimensions')
     right = nengo.params.NumberParam('dimensions')
     mode = nengo.params.NumberParam('dimensions')
