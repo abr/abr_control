@@ -24,7 +24,7 @@ J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
 # instantiate controller
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)
 
-if backend == 'nengo_spinnaker'
+if backend == 'nengo_spinnaker':
     # 1 sec of simulation takes 5 minutes 30 seconds, adjust
     # learning rate since spinnaker runs in real time
     # spinnaker_run_time/sim_run_time = (1sec/sec)/(330sec/sec)
@@ -34,13 +34,14 @@ else:
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
-    robot_config, backend='nengo_spinnaker',
+    backend='nengo',
     n_neurons=500,
-    n_adapt_pop=1,
+    n_ensembles=1,
+    n_input=robot_config.N_JOINTS,
+    n_output=robot_config.N_JOINTS,
     weights_file=None,
     pes_learning_rate=1e-4,
-    intercepts=(-0.1, 1.0),
-    spiking=True)
+    intercepts=(-0.1, 1.0))
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.001)
@@ -68,7 +69,8 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_xyz)
-        u_adapt = adapt.generate(feedback['q'], feedback['dq'],
+        u_adapt = adapt.generate(input_signal=robot_config.scaledown('q',
+                                 feedback['q']),
                                  training_signal=ctrlr.training_signal)
         u += u_adapt * time_scale
         if count % 10 == 0:
