@@ -24,7 +24,8 @@ class Training:
                  offset=None, avoid_limits=False, additional_mass=0,
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
                  joint_adaptation=False, simulate_wear=False,
-                 probe_weights=False,seed=None, friction_bootstrap=False):
+                 probe_weights=False,seed=None, friction_bootstrap=False,
+                 redis_adaptation=False):
         #TODO: Add name of paper once complete
         #TODO: Do we want to include nengo_spinnaker install instructions?
         #TODO: Add option to use our saved results incase user doesn't have
@@ -111,11 +112,23 @@ class Training:
             True if doing neural adaptation in task space
         joint_adaptation: Boolean Optional (Default: False)
             True if doing neural adaptation in joint space
-        friction_bootstrap: Boolean Optional (Defaul: False)
+        friction_bootstrap: Boolean Optional (Default: False)
             True if want to pass an estimate of friction signal as starting
             point for adaptive population
+        redis_adaptation: Boolean Optional (Default: False)
+            True to send adaptive inputs to redis and read outputs back, allows
+            user to use any backend they like as long as it can read/write from
+            redis
         """
         print("RUN PASSED IN IS: ", run)
+
+        if redis_adaptation:
+            try:
+                import redis
+                redis_server = redis.StrictRedis(host='localhost')
+            except ImportError:
+                print("You must install redis to do adaptation through a redis"
+                      + " server")
 
         # Set the target based on the source and type of test
         PRESET_TARGET = np.array([[.57, 0.03, .87]])
@@ -443,9 +456,9 @@ class Training:
 
                     else:
                         u_adapt = None
-                        training_signal = np.zeros(3)
-                        adapt_input = np.zeros(3)
 
+                    # Need to create controller here, in case using ee
+                    # adaptation, it needs to be passed to the OSC controller
                     # calculate the base operation space control signal
                     u_base = ctrlr.generate(
                         q=q,
@@ -490,8 +503,36 @@ class Training:
                                             0])
                         u = u_base + u_adapt
 
+                    elif redis_adaptation:
+                        training_signal = np.array([ctrlr.training_signal[1],
+                                                    ctrlr.training_signal[2]])
+                        adapt_input = np.array([robot_config.scaledown('q',q)[1],
+                                                   robot_config.scaledown('q',q)[2],
+                                                   robot_config.scaledown('dq',dq)[1],
+                                                   robot_config.scaledown('dq',dq)[2]])
+                        # send input information to redis
+                        redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
+                                             (adapt_input[0], adapt_input[1],
+                                              adapt_input[2], adapt_input[3]))
+                        redis_server.set('training_signal', '%.3f %.3f' %
+                                             (training_signal[0],training_signal[1]))
+                        # get adaptive output back
+                        u_adapt = redis_server.get('u_adapt').decode('ascii')
+                        u_adapt = np.array([float(val) for val in u_adapt.split()])
+                        u_adapt = np.array([0,
+                                            u_adapt[0],
+                                            u_adapt[1],
+                                            0,
+                                            0,
+                                            0])
+                        u = u_base + u_adapt
+
                     else:
                         u = u_base
+                        u_adapt = None
+                        training_signal = np.zeros(3)
+                        adapt_input = np.zeros(3)
+
 
                     # add limit avoidance if True
                     if avoid_limits:
