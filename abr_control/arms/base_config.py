@@ -80,7 +80,7 @@ class BaseConfig():
     """
 
     def __init__(self, N_JOINTS, N_LINKS, ROBOT_NAME="robot",
-                 use_cython=False, MEANS=None, SCALES=None):
+                 use_cython=False):
 
         self.N_JOINTS = N_JOINTS
         self.N_LINKS = N_LINKS
@@ -128,8 +128,8 @@ class BaseConfig():
 
         # dictionaries set by the sub-config, used for scaling input into
         # neural systems. Calculate by recording data from movement of interest
-        self.MEANS = MEANS  # expected mean of joints angles / velocities
-        self.SCALES = SCALES# expected variance of joint angles / velocities
+        # self.MEANS = None  # expected mean of joints angles / velocities
+        # self.SCALES = None # expected variance of joint angles / velocities
 
     def _generate_and_save_function(self, filename, expression, parameters):
         """ Creates a folder, saves generated cython functions
