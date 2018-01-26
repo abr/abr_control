@@ -21,10 +21,12 @@ class AvoidJointLimits(Signal):
     cross_zero: List of Boolean, Optional
         (Default:[False, False, False, False, False, False])
         select whether the section of 2pi you want to work in crosses
-        the zero-2pi boundary
+        the zero-2pi boundary. Set to true if it does to account for odd
+        behaviour when we jump from 0 to 2pi and vice versa
     gradient: List of Boolean, Optional
         (Default:[False, False, False, False, False, False])
         set if you want a gradual push from the limit, or a wall once reached
+        True for gradient of force, False for a sudden opposing force (Wall)
 
     NOTE: use None as a placeholder for joints that have no limits
     """
