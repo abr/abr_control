@@ -80,13 +80,16 @@ class BaseConfig():
     """
 
     def __init__(self, N_JOINTS, N_LINKS, ROBOT_NAME="robot",
-                 use_cython=False):
+                 use_cython=False, MEANS=None, SCALES=None):
 
         self.N_JOINTS = N_JOINTS
         self.N_LINKS = N_LINKS
         self.ROBOT_NAME = ROBOT_NAME
-
         self.use_cython = use_cython
+        # dictionaries set by the sub-config, used for scaling input into
+        # neural systems. Calculate by recording data from movement of interest
+        self.MEANS = MEANS  # expected mean of joints angles / velocities
+        self.SCALES = SCALES  # expected variance of joint angles / velocities
 
         # create function placeholders and dictionaries
         self._c = None
@@ -125,11 +128,6 @@ class BaseConfig():
         self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
-
-        # dictionaries set by the sub-config, used for scaling input into
-        # neural systems. Calculate by recording data from movement of interest
-        # self.MEANS = None  # expected mean of joints angles / velocities
-        # self.SCALES = None # expected variance of joint angles / velocities
 
     def _generate_and_save_function(self, filename, expression, parameters):
         """ Creates a folder, saves generated cython functions

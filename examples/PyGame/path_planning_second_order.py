@@ -65,7 +65,7 @@ try:
 
             if pregenerate_path:
                 path_planner.generate_path(
-                    state=hand_xyz, target=target_xyz,
+                    state=hand_xyz, target=target_xyz, w=w, zeta=zeta,
                     n_timesteps=n_timesteps, plot=True)
             else:
                 target = np.hstack([
@@ -78,8 +78,7 @@ try:
             target = path_planner.next_target()
         else:
             target = path_planner.step(
-                y=target[:3], dy=target[3:], target=target_xyz,
-                w=w, zeta=zeta, dt=dt)
+                y=target[:3], dy=target[3:], target=target_xyz)
 
         # generate an operational space control signal
         u = ctrlr.generate(
