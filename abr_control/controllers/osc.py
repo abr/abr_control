@@ -32,9 +32,6 @@ class OSC(controller.Controller):
         centripetal effects of the arm
     use_dJ : boolean, optional (Default: False)
         use the Jacobian derivative wrt time
-    int_err : float list, optional (Default: None)
-        integral term of PID control, can pass value in if have prelearned
-        weights
 
     Attributes
     ----------
@@ -42,10 +39,11 @@ class OSC(controller.Controller):
         proportional gain term for null controller
     nkv : float
         derivative gain term for null controller
+    integrated_error : float list, optional (Default: None)
+        integrated error term
     """
     def __init__(self, robot_config, kp=1, kv=None, ki=0, vmax=0.5,
-                 null_control=True, use_g=True, use_C=False, use_dJ=False,
-                 int_err=None):
+                 null_control=True, use_g=True, use_C=False, use_dJ=False):
 
         super(OSC, self).__init__(robot_config)
 
@@ -58,7 +56,8 @@ class OSC(controller.Controller):
         self.use_g = use_g
         self.use_C = use_C
         self.use_dJ = use_dJ
-        self.int_err = int_err
+
+        self.integrated_error = 0.0
 
         # null_indices is a mask for identifying which joints have REST_ANGLES
         self.null_indices = ~np.isnan(self.robot_config.REST_ANGLES)
@@ -70,7 +69,7 @@ class OSC(controller.Controller):
 
     def generate(self, q, dq,
                  target_pos, target_vel=np.zeros(3),
-                 ref_frame='EE', offset=[0, 0, 0], ee_adapt=None):
+                 ref_frame='EE', offset=[0, 0, 0], ee_force=None):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -87,11 +86,10 @@ class OSC(controller.Controller):
             the point being controlled, default is the end-effector.
         offset : list, optional (Default: [0, 0, 0])
             point of interest inside the frame of reference [meters]
-        ee_adapt: float array, Optional, (Default: None)
-            if doing adaptation in task space, pass change in target in
+        ee_force: float array, Optional, (Default: None)
+            if there are any additional forces to add in task space,
+            add them here
         """
-
-        self.ee_adapt = ee_adapt
 
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
@@ -146,14 +144,14 @@ class OSC(controller.Controller):
             dJ = dJ[:3]
             u_task -= np.dot(dJ, dq)
 
-        if self.ee_adapt != None:
-            #self.ee_adapt += x_tilde
-            u_task += self.ki * self.ee_adapt
+        if self.ki != 0:
+            # add in the integrated error term
+            self.integrated_error += x_tilde
+            u_task -= self.ki * self.integrated_error
 
-        elif self.int_err is not None:
-            self.int_err += x_tilde
-            u_task += -self.ki * self.int_err
-
+        # add in any specified additional task space force
+        if self.ee_force is not None:
+            u_task += self.ee_adapt
 
         # incorporate task space inertia matrix
         u = np.dot(J.T, np.dot(Mx, u_task))
