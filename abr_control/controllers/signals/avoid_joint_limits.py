@@ -55,9 +55,6 @@ class AvoidJointLimits(Signal):
         self.max_joint_angles[cross_zero] = temp_min[cross_zero]
         self.min_joint_angles[cross_zero] = temp_max[cross_zero]
 
-        print('===MIN LIMITS===: ', min_joint_angles)
-        print('===MAX LIMITS===: ', max_joint_angles)
-
         if (self.max_joint_angles.shape[0] != robot_config.N_JOINTS or
                 self.min_joint_angles.shape[0] != robot_config.N_JOINTS):
             raise Exception('joint angles vector incorrect size')
