@@ -32,7 +32,7 @@ class OSC(controller.Controller):
         centripetal effects of the arm
     use_dJ : boolean, optional (Default: False)
         use the Jacobian derivative wrt time
-    int_err : float list, optional (Default: [0,0,0])
+    int_err : float list, optional (Default: None)
         integral term of PID control, can pass value in if have prelearned
         weights
 
@@ -70,7 +70,6 @@ class OSC(controller.Controller):
 
     def generate(self, q, dq,
                  target_pos, target_vel=np.zeros(3),
-                 target_quat=None, target_w=np.zeros(3),
                  ref_frame='EE', offset=[0, 0, 0], ee_adapt=None):
         """ Generates the control signal to move the EE to a target
 
@@ -84,10 +83,6 @@ class OSC(controller.Controller):
             desired joint angles [radians]
         target_vel : float numpy.array, optional (Default: numpy.zeros)
             desired joint velocities [radians/sec]
-        target_quat : float numpy.array, optional Default: None)
-            the target orientation as a quaternion in the form [w, x, y, z]
-        target_w : float numpy.array, optional (Default: numpy.zeros)
-            the target angular velocities
         ref_frame : string, optional (Default: 'EE')
             the point being controlled, default is the end-effector.
         offset : list, optional (Default: [0, 0, 0])
