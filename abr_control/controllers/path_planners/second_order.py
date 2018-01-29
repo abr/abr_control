@@ -30,8 +30,8 @@ class SecondOrder(PathPlanner):
     w : float, optional (Default: 1e-4)
         the natural frequency
     threshold: float, Optional (Default: 0.02)
-        in the units of y and target, the distance from the target before
-        the filtered target becomes the target
+        within this threshold distance to target reduce the
+        filtering effects to improve convergence in practice
     """
 
     def __init__(self, robot_config, n_timesteps=100, dt=0.001,
@@ -42,8 +42,9 @@ class SecondOrder(PathPlanner):
         self.dt = dt
         self.zeta = zeta
         self.w = w/n_timesteps # gain to converge in the desired time
+        self.threshold = threshold
 
-    def step(self, state, target, dt=0.001):
+    def step(self, state, target_pos, dt=0.001):
         """ Calculates the next state given the current state and
         system dynamics' parameters.
 
@@ -52,7 +53,7 @@ class SecondOrder(PathPlanner):
         state : numpy.array
             the current position and velocity of the system
             use the format state=np.array([positions, velocities])
-        target : numpy.array
+        target_pos : numpy.array
             the target position of the system
         dt : float
             the time step to move forward
@@ -62,18 +63,18 @@ class SecondOrder(PathPlanner):
         dy = state[n_states:]
 
         w = self.w
-        if np.linalg.norm(y - target) < self.threshold:
+        if np.linalg.norm(y - target_pos) < self.threshold:
             # if within a threshold distance, reduce the filter effect
             # NOTE: this is a ad-hoc method of improving performance at
             # short distances
             w *= 3
 
-        ddy = w**2 * target - dy * self.zeta * w - y * w**2
+        ddy = w**2 * target_pos - dy * self.zeta * w - y * w**2
         dy = dy + ddy * dt
         y = y + dy * dt
         return np.hstack((y, dy))
 
-    def generate_path(self, state, target, plot=False):
+    def generate_path(self, state, target_pos, plot=False):
         """ Filter the target so that it doesn't jump, but moves smoothly
 
         Parameters
@@ -90,10 +91,9 @@ class SecondOrder(PathPlanner):
         n_states = int(len(state)/2)
 
         self.trajectory = []
-        y = np.hstack([state, np.zeros(n_states)])
         for ii in range(self.n_timesteps):
-            self.trajectory.append(np.copy(y))
-            y = self.step(y, target, dt=self.dt)
+            self.trajectory.append(np.copy(state))
+            state = self.step(state, target_pos, dt=self.dt)
         self.trajectory = np.array(self.trajectory)
 
         # reset trajectory index
@@ -109,7 +109,7 @@ class SecondOrder(PathPlanner):
             plt.gca().set_prop_cycle(None)
             plt.plot(np.ones((self.n_timesteps, n_states)) *
                               np.arange(self.n_timesteps)[:, None],
-                     np.ones((self.n_timesteps, n_states)) * target, '--')
+                     np.ones((self.n_timesteps, n_states)) * target_pos, '--')
             plt.legend(['%i' % ii for ii in range(n_states)] +
                        ['%i_target' % ii for ii in range(n_states)])
             plt.title('Trajectory positions')
