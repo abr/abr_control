@@ -36,8 +36,6 @@ class Config(BaseConfig):
             N_JOINTS=3, N_LINKS=3, ROBOT_NAME='threelink', **kwargs)
 
         if self.MEANS is None:
-            # dictionaries set by the sub-config, used for scaling input into
-            # neural systems. Calculate by recording data from movement of interest
             self.MEANS = {  # expected mean of joints angles / velocities
                 'q':  np.array([.88, 1.95, .19]),
                 'dq':  np.array([.645, 2.76, -1.422])
