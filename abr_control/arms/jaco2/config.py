@@ -46,8 +46,6 @@ class Config(BaseConfig):
             N_JOINTS=6, N_LINKS=N_LINKS, ROBOT_NAME='jaco2', **kwargs)
 
         if self.MEANS is None:
-            # dictionaries set by the sub-config, used for scaling input into
-            # neural systems. Calculate by recording data from movement of interest
             self.MEANS = {  # expected mean of joint angles / velocities
                 'q': np.ones(self.N_JOINTS) * np.pi,
                 'dq': np.array([-0.01337, 0.00192, 0.00324,
