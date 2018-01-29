@@ -150,8 +150,8 @@ class OSC(controller.Controller):
             u_task -= self.ki * self.integrated_error
 
         # add in any specified additional task space force
-        if self.ee_force is not None:
-            u_task += self.ee_force
+        if ee_force is not None:
+            u_task += ee_force
 
         # incorporate task space inertia matrix
         u = np.dot(J.T, np.dot(Mx, u_task))
