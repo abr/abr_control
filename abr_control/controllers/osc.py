@@ -40,7 +40,7 @@ class OSC(controller.Controller):
     nkv : float
         derivative gain term for null controller
     integrated_error : float list, optional (Default: None)
-        integrated error term
+        task-space integrated error term
     """
     def __init__(self, robot_config, kp=1, kv=None, ki=0, vmax=0.5,
                  null_control=True, use_g=True, use_C=False, use_dJ=False):
@@ -57,7 +57,7 @@ class OSC(controller.Controller):
         self.use_C = use_C
         self.use_dJ = use_dJ
 
-        self.integrated_error = 0.0
+        self.integrated_error = np.array([0.0, 0.0, 0.0])
 
         # null_indices is a mask for identifying which joints have REST_ANGLES
         self.null_indices = ~np.isnan(self.robot_config.REST_ANGLES)
@@ -151,7 +151,7 @@ class OSC(controller.Controller):
 
         # add in any specified additional task space force
         if self.ee_force is not None:
-            u_task += self.ee_adapt
+            u_task += self.ee_force
 
         # incorporate task space inertia matrix
         u = np.dot(J.T, np.dot(Mx, u_task))
