@@ -30,7 +30,7 @@ class SecondOrder(PathPlanner):
     w : float, optional (Default: 1e-4)
         the natural frequency
     threshold: float, Optional (Default: 0.02)
-        within this threshold distance to target reduce the
+        within this threshold distance to target position reduce the
         filtering effects to improve convergence in practice
     """
 
@@ -82,8 +82,8 @@ class SecondOrder(PathPlanner):
         state : numpy.array
             the current position and velocity of the system
             use the format state=np.array([positions, velocities])
-        target : numpy.array
-            the target state
+        target_pos : numpy.array
+            the target position
         plot: boolean, optional (Default: False)
             plot the path after generating if True
         """
