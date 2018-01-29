@@ -31,8 +31,7 @@ class Config(BaseConfig):
     def __init__(self, **kwargs):
 
         super(Config, self).__init__(
-            N_JOINTS=2, N_LINKS=2, ROBOT_NAME='twolink', MEANS=None,
-            SCALES=None, **kwargs)
+            N_JOINTS=2, N_LINKS=2, ROBOT_NAME='twolink', **kwargs)
 
         if self.MEANS is None:
             # dictionaries set by the sub-config, used for scaling input into

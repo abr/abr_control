@@ -43,8 +43,7 @@ class Config(BaseConfig):
         self.hand_attached = hand_attached
         N_LINKS = 7 if hand_attached is True else 6
         super(Config, self).__init__(
-            N_JOINTS=6, N_LINKS=N_LINKS, ROBOT_NAME='jaco2', MEANS=None,
-            SCALES=None, **kwargs)
+            N_JOINTS=6, N_LINKS=N_LINKS, ROBOT_NAME='jaco2', **kwargs)
 
         if self.MEANS is None:
             # dictionaries set by the sub-config, used for scaling input into
