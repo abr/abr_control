@@ -22,11 +22,10 @@ ctrlr = OSC(robot_config, kp=200, vmax=10)
 
 # create our path planner
 n_timesteps = 250
-# NOTE: delete above n_timesteps if it can be used in this example
-path_planner = path_planners.SecondOrder(robot_config, n_timesteps=n_timesteps)
-
-w = 1e4/n_timesteps
-zeta = 2
+w = 1e4
+zeta = 2.0
+path_planner = path_planners.SecondOrder(
+    robot_config, n_timesteps=n_timesteps, w=w, zeta=zeta)
 dt = 0.001
 
 # create our interface
@@ -37,7 +36,7 @@ interface.connect()
 ee_path = []
 target_path = []
 
-pregenerate_path = False
+pregenerate_path = True
 print('\nPregenerating path to follow: ', pregenerate_path, '\n')
 try:
     # run ctrl.generate once to load all functions
@@ -63,22 +62,18 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
+            ee_state = np.hstack([hand_xyz,
+                                  np.dot(robot_config.J('EE', feedback['q']),
+                                         feedback['dq'])[:3]])
             if pregenerate_path:
                 path_planner.generate_path(
-                    state=hand_xyz, target=target_xyz, w=w, zeta=zeta,
-                    n_timesteps=n_timesteps, plot=True)
-            else:
-                target = np.hstack([
-                    hand_xyz,
-                    np.dot(robot_config.J('EE', feedback['q']),
-                           feedback['dq'])[:3]])
+                    state=ee_state, target_pos=target_xyz, plot=True)
 
         # returns desired [position, velocity]
         if pregenerate_path:
             target = path_planner.next_target()
         else:
-            target = path_planner.step(
-                y=target[:3], dy=target[3:], target=target_xyz)
+            target = path_planner.step(state=ee_state, target_pos=target_xyz)
 
         # generate an operational space control signal
         u = ctrlr.generate(
