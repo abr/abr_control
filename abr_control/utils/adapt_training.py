@@ -5,6 +5,7 @@ that will account for a 2lb weight in its hand
 import numpy as np
 import os
 import timeit
+import time
 import traceback
 import redis
 
@@ -132,6 +133,34 @@ class Training:
             try:
                 import redis
                 redis_server = redis.StrictRedis(host='localhost')
+                # Initialize parameters in redis
+                redis_server.set('n_neurons', '%d'%1000)
+                redis_server.set('dimensions','%d'%4)
+                redis_server.set('tau_rc', 'np.inf')
+                redis_server.set('tau_ref','%.3f'%0.002)
+                redis_server.set('learn_tau', '%.3f'%0.05)
+                redis_server.set('input_synapse','%.3f'%0.01)
+                redis_server.set('output_synapse','%.3f'%0.01)
+                redis_server.set('encoders','None')
+                redis_server.set('biases','None')
+                redis_server.set('gains','None')
+                redis_server.set('max_rates','None')
+                redis_server.set('intercepts','None')
+                redis_server.set('dt','%.3f'%0.001)
+                redis_server.set('neuron_threshold','%d'%2000)
+                redis_server.set('output_threshold','%d'%2000)
+                redis_server.set('decoder_scale','%d'%8)
+                redis_server.set('max_input_rate','%d'%1000)
+                redis_server.set('max_output_rate','%d'%1000)
+                redis_server.set('output_dims','%d'%2)
+                redis_server.set('max_neurons_per_core','%d'%504)
+                redis_server.set('debug', 'False')
+                redis_server.set('load_weights', 'False')
+                redis_server.set('save_weights', 'False')
+                redis_server.set('u_adapt', '%.3f %.3f'%(0,0))
+                redis_server.set('run_test', 'False')
+                redis_server.set('chip_ready', 'False')
+
             except ImportError:
                 print("You must install redis to do adaptation through a redis"
                       + " server")
@@ -234,7 +263,33 @@ class Training:
         # if user specifies an additional mass, use the estimation function to
         # give the adaptive controller a better starting point
         self.additional_mass = additional_mass
-        if self.additional_mass != 0 and weights_file is None:
+        if redis_adaptation:
+            # pass parameters to redis
+            get_run = signals.DynamicsAdaptation(n_input=1, n_output=1)
+            # get save location of saved data
+            [location, run_num] = get_run.weights_location(test_name=test_name, run=run,
+                                                         session=session)
+            print('run NUM: ', run_num)
+            print('loc', location)
+            if run_num == 0:
+                # first run of adaptation, no learned parameters to pass in so
+                # keep defaults from initialization
+                print('First run of learning, using default parameters')
+            else:
+                encoders = np.load('%s/run%i/encoders%i.npz'%(location,
+                    run_num, run_num),['encoders'])
+                decoders = np.load('%s/run%i/decoders%i.npz'%(location,
+                    run_num, run_num)['decoders'])
+                biases = np.load('%s/run%i/biases%i.npz'%(location,
+                    run_num, run_num)['biases'])
+                redis_server.set('encoders', encoders)
+                redis_server.set('decoders', decoders)
+                redis_server.set('biases', biases)
+                redis_server.set('load_weights', 'True')
+
+            redis_server.set('run_test', 'True')
+
+        elif self.additional_mass != 0 and weights_file is None:
             # if the user knows about the mass at the EE, try and improve
             # our starting point
             self.fake_gravity = np.array([[0, 0, -9.81*self.additional_mass, 0, 0, 0]]).T
@@ -294,9 +349,6 @@ class Training:
                 probe_weights=probe_weights,
                 seed=seed)
 
-        # get save location of saved data
-        [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
-                                                     session=session)
         # if using integral term for PID control, check if previous weights
         # have been saved
         if integrate_err:
@@ -312,7 +364,7 @@ class Training:
         # instantiate operational space controller
         print('using int err of: ', int_err_prev)
         ctrlr = OSC(robot_config, kp=kp, kv=kv, ki=ki, vmax=1,
-                    null_control=True, int_err=int_err_prev)
+                    null_control=True)#, int_err=int_err_prev)
 
         # add joint avoidance controller if specified to do so
         if avoid_limits:
@@ -327,10 +379,8 @@ class Training:
         # if not planning the trajectory (figure8 target) then use a second
         # order filter to smooth out the trajectory to target(s)
         if target_type != 'figure8':
-            path = path_planners.SecondOrder(robot_config)
-            n_timesteps = 4000
-            w = 1e4/n_timesteps
-            zeta = 2
+            path = path_planners.SecondOrder(robot_config, n_timesteps=4000,
+                      w=1e4, zeta=2, threshold=0.05)
             dt = 0.003
 
         # run controller once to generate functions / take care of overhead
@@ -361,6 +411,14 @@ class Training:
             self.F_prev = np.array([0, 0])
             friction_track = []
 
+        if redis_adaptation:
+            chip_ready = redis_server.get('chip_ready').decode('ascii')
+            print("Waiting for chip to start test...")
+            while chip_ready == 'False':
+                # wait 5ms and check redis again to see if chip is ready
+                time.sleep(0.005)
+                chip_ready = redis_server.get('chip_ready').decode('ascii')
+            print("Chip ready, starting test")
         try:
             interface.init_force_mode()
             for ii in range(0,len(PRESET_TARGET)):
@@ -389,8 +447,7 @@ class Training:
                     if target_type == 'vision':
                         TARGET_XYZ = self.get_target_from_camera()
                         TARGET_XYZ = self.normalize_target(TARGET_XYZ)
-                        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
-                                           zeta=zeta, dt=dt, threshold=0.05)
+                        target = path.step(state=target, target_pos=TARGET_XYZ)
 
                     elif target_type == 'figure8':
                         y, dy, ddy = dmps.step()
@@ -399,8 +456,7 @@ class Training:
 
                     else:
                         TARGET_XYZ = PRESET_TARGET[ii]
-                        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
-                                           zeta=zeta, dt=dt, threshold=0.05)
+                        target = path.step(state=target, target_pos=TARGET_XYZ)
 
                     # calculate euclidean distance to target
                     error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ)**2))
@@ -449,8 +505,8 @@ class Training:
                         dq=dq ,
                         target_pos=target[:3],
                         target_vel=target[3:],
-                        offset = OFFSET,
-                        ee_adapt=u_adapt)
+                        offset = OFFSET)#,
+                        #ee_adapt=u_adapt)
 
                     # account for stiction in jaco2 base
                     if u_base[0] > 0:
@@ -486,11 +542,16 @@ class Training:
                                                    robot_config.scaledown('dq',dq)[1],
                                                    robot_config.scaledown('dq',dq)[2]])
                         # send input information to redis
-                        redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
-                                             (adapt_input[0], adapt_input[1],
-                                              adapt_input[2], adapt_input[3]))
-                        redis_server.set('training_signal', '%.3f %.3f' %
-                                             (training_signal[0],training_signal[1]))
+                        # redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
+                        #                      (adapt_input[0], adapt_input[1],
+                        #                       adapt_input[2], adapt_input[3]))
+                        redis_server.set('input_signal',
+                                             np.array2string(adapt_input, separator=','))
+                        # redis_server.set('training_signal', '%.3f %.3f' %
+                        #                      (training_signal[0],training_signal[1]))
+                        redis_server.set('training_signal',
+                                             np.array2string(training_signal,
+                                                 separator=','))
                         # get adaptive output back
                         u_adapt = redis_server.get('u_adapt').decode('ascii')
                         u_adapt = np.array([float(val) for val in u_adapt.split()])
@@ -500,7 +561,7 @@ class Training:
                                             0,
                                             0,
                                             0])
-                        u = u_base + u_adapt
+                        u = u_base #+ u_adapt
 
                     else:
                         u = u_base
@@ -537,10 +598,10 @@ class Training:
                     if integrate_err:
                         int_err_track.append(np.copy(ctrlr.int_err))
 
-                    if count % 1000 == 0:
+                    if count % 100 == 0:
                         print('error: ', error)
                         print('dt: ', end)
-                        #print('adapt: ', u_adapt)
+                        print('adapt: ', u_adapt)
                         #print('int_err/ki: ', ctrlr.int_err)
                         #print('q: ', q)
                         #print('hand: ', ee_xyz)
@@ -555,20 +616,36 @@ class Training:
         finally:
             # close the connection to the arm
             interface.init_position_mode()
+            print('NUMBER OF LOOP STEPS: ', count)
 
             print("RUN IN IS: ", run)
             # get save location of weights to save tracked data in same directory
-            [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
+            [location, run_num] = get_run.weights_location(test_name=test_name, run=run,
                                                          session=session)
             print("RUN OUT IS: ", run_num)
             if backend != None:
                 run_num += 1
-
                 # Save the learned weights
                 adapt.save_weights(test_name=test_name, session=session, run=run)
 
             interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
             interface.disconnect()
+
+            if redis_adaptation:
+                redis_server.set('run_test', 'False')
+                if not os.path.exists(location + '/run%i' % (run_num)):
+                    os.makedirs(location + '/run%i' % (run_num))
+                # wait 2 seconds to make sure redis gets updated
+                time.sleep(2)
+                encoders = redis_server.get('encoders').decode('ascii')
+                decoders = redis_server.get('decoders').decode('ascii')
+                biases = redis_server.get('biases').decode('ascii')
+                np.savez_compressed('%s/run%i/encoders%i.npz'%(location,run_num,run_num),
+                        encoders=encoders)
+                np.savez_compressed('%s/run%i/decoders%i.npz'%(location,run_num,run_num),
+                        decoders=decoders)
+                np.savez_compressed('%s/run%i/biases%i.npz'%(location,run_num,run_num),
+                        biases=biases)
 
             print('**** RUN STATS ****')
             print('Average loop speed: ', sum(time_track)/len(time_track))
@@ -627,7 +704,6 @@ class Training:
             if backend != 'nengo_spinnaker':
                 # give user time to pause before the next run starts, only
                 # works if looping through tests using a bash script
-                import time
                 print('2 Seconds to pause: Hit ctrl z to pause, fg to resume')
                 time.sleep(1)
                 print('1 Second to pause')
