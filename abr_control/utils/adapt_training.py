@@ -308,26 +308,26 @@ class Training:
             else:
                 redis_server.set('load_weights', 'True')
 
-                with open('%s/run%i/encoders%i.bin'%
-                        (location, run_num-1, run_num-1), 'rb') as f:
-                    encoders = f.read()
-                with open('%s/run%i/decoders%i.bin'%
-                        (location, run_num-1, run_num-1), 'rb') as f:
-                    decoders = f.read()
-                with open('%s/run%i/biases%i.bin'%
-                        (location, run_num-1, run_num-1), 'rb') as f:
-                    biases = f.read()
+                # with open('%s/run%i/encoders%i.bin'%
+                #         (location, run_num-1, run_num-1), 'rb') as f:
+                #     encoders = f.read()
+                # with open('%s/run%i/decoders%i.bin'%
+                #         (location, run_num-1, run_num-1), 'rb') as f:
+                #     decoders = f.read()
+                # with open('%s/run%i/biases%i.bin'%
+                #         (location, run_num-1, run_num-1), 'rb') as f:
+                #     biases = f.read()
 
                 # encoders = np.load('%s/run%i/encoders%i.npz'%(location,
-                #     run_num-1, run_num-1),['encoders'])
-                # decoders = np.load('%s/run%i/decoders%i.npz'%(location,
-                #     run_num-1, run_num-1),['decoders'])
+                #     run_num-1, run_num-1))['encoders']
+                decoders = np.load('%s/run%i_data/decoders%i.npz'%(location,
+                    run_num-1, run_num-1))['decoders']
                 # biases = np.load('%s/run%i/biases%i.npz'%(location,
-                #     run_num-1, run_num-1),['biases'])
+                #     run_num-1, run_num-1))['biases']
 
-                redis_server.set('encoders', encoders)
+                #redis_server.set('encoders', encoders)
                 redis_server.set('decoders', decoders)
-                redis_server.set('biases', biases)
+                #redis_server.set('biases', biases)
                 redis_server.set('load_weights', 'True')
 
             redis_server.set('run_test', 'True')
@@ -678,8 +678,8 @@ class Training:
 
                 redis_server.set('run_test', 'False')
 
-                if not os.path.exists(location + '/run%i' % (run_num)):
-                    os.makedirs(location + '/run%i' % (run_num))
+                if not os.path.exists(location + '/run%i_data' % (run_num)):
+                    os.makedirs(location + '/run%i_data' % (run_num))
 
                 data_saved = redis_server.get('data_saved').decode('ascii')
                 while data_saved == 'False':
@@ -687,22 +687,22 @@ class Training:
                     time.sleep(0.05)
                     data_saved = redis_server.get('data_saved').decode('ascii')
 
-                encoders = redis_server.get('encoders')
+                #encoders = redis_server.get('encoders')
                 decoders = redis_server.get('decoders')
-                biases = redis_server.get('biases')
-                with open('%s/run%i/encoders%i.bin'%
-                        (location,run_num,run_num), 'wb') as f:
-                    f.write(encoders)
-                with open('%s/run%i/decoders%i.bin'%
-                        (location,run_num,run_num), 'wb') as f:
-                    f.write(decoders)
-                with open('%s/run%i/biases%i.bin'%
-                        (location,run_num,run_num), 'wb') as f:
-                    f.write(biases)
+                # biases = redis_server.get('biases')
+                # with open('%s/run%i/encoders%i.bin'%
+                #         (location,run_num,run_num), 'wb') as f:
+                #     f.write(encoders)
+                # with open('%s/run%i/decoders%i.bin'%
+                #         (location,run_num,run_num), 'wb') as f:
+                #     f.write(decoders)
+                # with open('%s/run%i/biases%i.bin'%
+                #         (location,run_num,run_num), 'wb') as f:
+                #     f.write(biases)
                 # np.savez_compressed('%s/run%i/encoders%i.npz'%(location,run_num,run_num),
                 #         encoders=encoders)
-                # np.savez_compressed('%s/run%i/decoders%i.npz'%(location,run_num,run_num),
-                #         decoders=decoders)
+                np.savez_compressed('%s/run%i_data/decoders%i.npz'%(location,run_num,run_num),
+                        decoders=decoders)
                 # np.savez_compressed('%s/run%i/biases%i.npz'%(location,run_num,run_num),
                 #         biases=biases)
                 redis_server.set('data_saved', 'False')
