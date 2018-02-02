@@ -448,6 +448,7 @@ class Training:
         target_track = []
         ee_track = []
         input_signal = []
+        filter_track = []
         if integrate_err:
             int_err_track = []
         if simulate_wear:
@@ -490,7 +491,8 @@ class Training:
                     if target_type == 'vision':
                         TARGET_XYZ = self.get_target_from_camera()
                         TARGET_XYZ = self.normalize_target(TARGET_XYZ)
-                        target = path.step(state=target, target_pos=TARGET_XYZ)
+                        target = path.step(state=target,
+                                target_pos=TARGET_XYZ, dt=dt)
 
                     elif target_type == 'figure8':
                         y, dy, ddy = dmps.step()
@@ -499,7 +501,8 @@ class Training:
 
                     else:
                         TARGET_XYZ = PRESET_TARGET[ii]
-                        target = path.step(state=target, target_pos=TARGET_XYZ)
+                        target = path.step(state=target, target_pos=TARGET_XYZ,
+                                dt=dt)
 
                     # calculate euclidean distance to target
                     error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ)**2))
@@ -638,6 +641,7 @@ class Training:
                     target_track.append(np.copy(TARGET_XYZ))
                     input_signal.append(np.copy(adapt_input))
                     ee_track.append(np.copy(ee_xyz))
+                    filter_track.append(np.copy(target))
                     if integrate_err:
                         int_err_track.append(np.copy(ctrlr.int_err))
 
@@ -723,6 +727,7 @@ class Training:
             input_signal = np.array(input_signal)
             ee_track = np.array(ee_track)
             dq_track = np.array(dq_track)
+            filter_track = np.array(filter_track)
             if integrate_err:
                 int_err_track = np.array(int_err_track)
             if simulate_wear:
@@ -751,6 +756,8 @@ class Training:
                                 ee_xyz=[ee_track])
             np.savez_compressed(location + '/run%i_data/dq%i' % (run_num, run_num),
                                 dq=[dq_track])
+            np.savez_compressed(location + '/run%i_data/filter_track%i' % (run_num, run_num),
+                                filter_track=[filter_track])
             if probe_weights:
                 np.savez_compressed(location + '/run%i_data/probe%i' % (run_num, run_num),
                                     probe=[adapt.sim.data[adapt.nengo_model.weights_probe]])
