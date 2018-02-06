@@ -143,6 +143,8 @@ class Training:
 
                 encoder_dist = (nengolib.stats.ScatteredHypersphere(surface=True))
                 encoders = encoder_dist.sample(n_neurons, d=4, rng=rng)
+                # encoders = nengo.dists.Choice([[1],[-1]]).sample(n_neurons,
+                #         d=4, rng=rng)
                 encoders = np.array(encoders)
                 # need to set this so that the ellipses separating the large
                 # array don't get passed in the string
@@ -154,31 +156,29 @@ class Training:
                        + ' encoders')
             try:
                 import redis
-                redis_server = redis.StrictRedis(host='localhost')
+                redis_server = redis.StrictRedis(host='127.0.0.1', port=6379, db=0)
 
                 # Initialize parameters in redis
                 redis_server.set('n_neurons', '%d'%n_neurons)
                 redis_server.set('dimensions','%d'%4)
-                redis_server.set('tau_rc', 'np.inf')
-                redis_server.set('tau_ref','%.3f'%0.001)
-                redis_server.set('learn_tau', '%.3f'%0.05)
-                redis_server.set('input_synapse','%.3f'%0.01)
-                redis_server.set('output_synapse','%.3f'%0.01)
-                # redis_server.set('encoders','None')
+                redis_server.set('tau_rc', '%.3f'%0.02)#'np.inf')
+                redis_server.set('tau_ref','%.3f'%0.002)#0.001)
+                redis_server.set('learn_tau', '%.3f'%0.01)
+                redis_server.set('input_synapse','%.3f'%0.004)#0.01)
+                redis_server.set('output_synapse','%.3f'%0.002)#0.01)
                 redis_server.set('encoders',
                         np.array2string(encoders, separator=','))
                 redis_server.set('biases','None')
                 redis_server.set('gains','None')
                 redis_server.set('max_rates','%d %d'%(200,400))
-                #redis_server.set('intercepts','%.3f %.3f'%(-0.9,0))
                 redis_server.set('intercepts',
                         np.array2string(intercepts)[2:-1])
                 redis_server.set('dt','%.3f'%0.001)
-                redis_server.set('neuron_threshold','%d'%2000)
-                redis_server.set('output_threshold','%d'%2000)
-                redis_server.set('decoder_scale','%d'%8)
-                redis_server.set('max_input_rate','%d'%300)
-                redis_server.set('max_output_rate','%d'%300)
+                redis_server.set('neuron_threshold','%d'%600)#2000)
+                redis_server.set('output_threshold','%d'%1000)#2000)
+                redis_server.set('decoder_scale','%d'%4)#8)
+                redis_server.set('max_input_rate','%d'%1000)#300)
+                redis_server.set('max_output_rate','%d'%300)#300)
                 redis_server.set('output_dims','%d'%2)
                 redis_server.set('max_neurons_per_core','%d'%504)
                 redis_server.set('debug', 'False')
@@ -190,6 +190,9 @@ class Training:
                 redis_server.set('chip_ready', 'False')
                 redis_server.set('time_limit', '%d'%time_limit)
                 redis_server.set('seed', '%d'%seed)
+                redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
+                        (0,0,0,0))
+                redis_server.set('training_signal', '%.3f %.3f' %(0, 0))
 
             except ImportError:
                 print("You must install redis to do adaptation through a redis"
@@ -306,27 +309,27 @@ class Training:
                 # keep defaults from initialization
                 print('First run of learning, using default parameters')
             else:
-                redis_server.set('load_weights', 'True')
+                print('Loading weights from %s run%i'%(location, run_num-1))
 
                 # with open('%s/run%i/encoders%i.bin'%
                 #         (location, run_num-1, run_num-1), 'rb') as f:
                 #     encoders = f.read()
-                # with open('%s/run%i/decoders%i.bin'%
+                # with open('%s/run%i/weights%i.bin'%
                 #         (location, run_num-1, run_num-1), 'rb') as f:
-                #     decoders = f.read()
+                #     weights = f.read()
                 # with open('%s/run%i/biases%i.bin'%
                 #         (location, run_num-1, run_num-1), 'rb') as f:
                 #     biases = f.read()
 
                 # encoders = np.load('%s/run%i/encoders%i.npz'%(location,
                 #     run_num-1, run_num-1))['encoders']
-                decoders = np.load('%s/run%i_data/decoders%i.npz'%(location,
-                    run_num-1, run_num-1))['decoders']
+                # weights = np.load('%s/run%i_data/weights%i.npz'%(location,
+                #     run_num-1, run_num-1))['weights']
                 # biases = np.load('%s/run%i/biases%i.npz'%(location,
                 #     run_num-1, run_num-1))['biases']
 
                 #redis_server.set('encoders', encoders)
-                redis_server.set('decoders', decoders)
+                #redis_server.set('weights', weights)
                 #redis_server.set('biases', biases)
                 redis_server.set('load_weights', 'True')
 
@@ -588,22 +591,25 @@ class Training:
                                                    robot_config.scaledown('dq',dq)[1],
                                                    robot_config.scaledown('dq',dq)[2]])
                         # send input information to redis
+                        # redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
+                        #                      (np.sin(loop_time),
+                        #                       np.cos(loop_time),
+                        #                       np.sin(np.sqrt(2) * loop_time),
+                        #                       np.cos(np.sqrt(2) * loop_time)))
                         redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
                                              (adapt_input[0], adapt_input[1],
                                               adapt_input[2], adapt_input[3]))
-                        # redis_server.set('input_signal',
-                        #                      np.array2string(adapt_input, separator=','))
                         redis_server.set('training_signal', '%.3f %.3f' %
                                              (training_signal[0],training_signal[1]))
-                        # redis_server.set('training_signal',
-                        #                      np.array2string(training_signal,
-                        #                          separator=','))
                         # get adaptive output back
                         u_adapt = redis_server.get('u_adapt').decode('ascii')
                         u_adapt = np.array([float(val) for val in u_adapt.split()])
+                        # redis_server.set('training_signal', '%.3f %.3f' %
+                        #                      (np.sin(loop_time)-u_adapt[0],
+                        #                       np.cos(loop_time) - u_adapt[1]))
                         u_adapt = np.array([0,
-                                            2*u_adapt[0],
-                                            2*u_adapt[1],
+                                            3*u_adapt[0],
+                                            3*u_adapt[1],
                                             0,
                                             0,
                                             0])
@@ -612,7 +618,9 @@ class Training:
                     else:
                         u = u_base
                         u_adapt = None
-                        training_signal = np.zeros(3)
+                        #training_signal = np.zeros(3)
+                        training_signal = np.array([ctrlr.training_signal[1],
+                                                    ctrlr.training_signal[2]])
                         adapt_input = np.zeros(3)
 
 
@@ -692,21 +700,21 @@ class Training:
                     data_saved = redis_server.get('data_saved').decode('ascii')
 
                 #encoders = redis_server.get('encoders')
-                decoders = redis_server.get('decoders')
+                weights = redis_server.get('weights')
                 # biases = redis_server.get('biases')
                 # with open('%s/run%i/encoders%i.bin'%
                 #         (location,run_num,run_num), 'wb') as f:
                 #     f.write(encoders)
-                # with open('%s/run%i/decoders%i.bin'%
+                # with open('%s/run%i/weights%i.bin'%
                 #         (location,run_num,run_num), 'wb') as f:
-                #     f.write(decoders)
+                #     f.write(weights)
                 # with open('%s/run%i/biases%i.bin'%
                 #         (location,run_num,run_num), 'wb') as f:
                 #     f.write(biases)
                 # np.savez_compressed('%s/run%i/encoders%i.npz'%(location,run_num,run_num),
                 #         encoders=encoders)
-                np.savez_compressed('%s/run%i_data/decoders%i.npz'%(location,run_num,run_num),
-                        decoders=decoders)
+                np.savez_compressed('%s/run%i_data/weights%i.npz'%(location,run_num,run_num),
+                        weights=weights)
                 # np.savez_compressed('%s/run%i/biases%i.npz'%(location,run_num,run_num),
                 #         biases=biases)
                 redis_server.set('data_saved', 'False')
