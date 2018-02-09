@@ -161,6 +161,13 @@ class Training:
                 # Initialize parameters in redis
                 redis_server.set('n_neurons', '%d'%n_neurons)
                 redis_server.set('dimensions','%d'%4)
+                redis_server.set('preTraceSLI', '%d'%0)
+                redis_server.set('preTraceSLF', '%d'%8)
+                redis_server.set('error_scale', '%.3f' % 7.5)
+                redis_server.set('bias_exp', '%d' %7)
+                redis_server.set('encoder_exp', '%d' %0)
+                redis_server.set('decoder_exp', '%d' %0)
+                redis_server.set('output_spiking', 'False')
                 redis_server.set('tau_rc', '%.3f'%0.02)#'np.inf')
                 redis_server.set('tau_ref','%.3f'%0.002)#0.001)
                 redis_server.set('learn_tau', '%.3f'%0.01)
@@ -284,6 +291,9 @@ class Training:
         elif joint_adaptation and not ee_adaptation:
             n_input = 4
             n_output = 2
+        elif redis_adaptation:
+            n_input=4
+            n_output=2
         else:
             n_input = 1
             n_output = 1
@@ -314,9 +324,9 @@ class Training:
                 # with open('%s/run%i/encoders%i.bin'%
                 #         (location, run_num-1, run_num-1), 'rb') as f:
                 #     encoders = f.read()
-                # with open('%s/run%i/weights%i.bin'%
-                #         (location, run_num-1, run_num-1), 'rb') as f:
-                #     weights = f.read()
+                with open('%s/run%i_data/weights%i.bin'%
+                        (location, run_num-1, run_num-1), 'rb') as f:
+                    weights = f.read()
                 # with open('%s/run%i/biases%i.bin'%
                 #         (location, run_num-1, run_num-1), 'rb') as f:
                 #     biases = f.read()
@@ -329,7 +339,7 @@ class Training:
                 #     run_num-1, run_num-1))['biases']
 
                 #redis_server.set('encoders', encoders)
-                #redis_server.set('weights', weights)
+                redis_server.set('weights', weights)
                 #redis_server.set('biases', biases)
                 redis_server.set('load_weights', 'True')
 
@@ -653,7 +663,7 @@ class Training:
                     if integrate_err:
                         int_err_track.append(np.copy(ctrlr.int_err))
 
-                    if count % 100 == 0:
+                    if count % 1000 == 0:
                         print('error: ', error)
                         print('dt: ', end)
                         print('adapt: ', u_adapt)
@@ -669,6 +679,10 @@ class Training:
             print(traceback.format_exc())
 
         finally:
+
+            if redis_adaptation:
+                redis_server.set('run_test', 'False')
+
             # close the connection to the arm
             interface.init_position_mode()
             print('NUMBER OF LOOP STEPS: ', count)
@@ -688,8 +702,6 @@ class Training:
 
             if redis_adaptation:
 
-                redis_server.set('run_test', 'False')
-
                 if not os.path.exists(location + '/run%i_data' % (run_num)):
                     os.makedirs(location + '/run%i_data' % (run_num))
 
@@ -705,16 +717,16 @@ class Training:
                 # with open('%s/run%i/encoders%i.bin'%
                 #         (location,run_num,run_num), 'wb') as f:
                 #     f.write(encoders)
-                # with open('%s/run%i/weights%i.bin'%
-                #         (location,run_num,run_num), 'wb') as f:
-                #     f.write(weights)
+                with open('%s/run%i_data/weights%i.bin'%
+                        (location,run_num,run_num), 'wb') as f:
+                    f.write(weights)
                 # with open('%s/run%i/biases%i.bin'%
                 #         (location,run_num,run_num), 'wb') as f:
                 #     f.write(biases)
                 # np.savez_compressed('%s/run%i/encoders%i.npz'%(location,run_num,run_num),
                 #         encoders=encoders)
-                np.savez_compressed('%s/run%i_data/weights%i.npz'%(location,run_num,run_num),
-                        weights=weights)
+                #np.savez_compressed('%s/run%i_data/weights%i.npz'%(location,run_num,run_num),
+                #        weights=weights)
                 # np.savez_compressed('%s/run%i/biases%i.npz'%(location,run_num,run_num),
                 #         biases=biases)
                 redis_server.set('data_saved', 'False')
