@@ -27,7 +27,8 @@ class PyGame():
     """
 
     def __init__(self, robot_config, arm_sim, dt=0.001, q_init=None,
-                 on_click=None, on_keypress=None):
+                 on_click=None, on_keypress=None, scaling_term=105,
+                 line_width=15):
         self.robot_config = robot_config
         self.arm_sim = arm_sim
 
@@ -38,8 +39,7 @@ class PyGame():
         self.base_offset = np.array([self.width / 2.0, self.height*.9],
                                     dtype='int')
 
-        self.scaling_term = 105
-        line_width = .15 * self.scaling_term
+        self.scaling_term = scaling_term
 
         self.white = (255, 255, 255)
         self.red = (255, 0, 0)
