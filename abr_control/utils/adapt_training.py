@@ -27,7 +27,9 @@ class Training:
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
                  joint_adaptation=False, simulate_wear=False,
                  probe_weights=False, seed=None, friction_bootstrap=False,
-                 redis_adaptation=False, SCALES=None, MEANS=None):
+                 redis_adaptation=False, SCALES=None, MEANS=None,
+                 gradual_wear=False, print_run=None):
+        #TODO: DElete print_run  parameter
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The script is
@@ -118,6 +120,10 @@ class Training:
             True to send adaptive inputs to redis and read outputs back, allows
             user to use any backend they like as long as it can read/write from
             redis
+        gradual_wear: Boolean Optional (Default: False)
+            sets a gain on the friction term
+            False: 1
+            True: linear gradient based on run number
 
         Attributes
         ----------
@@ -163,7 +169,7 @@ class Training:
                 redis_server.set('dimensions','%d'%4)
                 redis_server.set('preTraceSLI', '%d'%0)
                 redis_server.set('preTraceSLF', '%d'%8)
-                redis_server.set('error_scale', '%.3f' % 7.5)
+                redis_server.set('error_scale', '%.3f' % 6)
                 redis_server.set('bias_exp', '%d' %7)
                 redis_server.set('encoder_exp', '%d' %0)
                 redis_server.set('decoder_exp', '%d' %0)
@@ -187,7 +193,7 @@ class Training:
                 redis_server.set('max_input_rate','%d'%1000)#300)
                 redis_server.set('max_output_rate','%d'%300)#300)
                 redis_server.set('output_dims','%d'%2)
-                redis_server.set('max_neurons_per_core','%d'%504)
+                redis_server.set('max_neurons_per_core','%d'%1004)
                 redis_server.set('debug', 'False')
                 redis_server.set('load_weights', 'False')
                 redis_server.set('save_weights', 'True')
@@ -295,8 +301,8 @@ class Training:
             n_input=4
             n_output=2
         else:
-            n_input = 1
-            n_output = 1
+            n_input = 4
+            n_output = 2
 
         # for use with weight estimation, is the number of joint angles being
         # passed to the adaptive controller (not including velocities)
@@ -466,6 +472,11 @@ class Training:
             int_err_track = []
         if simulate_wear:
             self.F_prev = np.array([0, 0])
+            if gradual_wear:
+                friction_gains = np.linspace(0,1,50)
+                kfriction = friction_gains[print_run]
+                print('run_:',run)
+                print("Using kfriction: ", kfriction)
             friction_track = []
 
         if redis_adaptation:
@@ -618,8 +629,8 @@ class Training:
                         #                      (np.sin(loop_time)-u_adapt[0],
                         #                       np.cos(loop_time) - u_adapt[1]))
                         u_adapt = np.array([0,
-                                            3*u_adapt[0],
-                                            3*u_adapt[1],
+                                            3*u_adapt[0],#/20,
+                                            3*u_adapt[1],#/20,
                                             0,
                                             0,
                                             0])
@@ -640,6 +651,8 @@ class Training:
 
                     if simulate_wear:
                         u_friction = self.friction(dq[1:3])
+                        if gradual_wear:
+                            u_friction *= kfriction
                         u += [0, u_friction[0], u_friction[1], 0, 0, 0]
                         friction_track.append(np.copy(u_friction))
 
@@ -787,6 +800,10 @@ class Training:
             if simulate_wear:
                 np.savez_compressed(location + '/run%i_data/friction%i' % (run_num, run_num),
                                     friction=[friction_track])
+                if gradual_wear:
+                    np.savez_compressed(location + '/run%i_data/kfriction%i' % (run_num, run_num),
+                                        kfriction=[kfriction])
+
 
             if backend != 'nengo_spinnaker':
                 # give user time to pause before the next run starts, only
