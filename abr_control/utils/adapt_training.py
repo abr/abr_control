@@ -5,7 +5,9 @@ that will account for a 2lb weight in its hand
 import numpy as np
 import os
 import timeit
+import time
 import traceback
+import scipy
 import redis
 
 from abr_control.controllers import OSC, signals, path_planners
@@ -25,7 +27,9 @@ class Training:
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
                  joint_adaptation=False, simulate_wear=False,
                  probe_weights=False, seed=None, friction_bootstrap=False,
-                 redis_adaptation=False, SCALES=None, MEANS=None):
+                 redis_adaptation=False, SCALES=None, MEANS=None,
+                 gradual_wear=False, print_run=None):
+        #TODO: DElete print_run  parameter
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The script is
@@ -116,6 +120,10 @@ class Training:
             True to send adaptive inputs to redis and read outputs back, allows
             user to use any backend they like as long as it can read/write from
             redis
+        gradual_wear: Boolean Optional (Default: False)
+            sets a gain on the friction term
+            False: 1
+            True: linear gradient based on run number
 
         Attributes
         ----------
@@ -130,8 +138,75 @@ class Training:
 
         if redis_adaptation:
             try:
+                import nengolib
+                rng = np.random.RandomState(seed)
+
+                intercepts = AreaIntercepts(
+                    dimensions=4,
+                    base=Triangular(-0.9, -0.9, 0.0))
+                intercepts = intercepts.sample(n_neurons, rng=rng)
+                intercepts = np.array(intercepts)
+
+                encoder_dist = (nengolib.stats.ScatteredHypersphere(surface=True))
+                encoders = encoder_dist.sample(n_neurons, d=4, rng=rng)
+                # encoders = nengo.dists.Choice([[1],[-1]]).sample(n_neurons,
+                #         d=4, rng=rng)
+                encoders = np.array(encoders)
+                # need to set this so that the ellipses separating the large
+                # array don't get passed in the string
+                np.set_printoptions(threshold=np.prod(encoders.shape))
+                print('NengoLib used to optimize encoders placement')
+
+            except ImportError:
+                print('You must either install nengolib, or manually pass in'
+                       + ' encoders')
+            try:
                 import redis
-                redis_server = redis.StrictRedis(host='localhost')
+                redis_server = redis.StrictRedis(host='127.0.0.1', port=6379, db=0)
+
+                # Initialize parameters in redis
+                redis_server.set('n_neurons', '%d'%n_neurons)
+                redis_server.set('dimensions','%d'%4)
+                redis_server.set('preTraceSLI', '%d'%0)
+                redis_server.set('preTraceSLF', '%d'%8)
+                redis_server.set('error_scale', '%.3f' % 6)
+                redis_server.set('bias_exp', '%d' %7)
+                redis_server.set('encoder_exp', '%d' %0)
+                redis_server.set('decoder_exp', '%d' %0)
+                redis_server.set('output_spiking', 'False')
+                redis_server.set('tau_rc', '%.3f'%0.02)#'np.inf')
+                redis_server.set('tau_ref','%.3f'%0.002)#0.001)
+                redis_server.set('learn_tau', '%.3f'%0.01)
+                redis_server.set('input_synapse','%.3f'%0.004)#0.01)
+                redis_server.set('output_synapse','%.3f'%0.002)#0.01)
+                redis_server.set('encoders',
+                        np.array2string(encoders, separator=','))
+                redis_server.set('biases','None')
+                redis_server.set('gains','None')
+                redis_server.set('max_rates','%d %d'%(200,400))
+                redis_server.set('intercepts',
+                        np.array2string(intercepts)[2:-1])
+                redis_server.set('dt','%.3f'%0.001)
+                redis_server.set('neuron_threshold','%d'%600)#2000)
+                redis_server.set('output_threshold','%d'%1000)#2000)
+                redis_server.set('decoder_scale','%d'%4)#8)
+                redis_server.set('max_input_rate','%d'%1000)#300)
+                redis_server.set('max_output_rate','%d'%300)#300)
+                redis_server.set('output_dims','%d'%2)
+                redis_server.set('max_neurons_per_core','%d'%1004)
+                redis_server.set('debug', 'False')
+                redis_server.set('load_weights', 'False')
+                redis_server.set('save_weights', 'True')
+                redis_server.set('data_saved', 'False')
+                redis_server.set('u_adapt', '%.3f %.3f'%(0,0))
+                redis_server.set('run_test', 'False')
+                redis_server.set('chip_ready', 'False')
+                redis_server.set('time_limit', '%d'%time_limit)
+                redis_server.set('seed', '%d'%seed)
+                redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
+                        (0,0,0,0))
+                redis_server.set('training_signal', '%.3f %.3f' %(0, 0))
+
             except ImportError:
                 print("You must install redis to do adaptation through a redis"
                       + " server")
@@ -222,9 +297,12 @@ class Training:
         elif joint_adaptation and not ee_adaptation:
             n_input = 4
             n_output = 2
+        elif redis_adaptation:
+            n_input=4
+            n_output=2
         else:
-            n_input = 1
-            n_output = 1
+            n_input = 4
+            n_output = 2
 
         # for use with weight estimation, is the number of joint angles being
         # passed to the adaptive controller (not including velocities)
@@ -234,7 +312,46 @@ class Training:
         # if user specifies an additional mass, use the estimation function to
         # give the adaptive controller a better starting point
         self.additional_mass = additional_mass
-        if self.additional_mass != 0 and weights_file is None:
+        get_run = signals.DynamicsAdaptation(n_input=1, n_output=1)
+        if redis_adaptation:
+            # pass parameters to redis
+            # get save location of saved data
+            [location, run_num] = get_run.weights_location(test_name=test_name, run=run,
+                                                         session=session)
+            print('run NUM: ', run_num)
+            print('loc', location)
+            if run_num == 0:
+                # first run of adaptation, no learned parameters to pass in so
+                # keep defaults from initialization
+                print('First run of learning, using default parameters')
+            else:
+                print('Loading weights from %s run%i'%(location, run_num-1))
+
+                # with open('%s/run%i/encoders%i.bin'%
+                #         (location, run_num-1, run_num-1), 'rb') as f:
+                #     encoders = f.read()
+                with open('%s/run%i_data/weights%i.bin'%
+                        (location, run_num-1, run_num-1), 'rb') as f:
+                    weights = f.read()
+                # with open('%s/run%i/biases%i.bin'%
+                #         (location, run_num-1, run_num-1), 'rb') as f:
+                #     biases = f.read()
+
+                # encoders = np.load('%s/run%i/encoders%i.npz'%(location,
+                #     run_num-1, run_num-1))['encoders']
+                # weights = np.load('%s/run%i_data/weights%i.npz'%(location,
+                #     run_num-1, run_num-1))['weights']
+                # biases = np.load('%s/run%i/biases%i.npz'%(location,
+                #     run_num-1, run_num-1))['biases']
+
+                #redis_server.set('encoders', encoders)
+                redis_server.set('weights', weights)
+                #redis_server.set('biases', biases)
+                redis_server.set('load_weights', 'True')
+
+            redis_server.set('run_test', 'True')
+
+        elif self.additional_mass != 0 and weights_file is None:
             # if the user knows about the mass at the EE, try and improve
             # our starting point
             self.fake_gravity = np.array([[0, 0, -9.81*self.additional_mass, 0, 0, 0]]).T
@@ -294,9 +411,6 @@ class Training:
                 probe_weights=probe_weights,
                 seed=seed)
 
-        # get save location of saved data
-        [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
-                                                     session=session)
         # if using integral term for PID control, check if previous weights
         # have been saved
         if integrate_err:
@@ -312,7 +426,7 @@ class Training:
         # instantiate operational space controller
         print('using int err of: ', int_err_prev)
         ctrlr = OSC(robot_config, kp=kp, kv=kv, ki=ki, vmax=1,
-                    null_control=True, int_err=int_err_prev)
+                    null_control=True)#, int_err=int_err_prev)
 
         # add joint avoidance controller if specified to do so
         if avoid_limits:
@@ -327,10 +441,8 @@ class Training:
         # if not planning the trajectory (figure8 target) then use a second
         # order filter to smooth out the trajectory to target(s)
         if target_type != 'figure8':
-            path = path_planners.SecondOrder(robot_config)
-            n_timesteps = 4000
-            w = 1e4/n_timesteps
-            zeta = 2
+            path = path_planners.SecondOrder(robot_config, n_timesteps=4000,
+                      w=1e4, zeta=2, threshold=0.05)
             dt = 0.003
 
         # run controller once to generate functions / take care of overhead
@@ -355,12 +467,26 @@ class Training:
         target_track = []
         ee_track = []
         input_signal = []
+        filter_track = []
         if integrate_err:
             int_err_track = []
         if simulate_wear:
             self.F_prev = np.array([0, 0])
+            if gradual_wear:
+                friction_gains = np.linspace(0,1,50)
+                kfriction = friction_gains[print_run]
+                print('run_:',run)
+                print("Using kfriction: ", kfriction)
             friction_track = []
 
+        if redis_adaptation:
+            chip_ready = redis_server.get('chip_ready').decode('ascii')
+            print("Waiting for chip to start test...")
+            while chip_ready == 'False':
+                # wait 5ms and check redis again to see if chip is ready
+                time.sleep(0.005)
+                chip_ready = redis_server.get('chip_ready').decode('ascii')
+            print("Chip ready, starting test")
         try:
             interface.init_force_mode()
             for ii in range(0,len(PRESET_TARGET)):
@@ -389,8 +515,8 @@ class Training:
                     if target_type == 'vision':
                         TARGET_XYZ = self.get_target_from_camera()
                         TARGET_XYZ = self.normalize_target(TARGET_XYZ)
-                        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
-                                           zeta=zeta, dt=dt, threshold=0.05)
+                        target = path.step(state=target,
+                                target_pos=TARGET_XYZ, dt=dt)
 
                     elif target_type == 'figure8':
                         y, dy, ddy = dmps.step()
@@ -399,8 +525,8 @@ class Training:
 
                     else:
                         TARGET_XYZ = PRESET_TARGET[ii]
-                        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
-                                           zeta=zeta, dt=dt, threshold=0.05)
+                        target = path.step(state=target, target_pos=TARGET_XYZ,
+                                dt=dt)
 
                     # calculate euclidean distance to target
                     error = np.sqrt(np.sum((ee_xyz - TARGET_XYZ)**2))
@@ -449,8 +575,8 @@ class Training:
                         dq=dq ,
                         target_pos=target[:3],
                         target_vel=target[3:],
-                        offset = OFFSET,
-                        ee_adapt=u_adapt)
+                        offset = OFFSET)#,
+                        #ee_adapt=u_adapt)
 
                     # account for stiction in jaco2 base
                     if u_base[0] > 0:
@@ -486,6 +612,11 @@ class Training:
                                                    robot_config.scaledown('dq',dq)[1],
                                                    robot_config.scaledown('dq',dq)[2]])
                         # send input information to redis
+                        # redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
+                        #                      (np.sin(loop_time),
+                        #                       np.cos(loop_time),
+                        #                       np.sin(np.sqrt(2) * loop_time),
+                        #                       np.cos(np.sqrt(2) * loop_time)))
                         redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
                                              (adapt_input[0], adapt_input[1],
                                               adapt_input[2], adapt_input[3]))
@@ -494,9 +625,12 @@ class Training:
                         # get adaptive output back
                         u_adapt = redis_server.get('u_adapt').decode('ascii')
                         u_adapt = np.array([float(val) for val in u_adapt.split()])
+                        # redis_server.set('training_signal', '%.3f %.3f' %
+                        #                      (np.sin(loop_time)-u_adapt[0],
+                        #                       np.cos(loop_time) - u_adapt[1]))
                         u_adapt = np.array([0,
-                                            u_adapt[0],
-                                            u_adapt[1],
+                                            3*u_adapt[0],#/20,
+                                            3*u_adapt[1],#/20,
                                             0,
                                             0,
                                             0])
@@ -505,7 +639,9 @@ class Training:
                     else:
                         u = u_base
                         u_adapt = None
-                        training_signal = np.zeros(3)
+                        #training_signal = np.zeros(3)
+                        training_signal = np.array([ctrlr.training_signal[1],
+                                                    ctrlr.training_signal[2]])
                         adapt_input = np.zeros(3)
 
 
@@ -515,6 +651,8 @@ class Training:
 
                     if simulate_wear:
                         u_friction = self.friction(dq[1:3])
+                        if gradual_wear:
+                            u_friction *= kfriction
                         u += [0, u_friction[0], u_friction[1], 0, 0, 0]
                         friction_track.append(np.copy(u_friction))
 
@@ -534,13 +672,14 @@ class Training:
                     target_track.append(np.copy(TARGET_XYZ))
                     input_signal.append(np.copy(adapt_input))
                     ee_track.append(np.copy(ee_xyz))
+                    filter_track.append(np.copy(target))
                     if integrate_err:
                         int_err_track.append(np.copy(ctrlr.int_err))
 
                     if count % 1000 == 0:
                         print('error: ', error)
                         print('dt: ', end)
-                        #print('adapt: ', u_adapt)
+                        print('adapt: ', u_adapt)
                         #print('int_err/ki: ', ctrlr.int_err)
                         #print('q: ', q)
                         #print('hand: ', ee_xyz)
@@ -553,22 +692,57 @@ class Training:
             print(traceback.format_exc())
 
         finally:
+
+            if redis_adaptation:
+                redis_server.set('run_test', 'False')
+
             # close the connection to the arm
             interface.init_position_mode()
+            print('NUMBER OF LOOP STEPS: ', count)
 
             print("RUN IN IS: ", run)
             # get save location of weights to save tracked data in same directory
-            [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
+            [location, run_num] = get_run.weights_location(test_name=test_name, run=run,
                                                          session=session)
             print("RUN OUT IS: ", run_num)
             if backend != None:
                 run_num += 1
-
                 # Save the learned weights
                 adapt.save_weights(test_name=test_name, session=session, run=run)
 
             interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
             interface.disconnect()
+
+            if redis_adaptation:
+
+                if not os.path.exists(location + '/run%i_data' % (run_num)):
+                    os.makedirs(location + '/run%i_data' % (run_num))
+
+                data_saved = redis_server.get('data_saved').decode('ascii')
+                while data_saved == 'False':
+                    # wait for flag that redis has been updated
+                    time.sleep(0.05)
+                    data_saved = redis_server.get('data_saved').decode('ascii')
+
+                #encoders = redis_server.get('encoders')
+                weights = redis_server.get('weights')
+                # biases = redis_server.get('biases')
+                # with open('%s/run%i/encoders%i.bin'%
+                #         (location,run_num,run_num), 'wb') as f:
+                #     f.write(encoders)
+                with open('%s/run%i_data/weights%i.bin'%
+                        (location,run_num,run_num), 'wb') as f:
+                    f.write(weights)
+                # with open('%s/run%i/biases%i.bin'%
+                #         (location,run_num,run_num), 'wb') as f:
+                #     f.write(biases)
+                # np.savez_compressed('%s/run%i/encoders%i.npz'%(location,run_num,run_num),
+                #         encoders=encoders)
+                #np.savez_compressed('%s/run%i_data/weights%i.npz'%(location,run_num,run_num),
+                #        weights=weights)
+                # np.savez_compressed('%s/run%i/biases%i.npz'%(location,run_num,run_num),
+                #         biases=biases)
+                redis_server.set('data_saved', 'False')
 
             print('**** RUN STATS ****')
             print('Average loop speed: ', sum(time_track)/len(time_track))
@@ -586,6 +760,7 @@ class Training:
             input_signal = np.array(input_signal)
             ee_track = np.array(ee_track)
             dq_track = np.array(dq_track)
+            filter_track = np.array(filter_track)
             if integrate_err:
                 int_err_track = np.array(int_err_track)
             if simulate_wear:
@@ -614,6 +789,8 @@ class Training:
                                 ee_xyz=[ee_track])
             np.savez_compressed(location + '/run%i_data/dq%i' % (run_num, run_num),
                                 dq=[dq_track])
+            np.savez_compressed(location + '/run%i_data/filter_track%i' % (run_num, run_num),
+                                filter_track=[filter_track])
             if probe_weights:
                 np.savez_compressed(location + '/run%i_data/probe%i' % (run_num, run_num),
                                     probe=[adapt.sim.data[adapt.nengo_model.weights_probe]])
@@ -623,16 +800,20 @@ class Training:
             if simulate_wear:
                 np.savez_compressed(location + '/run%i_data/friction%i' % (run_num, run_num),
                                     friction=[friction_track])
+                if gradual_wear:
+                    np.savez_compressed(location + '/run%i_data/kfriction%i' % (run_num, run_num),
+                                        kfriction=[kfriction])
+
 
             if backend != 'nengo_spinnaker':
                 # give user time to pause before the next run starts, only
                 # works if looping through tests using a bash script
-                import time
                 print('2 Seconds to pause: Hit ctrl z to pause, fg to resume')
                 time.sleep(1)
                 print('1 Second to pause')
                 time.sleep(1)
                 print('Starting next test...')
+
     def get_target_from_camera(self):
         # read from server
         camera_xyz = self.redis_server.get('target_xyz').decode('ascii')
@@ -698,3 +879,57 @@ class Training:
         Ff = Fc + (Fs-Fc) * np.exp(-sgn_v * v/vs) - Fv * v
         Ff *= np.array([0.9, 1.1])
         return(Ff)
+
+class AreaIntercepts(nengo.dists.Distribution):
+    """ Generate an optimally distributed set of intercepts in
+    high-dimensional space.
+    """
+    dimensions = nengo.params.NumberParam('dimensions')
+    base = nengo.dists.DistributionParam('base')
+
+    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
+        super(AreaIntercepts, self).__init__()
+        self.dimensions = dimensions
+        self.base = base
+
+    def __repr(self):
+        return ("AreaIntercepts(dimensions=%r, base=%r)" %
+                (self.dimensions, self.base))
+
+    def transform(self, x):
+        sign = 1
+        if x > 0:
+            x = -x
+            sign = -1
+        return sign * np.sqrt(1 - scipy.special.betaincinv(
+            (self.dimensions + 1) / 2.0, 0.5, x + 1))
+
+    def sample(self, n, d=None, rng=np.random):
+        s = self.base.sample(n=n, d=d, rng=rng)
+        for i in range(len(s)):
+            s[i] = self.transform(s[i])
+        return s
+
+class Triangular(nengo.dists.Distribution):
+    """ Generate an optimally distributed set of intercepts in
+    high-dimensional space using a triangular distribution.
+    """
+    left = nengo.params.NumberParam('dimensions')
+    right = nengo.params.NumberParam('dimensions')
+    mode = nengo.params.NumberParam('dimensions')
+
+    def __init__(self, left, mode, right):
+        super(Triangular, self).__init__()
+        self.left = left
+        self.right = right
+        self.mode = mode
+
+    def __repr__(self):
+        return ("Triangular(left=%r, mode=%r, right=%r)" %
+                (self.left, self.mode, self.right))
+
+    def sample(self, n, d=None, rng=np.random):
+        if d is None:
+            return rng.triangular(self.left, self.mode, self.right, size=n)
+        else:
+            return rng.triangular(self.left, self.mode, self.right, size=(n, d))
