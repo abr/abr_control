@@ -7,6 +7,7 @@ import os
 
 from legend_object import LegendObject
 
+#TODO: save pdf results to cache_dir
 class PlotError():
     def __init__(self):
         pass
@@ -24,7 +25,7 @@ class PlotError():
 
     def plot_data(self, proc_data, legend_labels, fig_title='Error Over Runs',
                   x_axis='Run Number', y_axis='Error', xlim=50):
-        fig = plt.figure(1, figsize=(7, 4))
+        fig = plt.figure(1, figsize=(8, 3))
         plt.title(fig_title)
         plt.xlabel(x_axis)
         plt.ylabel(y_axis)
@@ -51,22 +52,29 @@ class PlotError():
                        6: LegendObject(colors[6], colors_faded[6]),
                     })
 
+        plt.tight_layout()
         if not os.path.exists('figures'):
             os.makedirs('figures')
         plt.savefig('figures/%s.pdf'%fig_title)
-        plt.show()
+        if self.show_plot:
+            plt.show()
 
     def get_error_plot(self, test_set_name, plot_total_error=True, plot_vs_ideal=True,
-            n_targets=1, reaching_time_per_target=3):
+            n_targets=1, reaching_time_per_target=3, show_plot=True):
 
         test_info = np.load('proc_data/%s.npz'%test_set_name)['test_info']
         test_info = np.array(test_info)
+        self.show_plot = show_plot
 
         print('Plotting the Following from %s:'%test_set_name)
         print(test_info)
 
         proc_data_traj = []
         proc_data_err = []
+        # legend_labels = []
+        #legend_labels = ['Spin50k', 'chip','nengo 1e-4 old scale old data', 'nengo 1e-4 new scale',
+        #'nengo 5-4 new scale', 'nengo 5-4 old scale', 'nengo 1e-4 old scale']
+        #legend_labels = test_info[:,2]
         legend_labels = []
         xlims = []
 
@@ -76,7 +84,8 @@ class PlotError():
             num_runs = int(test_info[ii,3])
             xlims.append(np.copy(num_runs))
             num_sessions = int(test_info[ii,4])
-            legend_labels.append(np.copy((backend + '/' + test_name)))
+            legend_labels.append(np.copy(backend + ' ' + test_name))
+            # legend_labels.append(np.copy((backend + '/' + test_name)))
 
             if plot_total_error:
                 proc_data_err.append(np.load(
@@ -97,17 +106,17 @@ class PlotError():
         if plot_total_error:
             self.plot_data(proc_data=proc_data_err,
                       legend_labels=legend_labels,
-                      fig_title=('%s: Cumulative Error to Target Over Runs'
+                      fig_title=('%s:_Cumulative_Error_to_Target_Over_Runs'
                                  %test_set_name),
                       x_axis='Runs',
-                      y_axis='Error [m*s]',
+                      y_axis='Error [m$^2$]',
                       xlim=x_lim)
 
         if plot_vs_ideal:
             self.plot_data(proc_data=proc_data_traj,
                       legend_labels=legend_labels,
-                      fig_title=('%s: Trajectory Error Compared to Ideal'
+                      fig_title=('%s:_Trajectory_Error_Compared_to_Ideal'
                                  %test_set_name),
                       x_axis='Runs',
-                      y_axis='Error [m]',
+                      y_axis='Error [m$^2$]',
                       xlim=x_lim)
