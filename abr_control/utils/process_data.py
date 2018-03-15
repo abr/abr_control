@@ -6,6 +6,7 @@ import os
 import numpy as np
 from abr_control.utils.paths import cache_dir
 
+#TODO: change save location of proc data to use cache_dir
 class ProcessData():
     def __init__(self):
         pass
@@ -226,12 +227,13 @@ class ProcessData():
             test_name = test_info[ii,2]
             n_runs = test_info[ii,3]
             n_sessions = test_info[ii,4]
+            test_group = test_info[ii,5]
 
             if not os.path.exists(test_name):
                 os.makedirs(test_name)
             os.chdir(test_name)
 
-            data_location = (cache_dir + '/saved_weights/dewolf2017/'
+            data_location = (cache_dir + '/saved_weights/' + test_group +'/'
                              + weighted + '/' + backend + '/' + test_name + '/')
 
             # get error compared to ideal trajectory

@@ -168,12 +168,13 @@ class Training:
                 redis_server.set('n_neurons', '%d'%n_neurons)
                 redis_server.set('dimensions','%d'%4)
                 redis_server.set('preTraceSLI', '%d'%0)
-                redis_server.set('preTraceSLF', '%d'%8)
-                redis_server.set('error_scale', '%.3f' % 6)
-                redis_server.set('bias_exp', '%d' %7)
+                redis_server.set('preTraceSLF', '%d'%3)
+                redis_server.set('error_scale', '%.3f' % 7.5)
+                redis_server.set('bias_exp', '%d' %3)
                 redis_server.set('encoder_exp', '%d' %0)
                 redis_server.set('decoder_exp', '%d' %0)
                 redis_server.set('output_spiking', 'False')
+                redis_server.set('get_hidden_layer_spikes', 'False')
                 redis_server.set('tau_rc', '%.3f'%0.02)#'np.inf')
                 redis_server.set('tau_ref','%.3f'%0.002)#0.001)
                 redis_server.set('learn_tau', '%.3f'%0.01)
@@ -629,8 +630,8 @@ class Training:
                         #                      (np.sin(loop_time)-u_adapt[0],
                         #                       np.cos(loop_time) - u_adapt[1]))
                         u_adapt = np.array([0,
-                                            3*u_adapt[0],#/20,
-                                            3*u_adapt[1],#/20,
+                                            3*u_adapt[0]/20,
+                                            3*u_adapt[1]/20,
                                             0,
                                             0,
                                             0])
