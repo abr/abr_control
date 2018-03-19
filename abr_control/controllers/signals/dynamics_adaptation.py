@@ -17,11 +17,11 @@ try:
 except ImportError:
     raise Exception('Nengo module needs to be installed to ' +
                     'use adaptive dynamics.')
-try:
-    from nengo_extras.dists import Concatenate
-except ImportError:
-    raise Exception('Nengo_extras module needs to be installed to ' +
-                    'bootstrap learning.')
+# try:
+#     from nengo_extras.dists import Concatenate
+# except ImportError:
+#     raise Exception('Nengo_extras module needs to be installed to ' +
+#                     'bootstrap learning.')
 
 
 class DynamicsAdaptation(Signal):
