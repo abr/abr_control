@@ -43,7 +43,8 @@ class OSC(controller.Controller):
         task-space integrated error term
     """
     def __init__(self, robot_config, kp=1, kv=None, ki=0, vmax=0.5,
-                 null_control=True, use_g=True, use_C=False, use_dJ=False):
+                 null_control=True, use_g=True, use_C=False, use_dJ=False,
+                 integrated_error=None):
 
         super(OSC, self).__init__(robot_config)
 
@@ -57,7 +58,10 @@ class OSC(controller.Controller):
         self.use_C = use_C
         self.use_dJ = use_dJ
 
-        self.integrated_error = np.array([0.0, 0.0, 0.0])
+        if integrated_error is None:
+            self.integrated_error = np.array([0.0, 0.0, 0.0])
+        else:
+            self.integrated_error = integrated_error
 
         # null_indices is a mask for identifying which joints have REST_ANGLES
         self.null_indices = ~np.isnan(self.robot_config.REST_ANGLES)

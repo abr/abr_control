@@ -415,6 +415,8 @@ class Training:
         # if using integral term for PID control, check if previous weights
         # have been saved
         if integrate_err:
+            [location, run_num] = get_run.weights_location(test_name=test_name, run=run,
+                                                         session=session)
             if run_num < 1:
                 run_num = 0
                 int_err_prev = [0, 0, 0]
@@ -427,7 +429,7 @@ class Training:
         # instantiate operational space controller
         print('using int err of: ', int_err_prev)
         ctrlr = OSC(robot_config, kp=kp, kv=kv, ki=ki, vmax=1,
-                    null_control=True)#, int_err=int_err_prev)
+                    null_control=True, integrated_error=int_err_prev)
 
         # add joint avoidance controller if specified to do so
         if avoid_limits:
@@ -439,7 +441,7 @@ class Training:
                       max_torque=[4]*robot_config.N_JOINTS,
                       cross_zero=[True, False, False, False, True, False],
                       gradient = [False, True, True, True, True, False])
-        # if not planning the trajectory (figure8 target) then use a second
+        # if not planning trajectory (figure8 target) then use a second
         # order filter to smooth out the trajectory to target(s)
         if target_type != 'figure8':
             path = path_planners.SecondOrder(robot_config, n_timesteps=4000,
@@ -675,7 +677,7 @@ class Training:
                     ee_track.append(np.copy(ee_xyz))
                     filter_track.append(np.copy(target))
                     if integrate_err:
-                        int_err_track.append(np.copy(ctrlr.int_err))
+                        int_err_track.append(np.copy(ctrlr.integrated_error))
 
                     if count % 1000 == 0:
                         print('error: ', error)

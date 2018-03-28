@@ -14,6 +14,7 @@ from .signal import Signal
 
 try:
     import nengo
+    nengo.rc.set("decoder_cache", "enabled", "False")
 except ImportError:
     raise Exception('Nengo module needs to be installed to ' +
                     'use adaptive dynamics.')
@@ -113,7 +114,10 @@ class DynamicsAdaptation(Signal):
         # Set the nerual model to use
         if backend == 'nengo':
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
+            #self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.RectifiedLinear()
         elif backend == 'nengo_spinnaker':
+            self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
+        elif backend == 'nengo_ocl':
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
 
         with self.nengo_model:
@@ -125,6 +129,7 @@ class DynamicsAdaptation(Signal):
                 input_signals_func, size_out=n_input)
 
             def training_signals_func(t):
+                time.sleep(0.0001)
                 return -self.training_signal
             training_signals = nengo.Node(
                 training_signals_func, size_out=n_output)
@@ -263,7 +268,7 @@ class DynamicsAdaptation(Signal):
 
 
 
-        nengo.cache.DecoderCache().invalidate()
+        #nengo.cache.DecoderCache().invalidate()
         if backend == 'nengo':
             self.sim = nengo.Simulator(self.nengo_model, dt=.001)
         elif backend == 'nengo_ocl':

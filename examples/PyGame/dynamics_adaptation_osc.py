@@ -29,7 +29,7 @@ ctrlr = OSC(robot_config, kp=50, vmax=10)
 adapt = signals.DynamicsAdaptation(
     n_input=robot_config.N_JOINTS,
     n_output=robot_config.N_JOINTS,
-    pes_learning_rate=1e-4, backend='nengo')
+    pes_learning_rate=1e-4, backend='nengo_ocl')
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
@@ -68,6 +68,7 @@ try:
     print('\nClick to move the target.')
     print('\nPress space to turn on adaptation.\n\n')
     count = 0
+    ctr = 0
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
@@ -80,9 +81,14 @@ try:
             target_pos=target_xyz)
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
-            u += adapt.generate(
+            ctr += 1
+            adpt = adapt.generate(
                 input_signal=robot_config.scaledown('q', feedback['q']),
                 training_signal=ctrlr.training_signal)
+            u += adpt
+            if ctr %100 == 0:
+                print('adapt: ', adpt)
+                ctr == 0
 
         fake_gravity = np.array([[0, -9.81, 0, 0, 0, 0]]).T * 10.0
         g = np.zeros((robot_config.N_JOINTS, 1))
