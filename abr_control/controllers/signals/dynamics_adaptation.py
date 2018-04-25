@@ -119,6 +119,7 @@ class DynamicsAdaptation(Signal):
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
         elif backend == 'nengo_ocl':
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
+            #self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.RectifiedLinear()
 
         with self.nengo_model:
 
