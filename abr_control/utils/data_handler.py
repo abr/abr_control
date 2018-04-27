@@ -1,15 +1,14 @@
-import glob
-import redis
-import struct
-import os
-import time
-import numpy as np
-import scipy.special
-import logging
-r = redis.StrictRedis(host='127.0.0.1')
+"""
+Saves data to HDF5 database
 
-# import abr_control.utils.os_utils
+Parameters
+----------
+"""
 from abr_control.utils.paths import cache_dir
+try:
+    import h5py
+except ImportError:
+    print("You must install h5py to use the database utilities")
 
 class DataHandler():
     """
@@ -33,20 +32,65 @@ class DataHandler():
       use_cache to false
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, use_cache=True):
+        """
+        use_cache: Boolean, Optional (Default:True)
+            True to prepend the abr_control cache folder to the directory
+            provided. This location is specified in abr_control/utils/paths.py
+            False to use the directory pass in as is
+        """
+        # create our database if it does not exist
+        self.use_cache = use_cache
+        if self.use_cache:
+            self.db_loc = '%s/abr_control_db.h5'%cache_dir
+        else:
+            self.db_loc = 'abr_control_db.h5'
+
+        db = h5py.File(self.db_loc, 'a')
+        db.close()
+
+    def check_group_exists(self, location, create=True):
+        """
+        Checks if the provided group exists in the database.
+
+        Parameters
+        ----------
+        location: string
+            The database group that the function checks for,
+        create: boolean, Optional (Default:True)
+            true: create group if it does not exist
+            false: do not create group if it does not exist
+        """
+        #TODO: should we add check if location is a dataset?
+        db = h5py.File(self.db_loc, 'a')
+        try:
+            exists = isinstance(db([location], h5py.Group))
+
+        except KeyError:
+            if create:
+                print('%s group does not exist, creating it...'%location)
+                db.create_group(location)
+                exists = True
+            else:
+                print('%s group does not exist, to create it set create=True'%location)
+                exists = False
+
+        db.close()
+        return exists
 
     def last_save_location(self, session=None, run=None, test_name='test',
-            use_cache=True):
-        """ Search for most recent saved weights
+            test_group='test_group'):
+        """ Search for most latest run in provided test
 
         If the user sets session or run to None, the function searches the
         specified test_name for the highest numbered run in the
         highest numbered session, otherwise the specified values are used.
-        Returns the file location and the number of the most recent run.
+        Returns highest numbered run, session and path, unless a run or session
+        was specified by the user to use.
 
-        If the user specifies a test_name, session, or run that do not exist,
-        they will be created.
+        If the user specifies a session, or run that do not exist, the 0th
+        session and/or run will be created. However, if the test_name does not
+        exist, an exception will be raised to alert the user
 
         Parameters
         ----------
@@ -62,77 +106,66 @@ class DataHandler():
             the folder name that will hold the session and run folders
             the convention is abr_cache_folder/test_name/session#/run#
             The abr cache folder can be found in abr_control/utils/paths.py
-        use_cache: Boolean, Optional (Default:True)
-            True to prepend the abr_control cache folder to the directory
-            provided. This location is specified in abr_control/utils/paths.py
-            False to use the directory pass in as is
+        test_group: string, Optional (Default: 'test_group')
+            the group that all of the various test_name tests belong to. This
+            is helpful for grouping tests together relative to a specific
+            feature being tested, a paper that they belong to etc.
         """
 
-        if use_cache:
-            test_name = cache_dir + '/' + test_name
+        db = h5py.File(self.db_loc, 'a')
+        # first check whether the test passed in exists
+        exists = self.check_group_exists(location='%s/%s/'%(test_group, test_name), create=False)
 
-        # if session is not None, then the user has specified what session to save the
-        # current data in
-        if session is not None:
-            test_name += '/session%i' % session
-        # If no session is specified, check if there is a session in the
-        # directory provided, if not then save the run to 'session0'
-        else:
-            prev_sessions = glob.glob(test_name + '/session*')
-            run_cache = []
-            if prev_sessions:
-                test_name = max(prev_sessions)
+        # if the test does not exist, raise an exception
+        if exists is False:
+            raise ValueError('The %s/%s does not exist'%(test_group, test_name))
+
+        # if not looking for a specific session, check what our highest
+        # numbered session is
+        if session is None:
+            # get all of the session keys
+            session_keys = list(db['%s/%s'%(test_group, test_name)].keys())
+
+            if session_keys:
+               session = max(session_keys)
+            # test_group/test_name exists, but for some reason we do not have
+            # a session saved. Alert the user of this and create session0 group
             else:
-                test_name += '/session0'
+                print('The group %s/%s exists, but there is no session'
+                      + ' saved... \n Creating session0 group' %(test_group,
+                          test_name))
+                db.create_group('%s/%s/session0'%(test_group, test_name))
+                session = 'session0'
+        else:
+            session = 'session%i' %session
 
-        # check if the provided test_name exists, if not, create it
-        self.check_folder_exists(directory=test_name, use_cache=False)
-
-        # check what the last entry is based off the largest run number, unless
-        # one is specified by the user. If none is found then return None
+        # usually this will be set to None so that we can start from where we
+        # left off in testing, but sometimes it is useful to pick up from
+        # a specific run
         if run is None:
-            prev_runs = glob.glob(test_name + '/run*')
-            run_cache = []
-            if prev_runs:
-                for entry in prev_runs:
-                    # extract the numbers appened to the runs found and get the
-                    # largest entry
-                    extracted_num = re.search(r'\d+$', entry)
-                    run_cache.append(int(extracted_num.group()))
-                run_num = max(run_cache)
+            # get all of the run keys
+            run_keys = list(db['%s/%s/%s'%(test_group, test_name, session)].keys())
+
+            if run_keys:
+               run = max(run_keys)
+            # no run exists in this session, so start from run0
             else:
-                run_num = None
+                print('The group %s/%s/%s exists, but there are no run groups'
+                      + ' saved...' %(test_group,
+                          test_name, session))
+                run = None
         else:
-            # return the run specified by the user
-            run_num = run
+            run = 'run%i'%run
 
-        return [test_name, run_num]
+        location = '%s/%s/%s/%s'%(test_group, test_name, session, run)
 
-    def check_folder_exists(self, directory, use_cache=True):
-        """
-        Checks if the provided directory exists.
-
-        Parameters
-        ----------
-        directory: string
-            The directory that the function checks for, if it does not exists
-            it is created
-        use_cache: Boolean, Optional (Default:True)
-            True to prepend the abr_control cache folder to the directory
-            provided. This location is specified in abr_control/utils/paths.py
-            False to use the directory pass in as is
-        """
-        if use_cache:
-            directory = cache_dir + '/' + directory
-
-        if not os.path.exists(directory):
-            print("The provided directory: '%s' does not exist, creating folder..."
-                % directory)
-            os.makedirs(directory)
+        db.close()
+        return [run, session, location]
 
     def save_data(self, tracked_data, session=None, run=None,
-            test_name='test', use_cache=True):
-        """ Save the data to the specified test_name folder
+            test_name='test', test_group='test_group'):
+        #TODO: add check to see if path already exists
+        """ Save the data to the specified test_name group
 
         Uses the naming structure of a session being made up of several runs.
         This allows the user to automate scripts for saving and loading data
@@ -160,32 +193,106 @@ class DataHandler():
             the folder name that will hold the session and run folders
             the convention is abr_cache_folder/test_name/session#/run#
             The abr cache folder can be found in abr_control/utils/paths.py
-        use_cache: Boolean, Optional (Default:True)
-            True to prepend the abr_control cache folder to the directory
-            provided. This location is specified in abr_control/utils/paths.py
-            False to use the directory pass in as is
+        test_group: string, Optional (Default: 'test_group')
+            the group that all of the various test_name tests belong to. This
+            is helpful for grouping tests together relative to a specific
+            feature being tested, a paper that they belong to etc.
         """
 
+        db = h5py.File(self.db_loc, 'a')
         if session or run is None:
             # user did not specify either run or session so we will grab the
             # last entry in the test_name directory based off the highest
             # numbered session and/or run
-            [test_name, run_num] = last_save_location(session=session,
-                    run=run, test_name=test_name, use_cache=use_cache)
+            [run, session] = last_save_location(session=session,
+                    run=run, test_name=test_name, test_group=test_group)
 
         # if the user specified a run, then save the data under that run,
         # otherwise increment the last saved run by 1 to save data in a new
         # folder
         if run is None:
-            run_num += 1
+            run = 'run0'
 
-        save_folder ='%s/run%i'%(test_name, run_num)
-        # check whether the run folder exists
-        check_folder_exists(directory=save_folder, use_cache=False)
+        group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
+        db.create_group(group_path)
 
-        print('Saving the following data to %s'%save_folder)
+        print('Saving data to %s'%group_path)
 
         for key in tracked_data:
-            np.savez_compressed('%s/%s%i'%(save_folder, key, run_num)
-                                ,tracked_data[key])
-            print(tracked_data[key])
+            db[group_path].create_dataset('%s'%key, data=tracked_data[key])
+
+        print('Data saved.')
+        db.close()
+
+    def load_data(self, desired_params, session=None, run=None,
+            test_name='test', test_group='test_group'):
+        """
+        Loads the data listed in desired_params from the group provided
+
+        The path to the group is used as 'test_group/test_name/session/run'
+        Note that session and run are ints that from the user end, and are
+        later used in the group path as ('run%i'%run) and ('session%i'%session)
+
+        desired_params: list of strings
+            ex: ['q', 'dq', 'u', 'adapt']
+            if you are unsure about what the keys are for the data saved, you
+            can use the get_keys() function to list the keys in a provided
+            group path
+        session: int, Optional (Default: None)
+            the session number of the current set of runs
+            if set to None, then the latest session in the test_name folder
+            will be use, based off the highest numbered session
+        run: int, Optional (Default: None)
+            the run number under which to save data
+            if set to None, then the latest run in the test_name/session#
+            folder will be used, based off the highest numbered run
+        test_name: string, Optional (Default: 'test')
+            the folder name that will hold the session and run folders
+            the convention is abr_cache_folder/test_name/session#/run#
+            The abr cache folder can be found in abr_control/utils/paths.py
+        test_group: string, Optional (Default: 'test_group')
+            the group that all of the various test_name tests belong to. This
+            is helpful for grouping tests together relative to a specific
+            feature being tested, a paper that they belong to etc.
+        """
+        # the keys saved should be the same between all runs in a session, and
+        # between sessions of a test_name, so they are not required to be
+        # provided
+        if session or run is None:
+            raise ValueError('A session and run number are required to load'
+                             + 'data')
+        else:
+            session = 'session%i'%session
+            run = 'run%i'%run
+            group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
+
+            # check if the group exists
+            exists = self.check_group_exists(location=group_path, create=False)
+
+            # if group path does not exist, raise an exception to alert the
+            # user
+            if exists is False:
+                raise ValueError('The group path %s does not exist'%(group_path))
+            # otherwise load the keys
+            else:
+                db = h5py.File(self.db_loc, 'a')
+                saved_data = {}
+                for key in desired_params
+                    saved_data[key] = np.array(db.get('%s/%s'%(group_path,key)))
+
+                db.close()
+        return saved_data
+
+    def get_keys(self, group_path):
+        """
+        Returns a list of keys from the group path provided
+
+        group_path: string
+            path to the group that you want the keys from
+            ex: 'my_feature_test/sub_test_group/session0/run3'
+        returns a list of keys from group_list
+        """
+        db = h5py.File(self.db_loc, 'a')
+        keys = list(db[group_path].keys())
+        db.close()
+        return keys
