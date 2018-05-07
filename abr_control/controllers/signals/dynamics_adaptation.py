@@ -300,6 +300,31 @@ class DynamicsAdaptation(Signal):
             raise Exception('Invalid backend specified')
         self.backend = backend
 
+        self.params = {'source': 'dynamics_adaptation',
+                       'n_input': n_input,
+                       'n_output': n_output,
+                       'n_neurons': n_neurons,
+                       'n_ensembles': n_ensembles,
+                       'seed': seed,
+                       'pes': pes_learning_rate,
+                       'intercepts': intercepts,
+                       'weights_file': weights_file,
+                       'backend': backend,
+                       'function': function,
+                       'send_redis_spikes': send_redis_spikes,
+                       'encoders': encoders,
+                       'probe_weights': probe_weights}
+
+    def return_params(self):
+        """
+        Returns a dictionary of the function parameters
+
+        This is used for tracking parameters during testing and saving to
+        a database
+        """
+
+        return self.params
+
     def generate(self, input_signal, training_signal):
         """ Generates the control signal
 

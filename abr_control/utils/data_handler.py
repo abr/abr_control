@@ -1,9 +1,8 @@
 """
-Saves data to HDF5 database
+Handler for saving and loading data from HDF5 database
 
-Parameters
-----------
 """
+import numpy as np
 from abr_control.utils.paths import cache_dir
 try:
     import h5py
@@ -49,7 +48,7 @@ class DataHandler():
         db = h5py.File(self.db_loc, 'a')
         db.close()
 
-    def check_group_exists(self, location, create=True):
+    def check_group_exists(self, location, create=False):
         """
         Checks if the provided group exists in the database.
 
@@ -63,12 +62,14 @@ class DataHandler():
         """
         #TODO: should we add check if location is a dataset?
         db = h5py.File(self.db_loc, 'a')
-        try:
-            exists = isinstance(db([location], h5py.Group))
+        #try:
+            #exists = isinstance(db([location], h5py.Group))
+        exists = location in db
 
-        except KeyError:
+        #except KeyError:
+        if exists is False:
             if create:
-                print('%s group does not exist, creating it...'%location)
+                print('Creating new group %s...'%location)
                 db.create_group(location)
                 exists = True
             else:
@@ -79,7 +80,7 @@ class DataHandler():
         return exists
 
     def last_save_location(self, session=None, run=None, test_name='test',
-            test_group='test_group'):
+            test_group='test_group', create=True):
         """ Search for most latest run in provided test
 
         If the user sets session or run to None, the function searches the
@@ -110,15 +111,20 @@ class DataHandler():
             the group that all of the various test_name tests belong to. This
             is helpful for grouping tests together relative to a specific
             feature being tested, a paper that they belong to etc.
+        create: Boolean, Optional (Default: True)
+            whether to create the group passed in if it does not exist
         """
 
         db = h5py.File(self.db_loc, 'a')
         # first check whether the test passed in exists
-        exists = self.check_group_exists(location='%s/%s/'%(test_group, test_name), create=False)
+        exists = self.check_group_exists(location='%s/%s/'%(test_group,
+            test_name), create=create)
 
         # if the test does not exist, raise an exception
         if exists is False:
-            raise ValueError('The %s/%s does not exist'%(test_group, test_name))
+            raise ValueError('The group %s/%s '%(test_group, test_name)
+                    + 'does not exist, no previous location to pass')
+
 
         # if not looking for a specific session, check what our highest
         # numbered session is
@@ -127,17 +133,20 @@ class DataHandler():
             session_keys = list(db['%s/%s'%(test_group, test_name)].keys())
 
             if session_keys:
-               session = max(session_keys)
+                session = max(session_keys)
+                print('session is: ', session)
             # test_group/test_name exists, but for some reason we do not have
             # a session saved. Alert the user of this and create session0 group
             else:
                 print('The group %s/%s exists, but there is no session'
-                      + ' saved... \n Creating session0 group' %(test_group,
-                          test_name))
+                        % (test_group, test_name)
+                      + ' saved... \nCreating session0 group')
                 db.create_group('%s/%s/session0'%(test_group, test_name))
                 session = 'session0'
+                print('session is: ', session)
         else:
             session = 'session%i' %session
+            print('session is: ', session)
 
         # usually this will be set to None so that we can start from where we
         # left off in testing, but sometimes it is useful to pick up from
@@ -147,15 +156,17 @@ class DataHandler():
             run_keys = list(db['%s/%s/%s'%(test_group, test_name, session)].keys())
 
             if run_keys:
-               run = max(run_keys)
+                run = max(run_keys)
+                print('run is: ', run)
             # no run exists in this session, so start from run0
             else:
-                print('The group %s/%s/%s exists, but there are no run groups'
-                      + ' saved...' %(test_group,
-                          test_name, session))
+                print('The group %s/%s/%s exists, but there are no runs saved...'
+                      %(test_group, test_name, session))
                 run = None
+                print('run is: ', run)
         else:
             run = 'run%i'%run
+            print('run is: ', run)
 
         location = '%s/%s/%s/%s'%(test_group, test_name, session, run)
 
@@ -163,8 +174,16 @@ class DataHandler():
         return [run, session, location]
 
     def save_data(self, tracked_data, session=None, run=None,
-            test_name='test', test_group='test_group'):
-        #TODO: add check to see if path already exists
+            test_name='test', test_group='test_group', overwrite=False,
+            create=True):
+        #TODO: currently module does not check whether a lower run or session
+        #TODO: switch to having run and run_num, same for sessions, to avoid
+        # mix up between passing in an int and using the string for the
+        # database
+
+        # exists if the user provides a number for either parameter, could lead
+        # to a case where user provides run to save as 6, but runs 0-5 do not
+        # exist, is it worth adding a check for this?
         """ Save the data to the specified test_name group
 
         Uses the naming structure of a session being made up of several runs.
@@ -197,15 +216,19 @@ class DataHandler():
             the group that all of the various test_name tests belong to. This
             is helpful for grouping tests together relative to a specific
             feature being tested, a paper that they belong to etc.
+        overwrite: boolean, Optional (Default: False)
+            determines whether or not to overwrite data if a group / dataset
+            already exists
         """
 
         db = h5py.File(self.db_loc, 'a')
-        if session or run is None:
+        if session is None or run is None:
             # user did not specify either run or session so we will grab the
             # last entry in the test_name directory based off the highest
             # numbered session and/or run
-            [run, session] = last_save_location(session=session,
-                    run=run, test_name=test_name, test_group=test_group)
+            [run, session, __] = self.last_save_location(session=session,
+                    run=run, test_name=test_name, test_group=test_group,
+                    create=create)
 
         # if the user specified a run, then save the data under that run,
         # otherwise increment the last saved run by 1 to save data in a new
@@ -214,26 +237,54 @@ class DataHandler():
             run = 'run0'
 
         group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
-        db.create_group(group_path)
+
+        # try to create the group, if it exists a ValueError will be raised. If
+        # the user wished to overwrite the dataset that already exists then
+        # continue, otherwise raise the ValueError and alert the user to set
+        # the overwrite parameter to true
+        try:
+            db.create_group(group_path)
+        except ValueError:
+            if overwrite:
+                pass
+            else:
+                raise ValueError('The group %s already exists. If you wish to'
+                                 % group_path
+                                 + ' overwrite the dataset set overwrite=True')
 
         print('Saving data to %s'%group_path)
 
         for key in tracked_data:
-            db[group_path].create_dataset('%s'%key, data=tracked_data[key])
+            print('key:%s | data:'%(key), tracked_data[key])
+            # to avoid errors, if no data is passed in with the key, set the
+            # value to 'no data'
+            if tracked_data[key] is None:
+                tracked_data[key] = 'no data'
+                print('key: %s has no data, setting to \'no_data\'' % key)
+            try:
+                db[group_path].create_dataset('%s'%key, data=tracked_data[key])
+            except RuntimeError:
+                if overwrite:
+                    # if dataset already exists, then overwrite the data
+                    del db[group_path+'/%s'%key]
+                    db[group_path].create_dataset('%s'%key, data=tracked_data[key])
+                else:
+                    raise RuntimeError('Dataset already exists, set '
+                    + 'overwrite=True to overwrite')
 
         print('Data saved.')
         db.close()
 
-    def load_data(self, desired_params, session=None, run=None,
+    def load_data(self, params, session=None, run=None,
             test_name='test', test_group='test_group'):
         """
-        Loads the data listed in desired_params from the group provided
+        Loads the data listed in params from the group provided
 
         The path to the group is used as 'test_group/test_name/session/run'
         Note that session and run are ints that from the user end, and are
         later used in the group path as ('run%i'%run) and ('session%i'%session)
 
-        desired_params: list of strings
+        params: list of strings
             ex: ['q', 'dq', 'u', 'adapt']
             if you are unsure about what the keys are for the data saved, you
             can use the get_keys() function to list the keys in a provided
@@ -255,32 +306,48 @@ class DataHandler():
             is helpful for grouping tests together relative to a specific
             feature being tested, a paper that they belong to etc.
         """
-        # the keys saved should be the same between all runs in a session, and
-        # between sessions of a test_name, so they are not required to be
-        # provided
-        if session or run is None:
-            raise ValueError('A session and run number are required to load'
-                             + 'data')
+        # if the user doesn'r provide either run or session numbers, the
+        # highest numbered run and session are searched for in the provided
+        # test_group/test_name location
+        print('run: ', run)
+        print('session: ', session)
+        if session is None or run is None:
+            if session is not None and run is None:
+                print('Checking for lastest run in session%i'%session)
+            elif session is None and run is not None:
+                print('Checking for run%i data in latest session'%run)
+            else:
+                print('Checking for lastest session and run...')
+            [run, session, __] = self.last_save_location(session=session,
+                    run=run, test_name=test_name, test_group=test_group,
+                    create=False)
+            if run is None:
+                raise ValueError('There is no run saved in %s/%s/%s'
+                        % (test_group, test_name, session))
+
         else:
+            print('using user provided run and session')
+            print('run: ', run)
+            print('session: ', session)
             session = 'session%i'%session
             run = 'run%i'%run
-            group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
+        group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
 
-            # check if the group exists
-            exists = self.check_group_exists(location=group_path, create=False)
+        # check if the group exists
+        exists = self.check_group_exists(location=group_path, create=False)
 
-            # if group path does not exist, raise an exception to alert the
-            # user
-            if exists is False:
-                raise ValueError('The group path %s does not exist'%(group_path))
-            # otherwise load the keys
-            else:
-                db = h5py.File(self.db_loc, 'a')
-                saved_data = {}
-                for key in desired_params
-                    saved_data[key] = np.array(db.get('%s/%s'%(group_path,key)))
+        # if group path does not exist, raise an exception to alert the
+        # user
+        if exists is False:
+            raise ValueError('There is no run saved in %s'%(group_path))
+        # otherwise load the keys
+        else:
+            db = h5py.File(self.db_loc, 'a')
+            saved_data = {}
+            for key in params:
+                saved_data[key] = np.array(db.get('%s/%s'%(group_path,key)))
 
-                db.close()
+            db.close()
         return saved_data
 
     def get_keys(self, group_path):
@@ -293,6 +360,7 @@ class DataHandler():
         returns a list of keys from group_list
         """
         db = h5py.File(self.db_loc, 'a')
+        print('looking for keys in %s' % group_path)
         keys = list(db[group_path].keys())
         db.close()
         return keys

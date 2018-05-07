@@ -71,6 +71,25 @@ class OSC(controller.Controller):
         self.nkp = self.kp * .1
         self.nkv = np.sqrt(self.nkp)
 
+    def return_params(self):
+        """
+        Returns a dictionary of the function parameters
+
+        This is used for tracking parameters during testing and saving to
+        a database
+        """
+
+        params = {'kp': self.kp,
+                  'kv': self.kv,
+                  'ki': self.ki,
+                  'vmax': self.vmax,
+                  'lamb': self.lamb,
+                  'null_control': self.null_control,
+                  'use_g': self.use_g,
+                  'use_c': self.use_c,
+                  'use_dJ': self.use_dJ}
+        return params
+
     def generate(self, q, dq,
                  target_pos, target_vel=0,
                  ref_frame='EE', offset=[0, 0, 0]):

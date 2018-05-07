@@ -1,13 +1,17 @@
 """
-Saves data that is usually of interest during training
+Saves data that is commonly kept from tests and maintains a standard naming structure
 
 """
-class SaveLearningData():
+from abr_control.utils import DataHandler
+
+class SaveTestData():
     def __init__():
         pass
-    def save_data(q=None, dq=None, u=None, adapt=None, time=None, target=None,
-            error=None, training_signal=None, input_signal=None, ee_xyz=None,
-            int_err=None, friction=None, custom_params=None):
+    def save_data(session, run, test_name, test_group, use_cache=True,
+                  q=None, dq=None, u=None, adapt=None, time=None, target=None,
+                  error=None, training_signal=None, input_signal=None, ee_xyz=None,
+                  int_err=None, friction=None, custom_params=None,
+                  overwrite=False):
         """
         Saves data to standardized names for use with other scripts
 
@@ -24,6 +28,26 @@ class SaveLearningData():
 
         Parameters
         ----------
+        session: int, Optional (Default: None)
+            the session number of the current set of runs
+            if set to None, then the latest session in the test_name folder
+            will be use, based off the highest numbered session
+        run: int, Optional (Default: None)
+            the run number under which to save data
+            if set to None, then the latest run in the test_name/session#
+            folder will be used, based off the highest numbered run
+        test_name: string, Optional (Default: 'test')
+            the folder name that will hold the session and run folders
+            the convention is abr_cache_folder/test_name/session#/run#
+            The abr cache folder can be found in abr_control/utils/paths.py
+        test_group: string, Optional (Default: 'test_group')
+            the group that all of the various test_name tests belong to. This
+            is helpful for grouping tests together relative to a specific
+            feature being tested, a paper that they belong to etc.
+        use_cache: Boolean, Optional (Default:True)
+            True to prepend the abr_control cache folder to the directory
+            provided. This location is specified in abr_control/utils/paths.py
+            False to use the directory pass in as is
         q: list of floats, Optional (Default: None)
             a list of joint angles over time
         dq: list of floats, Optional (Default: None)
@@ -57,4 +81,34 @@ class SaveLearningData():
             used (key matches parameter name: training_signal key ->
             'training_signal')
             format: {'key1': key1_data_list, 'key2': key2_data_list.....}
+        overwrite: boolean, Optional (Default: False)
+            determines whether or not to overwrite data if a group / dataset
+            already exists
         """
+
+        #TODO: decided whether it's worth having these parameters predefined
+        preset_params = {'q': q,
+                         'dq': dq,
+                         'u': u,
+                         'adapt': adapt,
+                         'time': time,
+                         'target': target,
+                         'error': error,
+                         'training_signal': training_signal,
+                         'input_signal': input_signal,
+                         'ee_xyz': ee_xyz,
+                         'int_err': int_err,
+                         'friction': friction,
+                        }
+
+        dh = DataHandler(use_cache=use_cache)
+        # Save preset params, if they are not passed in the entry
+        # will be 'no data'
+        print('Saving preset parameters...')
+        dh.save_data(tracked_data=preset_params, session=session, run=run,
+                     test_name=test_name, test_group=test_group)
+
+        if custom_params is not None:
+            print('Saving custom parameters...')
+            dh.save_data(tracked_data=custom_params, session=session, run=run,
+                         test_name=test_name, test_group=test_group)
