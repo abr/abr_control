@@ -1,9 +1,9 @@
 from abr_control.utils import DataHandler
 
 session=0
-run=0
-test_name='testing_handler2'
-test_group='testing_saving'
+run=5
+test_name='testing_handler1'
+test_group='testing_saving2'
 
 print('creating data handler')
 dat = DataHandler(use_cache=True)
@@ -16,7 +16,7 @@ dat.save_data(tracked_data={'test1': [1,1,1], 'test2': [2, 2, 2, 2]},
               overwrite=True,
               create=True)
 
-run='run0'
+run='run5'
 session='session0'
 print('getting keys...')
 keys = dat.get_keys('%s/%s/%s/%s'%(test_group,test_name,session,run))

@@ -222,6 +222,10 @@ class DataHandler():
         """
 
         db = h5py.File(self.db_loc, 'a')
+        if run is not None:
+            run = 'run%i'%run
+        if session is not None:
+            session = 'session%i'%session
         if session is None or run is None:
             # user did not specify either run or session so we will grab the
             # last entry in the test_name directory based off the highest
@@ -230,11 +234,9 @@ class DataHandler():
                     run=run, test_name=test_name, test_group=test_group,
                     create=create)
 
-        # if the user specified a run, then save the data under that run,
-        # otherwise increment the last saved run by 1 to save data in a new
-        # folder
-        if run is None:
-            run = 'run0'
+            # if no previous run saved, start saving in run0
+            if run is None:
+                run = 'run0'
 
         group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
 
