@@ -1,31 +1,147 @@
+import numpy as np
+import traceback
+import abr_jaco2
+from abr_control.controllers import OSC, path_planners
+import nengo
+from abr_control.utils import SaveTestData as dat
 from abr_control.utils import DataHandler
 
-session=0
-run=5
-test_name='testing_handler1'
-test_group='testing_saving2'
+robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
+zeros = np.zeros(robot_config.N_JOINTS)
 
-print('creating data handler')
-dat = DataHandler(use_cache=True)
-print('saving data...')
-dat.save_data(tracked_data={'test1': [1,1,1], 'test2': [2, 2, 2, 2]},
-              session=session,
-              run=run,
-              test_name=test_name,
-              test_group=test_group,
-              overwrite=True,
-              create=True)
+ctrlr = OSC(robot_config, kp=30, kv=6, ki=0.2, vmax=1, null_control=False)
+ctrlr.generate(zeros, zeros, np.zeros(3))
 
-run='run5'
-session='session0'
-print('getting keys...')
-keys = dat.get_keys('%s/%s/%s/%s'%(test_group,test_name,session,run))
-print('the keys are: ', keys)
+interface = abr_jaco2.Interface(robot_config)
 
-session = 0
-run = None
-print('loading saved data...')
-saved_dat = dat.load_data(params=keys, session=session, run=run, test_name=test_name,
-        test_group=test_group)
+robot_config.Tx('EE', q=zeros, x=robot_config.OFFSET)
 
-print('the saved data is: ', saved_dat)
+target_xyz = np.array([[.56, -.09, .95],
+                       # [.12, .15, .80],
+                       # [.80, .26, .61],
+                       [.38, .46, .81]])
+
+# instantiate path planner and set parameters
+path = path_planners.SecondOrder(
+    robot_config, n_timesteps=2000,
+    w=1e4, zeta=2, threshold=0.08)
+dt = 0.003
+
+# connect to the jaco
+interface.connect()
+interface.init_position_mode()
+interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+
+q_t = []
+dq_t = []
+u_t = []
+adapt_t = []
+time_t = []
+target_t = []
+filtered_target_t = []
+error_t = []
+training_signal_t = []
+input_signal_t = []
+ee_xyz_t = []
+int_err_t = []
+friction_t = []
+
+try:
+    count = 0
+    count_at_target = 0 #  must stay at target for 200 loop cycles for success
+    target_index = 0
+
+    feedback = interface.get_feedback()
+    xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
+    filtered_target = np.concatenate((xyz, np.array([0, 0, 0])), axis=0)
+
+    interface.init_force_mode()
+    while target_index < len(target_xyz):
+        feedback = interface.get_feedback()
+        xyz = robot_config.Tx('EE', q=feedback['q'], x=robot_config.OFFSET)
+
+        filtered_target = path.step(
+            state=filtered_target, target_pos=target_xyz[target_index])
+        # generate the control signal
+        u = ctrlr.generate(
+            q=feedback['q'], dq=feedback['dq'],
+            target_pos=filtered_target[:3],  # (x, y, z)
+            target_vel=filtered_target[3:],  # (dx, dy, dz)
+            offset=robot_config.OFFSET)
+
+        # additional gain term due to high stiction of jaco base joint
+        if u[0] > 0:
+            u[0] *= 3.0
+        else:
+            u[0] *= 2.0
+
+        interface.send_forces(np.array(u, dtype='float32'))
+        error = np.sqrt(np.sum((xyz - target_xyz[target_index])**2))
+
+        # print out the error every so often
+        if count % 100 == 0:
+            print('error: ', error)
+
+        # track data
+        q_t.append(np.copy(feedback['q']))
+        dq_t.append(np.copy(feedback['dq']))
+        u_t.append(np.copy(u))
+        target_t.append(np.copy(target_xyz[target_index]))
+        filtered_target_t.append(np.copy(filtered_target))
+        error_t.append(np.copy(error))
+        ee_xyz_t.append(np.copy(xyz))
+
+        # if within 5cm of target for 200 time steps move to next target
+        if error < .05:
+            count_at_target += 1
+            if count_at_target >= 200:
+                count_at_target = 0
+                target_index += 1
+
+        count+=1
+
+except:
+    print(traceback.format_exc())
+
+finally:
+    # close the connection to the arm
+    interface.init_position_mode()
+    interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
+    interface.disconnect()
+
+custom_params1 = ctrlr.params
+custom_params2 = robot_config.params
+print(custom_params2)
+dat.save_data(session=None,
+              run=None,
+              test_name='arm_in_loop',
+              test_group='testing_handler',
+              use_cache=True,
+              q=q_t,
+              dq=dq_t,
+              u=u_t,
+              target=target_t,
+              error=error_t,
+              ee_xyz=ee_xyz_t,
+              custom_params=custom_params2,
+              overwrite=True)
+#
+# dat.save_data(session=None,
+#               run=None,
+#               test_name='arm_in_loop',
+#               test_group='testing_handler',
+#               use_cache=True,
+#               custom_params=custom_params1,
+#               overwrite=True)
+
+dh = DataHandler(use_cache=True)
+keys = dh.get_keys('testing_handler/arm_in_loop/session0/run0')
+print('KEYS \n', keys)
+
+params = dh.load_data(params=['q','custom3','doesnt_exist'],
+             session=None,
+             run=None,
+             test_name='arm_in_loop',
+             test_group='testing_handler')
+
+print(params)

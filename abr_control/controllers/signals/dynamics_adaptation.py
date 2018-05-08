@@ -300,20 +300,23 @@ class DynamicsAdaptation(Signal):
             raise Exception('Invalid backend specified')
         self.backend = backend
 
-        self.params = {'source': 'dynamics_adaptation',
-                       'n_input': n_input,
-                       'n_output': n_output,
-                       'n_neurons': n_neurons,
-                       'n_ensembles': n_ensembles,
-                       'seed': seed,
-                       'pes': pes_learning_rate,
-                       'intercepts': intercepts,
-                       'weights_file': weights_file,
-                       'backend': backend,
-                       'function': function,
-                       'send_redis_spikes': send_redis_spikes,
-                       'encoders': encoders,
-                       'probe_weights': probe_weights}
+    @property
+    def params(self):
+        params = {'source': 'dynamics_adaptation',
+                  'n_input': n_input,
+                  'n_output': n_output,
+                  'n_neurons': n_neurons,
+                  'n_ensembles': n_ensembles,
+                  'seed': seed,
+                  'pes': pes_learning_rate,
+                  'intercepts': intercepts,
+                  'weights_file': weights_file,
+                  'backend': backend,
+                  'function': function,
+                  'send_redis_spikes': send_redis_spikes,
+                  'encoders': encoders,
+                  'probe_weights': probe_weights}
+        return params
 
     def return_params(self):
         """

@@ -31,6 +31,13 @@ class Sliding(controller.Controller):
         self.lamb = lamb
         self.cartesian = cartesian
 
+    @property
+    def params(self):
+        params = {'kd': self.kd,
+                  'lamb': self.lamb,
+                  'cartesian': self.cartesian}
+        return params
+
     def generate(self, q, dq,
                  target_pos, target_vel=None, target_acc=None,
                  ref_frame='EE', offset=[0, 0, 0]):

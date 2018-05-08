@@ -257,12 +257,12 @@ class DataHandler():
         print('Saving data to %s'%group_path)
 
         for key in tracked_data:
-            print('key:%s | data:'%(key), tracked_data[key])
+            #print('key:%s | data:'%(key), tracked_data[key])
             # to avoid errors, if no data is passed in with the key, set the
             # value to 'no data'
             if tracked_data[key] is None:
                 tracked_data[key] = 'no data'
-                print('key: %s has no data, setting to \'no_data\'' % key)
+                #print('key: %s has no data, setting to \'no_data\'' % key)
             try:
                 db[group_path].create_dataset('%s'%key, data=tracked_data[key])
             except RuntimeError:

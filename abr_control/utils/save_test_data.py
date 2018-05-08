@@ -10,7 +10,7 @@ class SaveTestData():
     def save_data(session, run, test_name, test_group, use_cache=True,
                   q=None, dq=None, u=None, adapt=None, time=None, target=None,
                   error=None, training_signal=None, input_signal=None, ee_xyz=None,
-                  int_err=None, friction=None, custom_params=None,
+                  int_err=None, friction=None, filtered_target=None, custom_params=None,
                   overwrite=False):
         """
         Saves data to standardized names for use with other scripts
@@ -60,6 +60,8 @@ class SaveTestData():
             a list of the loop speed over time
         target: list of floats, Optional (Default: None)
             a list of targets over time
+        filtered_target: list of floats, Optional (Default: None)
+            a list of the filtered target path
         error: list of floats, Optional (Default: None)
             a list of error from end-effector to target over time
         training_signal: list of floats, Optional (Default: None)
@@ -93,6 +95,7 @@ class SaveTestData():
                          'adapt': adapt,
                          'time': time,
                          'target': target,
+                         'filtered_target': filtered_target,
                          'error': error,
                          'training_signal': training_signal,
                          'input_signal': input_signal,
@@ -106,9 +109,11 @@ class SaveTestData():
         # will be 'no data'
         print('Saving preset parameters...')
         dh.save_data(tracked_data=preset_params, session=session, run=run,
-                     test_name=test_name, test_group=test_group)
+                     test_name=test_name, test_group=test_group,
+                     overwrite=overwrite)
 
         if custom_params is not None:
             print('Saving custom parameters...')
             dh.save_data(tracked_data=custom_params, session=session, run=run,
-                         test_name=test_name, test_group=test_group)
+                         test_name=test_name, test_group=test_group,
+                         overwrite=overwrite)

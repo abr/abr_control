@@ -34,16 +34,19 @@ class Linear(PathPlanner):
             plot the path after generating if True
         """
 
-        n_states = len(state)
+        self.target = target
+        self.state = state
+        self.dt = dt
+        n_states = len(self.state)
         self.trajectory = np.zeros((n_timesteps, n_states*2))
         for ii in range(n_states):
             # calculate target states
-            self.trajectory[:, ii] = np.linspace(state[ii],
-                                                 target[ii],
+            self.trajectory[:, ii] = np.linspace(self.state[ii],
+                                                 self.target[ii],
                                                  n_timesteps)
             # calculate target velocities
             self.trajectory[:-1, ii+n_states] = (
-                np.diff(self.trajectory[:, ii]) / dt)
+                np.diff(self.trajectory[:, ii]) / self.dt)
 
         # reset trajectory index
         self.n = 0
@@ -59,7 +62,7 @@ class Linear(PathPlanner):
             plt.gca().set_prop_cycle(None)
             plt.plot(np.ones((n_timesteps, n_states)) *
                               np.arange(n_timesteps)[:, None],
-                     np.ones((n_timesteps, n_states)) * target, '--')
+                     np.ones((n_timesteps, n_states)) * self.target, '--')
             plt.legend(['%i' % ii for ii in range(n_states)] +
                        ['%i_target' % ii for ii in range(n_states)])
             plt.title('Trajectory positions')
@@ -73,6 +76,14 @@ class Linear(PathPlanner):
             plt.tight_layout()
 
             plt.show()
+
+    @property
+    def params(self):
+        params = {'state': self.state,
+                       'target': self.target,
+                       'n_timesteps': self.n_timesteps,
+                       'dt': self.dt}
+        return params
 
     def next_target(self):
         """ Return the next target point along the generated trajectory """

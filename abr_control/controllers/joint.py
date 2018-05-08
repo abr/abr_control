@@ -27,6 +27,12 @@ class Joint(controller.Controller):
         self.ZEROS_N_JOINTS = np.zeros(robot_config.N_JOINTS)
         self.q_tilde = np.copy(self.ZEROS_N_JOINTS)
 
+    @property
+    def params(self):
+        params = {'kp': self.kp,
+                  'kv': self.kv}
+        return params
+
     def generate(self, q, dq, target_pos, target_vel=None):
         """Generate a joint space control signal
 

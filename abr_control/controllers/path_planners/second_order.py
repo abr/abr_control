@@ -44,6 +44,15 @@ class SecondOrder(PathPlanner):
         self.w = w/n_timesteps # gain to converge in the desired time
         self.threshold = threshold
 
+    @property
+    def params(self):
+        params = {'n_timesteps': self.n_timesteps,
+                  'dt': self.dt,
+                  'zeta': self.zeta,
+                  'w': self.w,
+                  'threshold': self.threshold}
+        return params
+
     def step(self, state, target_pos, dt=0.001):
         """ Calculates the next state given the current state and
         system dynamics' parameters.
