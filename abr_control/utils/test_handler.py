@@ -3,7 +3,6 @@ import traceback
 import abr_jaco2
 from abr_control.controllers import OSC, path_planners
 import nengo
-from abr_control.utils import SaveTestData as dat
 from abr_control.utils import DataHandler
 
 robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
@@ -108,40 +107,44 @@ finally:
     interface.init_position_mode()
     interface.send_target_angles(robot_config.INIT_TORQUE_POSITION)
     interface.disconnect()
+    tracked_data = {'q': q_t, 'dq': dq_t, 'u': u_t, 'target': target_t,
+            'filtered_target': filtered_target_t, 'error': error_t, 'ee_xyz':
+            ee_xyz_t}
 
-custom_params1 = ctrlr.params
-custom_params2 = robot_config.params
-print(custom_params2)
-dat.save_data(session=None,
+osc_params = ctrlr.params
+rc_params = robot_config.params
+
+dat = DataHandler(use_cache=True)
+
+dat.save_data(tracked_data=tracked_data,
+              session=None,
               run=None,
               test_name='arm_in_loop',
               test_group='testing_handler',
-              use_cache=True,
-              q=q_t,
-              dq=dq_t,
-              u=u_t,
-              target=target_t,
-              error=error_t,
-              ee_xyz=ee_xyz_t,
-              custom_params=custom_params2,
-              overwrite=True)
-#
-# dat.save_data(session=None,
-#               run=None,
-#               test_name='arm_in_loop',
-#               test_group='testing_handler',
-#               use_cache=True,
-#               custom_params=custom_params1,
-#               overwrite=True)
+              overwrite=True,
+              create=True)
 
-dh = DataHandler(use_cache=True)
-keys = dh.get_keys('testing_handler/arm_in_loop/session0/run0')
-print('KEYS \n', keys)
+dat.save(data=osc_params,
+         save_location='testing_handler/arm_in_loop/OSC',
+         overwrite=True,
+         create=True)
 
-params = dh.load_data(params=['q','custom3','doesnt_exist'],
+dat.save(data=rc_params,
+         save_location='testing_handler/arm_in_loop/robot_config',
+         overwrite=True,
+         create=True)
+
+saved_data = dat.load_data(params=['q','doesnt_exist'],
              session=None,
              run=None,
              test_name='arm_in_loop',
              test_group='testing_handler')
 
-print(params)
+print('SAVED DATA\n', saved_data)
+
+keys = dat.get_keys('testing_handler/arm_in_loop/OSC')
+
+saved_params = dat.load(params=keys,
+        save_location='testing_handler/arm_in_loop/OSC')
+for key in saved_params:
+    print('%s: %s' %(key, saved_params[key]))
