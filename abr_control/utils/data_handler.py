@@ -302,64 +302,6 @@ class DataHandler():
         self.save(data=tracked_data, save_location=group_path,
                 overwrite=overwrite, create=create)
 
-
-    # def save_params(self, params, session=None, class_name=None,
-    #         test_name='test', test_group='test_group', overwrite=False,
-    #         create=True):
-    #     """ Save test parameters of test trials with a standard naming
-    #     convention
-    #
-    #     Saves class parameters for things like controllers and robot configs
-    #     and links them to a test so the test setup can be recalled at a later
-    #     time
-    #
-    #     Parameters
-    #     ----------
-    #     params: dictionary of lists to save
-    #         instantiate as
-    #             tracked_data = {'data1': [], 'data2': []}
-    #         append as
-    #             tracked_data['data1'].append(np.copy(data_to_save))
-    #             tracked_data['data2'].append(np.copy(other_data_to_save))
-    #     session: int, Optional (Default: None)
-    #         the session number of the current set of runs
-    #         if set to None, then the latest session in the test_name folder
-    #         will be use, based off the highest numbered session
-    #     class_name: string, Optional (Default: None)
-    #         the name of the class that the parameter list belongs to, can be
-    #         controller name like OSC or a config file like jaco2_config
-    #     test_name: string, Optional (Default: 'test')
-    #         the folder name that will hold the session and run folders
-    #         the convention is abr_cache_folder/test_name/session#/run#
-    #         The abr cache folder can be found in abr_control/utils/paths.py
-    #     test_group: string, Optional (Default: 'test_group')
-    #         the group that all of the various test_name tests belong to. This
-    #         is helpful for grouping tests together relative to a specific
-    #         feature being tested, a paper that they belong to etc.
-    #     overwrite: boolean, Optional (Default: False)
-    #         determines whether or not to overwrite data if a group / dataset
-    #         already exists
-    #     """
-    #
-    #     if class_name is None:
-    #         class_name = 'default_params'
-    #     if session is None:
-    #         # user did not specify either run or session so we will grab the
-    #         # last entry in the test_name directory based off the highest
-    #         # numbered session and/or run
-    #         [run, session, __] = self.last_save_location(session=session,
-    #                 run=run, test_name=test_name, test_group=test_group,
-    #                 create=create)
-    #     else:
-    #         session = 'session%i'%session
-    #
-    #     group_path = '%s/%s/%s/%s'%(test_group, test_name, session, class_name)
-    #
-    #     # save the data
-    #     self.save(data=params, save_location=group_path,
-    #             overwrite=overwrite, create=create)
-    #
-
     def load(self, params, save_location):
         """
         Loads the data listed in params from the group provided

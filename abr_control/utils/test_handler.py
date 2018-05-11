@@ -3,7 +3,7 @@ import traceback
 import abr_jaco2
 from abr_control.controllers import OSC, path_planners
 import nengo
-from abr_control.utils import DataHandler
+from abr_control.utils import DataHandler, Target
 
 robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
 zeros = np.zeros(robot_config.N_JOINTS)
@@ -15,11 +15,15 @@ interface = abr_jaco2.Interface(robot_config)
 
 robot_config.Tx('EE', q=zeros, x=robot_config.OFFSET)
 
-target_xyz = np.array([[.56, -.09, .95],
-                       # [.12, .15, .80],
-                       # [.80, .26, .61],
-                       [.38, .46, .81]])
-
+target_xyz = []
+# target_xyz = np.array([[.56, -.09, .95],
+#                        # [.12, .15, .80],
+#                        # [.80, .26, .61],
+#                        [.38, .46, .81]])
+for ii in range(0,10):
+    target_xyz.append(np.copy(Target.random_target(
+        r=[0.7, 0.9], theta=[3.14, 6.28], phi=[2.07, 4.21])))
+print(target_xyz)
 # instantiate path planner and set parameters
 path = path_planners.SecondOrder(
     robot_config, n_timesteps=2000,
