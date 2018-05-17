@@ -21,7 +21,7 @@ class Training:
             test_group='testing', test_name="joint_space_training", session=None,
             run=None, weights=None, pes_learning_rate=1e-6, backend=None,
             offset=None, kp=20, kv=6, ki=0, seed=None, SCALES=None, MEANS=None,
-            probe_weights=True):
+            probe_weights=True, avoid_limits=True):
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The
@@ -96,6 +96,11 @@ class Training:
         *NOTE: adapt_input DOES NOT have to be the same as adapt_input*
         probe_weights: Boolean Optional (Default: False)
             True to probe adaptive population for decoders
+        avoid_limits: Boolean Optional (Default: True)
+            Adds joint avoidance controller to prevent the arm from colliding
+            with the floor and itself
+            NOTE: this is only for joints1 and 2, it may still be possible for
+            the gripper to collide with the arm in certain configurations
 
         Attributes
         ----------
@@ -110,6 +115,7 @@ class Training:
         self.session = session
         self.test_group = test_group
         self.test_name = test_name
+        self.avoid_limits = avoid_limits
         print("RUN PASSED IN IS: ", self.run)
 
         # instantiate our data handler for saving and load
@@ -121,7 +127,7 @@ class Training:
                     run=self.run, test_group=self.test_group,
                     test_name=self.test_name, create=True)
 
-        print('1: Instantiate robot_config')
+        print('--Instantiate robot_config--')
         # instantiate our robot config
         self.robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True,
                 SCALES=SCALES, MEANS=MEANS, init_all=True, offset=offset)
@@ -130,10 +136,10 @@ class Training:
             self.OFFSET = self.robot_config.OFFSET
         else:
             self.OFFSET = offset
-        print('2: robot config init all')
+        print('--Generate / load transforms--')
         self.robot_config.init_all()
 
-        print('3: Instantiate adapt controller')
+        print('--Instantiate adapt controller--')
         # instantiate our adaptive controller
         self.adapt = signals.DynamicsAdaptation(
             n_input=sum(adapt_input*2),
@@ -147,18 +153,28 @@ class Training:
             probe_weights=probe_weights,
             seed=seed)
 
-        print('4: Instantiate osc controller')
+        print('--Instantiate OSC controller--')
         # instantiate operational space controller
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
                 vmax=1, null_control=True)
 
-        print('5: Instantiate path planner')
+        print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
         self.path = path_planners.SecondOrder(robot_config=self.robot_config,
                 n_timesteps=4000, w=1e4, zeta=2, threshold=0.05)
         self.dt = 0.003
 
-        print('6: Instantiate interface')
+        if self.avoid_limits:
+            print('--Instantiate joint avoidance--')
+            self.avoid = signals.AvoidJointLimits(
+                self.robot_config,
+                min_joint_angles=[None, 1.3, 0.61, None, None, None],
+                max_joint_angles=[None, 4.99, 5.75, None, None, None],
+                max_torque=[5]*self.robot_config.N_JOINTS,
+                cross_zero=[True, False, False, False, True, False],
+                gradient = [False, False, False, False, False, False])
+
+        print('--Instantiate interface--')
         # instantiate our interface
         self.interface = abr_jaco2.Interface(robot_config=self.robot_config)
 
@@ -166,7 +182,7 @@ class Training:
         self.data = {'q': [], 'dq': [], 'u_base': [], 'u_adapt': [],
                      'error':[], 'training_signal': [], 'target': [],
                      'ee_xyz': [], 'input_signal': [], 'filter': [],
-                     'time': [], 'weights': []}
+                     'time': [], 'weights': [], 'u_avoid': []}
         self.count = 0
 
         self.adapt_input = np.array(adapt_input)
@@ -176,11 +192,11 @@ class Training:
 
     def connect_to_arm(self):
         # connect to and initialize the arm
-        print('7: Connect to arm')
+        print('--Connect to arm--')
         self.interface.connect()
         self.interface.init_position_mode()
         self.interface.send_target_angles(self.robot_config.INIT_TORQUE_POSITION)
-        print('8: Initialize force mode')
+        print('--Initialize force mode--')
         self.interface.init_force_mode()
 
     def reach_to_target(self, target_xyz, reaching_time):
@@ -211,7 +227,7 @@ class Training:
         # last three terms used as started point for target EE velocity
         self.target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
-        print('9: Starting main control loop')
+        print('--Starting main control loop--')
         # M A I N   C O N T R O L   L O O P
         while loop_time < reaching_time:
             start = timeit.default_timer()
@@ -245,6 +261,7 @@ class Training:
             self.data['dq'].append(np.copy(self.dq))
             self.data['u_base'].append(np.copy(self.u_base))
             self.data['u_adapt'].append(np.copy(self.u_adapt))
+            self.data['u_avoid'].append(np.copy(self.u_avoid))
             self.data['error'].append(np.copy(error))
             self.data['training_signal'].append(np.copy(self.training_signal))
             end = timeit.default_timer() - start
@@ -305,10 +322,17 @@ class Training:
             # add adaptive signal to base controller
             u = self.u_base + self.u_adapt
 
+            if self.avoid_limits:
+                # add in joint limit avoidance
+                self.u_avoid = self.avoid.generate(self.q)
+                u += self.u_avoid
+            else:
+                self.u_avoid = None
+
             return u
 
     def stop(self):
-        print('10: Disconnecting')
+        print('--Disconnecting--')
         # close the connection to the arm
         self.interface.init_position_mode()
         self.interface.send_target_angles(self.robot_config.INIT_TORQUE_POSITION)
@@ -324,6 +348,7 @@ class Training:
         print('*******************')
 
     def save_data(self):
+        print('--Saving run data--')
         # Get the last saved location in the database
         [self.run, self.session, location] = self.data_handler.last_save_location(
             session=self.session, run=self.run, test_name=self.test_name,
@@ -343,6 +368,7 @@ class Training:
             run=self.run, test_name=self.test_name, test_group=self.test_group)
 
     def save_parameters(self, overwrite=True, create=True):
+        print('--Saving test parameters--')
         loc = '%s/%s/'%(self.test_group, self.test_name)
         # Save OSC parameters
         self.data_handler.save(data=self.ctrlr.params,
