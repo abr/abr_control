@@ -168,7 +168,17 @@ class DataHandler():
             run = 'run%i'%run
             print('run is: ', run)
 
-        location = '%s/%s/%s/%s'%(test_group, test_name, session, run)
+        location = '%s/%s/'%(test_group, test_name)
+        if session is not None:
+            session = int(session[7:])
+            location += 'session%i/'%session
+        else:
+            location += '%s/'%session
+        if run is not None:
+            run = int(run[3:])
+            location += 'run%i'%run
+        else:
+            location += '%s/'%run
 
         db.close()
         return [run, session, location]
@@ -339,7 +349,7 @@ class DataHandler():
 
 
     def load_data(self, params, session=None, run=None,
-            test_name='test', test_group='test_group'):
+            test_name='test', test_group='test_group', create=False):
         """
         Loads the data listed in params from the group provided
 
@@ -381,11 +391,11 @@ class DataHandler():
                 print('Checking for run%i data in latest session'%run)
             else:
                 print('Checking for lastest session and run...')
-            [run, session, __] = self.last_save_location(session=session,
+            [run, session, group_path] = self.last_save_location(session=session,
                     run=run, test_name=test_name, test_group=test_group,
-                    create=False)
+                    create=create)
             if run is None:
-                raise ValueError('There is no run saved in %s/%s/%s'
+                print('There is no run saved in %s/%s/%s: Returning None'
                         % (test_group, test_name, session))
 
         else:
@@ -394,9 +404,13 @@ class DataHandler():
             print('session: ', session)
             session = 'session%i'%session
             run = 'run%i'%run
-        group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
 
-        saved_data = self.load(params=params, save_location=group_path)
+        if run is None:
+            saved_data = None
+        else:
+            #group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
+
+            saved_data = self.load(params=params, save_location=group_path)
 
         return saved_data
 

@@ -45,6 +45,16 @@ class BaseConfig():
     SCALES : list of floats, Optional (Default: None)
         expected variance of joint angles and velocities. Expected value for
         each joint. Only used for adaptation
+    init_all : boolean, Optional (Default: False)
+        option to initialize some common transforms that are typically used for
+        operation space control. This can prevent issues with some arms like the
+        jaco2 which enter a safety shutdown mode if they do not receive a control
+        signal within some minimum frequency. If the transforms are not
+        generated they may take longer than this minimum communication
+        frequency to be created. In this case it is recommended to set init_all
+        to True so they get initialized before the control loop
+    offset : list of floats, Optional (Default: [0, 0, 0])
+        x, y, z distance [meters] to offset reching point from end-effector
 
     Attributes
     ----------
@@ -78,7 +88,8 @@ class BaseConfig():
     """
 
     def __init__(self, N_JOINTS, N_LINKS, ROBOT_NAME="robot",
-                 use_cython=False, MEANS=None, SCALES=None):
+                 use_cython=False, MEANS=None, SCALES=None, init_all=False,
+                 offset=[0, 0, 0]):
 
         self.N_JOINTS = N_JOINTS
         self.N_LINKS = N_LINKS
@@ -106,6 +117,9 @@ class BaseConfig():
         self._M_LINKS = []
         self._M_JOINTS = []
 
+        # offset from end-effector
+        self.offset = offset
+
         # specify / create the folder to save to and load from
         self.config_folder = (cache_dir + '/%s/saved_functions/' % ROBOT_NAME)
         # create a unique hash for the config file
@@ -125,6 +139,20 @@ class BaseConfig():
         self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
+
+    def init_all(self):
+            print("Instantiating operation space control transforms...")
+            zeros = np.zeros(self.N_JOINTS)
+            # get Jacobians to each link for calculating perturbation
+            self.J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0])
+                       for ii in range(self.N_LINKS)]
+
+            self.JEE  = self._calc_J('EE', x=[0, 0, 0])
+
+            # account for wrist to fingers offset
+            R_func = self._calc_R('EE')
+
+            self.Tx('EE', q=zeros, x=self.offset)
 
     def _generate_and_save_function(self, filename, expression, parameters):
         """ Creates a folder, saves generated cython functions

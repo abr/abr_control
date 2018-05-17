@@ -8,7 +8,7 @@ from abr_control.utils import DataHandler, Target
 robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True)
 zeros = np.zeros(robot_config.N_JOINTS)
 
-ctrlr = OSC(robot_config, kp=30, kv=6, ki=0.2, vmax=1, null_control=False)
+ctrlr = OSC(robot_config, kp=25, kv=6, ki=0.2, vmax=1, null_control=False)
 ctrlr.generate(zeros, zeros, np.zeros(3))
 
 interface = abr_jaco2.Interface(robot_config)
@@ -152,3 +152,18 @@ saved_params = dat.load(params=keys,
         save_location='testing_handler/arm_in_loop/OSC')
 for key in saved_params:
     print('%s: %s' %(key, saved_params[key]))
+
+import matplotlib
+matplotlib.use("TKAgg")
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+targets = np.array(target_xyz)
+x = targets[:,0]
+y = targets[:,1]
+z = targets[:,2]
+ax.scatter(x,y,z,c='r',marker='o')
+plt.show()

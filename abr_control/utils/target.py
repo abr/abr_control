@@ -20,10 +20,7 @@ class Target():
         """
         self.origin_offset = origin_offset
 
-    def in_reach(self, target):
-        pass
-
-    def random_target(r=[0,1], theta=[0, 6.28], phi=[0, 3.14]):
+    def random_target(r=[0.5,1], theta=[0, 6.28], phi=[2.07, 4.21]):
         #TODO: need to handle case where working area crosses zero point
         # can look at avoid joint limits, hand to handle similarly there
         """
@@ -32,12 +29,12 @@ class Target():
 
         Parameters
         ----------
-        r: list of floats, Optional (Default: [0,1])
+        r: list of floats, Optional (Default: [0.5,1])
             radius range from origin to generate target within [meters]
         theta: list of floats, Optional (Default: [0, 6.28])
             the angle range about the origin (parallel with ground) to set
             targets within [radians]
-        phi: list of floats, Optional (Default: [0, 3.14])
+        phi: list of floats, Optional (Default: [2.07, 4.21])
             the angle range perpendicular to the groun to set targets within
             [radians]
             Cannot be from 0-2pi because would result in situations where arm
@@ -84,7 +81,7 @@ class Target():
 
         return target_xyz
 
-    def normalize_target(self, target, magnitude=0.9, origin_offset=[0,0,0]):
+    def normalize_target(self, target, max_reaching_distance=0.9, origin_offset=[0,0,0]):
         """
         Limits the distance from origin to target to the specified magnitude in
         meters
@@ -93,8 +90,8 @@ class Target():
         ----------
         target: list of floats
             cartesian coordinates of target in meters [x, y, z]
-        magnitude: float, Optional (Default: 0.9)
-            the max distance in meters from origin to target
+        max_reaching_distance: float, Optional (Default: 0.9)
+            the maximum reaching distance from the origin [meters]
         origin_offset: list of floats, Optional (Default: [0, 0, 0])
             the offset from the arms origin. This is usually done if the first
             link rotates and the second joint is the pivoting point (shoulder).
@@ -106,6 +103,6 @@ class Target():
         #joint1_offset = np.array([0, 0, 0.273])
         joint1_offset = np.array(origin_offset)
         norm = np.linalg.norm(target - joint1_offset)
-        if norm > magnitude:
-            target = ((target - joint1_offset) / norm) * magnitude + joint1_offset
+        if norm > max_reaching_distance:
+            target = ((target - joint1_offset) / norm) * max_reaching_distance + joint1_offset
         return target
