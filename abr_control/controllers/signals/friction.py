@@ -11,6 +11,15 @@ class Friction(Signal):
         self.vs = vs
         self.Fv = Fv
 
+    @property
+    def params(self):
+        params = {'source': 'friction',
+                  'Fn': self.Fn,
+                  'uk': self.uk,
+                  'us': self.us,
+                  'vs': self.vs,
+                  'Fv': self.Fv}
+
     def generate(self, dq, show_plot=False):
         # using static and kinetic coefficients of friction for steel on steel
 

@@ -67,11 +67,14 @@ class AvoidJointLimits(Signal):
         self.max_torque = (np.ones(robot_config.N_JOINTS)
                            if max_torque is None else np.asarray(max_torque))
 
-        self.params = {'min_joint_angles': self.min_joint_angles,
-                       'max_joint_angles': self.max_joint_angles,
-                       'max_torque': self.max_torque,
-                       'cross_zero': self.cross_zero,
-                       'gradient': self.gradient}
+    @property
+    def params(self):
+        params = {'source': 'avoid_joint_limits',
+                  'min_joint_angles': self.min_joint_angles,
+                  'max_joint_angles': self.max_joint_angles,
+                  'max_torque': self.max_torque,
+                  'cross_zero': self.cross_zero,
+                  'gradient': self.gradient}
 
     def generate(self, q):
         """ Generates the control signal

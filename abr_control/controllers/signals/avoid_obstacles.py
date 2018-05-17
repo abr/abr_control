@@ -24,8 +24,12 @@ class AvoidObstacles(Signal):
         self.robot_config = robot_config
         self.threshold = threshold
         self.obstacles = np.copy(obstacles)
-        self.params = {'threshold': self.threshold,
-                       'obstacles': self.obstacles}
+
+    @property
+    def params(self):
+        params = {'source': 'avoid_obstacles',
+                  'threshold': self.threshold,
+                  'obstacles': self.obstacles}
 
     def generate(self, q):  # noqa901
         """ Generates the control signal

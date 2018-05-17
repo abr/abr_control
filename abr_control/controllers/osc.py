@@ -71,9 +71,17 @@ class OSC(controller.Controller):
         self.nkp = self.kp * .1
         self.nkv = np.sqrt(self.nkp)
 
+        # run the controller once to generate any functions we might be missing
+        # to avoid a long delay in the control loop
+        self.generate(np.zeros(robot_config.N_JOINTS),
+                      np.zeros(robot_config.N_JOINTS),
+                      np.zeros(3),
+                      offset=robot_config.OFFSET)
+
     @property
     def params(self):
-        params = {'kp': self.kp,
+        params = {'source': 'OSC',
+                  'kp': self.kp,
                   'kv': self.kv,
                   'ki': self.ki,
                   'vmax': self.vmax,

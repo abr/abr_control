@@ -79,10 +79,11 @@ class Linear(PathPlanner):
 
     @property
     def params(self):
-        params = {'state': self.state,
-                       'target': self.target,
-                       'n_timesteps': self.n_timesteps,
-                       'dt': self.dt}
+        params = {'source': 'linear',
+                  'state': self.state,
+                  'target': self.target,
+                  'n_timesteps': self.n_timesteps,
+                  'dt': self.dt}
         return params
 
     def next_target(self):

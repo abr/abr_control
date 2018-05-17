@@ -33,7 +33,8 @@ class Sliding(controller.Controller):
 
     @property
     def params(self):
-        params = {'kd': self.kd,
+        params = {'source': 'sliding',
+                  'kd': self.kd,
                   'lamb': self.lamb,
                   'cartesian': self.cartesian}
         return params

@@ -46,7 +46,8 @@ class SecondOrder(PathPlanner):
 
     @property
     def params(self):
-        params = {'n_timesteps': self.n_timesteps,
+        params = {'source': 'second_order',
+                  'n_timesteps': self.n_timesteps,
                   'dt': self.dt,
                   'zeta': self.zeta,
                   'w': self.w,

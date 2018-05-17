@@ -29,7 +29,8 @@ class Joint(controller.Controller):
 
     @property
     def params(self):
-        params = {'kp': self.kp,
+        params = {'source': 'joint',
+                  'kp': self.kp,
                   'kv': self.kv}
         return params
 
