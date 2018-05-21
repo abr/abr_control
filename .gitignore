@@ -100,3 +100,4 @@ ENV/
 
 *.swo
 
+.idea/
