@@ -183,7 +183,8 @@ class DataHandler():
         db.close()
         return [run, session, location]
 
-    def save(self, data, save_location='test', overwrite=False, create=True):
+    def save(self, data, save_location='test', overwrite=False, create=True,
+            timestamp=True):
         """ Saves data to a dataset in the provided group
 
         Parameters
@@ -202,6 +203,8 @@ class DataHandler():
         create: boolean, Optional (Default: True)
             determines whether to create the group provided if it does not
             exist, or to warn to the user that it does not
+        timestamp: boolean, Optional (Default: True)
+            whether to save timestamp with data
         """
 
         db = h5py.File(self.db_loc, 'a')
@@ -223,6 +226,11 @@ class DataHandler():
                                  + ' overwrite the dataset set overwrite=True')
 
         print('Saving data to %s'%save_location)
+
+        if timestamp:
+            import time
+            data['time'] = time.strftime("%H:%M:%S")
+            data['date'] = time.strftime("%Y/%m/%d")
 
         for key in data:
             #print('key:%s | data:'%(key), data[key])
@@ -248,7 +256,7 @@ class DataHandler():
 
     def save_data(self, tracked_data, session=None, run=None,
             test_name='test', test_group='test_group', overwrite=False,
-            create=True):
+            create=True, timestamp=True):
         #TODO: currently module does not check whether a lower run or session
         # exists if the user provides a number for either parameter, could lead
         # to a case where user provides run to save as 6, but runs 0-5 do not
@@ -288,6 +296,8 @@ class DataHandler():
         overwrite: boolean, Optional (Default: False)
             determines whether or not to overwrite data if a group / dataset
             already exists
+        timestamp: boolean, Optional (Default: True)
+            whether to save timestamp with data
         """
 
         if run is not None:
@@ -310,7 +320,7 @@ class DataHandler():
 
         # save the data
         self.save(data=tracked_data, save_location=group_path,
-                overwrite=overwrite, create=create)
+                overwrite=overwrite, create=create, timestamp=timestamp)
 
     def load(self, params, save_location):
         """

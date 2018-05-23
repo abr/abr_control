@@ -84,6 +84,8 @@ class DynamicsAdaptation(Signal):
         True to get decoders
     debug_print: boolean optional (Default: False)
         True to display debug print statements
+    neuron_type: string: optional (Default: 'lif')
+        the neuron model to use
     """
 
     def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
@@ -91,7 +93,8 @@ class DynamicsAdaptation(Signal):
                  intercepts_mode=-0.9, weights_file=None, backend='nengo',
                  session=None, run=None, test_name='test', autoload=False,
                  function=None, send_redis_spikes=False, encoders=None,
-                 probe_weights=False, debug_print=False, **kwargs):
+                 probe_weights=False, debug_print=False, neuron_type='lif',
+                 **kwargs):
 
         """ Create adaptive population with the provided parameters"""
         self.n_input = n_input
@@ -126,14 +129,15 @@ class DynamicsAdaptation(Signal):
         self.nengo_model.config[nengo.Connection].synapse = None
 
         # Set the nerual model to use
-        if self.backend == 'nengo':
+        if neuron_type.lower() == 'lif':
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
-            #self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.RectifiedLinear()
-        elif self.backend == 'nengo_spinnaker':
-            self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
-        elif self.backend == 'nengo_ocl':
-            self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
-            #self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.RectifiedLinear()
+
+        elif neuron_type.lower() == 'relu':
+            if backend == 'nengo_spinnaker':
+                print('Spinnaker can only use LIF neuron models')
+                self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
+            else:
+                self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.RectifiedLinear()
 
         with self.nengo_model:
 
