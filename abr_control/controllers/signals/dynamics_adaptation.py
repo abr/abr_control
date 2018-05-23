@@ -91,7 +91,6 @@ class DynamicsAdaptation(Signal):
     def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
                  seed=None, pes_learning_rate=1e-6, intercepts=(-0.9, 0.0),
                  intercepts_mode=-0.9, weights_file=None, backend='nengo',
-                 session=None, run=None, test_name='test', autoload=False,
                  function=None, send_redis_spikes=False, encoders=None,
                  probe_weights=False, debug_print=False, neuron_type='lif',
                  **kwargs):
@@ -115,12 +114,6 @@ class DynamicsAdaptation(Signal):
         self.input_signal = np.zeros(self.n_input)
         self.training_signal = np.zeros(self.n_output)
         self.output = np.zeros(self.n_output)
-
-        # if a weights_file is not specified and auto_load is desired,
-        # check the test_name directory for the most recent weights
-        if self.weights_file is None and autoload:
-            self.weights_file = self.load_weights(
-                session=session, run=run, test_name=test_name)
 
         if self.weights_file is None:
             self.weights_file = ''
@@ -376,119 +369,6 @@ class DynamicsAdaptation(Signal):
             self.sim.run(time_in_seconds=.001)
 
         return self.output
-
-    def weights_location(self, session=None, run=None, test_name='test'):
-        """ Search for most recent saved weights
-
-        Searches the specified test_name for the highest numbered run in the
-        highest numbered session, unless otherwise specified. Returns the file
-        location and the number of the most recent run.
-
-        Parameters
-        ----------
-        session: int, optional (Default: None)
-            if doing multiple sessions of n runs to average over.
-            if set to None it will search for the most recent session
-            to save to, saving to 'session0' if none exist
-        run: int, optional (Default: None)
-            the current run number. This value will automatically
-            increment based on the last run saved in the test_name
-            folder. The user can specify a run if they desire to
-            overwrite a previous run. If set to None then the test_name
-            folder will be searched for the next run to save as
-        test_name: string, optional (Default: 'test')
-            the test name to save the weights under
-        """
-
-        test_name = cache_dir + '/saved_weights/' + test_name
-
-        # if session is not None, then the user has specified what session to save the
-        # current weights in
-        if session is not None:
-            test_name += '/session%i' % session
-        # If no session is specified, check if there is already one created, if not
-        # then save the run to 'session0'
-        else:
-            prev_sessions = glob.glob(test_name + '/session*')
-            run_cache = []
-            if prev_sessions:
-                test_name = max(prev_sessions)
-            else:
-                test_name += '/session0'
-
-        # check if the provided test_name exists, if not, create it
-        if not os.path.exists(test_name):
-            print("The provided directory: '%s' does not exist, creating folder..."
-                % test_name)
-            os.makedirs(test_name)
-
-        # if no run is specified, check what the most recent run saved is and save as
-        # the next one in the series. If no run exists then save it as 'run0'
-        # if saving, if loading throw an error that no weights file exists
-        if run is None:
-            prev_runs = glob.glob(test_name + '/*.npz')
-            run_cache = []
-            if prev_runs:
-                for ii in range(0, len(prev_runs)):
-                    run_cache.append(int(prev_runs[ii][prev_runs[ii].rfind('/')+4:prev_runs[ii].find('.npz')]))
-                run_num = max(run_cache)
-            else:
-                run_num = -1
-        else:
-            # save as the run specified by the user
-            run_num = run
-
-        return [test_name, run_num]
-
-    def save_weights(self, **kwargs):
-        """ Save the current weights to the specified test_name folder
-
-        Save weights for individual runs. A group of runs is
-        classified as a session. Multiple sessions can then be used
-        to average over a set of learned runs. If session or run are set to None
-        then the test_name location will be searched for the highest numbered
-        folder and file respectively
-        """
-
-        [test_name, run_num] = self.weights_location(**kwargs)
-
-        print('saving weights as run%i'% (run_num+1))
-        if self.backend == 'nengo_spinnaker':
-            import nengo_spinnaker.utils.learning
-            # Need to power cycle spinnaker for repeated runs, so sim.close and
-            # sleep is unnecessary, unless power cycling is automated using two
-            # ethernet connections, then can uncomment the following two lines
-            #self.sim.close()
-            #time.sleep(5)
-            print('save location: ', test_name + '/run%i' % (run_num +1))
-            np.savez_compressed(
-                test_name + '/run%i' % (run_num + 1),
-                weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
-                         self.sim, ens) for ens in self.adapt_ens]))
-
-        else:
-            print('save location: ', test_name + '/run%i' % (run_num +1))
-            np.savez_compressed(
-                test_name + '/run%i' % (run_num + 1),
-                weights=([self.sim.signals[self.sim.model.sig[conn]['weights']]
-                         for conn in self.conn_learn]))
-
-    def load_weights(self, **kwargs):
-        """ Loads the most recently saved weights unless otherwise specified
-
-        Checks test_name to load the most recent set of weights, unless
-        otherwise specified in session and run. Assumes the most recent is the
-        highest session and run number.
-        """
-
-        [test_name, run_num] = self.weights_location(**kwargs)
-
-        if run_num == -1:
-            print('No weights found in the specified directory...')
-            self.weights_file = None
-        else:
-            self.weights_file = test_name + '/run%i.npz' % run_num
-        return self.weights_file
 
     def get_weights(self, backend=None):
         """ Get the current weights

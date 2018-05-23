@@ -21,7 +21,7 @@ class Training:
             test_group='testing', test_name="joint_space_training", session=None,
             run=None, weights=None, pes_learning_rate=1e-6, backend=None,
             offset=None, kp=20, kv=6, ki=0, seed=None, SCALES=None, MEANS=None,
-            probe_weights=True, avoid_limits=True):
+            probe_weights=True, avoid_limits=True, neuron_type='lif'):
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The
@@ -151,7 +151,8 @@ class Training:
             weights_file=weights,
             backend=backend,
             probe_weights=probe_weights,
-            seed=seed)
+            seed=seed,
+            neuron_type=neuron_type)
 
         print('--Instantiate OSC controller--')
         # instantiate operational space controller

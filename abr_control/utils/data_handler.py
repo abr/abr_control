@@ -229,8 +229,8 @@ class DataHandler():
 
         if timestamp:
             import time
-            data['time'] = time.strftime("%H:%M:%S")
-            data['date'] = time.strftime("%Y/%m/%d")
+            data['timestamp'] = time.strftime("%H:%M:%S")
+            data['datestamp'] = time.strftime("%Y/%m/%d")
 
         for key in data:
             #print('key:%s | data:'%(key), data[key])
