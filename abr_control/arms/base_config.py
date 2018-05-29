@@ -201,9 +201,10 @@ class BaseConfig():
                 if os.path.isfile('%s/%s/%s' %
                                   (self.config_folder, filename, filename)):
                     print('Loading expression from %s ...' % filename)
-                    expression = cloudpickle.load(open(
-                        '%s/%s/%s' % (self.config_folder, filename, filename),
-                        'rb'))
+                    # expression = cloudpickle.load(open(
+                    #     '%s/%s/%s' % (self.config_folder, filename, filename),
+                    #     'rb'))
+                    expression = None
 
         return expression, function
 

@@ -10,10 +10,10 @@ robot_config = arm.Config(use_cython=True, hand_attached=True)
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)
 
 # create our VREP interface
-interface = VREP(robot_config, dt=.05)
+interface = VREP(robot_config, dt=.0005)
 interface.connect()
 
-target_xyz = np.array([1, 0.2, 0.5])
+target_xyz = np.array([0.5, 0.2, 0.5])
 # set the target object's position in VREP
 interface.set_xyz(name='target', xyz=target_xyz)
 
