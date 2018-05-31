@@ -26,7 +26,7 @@ f = Figure(figsize=(5,5), dpi=100)
 a = f.add_subplot(111)
 
 # global variable for searching in db
-loc = '/'
+loc = ['/']
 
 def animate(i):
     pullData = open("SampleData.txt", "r").read()
@@ -70,6 +70,12 @@ def popupmsg(msg):
 #     if loc == '/':
 #         self.param_menu.delete()
 #
+
+def go_back_loc_level(self):
+    global loc
+    loc = loc[:-1]
+    self.entry.delete(0, 'end')
+    self.update_list()
 
 def add_img(self, size=[200,200], file_loc='test_img.jpg', row=0, column=0, *args):
     img = Image.open(file_loc)
@@ -162,7 +168,10 @@ class SearchPage(tk.Frame):
 
         button1 = ttk.Button(self, text="Home",
                 command=lambda: controller.show_frame(StartPage))
-        button1.grid(row=1, column=0, sticky='nsew')
+        button1.grid(row=1, column=1, sticky='nsew')
+        button2 = ttk.Button(self, text="Back",
+                command=lambda: go_back_loc_level(self))
+        button2.grid(row=1, column=0, sticky='nsew')
         button3 = ttk.Button(self, text="Plot",
                 command=lambda: controller.show_frame(PlotPage))
         button3.grid(row=1, column=2, sticky='nsew')
@@ -170,10 +179,10 @@ class SearchPage(tk.Frame):
         self.search_var = tk.StringVar()
         self.search_var.trace("w", self.update_list)
         # self.selected_var = tk.StringVar()
-        # self.selected_var.trace("w", self.print_list)
+        # self.selected_var.trace("w", self.get_selection)
         self.entry = tk.Entry(self, textvariable=self.search_var, width=13)
         self.lbox = tk.Listbox(self, width=45, height=15, selectmode='MULTIPLE')
-        self.lbox.bind('<<ListboxSelect>>', self.print_list)
+        self.lbox.bind('<<ListboxSelect>>', self.get_selection)
 
         self.entry.grid(row=3, column=0, sticky='nsew', columnspan=3)
         self.lbox.grid(row=4, column=0, sticky='nsew', columnspan=3)
@@ -185,13 +194,13 @@ class SearchPage(tk.Frame):
         values = [self.lbox.get(idx) for idx in self.lbox.curselection()]
         print( ', '.join(values))
 
-    def print_list(self, *args):
+    def get_selection(self, *args):
         global loc
         print('selection changed')
         index = int(self.lbox.curselection()[0])
         value = self.lbox.get(index)
         print('You selected item %d: "%s"' % (index, value))
-        loc += '/%s'%value
+        loc.append('%s/'%value)
         self.entry.delete(0, 'end')
         self.update_list()
 
@@ -201,7 +210,7 @@ class SearchPage(tk.Frame):
         search_term = self.search_var.get()
 
         # pull keys from the database
-        lbox_list = dat.get_keys(loc)
+        lbox_list = dat.get_keys(''.join(loc))
 
         self.lbox.delete(0, tk.END)
 
