@@ -190,13 +190,10 @@ class SearchPage(tk.Frame):
         # Function for updating the list/doing the search.
         # It needs to be called here to populate the listbox.
         self.update_list()
-        print('search init')
         values = [self.lbox.get(idx) for idx in self.lbox.curselection()]
-        print( ', '.join(values))
 
     def get_selection(self, *args):
         global loc
-        print('selection changed')
         index = int(self.lbox.curselection()[0])
         value = self.lbox.get(index)
         print('You selected item %d: "%s"' % (index, value))
@@ -206,18 +203,25 @@ class SearchPage(tk.Frame):
 
     def update_list(self, *args):
         global loc
-        print('update_list')
         search_term = self.search_var.get()
 
         # pull keys from the database
-        lbox_list = dat.get_keys(''.join(loc))
+        lbox_list_tmp = dat.get_keys(''.join(loc))
 
-        self.lbox.delete(0, tk.END)
+        if lbox_list_tmp is not None:
+            print('loc points to group')
+            lbox_list = lbox_list_tmp
 
-        for item in lbox_list:
-            print('loop list box')
-            if search_term.lower() in item.lower():
-                self.lbox.insert(tk.END, item)
+            self.lbox.delete(0, tk.END)
+
+            for item in lbox_list:
+                if search_term.lower() in item.lower():
+                    self.lbox.insert(tk.END, item)
+        # if the current path points to a dataset then go back one level
+        else:
+            print('loc points to dataset')
+            go_back_loc_level(self)
+            self.update_list()
 
 class PlotPage(tk.Frame):
 

@@ -434,7 +434,12 @@ class DataHandler():
         returns a list of keys from group_list
         """
         db = h5py.File(self.db_loc, 'a')
-        print('looking for keys in %s' % group_path)
-        keys = list(db[group_path].keys())
+        if isinstance(db[group_path], h5py.Dataset):
+            print('The provided path points to a dataset, please provide'
+                    + ' a group to obtain keys')
+            keys = None
+        else:
+            print('looking for keys in %s' % group_path)
+            keys = list(db[group_path].keys())
         db.close()
         return keys
