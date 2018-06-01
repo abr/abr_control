@@ -13,6 +13,7 @@ import matplotlib.animation as animation
 from matplotlib import style
 from PIL import Image, ImageTk
 
+import numpy as np
 from abr_control.utils import DataHandler
 
 dat = DataHandler(use_cache=True)
@@ -27,20 +28,55 @@ a = f.add_subplot(111)
 
 # global variable for searching in db
 loc = ['/']
+# list of tests to display data from
+disp_loc = []
 
-def animate(i):
-    pullData = open("SampleData.txt", "r").read()
-    dataList = pullData.split('\n')
-    xList = []
-    yList = []
-    for eachLine in dataList:
-        if len(eachLine) > 1:
-            x, y = eachLine.split(',')
-            xList.append(int(x))
-            yList.append(int(y))
+def live_plot(i):
+    #TODO update only when there is a change instead of periodically
+    # pullData = open("SampleData.txt", "r").read()
+    # dataList = pullData.split('\n')
+    # xList = []
+    # yList = []
+    # for eachLine in dataList:
+    #     if len(eachLine) > 1:
+    #         x, y = eachLine.split(',')
+    #         xList.append(int(x))
+    #         yList.append(int(y))
     a.clear()
-    a.plot(xList, yList)
-    # a.legend(bbox_to_anchor=(0,1.02,1,.102), loc=3)
+    x_min = 0
+    x_max = 1
+    y_min = 0
+    y_max = 1
+    for test in disp_loc:
+        location = '%ssession000/'%test
+        keys = dat.get_keys(location)
+        #print('KEYS: ', keys)
+        error = []
+        print('error start: ', error)
+        for entry in keys:
+            #print('entry: ', entry)
+            #if 'run' in entry:
+                # print(dat.load(params=['error'],
+                #         save_location='%s%s'%(location, entry)))
+            print('entry: ', entry)
+            error.append(dat.load(params=['error'],
+                    save_location='%s%s'%(location,
+                        entry))['error'])
+        print('error end: ', error)
+        if max(error) > y_max:
+            y_max = max(error)
+        if min(error) < y_min:
+            y_min = min(error)
+        if len(error) > x_max:
+            x_max = len(error)
+        a.set_xlim(x_min, x_max)
+        a.set_ylim(y_min, y_max)
+        a.plot(error, label=test)
+    a.legend(bbox_to_anchor=(0,1.02,1,.102), loc=1)
+
+def clear_plot(self):
+    global disp_loc
+    disp_loc = []
 
 def popupmsg(msg):
     popup = tk.Tk()
@@ -74,7 +110,7 @@ def popupmsg(msg):
 def go_back_loc_level(self):
     global loc
     loc = loc[:-1]
-    self.entry.delete(0, 'end')
+    #self.entry.delete(0, 'end')
     self.update_list()
 
 def add_img(self, size=[200,200], file_loc='test_img.jpg', row=0, column=0, *args):
@@ -124,7 +160,7 @@ class Page(tk.Tk):
 
         self.frames = {}
 
-        for F in (StartPage, SearchPage, PlotPage):
+        for F in (StartPage, SearchPage):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -138,7 +174,7 @@ class StartPage(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Home", font=LARGE_FONT)
+        #label = tk.Label(self, text="Home", font=LARGE_FONT)
         label = tk.Label(self, text=('Welcome to the abr_control plotting GUI!'
             +'\n\nBrowse through your recorded tests in the \'Search\' Page. Any'
             + ' corresponding images that are saved to the test will be '
@@ -153,9 +189,9 @@ class StartPage(tk.Frame):
         button2 = ttk.Button(self, text="Search",
                 command=lambda: controller.show_frame(SearchPage))
         button2.grid(row=2,column=0)
-        button3 = ttk.Button(self, text="Plot",
-                command=lambda: controller.show_frame(PlotPage))
-        button3.grid(row=3,column=0)
+        # button3 = ttk.Button(self, text="Plot",
+        #         command=lambda: controller.show_frame(PlotPage))
+        # button3.grid(row=3,column=0)
 
         add_img(self, file_loc='abr_logo.jpg', row=0, column=0)
 
@@ -172,8 +208,8 @@ class SearchPage(tk.Frame):
         button2 = ttk.Button(self, text="Back",
                 command=lambda: go_back_loc_level(self))
         button2.grid(row=1, column=0, sticky='nsew')
-        button3 = ttk.Button(self, text="Plot",
-                command=lambda: controller.show_frame(PlotPage))
+        button3 = ttk.Button(self, text="Clear Plot",
+                command=lambda: clear_plot(self))
         button3.grid(row=1, column=2, sticky='nsew')
 
         self.search_var = tk.StringVar()
@@ -192,13 +228,49 @@ class SearchPage(tk.Frame):
         self.update_list()
         values = [self.lbox.get(idx) for idx in self.lbox.curselection()]
 
+        # Plotting Window
+        canvas = FigureCanvasTkAgg(f, self)
+        canvas.show()
+        canvas.get_tk_widget().grid(row=0, column=10, rowspan=8, columnspan=8)
+
+        # show the matplotlib toolbar
+        #toolbar = NavigationToolbar2TkAgg(canvas, self)
+        # toolbar.update()
+        # canvas._tkcanvas.grid(row=0, column=5, columnspan=10)
+
+
     def get_selection(self, *args):
         global loc
+        global disp_loc
+
+        # get cursor selection and update db search location
         index = int(self.lbox.curselection()[0])
         value = self.lbox.get(index)
         print('You selected item %d: "%s"' % (index, value))
         loc.append('%s/'%value)
-        self.entry.delete(0, 'end')
+
+        # check if we're pointing at a dataset, if so go back one level
+        keys = dat.get_keys(''.join(loc))
+        if keys is None:
+            print('loc points to dataset')
+            go_back_loc_level(self)
+            #self.update_list()
+
+        # if keys do exist, check if we're at the session level, at which point
+        # we should display data, not go further down in the search
+        elif any('session' in s for s in keys):
+            # check if the selection is already in our list, if so remove it
+            if ''.join(loc) in disp_loc:
+                disp_loc.remove(''.join(loc))
+            else:
+                disp_loc.append(''.join(loc))
+            print("CURRENT DISPLAY LIST: ", disp_loc)
+            go_back_loc_level(self)
+
+        # if the selection takes us to the next level of groups then erase the
+        # search bar
+        else:
+            self.entry.delete(0, 'end')
         self.update_list()
 
     def update_list(self, *args):
@@ -206,47 +278,38 @@ class SearchPage(tk.Frame):
         search_term = self.search_var.get()
 
         # pull keys from the database
-        lbox_list_tmp = dat.get_keys(''.join(loc))
+        lbox_list = dat.get_keys(''.join(loc))
 
-        if lbox_list_tmp is not None:
-            print('loc points to group')
-            lbox_list = lbox_list_tmp
+        self.lbox.delete(0, tk.END)
 
-            self.lbox.delete(0, tk.END)
+        for item in lbox_list:
+            if search_term.lower() in item.lower():
+                self.lbox.insert(tk.END, item)
 
-            for item in lbox_list:
-                if search_term.lower() in item.lower():
-                    self.lbox.insert(tk.END, item)
-        # if the current path points to a dataset then go back one level
-        else:
-            print('loc points to dataset')
-            go_back_loc_level(self)
-            self.update_list()
+# class PlotPage(tk.Frame):
+#
+#     def __init__(self, parent, controller):
+#         tk.Frame.__init__(self, parent)
+#         label = tk.Label(self, text="Plot", font=LARGE_FONT)
+#         label.pack(pady=10, padx=10)
+#
+#         button1 = ttk.Button(self, text="Home",
+#                 command=lambda: controller.show_frame(StartPage))
+#         button1.pack()
+#         button3 = ttk.Button(self, text="Search",
+#                 command=lambda: controller.show_frame(SearchPage))
+#         button3.pack()
 
-class PlotPage(tk.Frame):
-
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Plot", font=LARGE_FONT)
-        label.pack(pady=10, padx=10)
-
-        button1 = ttk.Button(self, text="Home",
-                command=lambda: controller.show_frame(StartPage))
-        button1.pack()
-        button3 = ttk.Button(self, text="Search",
-                command=lambda: controller.show_frame(SearchPage))
-        button3.pack()
-
-        canvas = FigureCanvasTkAgg(f, self)
-        canvas.show()
-        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-        # show the matplotlib toolbar
-        toolbar = NavigationToolbar2TkAgg(canvas, self)
-        toolbar.update()
-        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        # canvas = FigureCanvasTkAgg(f, self)
+        # canvas.show()
+        # canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        #
+        # # show the matplotlib toolbar
+        # toolbar = NavigationToolbar2TkAgg(canvas, self)
+        # toolbar.update()
+        # canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
 app = Page()
 #app.geometry("1280x720")
-ani = animation.FuncAnimation(f, animate, interval=1000)
+ani = animation.FuncAnimation(f, live_plot, interval=1000)
 app.mainloop()
