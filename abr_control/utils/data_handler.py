@@ -81,7 +81,7 @@ class DataHandler():
 
     def last_save_location(self, session=None, run=None, test_name='test',
             test_group='test_group', create=True):
-        """ Search for most latest run in provided test
+        """ Search for latest run in provided test
 
         If the user sets session or run to None, the function searches the
         specified test_name for the highest numbered run in the
@@ -92,6 +92,13 @@ class DataHandler():
         If the user specifies a session, or run that do not exist, the 0th
         session and/or run will be created. However, if the test_name does not
         exist, an exception will be raised to alert the user
+
+        This function is used for both saving and loading, if used for saving
+        then it may be desirable to create a group if the provided one does not
+        exist. This can be done by setting create to True. The opposite is true
+        for loading, where None should be returned if the group does not exist.
+        In this scenario create should be set to False. By default, these are
+        the settings for the load and save functions
 
         Parameters
         ----------
@@ -115,72 +122,108 @@ class DataHandler():
             whether to create the group passed in if it does not exist
         """
 
-        db = h5py.File(self.db_loc, 'a')
+        self.db = h5py.File(self.db_loc, 'a')
+
         # first check whether the test passed in exists
         exists = self.check_group_exists(location='%s/%s/'%(test_group,
             test_name), create=create)
 
-        # if the test does not exist, raise an exception
+        # if the test does not exist, return None
         if exists is False:
-            raise ValueError('The group %s/%s '%(test_group, test_name)
-                    + 'does not exist, no previous location to pass')
+            run = None
+            session = None
+            location = '%s/%s/'%(test_group, test_name)
+            self.db.close()
+            return [run, session, location]
 
+        # If a session is provided, check if it exists
+        if session is not None:
+            # check if the provided session exists before continuing, create it
+            # if it does not and create is set to True
+            exists = self.check_group_exists(location='%s/%s/session%03d/'%(test_group,
+                test_name, session), create=create)
+            # if exists, use the value
+            if exists:
+                session = 'session%03d' %session
+                print('session is: ', session)
+            else:
+                run = None
+                session = None
+                location = '%s/%s/'%(test_group, test_name)
+                self.db.close()
+                return [run, session, location]
 
         # if not looking for a specific session, check what our highest
         # numbered session is
-        if session is None:
+        elif session is None:
             # get all of the session keys
-            session_keys = list(db['%s/%s'%(test_group, test_name)].keys())
+            session_keys = list(self.db['%s/%s'%(test_group, test_name)].keys())
 
             if session_keys:
                 session = max(session_keys)
                 print('session is: ', session)
-            # test_group/test_name exists, but for some reason we do not have
-            # a session saved. Alert the user of this and create session0 group
-            else:
+
+            elif create:
+                # No session can be found, create it if create is True
                 print('The group %s/%s exists, but there is no session'
                         % (test_group, test_name)
-                      + ' saved... \nCreating session0 group')
-                db.create_group('%s/%s/session0'%(test_group, test_name))
-                session = 'session0'
+                      + ' saved... \nCreating session000 group')
+                self.db.create_group('%s/%s/session000'%(test_group, test_name))
+                session = 'session000'
                 print('session is: ', session)
-        else:
-            session = 'session%i' %session
-            print('session is: ', session)
+
+            else:
+                run = None
+                session = None
+                location = '%s/%s/'%(test_group, test_name)
+                self.db.close()
+                return [run, session, location]
+
+        if run is not None:
+            # check if the provided run exists before continuing, create it
+            # if it does not and create is set to True
+            exists = self.check_group_exists(location='%s/%s/%s/run%03d'%(test_group,
+                test_name, session, run), create=create)
+            # if exists, use the value
+            if exists:
+                run = 'run%03d' %run
+                print('run is: ', run)
+            else:
+                run = None
+                location = '%s/%s/'%(test_group, test_name)
+                self.db.close()
+                return [run, session, location]
 
         # usually this will be set to None so that we can start from where we
         # left off in testing, but sometimes it is useful to pick up from
         # a specific run
-        if run is None:
+        elif run is None:
             # get all of the run keys
-            run_keys = list(db['%s/%s/%s'%(test_group, test_name, session)].keys())
+            run_keys = list(self.db['%s/%s/%s'%(test_group, test_name, session)].keys())
 
             if run_keys:
                 run = max(run_keys)
                 print('run is: ', run)
-            # no run exists in this session, so start from run0
+
             else:
                 print('The group %s/%s/%s exists, but there are no runs saved...'
                       %(test_group, test_name, session))
                 run = None
                 print('run is: ', run)
-        else:
-            run = 'run%i'%run
-            print('run is: ', run)
 
         location = '%s/%s/'%(test_group, test_name)
         if session is not None:
             session = int(session[7:])
-            location += 'session%i/'%session
+            location += 'session%03d/'%session
         else:
             location += '%s/'%session
         if run is not None:
             run = int(run[3:])
-            location += 'run%i'%run
+            location += 'run%03d'%run
         else:
             location += '%s/'%run
 
-        db.close()
+        self.db.close()
         return [run, session, location]
 
     def save(self, data, save_location='test', overwrite=False, create=True,
@@ -301,9 +344,9 @@ class DataHandler():
         """
 
         if run is not None:
-            run = 'run%i'%run
+            run = 'run%03d'%run
         if session is not None:
-            session = 'session%i'%session
+            session = 'session%03d'%session
         if session is None or run is None:
             # user did not specify either run or session so we will grab the
             # last entry in the test_name directory based off the highest
@@ -314,7 +357,7 @@ class DataHandler():
 
             # if no previous run saved, start saving in run0
             if run is None:
-                run = 'run0'
+                run = 'run000'
 
         group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
 
@@ -396,7 +439,7 @@ class DataHandler():
         print('session: ', session)
         if session is None or run is None:
             if session is not None and run is None:
-                print('Checking for lastest run in session%i'%session)
+                print('Checking for lastest run in session%03d'%session)
             elif session is None and run is not None:
                 print('Checking for run%i data in latest session'%run)
             else:
@@ -412,13 +455,13 @@ class DataHandler():
             print('using user provided run and session')
             print('run: ', run)
             print('session: ', session)
-            session = 'session%i'%session
-            run = 'run%i'%run
+            session = 'session%03d'%session
+            run = 'run%03d'%run
 
         if run is None:
             saved_data = None
         else:
-            #group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
+            group_path = '%s/%s/%s/%s'%(test_group, test_name, session, run)
 
             saved_data = self.load(params=params, save_location=group_path)
 
@@ -430,7 +473,7 @@ class DataHandler():
 
         group_path: string
             path to the group that you want the keys from
-            ex: 'my_feature_test/sub_test_group/session0/run3'
+            ex: 'my_feature_test/sub_test_group/session000/run003'
         returns a list of keys from group_list
         """
         db = h5py.File(self.db_loc, 'a')
@@ -443,3 +486,9 @@ class DataHandler():
             keys = list(db[group_path].keys())
         db.close()
         return keys
+
+    def delete(self, path):
+        #TODO: this needs a lot of work, add checks to see if path exists, some
+        # feature to double check user is sure, maybe a backup function?
+        db = h5py.File(self.db_loc, 'a')
+        del db[path]
