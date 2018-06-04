@@ -1,6 +1,11 @@
 # Add link to sentdex youtube
 #https://www.youtube.com/watch?v=A0gaXfM1UN0&index=2&list=PLQVvvaa0QuDclKx-QpC9wntnURXVJqLyk
 #TODO Tutorial 19 adds help button option to walk through gui
+"""
+sudo apt-get build-dep python-imaging
+sudo apt-get install libjpeg8 libjpeg62-dev libfreetype6 libfreetype6-dev
+sudo pip install Pillow
+"""
 import tkinter as tk
 from tkinter import ttk
 
