@@ -61,37 +61,53 @@ def live_plot(i):
     y_min = 0
     y_max = 1
     for test in disp_loc:
+        print('var to plot: ', var_to_plot)
         location = '%ssession000/'%test
+        legend_name = test.split('/')[-2]
+        legend_name += ' %s'%var_to_plot
         keys = dat.get_keys(location)
-        #print('KEYS: ', keys)
-        error = []
-        #print('error start: ', error)
-        for entry in keys:
-            if 'run' in entry:
-                #print('entry: ', entry)
-                #if 'run' in entry:
-                    # print(dat.load(params=['error'],
-                    #         save_location='%s%s'%(location, entry)))
-                #print('entry: ', entry)
-                d = dat.load(params=[var_to_plot],
-                        save_location='%s%s'%(location,
-                        entry))
-                #print('d loaded: ', d)
-                d = d['error']
-                #print('d["error"]: ', d)
-                d = np.mean(d)
-                #print('mean d: ', d)
-                error.append(np.copy(d))
-        #print('error end: ', error)
-        if max(error) > y_max:
-            y_max = max(error)
-        if min(error) < y_min:
-            y_min = min(error)
-        if len(error) > x_max:
-            x_max = len(error)
-        a.set_xlim(x_min, x_max)
-        a.set_ylim(y_min, y_max)
-        a.plot(error, label=test)
+        if var_to_plot == 'error':
+            error = []
+            for entry in keys:
+                if 'run' in entry:
+                    #print('entry: ', entry)
+                    #if 'run' in entry:
+                        # print(dat.load(params=['error'],
+                        #         save_location='%s%s'%(location, entry)))
+                    #print('entry: ', entry)
+                    d = dat.load(params=[var_to_plot],
+                            save_location='%s%s'%(location,
+                            entry))
+                    d = np.mean(d[var_to_plot])
+                    error.append(np.copy(d))
+            #print('error end: ', error)
+            if max(error) > y_max:
+                y_max = max(error)
+            if min(error) < y_min:
+                y_min = min(error)
+            if len(error) > x_max:
+                x_max = len(error)
+            a.set_xlim(x_min, x_max)
+            a.set_ylim(y_min, y_max)
+            a.plot(error, label=legend_name)
+        else:
+            max_key = max([key for key in keys if 'run' in key])
+            d = dat.load(params=[var_to_plot],
+                    save_location='%s%s'%(location, max_key))
+            d = np.array(d[var_to_plot])
+            #print('key used: ', max_key)
+            #print('loaded: ', d)
+            if np.max(d) > y_max:
+                y_max = np.max(d)
+            if np.min(d) < y_min:
+                y_min = np.min(d)
+            if len(d) > x_max:
+                x_max = len(d)
+            a.set_xlim(x_min, x_max)
+            a.set_ylim(y_min, y_max)
+            a.plot(d, label=legend_name)
+            
+
     a.legend(bbox_to_anchor=(0,1.02,1,.102), loc=1)
     if save_figure:
         a.figure.savefig('default_figure.pdf')
@@ -240,6 +256,12 @@ class SearchPage(tk.Frame):
         frame_right.grid(row=0,column=2)
         label = tk.Label(frame_left, text="Search", font=LARGE_FONT)
         label.grid(row=0, column=1)#, sticky='nsew')
+        self.loc_label_var = tk.StringVar()
+        self.loc_label_var.set(''.join(loc))
+
+        loc_label = tk.Label(frame_left, textvariable=self.loc_label_var, font=MED_FONT)
+                #command=lambda: update_loc_disp(self))
+        loc_label.grid(row=2, column=0, columnspan=3)
 
         button1 = ttk.Button(frame_left, text="Home",
                 command=lambda: controller.show_frame(StartPage))
@@ -263,8 +285,8 @@ class SearchPage(tk.Frame):
         self.lbox = tk.Listbox(frame_left, width=45, height=15, selectmode='MULTIPLE')
         self.lbox.bind('<<ListboxSelect>>', self.get_selection)
 
-        self.entry.grid(row=2, column=0, columnspan=3)#, sticky='nsew', columnspan=3)
-        self.lbox.grid(row=3, column=0, columnspan=3)#, sticky='nsew', columnspan=3)
+        self.entry.grid(row=3, column=0, columnspan=3)#, sticky='nsew', columnspan=3)
+        self.lbox.grid(row=4, column=0, columnspan=3)#, sticky='nsew', columnspan=3)
 
         # Function for updating the list/doing the search.
         # It needs to be called here to populate the listbox.
@@ -300,7 +322,7 @@ class SearchPage(tk.Frame):
         #    var_to_plot.append(rad1_var)
 
         #print("VARIABLES TO PLOT: ", var_to_plot)
-        var_to_plot = self.rad1_var
+        var_to_plot = self.rad1_var.get()
 
     def get_selection(self, *args):
         global loc
@@ -335,6 +357,7 @@ class SearchPage(tk.Frame):
         # search bar
         else:
             self.entry.delete(0, 'end')
+        self.loc_label_var.set(''.join(loc))
         self.update_list()
 
     def update_list(self, *args):
