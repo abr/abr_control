@@ -37,8 +37,14 @@ loc = ['/']
 disp_loc = []
 # sets whether to display data passed the group 'session'
 restrict_display = True
+# list of possible plotting variables
+plotting_variables = ['q', 'dq', 'error', 'u', 'adapt']
+# list of selected variables to plot
+var_to_plot = 'error'
+save_figure = False
 
 def live_plot(i):
+    global save_figure
     #TODO update only when there is a change instead of periodically
     # pullData = open("SampleData.txt", "r").read()
     # dataList = pullData.split('\n')
@@ -67,7 +73,7 @@ def live_plot(i):
                     # print(dat.load(params=['error'],
                     #         save_location='%s%s'%(location, entry)))
                 #print('entry: ', entry)
-                d = dat.load(params=['error'],
+                d = dat.load(params=[var_to_plot],
                         save_location='%s%s'%(location,
                         entry))
                 #print('d loaded: ', d)
@@ -87,6 +93,14 @@ def live_plot(i):
         a.set_ylim(y_min, y_max)
         a.plot(error, label=test)
     a.legend(bbox_to_anchor=(0,1.02,1,.102), loc=1)
+    if save_figure:
+        a.figure.savefig('default_figure.pdf')
+        save_figure = False
+
+def save_figure_toggle(self):
+    global save_figure
+    save_figure = True
+    print('Figure Saved')
 
 def clear_plot(self):
     global disp_loc
@@ -148,6 +162,8 @@ class Page(tk.Tk):
 
         container = tk.Frame(self)
         container.grid(row=0, column=0, sticky='nsew')
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         # container.pack(side="top", fill="both", expand=True)
         # container.grid_rowconfigure(0, weight=1)
         # container.grid_columnconfigure(0, weight=1)
@@ -157,7 +173,8 @@ class Page(tk.Tk):
         # define main file menu
         filemenu = tk.Menu(menubar, tearoff=0)
         filemenu.add_command(label="Save Figure",
-                command=lambda:popupmsg(msg="Not Supported Yet"))
+                command=lambda: save_figure_toggle(self))
+                #command=lambda:popupmsg(msg="Not Supported Yet"))
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=quit)
         # place file menu
@@ -217,33 +234,37 @@ class SearchPage(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        label = tk.Label(self, text="Search", font=LARGE_FONT)
-        label.grid(row=0, column=1, sticky='nsew')
+        frame_left = tk.Frame(self,parent)
+        frame_left.grid(row=0,column=0)
+        frame_right = tk.Frame(self,parent)
+        frame_right.grid(row=0,column=2)
+        label = tk.Label(frame_left, text="Search", font=LARGE_FONT)
+        label.grid(row=0, column=1)#, sticky='nsew')
 
-        button1 = ttk.Button(self, text="Home",
+        button1 = ttk.Button(frame_left, text="Home",
                 command=lambda: controller.show_frame(StartPage))
-        button1.grid(row=1, column=1, sticky='nsew')
-        button2 = ttk.Button(self, text="Back",
+        button1.grid(row=1, column=1)#, sticky='nsew')
+        button2 = ttk.Button(frame_left, text="Back",
                 command=lambda: go_back_loc_level(self))
-        button2.grid(row=1, column=0, sticky='nsew')
-        button3 = ttk.Button(self, text="Clear Plot",
+        button2.grid(row=1, column=0)#, sticky='nsew')
+        button3 = ttk.Button(frame_left, text="Clear Plot",
                 command=lambda: clear_plot(self))
-        button3.grid(row=1, column=2, sticky='nsew')
+        button3.grid(row=1, column=2)#, sticky='nsew')
 
-        button4 = ttk.Button(self, text="Restrict List",
+        button4 = ttk.Button(frame_left, text="Restrict List",
                 command=lambda: toggle_restrict_display(self))
-        button4.grid(row=5, column=1, sticky='nsew')
+        button4.grid(row=4, column=1)#, sticky='nsew')
 
         self.search_var = tk.StringVar()
         self.search_var.trace("w", self.update_list)
         # self.selected_var = tk.StringVar()
         # self.selected_var.trace("w", self.get_selection)
-        self.entry = tk.Entry(self, textvariable=self.search_var, width=13)
-        self.lbox = tk.Listbox(self, width=45, height=15, selectmode='MULTIPLE')
+        self.entry = tk.Entry(frame_left, textvariable=self.search_var, width=13)
+        self.lbox = tk.Listbox(frame_left, width=45, height=15, selectmode='MULTIPLE')
         self.lbox.bind('<<ListboxSelect>>', self.get_selection)
 
-        self.entry.grid(row=3, column=0, sticky='nsew', columnspan=3)
-        self.lbox.grid(row=4, column=0, sticky='nsew', columnspan=3)
+        self.entry.grid(row=2, column=0, columnspan=3)#, sticky='nsew', columnspan=3)
+        self.lbox.grid(row=3, column=0, columnspan=3)#, sticky='nsew', columnspan=3)
 
         # Function for updating the list/doing the search.
         # It needs to be called here to populate the listbox.
@@ -253,13 +274,33 @@ class SearchPage(tk.Frame):
         # Plotting Window
         canvas = FigureCanvasTkAgg(f, self)
         canvas.show()
-        canvas.get_tk_widget().grid(row=0, column=10, rowspan=8, columnspan=8)
+        canvas.get_tk_widget().grid(row=0, column=1)#, rowspan=4, columnspan=4)
 
         # show the matplotlib toolbar
         #toolbar = NavigationToolbar2TkAgg(canvas, self)
         # toolbar.update()
         # canvas._tkcanvas.grid(row=0, column=5, columnspan=10)
 
+	# initialize radio button
+        self.rad1_var = tk.StringVar()
+        self.rad1_var.set(var_to_plot)
+        ii=0
+        for var in plotting_variables:
+            radio1 = ttk.Radiobutton(frame_right, text=var, variable=self.rad1_var,
+                    value=var, command=lambda: self.update_var_to_plot(self))
+            radio1.grid(row=ii, column=0, ipadx=20, sticky='w')#, sticky='nsew')
+            ii += 1
+	
+
+    def update_var_to_plot(self, *args):
+        global var_to_plot
+        #if self.rad1_var in var_to_plot:
+        #    var_to_plot.remove(self.rad1_var)
+        #else:
+        #    var_to_plot.append(rad1_var)
+
+        #print("VARIABLES TO PLOT: ", var_to_plot)
+        var_to_plot = self.rad1_var
 
     def get_selection(self, *args):
         global loc
