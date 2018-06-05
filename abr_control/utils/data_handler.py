@@ -259,14 +259,19 @@ class DataHandler():
         try:
             db.create_group(save_location)
         except ValueError:
-            if overwrite:
-                # pass, do not delete and write again incase their is data in
-                # this group that is not being overwritten
-                pass
-            else:
-                raise ValueError('The group %s already exists. If you wish to'
-                                 % save_location
-                                 + ' overwrite the dataset set overwrite=True')
+            pass
+            #TODO: this should not need an overwrite, could be saving several
+            #datasets to the same location, in which case you shouldn't be
+            #overwriting. Can't currently think of a time when you would want to
+            #overwrite the group itself, just the data
+            # if overwrite:
+            #     # pass, do not delete and write again incase their is data in
+            #     # this group that is not being overwritten
+            #     pass
+            # else:
+            #     raise ValueError('The group %s already exists. If you wish to'
+            #                      % save_location
+            #                      + ' overwrite the dataset set overwrite=True')
 
         print('Saving data to %s'%save_location)
 
@@ -290,8 +295,9 @@ class DataHandler():
                     del db[save_location+'/%s'%key]
                     db[save_location].create_dataset('%s'%key, data=data[key])
                 else:
-                    raise RuntimeError('Dataset already exists, set '
-                    + 'overwrite=True to overwrite')
+                    raise RuntimeError('Dataset %s already exists in %s, set'
+                            %(save_location, key)
+                    + ' overwrite=True to overwrite')
 
         print('Data saved.')
         db.close()
