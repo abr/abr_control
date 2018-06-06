@@ -61,20 +61,21 @@ def live_plot(i):
         error = []
         #print('error start: ', error)
         for entry in keys:
-            #print('entry: ', entry)
-            #if 'run' in entry:
-                # print(dat.load(params=['error'],
-                #         save_location='%s%s'%(location, entry)))
-            #print('entry: ', entry)
-            d = dat.load(params=['error'],
-                    save_location='%s%s'%(location,
-                    entry))
-            #print('d loaded: ', d)
-            d = d['error']
-            #print('d["error"]: ', d)
-            d = np.mean(d)
-            #print('mean d: ', d)
-            error.append(np.copy(d))
+            if 'run' in entry:
+                #print('entry: ', entry)
+                #if 'run' in entry:
+                    # print(dat.load(params=['error'],
+                    #         save_location='%s%s'%(location, entry)))
+                #print('entry: ', entry)
+                d = dat.load(params=['error'],
+                        save_location='%s%s'%(location,
+                        entry))
+                #print('d loaded: ', d)
+                d = d['error']
+                #print('d["error"]: ', d)
+                d = np.mean(d)
+                #print('mean d: ', d)
+                error.append(np.copy(d))
         #print('error end: ', error)
         if max(error) > y_max:
             y_max = max(error)
