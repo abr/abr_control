@@ -35,6 +35,8 @@ a = f.add_subplot(111)
 loc = ['/']
 # list of tests to display data from
 disp_loc = []
+# sets whether to display data passed the group 'session'
+restrict_display = True
 
 def live_plot(i):
     #TODO update only when there is a change instead of periodically
@@ -57,17 +59,23 @@ def live_plot(i):
         keys = dat.get_keys(location)
         #print('KEYS: ', keys)
         error = []
-        print('error start: ', error)
+        #print('error start: ', error)
         for entry in keys:
             #print('entry: ', entry)
             #if 'run' in entry:
                 # print(dat.load(params=['error'],
                 #         save_location='%s%s'%(location, entry)))
-            print('entry: ', entry)
-            error.append(dat.load(params=['error'],
+            #print('entry: ', entry)
+            d = dat.load(params=['error'],
                     save_location='%s%s'%(location,
-                        entry))['error'])
-        print('error end: ', error)
+                    entry))
+            #print('d loaded: ', d)
+            d = d['error']
+            #print('d["error"]: ', d)
+            d = np.mean(d)
+            #print('mean d: ', d)
+            error.append(np.copy(d))
+        #print('error end: ', error)
         if max(error) > y_max:
             y_max = max(error)
         if min(error) < y_min:
@@ -117,6 +125,10 @@ def go_back_loc_level(self):
     loc = loc[:-1]
     #self.entry.delete(0, 'end')
     self.update_list()
+
+def toggle_restrict_display(self):
+    global restrict_display
+    restrict_display = not restrict_display
 
 def add_img(self, size=[200,200], file_loc='test_img.jpg', row=0, column=0, *args):
     img = Image.open(file_loc)
@@ -217,6 +229,10 @@ class SearchPage(tk.Frame):
                 command=lambda: clear_plot(self))
         button3.grid(row=1, column=2, sticky='nsew')
 
+        button4 = ttk.Button(self, text="Restrict List",
+                command=lambda: toggle_restrict_display(self))
+        button4.grid(row=5, column=1, sticky='nsew')
+
         self.search_var = tk.StringVar()
         self.search_var.trace("w", self.update_list)
         # self.selected_var = tk.StringVar()
@@ -257,20 +273,21 @@ class SearchPage(tk.Frame):
         # check if we're pointing at a dataset, if so go back one level
         keys = dat.get_keys(''.join(loc))
         if keys is None:
+            print('Error: ', dat.load(params='error', save_location=''.join(loc)))
             print('loc points to dataset')
             go_back_loc_level(self)
-            #self.update_list()
 
         # if keys do exist, check if we're at the session level, at which point
         # we should display data, not go further down in the search
-        elif any('session' in s for s in keys):
-            # check if the selection is already in our list, if so remove it
-            if ''.join(loc) in disp_loc:
-                disp_loc.remove(''.join(loc))
-            else:
-                disp_loc.append(''.join(loc))
-            print("CURRENT DISPLAY LIST: ", disp_loc)
-            go_back_loc_level(self)
+        elif restrict_display:
+            if any('session' in s for s in keys):
+                # check if the selection is already in our list, if so remove it
+                if ''.join(loc) in disp_loc:
+                    disp_loc.remove(''.join(loc))
+                else:
+                    disp_loc.append(''.join(loc))
+                print("CURRENT DISPLAY LIST: ", disp_loc)
+                go_back_loc_level(self)
 
         # if the selection takes us to the next level of groups then erase the
         # search bar
