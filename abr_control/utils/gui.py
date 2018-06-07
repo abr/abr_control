@@ -21,66 +21,81 @@ from PIL import Image, ImageTk
 import numpy as np
 from abr_control.utils import DataHandler
 
+# import data handler
 dat = DataHandler(use_cache=True)
 
-LARGE_FONT = ("Verdana", 12)
+# set some constants
+LARGE_FONT = ("Verdana", 20)
 MED_FONT = ("Verdana", 10)
 SMALL_FONT = ("Verdana", 8)
 style.use("ggplot")
+global text_color
+#text_color = 'white'
+# charcoal grey
+text_color = '#36454f'
+global background_color
+# charcoal grey
+# background_color = '#36454f'
+background_color = 'white'
+global button_color
+# abr blue
+button_color = '#375580'
+global button_text_color
+button_text_color = '#d3d3d3'#'white'
 
 f = Figure(figsize=(5,5), dpi=100)
 a = f.add_subplot(111)
 
 # global variable for searching in db
 loc = ['/']
-# list of tests to display data from
+# list of tests to display data from in plot
 disp_loc = []
 # sets whether to display data passed the group 'session'
-restrict_display = True
+browse_datasets = False
 # list of possible plotting variables
 plotting_variables = ['q', 'dq', 'error', 'u', 'adapt']
 # list of selected variables to plot
 var_to_plot = 'error'
+# variable for toggling whether to save current figure
 save_figure = False
 
 def live_plot(i):
+    """
+    The function that plots the selected tests and data
+    """
     global save_figure
     #TODO update only when there is a change instead of periodically
-    # pullData = open("SampleData.txt", "r").read()
-    # dataList = pullData.split('\n')
-    # xList = []
-    # yList = []
-    # for eachLine in dataList:
-    #     if len(eachLine) > 1:
-    #         x, y = eachLine.split(',')
-    #         xList.append(int(x))
-    #         yList.append(int(y))
+    #TODO automatically update range if it is larger than the current max
+    # clear our data before plotting
     a.clear()
-    x_min = 0
-    x_max = 1
-    y_min = 0
-    y_max = 1
+    x_min = 0.0
+    x_max = 0.1
+    y_min = 0.0
+    y_max = 0.1
+    # cycle through selected tests to plot
     for test in disp_loc:
-        print('var to plot: ', var_to_plot)
+        # set location and legend label
         location = '%ssession000/'%test
         legend_name = test.split('/')[-2]
         legend_name += ' %s'%var_to_plot
+        # get a list of keys in the current group
         keys = dat.get_keys(location)
+
+        # if we're interested in plotting error, we will average the error over
+        # a run and plot the average of each run
         if var_to_plot == 'error':
             error = []
             for entry in keys:
+                # only look through the keys that point to a run group
                 if 'run' in entry:
-                    #print('entry: ', entry)
-                    #if 'run' in entry:
-                        # print(dat.load(params=['error'],
-                        #         save_location='%s%s'%(location, entry)))
-                    #print('entry: ', entry)
+                    # append the average error of every run to plot the error
+                    # change over runs
                     d = dat.load(params=[var_to_plot],
                             save_location='%s%s'%(location,
                             entry))
                     d = np.mean(d[var_to_plot])
                     error.append(np.copy(d))
-            #print('error end: ', error)
+            # set our plotting range
             if max(error) > y_max:
                 y_max = max(error)
             if min(error) < y_min:
@@ -90,13 +105,18 @@ def live_plot(i):
             a.set_xlim(x_min, x_max)
             a.set_ylim(y_min, y_max)
             a.plot(error, label=legend_name)
+
+        # if we're not plotting error, then every other dataset will have
+        # dim=N_JOINTS so we will plot the data from the final run of the
+        # session
         else:
+            # get the highest numbered run group
             max_key = max([key for key in keys if 'run' in key])
             d = dat.load(params=[var_to_plot],
                     save_location='%s%s'%(location, max_key))
+            # load data from highest numbered run
             d = np.array(d[var_to_plot])
-            #print('key used: ', max_key)
-            #print('loaded: ', d)
+            # set our plotting limits
             if np.max(d) > y_max:
                 y_max = np.max(d)
             if np.min(d) < y_min:
@@ -106,83 +126,92 @@ def live_plot(i):
             a.set_xlim(x_min, x_max)
             a.set_ylim(y_min, y_max)
             a.plot(d, label=legend_name)
-            
 
-    a.legend(bbox_to_anchor=(0,1.02,1,.102), loc=1)
+
+    a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
     if save_figure:
         a.figure.savefig('default_figure.pdf')
         save_figure = False
 
 def save_figure_toggle(self):
+    """
+    a toggle that is changed based on a button click. it is momentarily
+    toggled to save the current figure
+    """
     global save_figure
     save_figure = True
     print('Figure Saved')
 
 def clear_plot(self):
+    """
+    a toggle that is changed based on a button click and is used to clear the
+    plot
+    """
     global disp_loc
     disp_loc = []
 
 def popupmsg(msg):
+    """
+    generic function to pass in a string to appear in a popup message
+    """
     popup = tk.Tk()
-
-    print(msg)
     popup.wm_title("!")
-    print(msg)
     label = tk.Label(popup, text=msg, font=MED_FONT)
-    print(msg)
     label.pack(side="top", fill="x", pady=10)
-    print(msg)
     B1 = ttk.Button(popup, text='OK', command=popup.destroy)
-    print(msg)
     B1.pack()
-    print(msg)
     popup.mainloop()
-    print(msg)
-
-# def change_param(param):
-#     global param_to_plot
-#     param_to_plot = param
-#
-# def get_db_loc(loc):
-#     global loc
-#
-# def update_plot_param_menu(self):
-#     if loc == '/':
-#         self.param_menu.delete()
-#
 
 def go_back_loc_level(self):
+    """
+    function used to go back a search level, can be thought of as going back
+    a directory
+    """
     global loc
     loc = loc[:-1]
     #self.entry.delete(0, 'end')
     self.update_list()
 
-def toggle_restrict_display(self):
-    global restrict_display
-    restrict_display = not restrict_display
+def toggle_browse_datasets(self):
+    """
+    Toggles the browse_datasets variable.
+
+    If browse datasets is set to False
+    we will stop going down the chain in the database once we reach a group
+    that contains a 'session' group. At this point we want to save the
+    selected test and plot it.
+    If browse datasets is set to True then we will go further down the chain,
+    passed the session group level and allow the user to view the save
+    structure.
+    """
+    global browse_datasets
+    browse_datasets = not browse_datasets
 
 def add_img(self, size=[200,200], file_loc='test_img.jpg', row=0, column=0, *args):
+    """
+    A generic function for loading a provided photo into a specific row and
+    column
+    """
     img = Image.open(file_loc)
     img = img.resize((size[0], size[1]), Image.ANTIALIAS)
     img = ImageTk.PhotoImage(img)
     label = tk.Label(self, image=img, width=size[0], height=size[1])
     label.image = img
-    label.grid(row=row, column=column)
+    label.grid(row=row, column=column, padx=10, pady=10)
 
 class Page(tk.Tk):
 
     def __init__(self, *args, **kwargs):
 
+        # instantiate our container
         tk.Tk.__init__(self, *args, **kwargs)
         tk.Tk.wm_title(self, 'abr_control data')
 
         container = tk.Frame(self)
+        #container.configure(background='white')
         container.grid(row=0, column=0, sticky='nsew')
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        # container.pack(side="top", fill="both", expand=True)
-        # container.grid_rowconfigure(0, weight=1)
-        # container.grid_columnconfigure(0, weight=1)
 
         # menu bar at top
         menubar = tk.Menu(container)
@@ -196,6 +225,7 @@ class Page(tk.Tk):
         # place file menu
         menubar.add_cascade(label="File", menu=filemenu)
 
+        # Example of another menubar entry that is not currently used
         # # define parameter to plot menu
         # self.param_menu = tk.Menu(menubar, tearoff=1)
         # self.param_menu.add_command(label="None",
@@ -211,6 +241,7 @@ class Page(tk.Tk):
 
         self.frames = {}
 
+        # place our other pages into the master page
         for F in (StartPage, SearchPage):
             frame = F(container, self)
             self.frames[F] = frame
@@ -218,133 +249,191 @@ class Page(tk.Tk):
         self.show_frame(StartPage)
 
     def show_frame(self, cont):
+        """
+        Function for pulling the selected frame to the front
+        """
         frame = self.frames[cont]
         frame.tkraise()
 
 class StartPage(tk.Frame):
+    """
+    The starting page when the gui is loaded
+    """
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        #label = tk.Label(self, text="Home", font=LARGE_FONT)
-        label = tk.Label(self, text=('Welcome to the abr_control plotting GUI!'
-            +'\n\nBrowse through your recorded tests in the \'Search\' Page. Any'
-            + ' corresponding images that are saved to the test will be '
-            + 'displayed'
-            + '\n\nSwitch to the plotting screen to see a live plot of your'
-            + ' selected tests'
-            + '\n\nThe default plotting parameter is First Order Error, but this'
-            + ' can be changed through the check boxes along the side of the'
-            + ' \'Plotting\' page'), font=MED_FONT)
-        label.grid(row=1, column=0)
+        self.configure(background=background_color)
 
-        button2 = ttk.Button(self, text="Search",
-                command=lambda: controller.show_frame(SearchPage))
-        button2.grid(row=2,column=0)
-        # button3 = ttk.Button(self, text="Plot",
-        #         command=lambda: controller.show_frame(PlotPage))
-        # button3.grid(row=3,column=0)
+        page_title = tk.Label(self, text='Home', font=LARGE_FONT)
+        page_title.grid(row=0, column=1, padx=10)
+        page_title.configure(background=background_color, foreground=text_color)
 
+        main_text = tk.Label(self, text=('Welcome to the abr_control plotting GUI!'
+            +'\n\nBrowse through your recorded tests in the \'Search\' Page.'
+            + '\nAs you select tests from the list they will appear on the plot.'
+            + '\nSelect them again to remove them, or click the \'Clear Plot\''
+            + '\nbutton to clear the plot entirely.'
+            + '\n\nThe default plotting parameter is End-Effector Distance to '
+            + 'Target,\nbut this'
+            + ' can be changed through the radio butons along the side of the'
+            + ' plot.'), font=MED_FONT)
+        main_text.grid(row=1, column=1)
+        main_text.configure(background=background_color, foreground=text_color)
+
+        # Add a button to take bring the search page to the front
+        search_button = tk.Button(self, text="Search",
+                command=lambda: controller.show_frame(SearchPage),
+                bg=button_color, fg=button_text_color)
+        search_button.grid(row=2,column=1)
+
+        # Add a picture of the abr logo for funzies
         add_img(self, file_loc='abr_logo.jpg', row=0, column=0)
 
 class SearchPage(tk.Frame):
 
     def __init__(self, parent, controller):
+        # instantiate our frame
         tk.Frame.__init__(self, parent)
+        self.configure(background=background_color)
+
+        # create a left and right frame to simplify organization of grid
         frame_left = tk.Frame(self,parent)
-        frame_left.grid(row=0,column=0)
+        frame_left.grid(row=0,column=0, padx=10)
+        frame_left.configure(background=background_color)
+
         frame_right = tk.Frame(self,parent)
-        frame_right.grid(row=0,column=2)
-        label = tk.Label(frame_left, text="Search", font=LARGE_FONT)
-        label.grid(row=0, column=1)#, sticky='nsew')
-        self.loc_label_var = tk.StringVar()
-        self.loc_label_var.set(''.join(loc))
+        frame_right.grid(row=0,column=2, padx=10)
+        frame_right.configure(background=background_color)
 
-        loc_label = tk.Label(frame_left, textvariable=self.loc_label_var, font=MED_FONT)
-                #command=lambda: update_loc_disp(self))
-        loc_label.grid(row=2, column=0, columnspan=3)
+        page_title = tk.Label(frame_left, text="Search", font=LARGE_FONT)
+        page_title.grid(row=0, column=1)
+        page_title.configure(background=background_color, foreground=text_color)
 
-        button1 = ttk.Button(frame_left, text="Home",
+        self.current_location_display = tk.StringVar()
+        self.current_location_display.set(''.join(loc))
+
+        # text printout to show our current search location
+        current_location_label = tk.Label(frame_left,
+                textvariable=self.current_location_display, font=MED_FONT)
+        current_location_label.grid(row=2, column=0, columnspan=3)
+        current_location_label.configure(background=background_color,
+                foreground=text_color)
+
+        # create our buttons
+        home_button = tk.Button(frame_left, text="Home",
                 command=lambda: controller.show_frame(StartPage))
-        button1.grid(row=1, column=1)#, sticky='nsew')
-        button2 = ttk.Button(frame_left, text="Back",
+        home_button.grid(row=1, column=1)#, sticky='nsew')
+        home_button.configure(background=button_color, foreground=button_text_color)
+
+        back_button = tk.Button(frame_left, text="Back",
                 command=lambda: go_back_loc_level(self))
-        button2.grid(row=1, column=0)#, sticky='nsew')
-        button3 = ttk.Button(frame_left, text="Clear Plot",
+        back_button.grid(row=1, column=0)#, sticky='nsew')
+        back_button.configure(foreground=button_text_color,
+                background=button_color)
+
+        clear_plot_button = tk.Button(frame_left, text="Clear Plot",
                 command=lambda: clear_plot(self))
-        button3.grid(row=1, column=2)#, sticky='nsew')
+        clear_plot_button.grid(row=1, column=2)#, sticky='nsew')
+        clear_plot_button.configure(background=button_color,
+                foreground=button_text_color)
 
-        button4 = ttk.Button(frame_left, text="Restrict List",
-                command=lambda: toggle_restrict_display(self))
-        button4.grid(row=4, column=1)#, sticky='nsew')
+        browse_datasets_button = tk.Button(frame_left, text="Browse Datasets",
+                command=lambda: toggle_browse_datasets(self))
+        browse_datasets_button.grid(row=5, column=1)#, sticky='nsew')
+        browse_datasets_button.configure(foreground=button_text_color,
+                background=button_color)
 
+        # create our search bar and list box
         self.search_var = tk.StringVar()
         self.search_var.trace("w", self.update_list)
-        # self.selected_var = tk.StringVar()
-        # self.selected_var.trace("w", self.get_selection)
         self.entry = tk.Entry(frame_left, textvariable=self.search_var, width=13)
         self.lbox = tk.Listbox(frame_left, width=45, height=15, selectmode='MULTIPLE')
         self.lbox.bind('<<ListboxSelect>>', self.get_selection)
 
-        self.entry.grid(row=3, column=0, columnspan=3)#, sticky='nsew', columnspan=3)
+        self.entry.grid(row=3, column=0, columnspan=3, sticky='ew')#, sticky='nsew', columnspan=3)
         self.lbox.grid(row=4, column=0, columnspan=3)#, sticky='nsew', columnspan=3)
+        self.entry.configure(background=background_color,
+                foreground=text_color)
+        self.lbox.configure(background=background_color, foreground=text_color)
 
         # Function for updating the list/doing the search.
         # It needs to be called here to populate the listbox.
         self.update_list()
-        values = [self.lbox.get(idx) for idx in self.lbox.curselection()]
+        #values = [self.lbox.get(idx) for idx in self.lbox.curselection()]
 
         # Plotting Window
         canvas = FigureCanvasTkAgg(f, self)
         canvas.show()
-        canvas.get_tk_widget().grid(row=0, column=1)#, rowspan=4, columnspan=4)
+        canvas.get_tk_widget().grid(row=0, column=1)#, ipadx=100, sticky='w')
+        canvas.get_tk_widget().configure(background=background_color)
 
         # show the matplotlib toolbar
         #toolbar = NavigationToolbar2TkAgg(canvas, self)
         # toolbar.update()
         # canvas._tkcanvas.grid(row=0, column=5, columnspan=10)
 
-	# initialize radio button
-        self.rad1_var = tk.StringVar()
-        self.rad1_var.set(var_to_plot)
+	# initialize radio buttons
+        self.var_to_plot = tk.StringVar()
+        self.var_to_plot.set(var_to_plot)
+        # TODO: incorporate ii into for loop
         ii=0
         for var in plotting_variables:
-            radio1 = ttk.Radiobutton(frame_right, text=var, variable=self.rad1_var,
+            var_to_plot_radio = tk.Radiobutton(frame_right, text=var,
+                    variable=self.var_to_plot,
                     value=var, command=lambda: self.update_var_to_plot(self))
-            radio1.grid(row=ii, column=0, ipadx=20, sticky='w')#, sticky='nsew')
+            var_to_plot_radio.grid(row=ii, column=0, ipadx=20, sticky='ew')#, sticky='nsew')
+            var_to_plot_radio.configure(background=button_color,
+                    foreground=button_text_color)
             ii += 1
-	
+
 
     def update_var_to_plot(self, *args):
+        """updates the global variable of what data to plot"""
         global var_to_plot
-        #if self.rad1_var in var_to_plot:
-        #    var_to_plot.remove(self.rad1_var)
-        #else:
-        #    var_to_plot.append(rad1_var)
-
-        #print("VARIABLES TO PLOT: ", var_to_plot)
-        var_to_plot = self.rad1_var.get()
+        var_to_plot = self.var_to_plot.get()
 
     def get_selection(self, *args):
+        """
+        get the selection from the listbox and update the list and search
+        location accordingly based on button selection and location
+        """
         global loc
         global disp_loc
 
+        # delete the current search
+        self.entry.delete(0, 'end')
         # get cursor selection and update db search location
         index = int(self.lbox.curselection()[0])
         value = self.lbox.get(index)
         print('You selected item %d: "%s"' % (index, value))
+        # append the most recent selection to our search location
         loc.append('%s/'%value)
 
         # check if we're pointing at a dataset, if so go back one level
         keys = dat.get_keys(''.join(loc))
+        # if keys are None, then we are pointing at a dataset
         if keys is None:
-            print('Error: ', dat.load(params='error', save_location=''.join(loc)))
-            print('loc points to dataset')
-            go_back_loc_level(self)
+            # if the user selects the browse_datasets button, then they want to
+            # view the save structure passed the session group level
+            if browse_datasets:
+                print('deep dive: loading ', (loc[-1])[:-1])
+                print('looking in: ', ''.join(loc[:-1]))
+                loaded_data = dat.load(params=[(loc[-1])[:-1]],
+                        save_location=''.join(loc[:-1]))
+                # print the selected dataset to the terminal
+                print(loc[-2], '\n', loaded_data)
+
+            # if browse_datasets is not selected then go back a level in the
+            # search
+            else:
+                print('Error: ', dat.load(params='error', save_location=''.join(loc)))
+                print('loc points to dataset')
+                go_back_loc_level(self)
 
         # if keys do exist, check if we're at the session level, at which point
-        # we should display data, not go further down in the search
-        elif restrict_display:
-            if any('session' in s for s in keys):
+        # we should plot data, not go further down in the search, unless
+        # browse_datasets is set to True
+        elif not browse_datasets and any('session' in s for s in keys):
                 # check if the selection is already in our list, if so remove it
                 if ''.join(loc) in disp_loc:
                     disp_loc.remove(''.join(loc))
@@ -356,11 +445,14 @@ class SearchPage(tk.Frame):
         # if the selection takes us to the next level of groups then erase the
         # search bar
         else:
-            self.entry.delete(0, 'end')
-        self.loc_label_var.set(''.join(loc))
-        self.update_list()
+            self.current_location_display.set(''.join(loc))
+            self.update_list()
+
 
     def update_list(self, *args):
+        """
+        Function that updates the listbox based on the current search location
+        """
         global loc
         search_term = self.search_var.get()
 
@@ -372,29 +464,6 @@ class SearchPage(tk.Frame):
         for item in lbox_list:
             if search_term.lower() in item.lower():
                 self.lbox.insert(tk.END, item)
-
-# class PlotPage(tk.Frame):
-#
-#     def __init__(self, parent, controller):
-#         tk.Frame.__init__(self, parent)
-#         label = tk.Label(self, text="Plot", font=LARGE_FONT)
-#         label.pack(pady=10, padx=10)
-#
-#         button1 = ttk.Button(self, text="Home",
-#                 command=lambda: controller.show_frame(StartPage))
-#         button1.pack()
-#         button3 = ttk.Button(self, text="Search",
-#                 command=lambda: controller.show_frame(SearchPage))
-#         button3.pack()
-
-        # canvas = FigureCanvasTkAgg(f, self)
-        # canvas.show()
-        # canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        #
-        # # show the matplotlib toolbar
-        # toolbar = NavigationToolbar2TkAgg(canvas, self)
-        # toolbar.update()
-        # canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
 app = Page()
 #app.geometry("1280x720")
