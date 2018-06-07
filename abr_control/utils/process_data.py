@@ -1,15 +1,50 @@
-""" This script is calculating the error by comparing the trajectory of the
-end-effector to the trajectory the hand could take under perfect OSC control.
-The perfect trajectory is stored in the pd_x.npz file, with keys x, dx. """
+"""
+Class for processing data including: interpolating for even sampling,
+calculating average and confidence intervals, scaling data, filtering data, and
+comparing to an ideal trajectory
 
-import os
+Process for comparing to ideal trajectory
+1. interpolate data for even sampling
+2. generate ideal trajectory with the same sampling (auto generated in step3)
+3. calculate error from recorded path to ideal
+4. filter data if desired (recommended for 2nd and 3rd order error)
+5. scale to a baseline if desired
+"""
 import numpy as np
-from abr_control.utils.paths import cache_dir
+import os
+import scipy.interpolate
 
-#TODO: change save location of proc data to use cache_dir
+from abr_control.utils.paths import cache_dir
+from abr_control.utils import DataHandler
+
 class ProcessData():
-    def __init__(self):
-        pass
+    def __init__(use_cache=True):
+        """
+
+        Parameters
+        ----------
+        use_cache: Boolean, Optional (Default:True)
+            True to prepend the abr_control cache folder to the directory
+            provided for saving. This location is specified in
+            abr_control/utils/paths.py
+            False to use the directory passed in as is
+        """
+        #TODO: fix the case if user doesn't want to use the cache dir
+        self.dat = DataHandler(use_cache=use_cache)
+
+    def get_mean_and_ci(raw_data, n_runs)
+        sample = []
+        upper_bound = []
+        lower_bound = []
+
+        for i in range(n_runs):
+            data = raw_data[:,i]
+            ci = self.bootstrapci(data, np.mean)
+            sample.append(np.mean(data))
+            lower_bound.append(ci[0])
+            upper_bound.append(ci[1])
+
+        return(mean=sample, upper_bound=upper_bound, lower_bound=lower_bound)
 
     def bootstrapci(self, data, func, n=3000, p=0.95):
         index=int(n*(1-p)/2)
@@ -18,244 +53,117 @@ class ProcessData():
         r.sort()
         return r[index], r[-index]
 
-    def proc_saved_data(self, folder, name, n_sessions, n_runs, run_time,
-            parameter, dt=0.005, regenerate=False):
+    def interpolate_data(data, time_intervals, run_time, dt):
+        # interpolate to even samples out
+        data_interp = []
+        for kk in range(data.shape[1]):
+            interp = scipy.interpolate.interp1d(time_intervals, data[:, kk])
+            data_interp.append(np.array([
+                interp(t) for t in np.arange(0.001, run_time, dt)]))
+        data_interp = np.array(data_interp).T
 
-        # account for imperfect test lengths
-        run_time -= 0.03
-        save_file = ('%s_%i_x_%iruns_dt%0.4f_%itargets_x_%isec_%s' %
-                     (parameter, n_sessions, n_runs, dt, self.n_targets,
-                         self.reach_time_per_target, name))
-        print('searching for: ', save_file)
-        saved_data = [sf for sf in os.listdir(os.getcwd())
-                      if sf == (save_file + '.npz')]
-        if len(saved_data) > 0 and not regenerate:
-            print('Loading data from ', saved_data[0])
-        else:
-            raw_data = np.zeros((n_sessions, n_runs))
-            param_sessions = []
-            for ii in range(n_sessions):
-                param_runs = []
-                for jj in range(n_runs):
-                    filename_param = (
-                        folder + 'session%i/run%i_data/%s%i.npz' % (ii, jj,
-                            parameter, jj))
-                    filename_timeintervals = (
-                        folder + 'session%i/run%i_data/time%i.npz' % (ii, jj, jj))
-                    param = np.load(filename_param)['%s'%parameter].squeeze()
-                    time_intervals = np.cumsum(np.hstack([
-                        0, np.load(filename_timeintervals)['time'].squeeze()[:-1]]))
-                    print(ii, ' ', jj, ' ', time_intervals[-1], ': Using first'
-                          + ' %f sec'%run_time)
+        return data_interp
 
-                    # interpolate to have even sampling between tests
-                    import scipy.interpolate
-                    param_entries = []
-                    for kk in range(param.shape[1]):
-                        interp = scipy.interpolate.interp1d(time_intervals,
-                                param[:, kk])
-                        param_entries.append(np.array([
-                            interp(t) for t in np.arange(0.001, run_time, dt)]))
-                    param_runs.append(np.copy(param_entries))
-                param_sessions.append(np.copy(param_runs))
+    def scale_data(input_data, baseline_low, baseline_high, scaling_factor=1):
+        """
+        scale data to some baseline to get values from 0-1 relative
+        to baseline times the scaling factor
 
-            # Save interpolated data
-            # add dimension if only 1 session so each saved file will be
-            # 4 dimensional
-            # if n_sessions == 1:
-            #     np.savez_compressed(save_file, parameter=[param_sessions])
-            # else:
-            np.savez_compressed(save_file, parameter=param_sessions)
-            print('PARAMETER SAVED: ', parameter)
+        PARAMETERS
+        input_data: list of floats
+            the data to be scaled
+        baseline_low: list of floats
+            the lower error baseline that will be the zero
+            reference
+        baseline_high: list of floats
+            the higher error baseline that will be the one
+            reference
+        """
+        scaled_data = ((input_data - baseline_low)
+                       / (baseline_high - baseline_low))
+        scaled_data *= scaling_factor
 
+        return scaled_data
 
-    def proc_traj_err(self, folder, name, n_sessions, n_runs, run_time=3, dt=0.005, regenerate=False):
+    def generate_ideal_path():
+        # ideal acceleration
+        pd_xyz_ddx = np.diff(pd_xyz_dx, axis=0) / dt
+        # ideal jerk
+        pd_xyz_dddx = np.diff(pd_xyz_ddx, axis=0) / dt
+        return ideal_path
 
-        # account for imperfect test lengths
-        run_time-=0.03
-        save_file = ('trajectory_error_%i_x_%i_runs_dt%0.4f_%itargets_x_%isec_%s' %
-                     (n_sessions, n_runs, dt, self.n_targets,
-                         self.reach_time_per_target, name))
-        print('searching for: ', save_file)
-        saved_data = [sf for sf in os.listdir(os.getcwd())
-                      if sf == (save_file + '.npz')]
-        if len(saved_data) > 0 and not regenerate:
-            print('Loading data from ', saved_data[0])
-            saved_data = np.load(saved_data[0])
-            mean = saved_data['mean']
-            upper_bound = saved_data['upper_bound']
-            lower_bound = saved_data['lower_bound']
-        else:
+    def filter_data(data, alpha=0.2):
+        data_filtered = []
+        for nn in range(0,len(data)):
+            if nn == 0:
+                data_filtered.append((alpha*data[nn]
+                                          + (1-alpha)*0))
+            else:
+                data_filtered.append((alpha*data[nn]
+                                          + (1-alpha)*data_filtered[nn-1]))
+        data_filtered = np.array(data_filtered)
 
-            # load in perfect trajectory, sampled every 1ms for 4s
-            pd_xyz = np.load('../pd_x_%isec_x_%itargets.npz'
-                    % (self.reach_time_per_target, self.n_targets))
-            pd_xyz_x = pd_xyz['x']
-            pd_xyz_dx = pd_xyz['dx']
+        return data_filtered
 
-            raw_data = np.zeros((n_sessions, n_runs))
-            for ii in range(n_sessions):
-                for jj in range(n_runs):
-                    filename_ee_xyz = (
-                        folder + 'session%i/run%i_data/ee_xyz%i.npz' % (ii, jj, jj))
-                    filename_timeintervals = (
-                        folder + 'session%i/run%i_data/time%i.npz' % (ii, jj, jj))
-                    ee_xyz = np.load(filename_ee_xyz)['ee_xyz'].squeeze()
-                    time_intervals = np.cumsum(np.hstack([
-                        0, np.load(filename_timeintervals)['time'].squeeze()[:-1]]))
-                    print('Session %i run %i ran for %f seconds ' %
-                          (ii, jj, time_intervals[-1]))
+    def path_error_to_ideal(self, folder, name, n_sessions, n_runs, error_type,
+                      run_time=3, dt=0.005, regenerate=False, order_of_error=0):
+        """
+        Function for passing already interpolated data in to compare to an
+        ideal path (of the same interpolation)
 
-                    # interpolate to even samples out
-                    ee_xyz_interp = []
-                    import scipy.interpolate
-                    for kk in range(ee_xyz.shape[1]):
-                        interp = scipy.interpolate.interp1d(time_intervals, ee_xyz[:, kk])
-                        ee_xyz_interp.append(np.array([
-                            interp(t) for t in np.arange(0.001, run_time, dt)]))
-                    ee_xyz_x = np.array(ee_xyz_interp).T
-                    # calculate the velocity of the end-effector
-                    ee_xyz_dx = np.vstack([np.zeros((1, 3)), np.diff(ee_xyz_x, axis=0) / dt])
+        Parameters
+        ----------
+        order_of_error: int, Optional (Default: 0)
+            the order of error to calculate
+            0 == position error
+            1 == velocity error
+            2 == acceleration error
+            3 == jerk error
 
-                    # compare perfect and actual trajectories to generate error
-                    error = (
-                        # position error
-                        np.sqrt(np.sum((pd_xyz_x[:len(ee_xyz_x),:] - ee_xyz_x)**2, axis=1)) +
-                        # velocity error
-                        np.sqrt(np.sum((pd_xyz_dx[:len(ee_xyz_dx),:] - ee_xyz_dx)**2, axis=1)))
-                    raw_data[ii, jj] = np.copy(np.sum(error) * dt)
-
-            mean = np.mean(raw_data, axis=0)
-
-            sample = []
-            upper_bound = []
-            lower_bound = []
-
-            for i in range(n_runs):
-                data = raw_data[:,i]
-                ci = self.bootstrapci(data, np.mean)
-                sample.append(np.mean(data))
-                lower_bound.append(ci[0])
-                upper_bound.append(ci[1])
-
-            np.savez_compressed(
-                save_file,
-                mean=mean, upper_bound=upper_bound, lower_bound=lower_bound)
-            print('saved to: ', save_file)
-
-        return mean, lower_bound, upper_bound
-
-    def proc_tot_err(self, folder, name, n_sessions, n_runs, dt=0.005, regenerate=False,
-                    run_time=3):
+        """
 
         # account for imperfect test lengths
         run_time-=0.03
-        save_file = ('error_to_target_%i_x_%i_runs_dt%0.4f_%itargets_x_%isec_%s' %
-                     (n_sessions, n_runs, dt, self.n_targets,
-                         self.reach_time_per_target, name))
-        print('searching for: ', save_file)
-        saved_data = [sf for sf in os.listdir(os.getcwd())
-                      if sf == (save_file + '.npz')]
-        if len(saved_data) > 0 and not regenerate:
-            print('Loading data from ', saved_data[0])
-            saved_data = np.load(saved_data[0])
-            mean = saved_data['mean']
-            upper_bound = saved_data['upper_bound']
-            lower_bound = saved_data['lower_bound']
-        else:
-            raw_data = np.zeros((n_sessions, n_runs))
-            for ii in range(n_sessions):
-                for jj in range(n_runs):
-                    filename_error = (
-                        folder + 'session%i/run%i_data/error%i.npz' % (ii, jj, jj))
-                    filename_timeintervals = (
-                        folder + 'session%i/run%i_data/time%i.npz' % (ii, jj, jj))
-                    error = np.load(filename_error)['error'].squeeze()
-                    time_intervals = np.cumsum(np.hstack([
-                        0, np.load(filename_timeintervals)['time'].squeeze()[:-1]]))
-                    print(ii, ' ', jj, ' ', time_intervals[-1], ': Using first '
-                          + '%f sec'%run_time)
-                    # np.sum(error * dt)
-                    # raw_data[ii, jj] = np.dot(error.squeeze(),
-                    #                           time_intervals.squeeze())
 
-                    # everything ran for 10s, so it's an interval problem
-                    # so we're going to interpolate to even samples out
-                    import scipy.interpolate
-                    interp = scipy.interpolate.interp1d(time_intervals, error)
-                    error = np.array([
-                        interp(t) for t in np.arange(0.001, run_time, dt)])# 10-5*dt, dt)])
-                        #interp(t) for t in np.arange(0.001, 19.99, dt)])# 10-5*dt, dt)])
-                    raw_data[ii, jj] = np.sum(error) * dt
+        # check database location for how many runs and sessions we have if
+        # none are provided
 
+        # check if processed data already exists, if so check if user wants to
+        # regenerate
 
-            mean = np.mean(raw_data, axis=0)
+        # generate the ideal path and save it to the session level group, if
+        # one exists overwrite it so we have the actual ideal that was used for
+        # the current calculation saved
+        ideal_path = generate_ideal_path()
+        # only need the ideal path for the order of error we are interested in
+        ideal_path = ideal_path[order_of_error]
 
-            sample = []
-            upper_bound = []
-            lower_bound = []
+        # instantiate arrays for saving error
+        raw_data = np.zeros((n_sessions, n_runs))
+        error = np.zeros((n_sessions, n_runs))
 
-            for i in range(n_runs):
-                data = raw_data[:,i]
-                ci = self.bootstrapci(data, np.mean)
-                sample.append(np.mean(data))
-                lower_bound.append(ci[0])
-                upper_bound.append(ci[1])
+        # cycle through the sessions
+        for ii in range(n_sessions):
 
-            np.savez_compressed(
-                save_file,
-                mean=mean, upper_bound=upper_bound, lower_bound=lower_bound)
-            print('saved to: ', save_file)
+            # cycle through the runs
+            for jj in range(n_runs):
+                # load data from run
+                recorded_path = np.load(filename_recorded_path)['ee_xyz'].squeeze()
+                times = np.load(filename_timeintervals)['time'].squeeze()[:-1]
+                time_intervals = np.cumsum(np.hstack([0, times]))
+                print('Session %i run %i ran for %f seconds ' %
+                      (ii, jj, time_intervals[-1]))
 
-        return mean, lower_bound, upper_bound
+                # Calculate the correct order of error
+                for ii in range(0, order_of_error):
+                    recorded_path = np.diff(recorded_path, axis=0) / dt]
 
+                # error relative to ideal path
+                error_to_ideal = (np.sum(np.sqrt(np.sum(
+                    (ideal_path - recorded_path)**2,
+                    axis=1))))*dt
 
-    def get_set(self, test_info, n_targets, reach_time_per_target, regenerate=False):
-        test_info = np.array(test_info)
-        self.n_targets = n_targets
-        self.reach_time_per_target = reach_time_per_target
-        run_time = n_targets * reach_time_per_target
-        self.reach_time_per_target = reach_time_per_target
-        self.n_target = n_targets
+                # save the error for this run
+                error[ii,jj] = np.copy(error_to_ideal)
 
-        parameters = ['q', 'dq', 'u', 'ee_xyz']
-        os.chdir('proc_data')
-
-        for ii in range(0,len(test_info)):
-            weighted = test_info[ii,0]
-            backend = test_info[ii,1]
-            test_name = test_info[ii,2]
-            n_runs = test_info[ii,3]
-            n_sessions = test_info[ii,4]
-            test_group = test_info[ii,5]
-
-            if not os.path.exists(test_name):
-                os.makedirs(test_name)
-            os.chdir(test_name)
-
-            data_location = (cache_dir + '/saved_weights/' + test_group +'/'
-                             + weighted + '/' + backend + '/' + test_name + '/')
-
-            # get error compared to ideal trajectory
-            mean_data, lower_bound_data, upper_bound_data = self.proc_traj_err(
-                data_location, test_name,
-                n_sessions=int(n_sessions), n_runs=int(n_runs),
-                regenerate=regenerate, run_time=run_time)
-
-            # get cumulative error to target
-            mean_data, lower_bound_data, upper_bound_data = self.proc_tot_err(
-                data_location, test_name,
-                n_sessions=int(n_sessions), n_runs=int(n_runs),
-                regenerate=regenerate, run_time=run_time)
-
-            for jj in range(0,len(parameters)):
-                # process q, dq, u and ee_xyz to have consistent sampling
-                self.proc_saved_data(
-                    data_location, test_name,
-                    n_sessions=int(n_sessions), n_runs=int(n_runs),
-                    regenerate=regenerate, run_time=run_time,
-                    parameter=parameters[jj])
-
-            os.chdir('../')
-        os.chdir('../')
-
+        return error
