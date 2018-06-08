@@ -5,7 +5,7 @@ comparing to an ideal trajectory
 
 Process for comparing to ideal trajectory
 1. interpolate data for even sampling
-2. generate ideal trajectory with the same sampling (auto generated in step3)
+2. generate ideal trajectory with the same sampling
 3. calculate error from recorded path to ideal
 4. filter data if desired (recommended for 2nd and 3rd order error)
 5. scale to a baseline if desired
@@ -16,6 +16,7 @@ import scipy.interpolate
 
 from abr_control.utils.paths import cache_dir
 from abr_control.utils import DataHandler
+from abr_control.controllers import path_planners
 
 class ProcessData():
     def __init__(use_cache=True):
@@ -53,7 +54,9 @@ class ProcessData():
         r.sort()
         return r[index], r[-index]
 
-    def interpolate_data(data, time_intervals, run_time, dt):
+    def interpolate_data(data, time_intervals, n_points):
+        run_time = sum(time_intervals)
+        dt = run_time/n_points
         # interpolate to even samples out
         data_interp = []
         for kk in range(data.shape[1]):
@@ -85,12 +88,110 @@ class ProcessData():
 
         return scaled_data
 
-    def generate_ideal_path():
+    def generate_ideal_path(reaching_dt, target_xyz, start_xyz):
+
+        #TODO: update to save to database, or possibly just return the ideal?
+        if target_xyz is None:
+            print('ERROR: Must provide target(s)')
+        x_track = []
+        u_track = []
+        # create our point mass system dynamics dx = Ax + Bu
+        x = np.hstack([self.start_xyz, np.zeros(3)])  # [x, y, z, dx, dy, dz]
+        A = np.array([
+            [0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]])
+        u = np.array([0, 0, 0])  # [u_x, u_y, u_z]
+        B = np.array([
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]])
+
+        # create our state and control cost matrices
+        Qs = np.ones(6) * 10
+        # Rs = [0.35, 0.225, 0.5, 0.2, 0.225]
+        Rs = np.ones(6) * 1e-3
+
+        # interpolation sampling rate
+        dt = 0.005
+        timesteps = int(reaching_dt / dt)
+        print('time steps: ', timesteps)
+        continuous = False
+
+        vmax = 1
+        kp = 20
+        kv = 6
+        lamb = kp / kv
+
+        path = path_planners.SecondOrder(None)
+        w = 1e4 / timesteps
+
+        for ii, target in enumerate(target_xyz):
+            u = np.zeros(3)
+            Q = Qs[ii] * np.eye(6)
+            R = Rs[ii] * np.eye(3)
+            print('II: ', ii)
+
+            for t in range(timesteps):
+                # track trajectory
+                x_track.append(np.copy(x))
+                u_track.append(np.copy(u))
+
+                temp_target = path.step(
+                    y=target, dy=np.zeros(3),
+                    target=target, w=w,
+                    zeta=2, dt=0.003, threshold=0.05)
+
+                # calculate the position error
+                x_tilde = np.array(x[:3] - temp_target[:3])
+
+                # implement velocity limiting
+                sat = vmax / (lamb * np.abs(x_tilde))
+                if np.any(sat < 1):
+                    index = np.argmin(sat)
+                    unclipped = kp * x_tilde[index]
+                    clipped = kv * vmax * np.sign(x_tilde[index])
+                    scale = np.ones(3, dtype='float32') * clipped / unclipped
+                    scale[index] = 1
+                else:
+                    scale = np.ones(3, dtype='float32')
+
+                u = -kv * (x[3:] - temp_target[3:] -
+                                    np.clip(sat / scale, 0, 1) *
+                                    -lamb * scale * x_tilde)
+
+                # move simulation one time step forward
+                dx = np.dot(A, x) + np.dot(B, u)
+                x += dx * dt
+
+        u_track = np.array(u_track)
+        x_track = np.array(x_track)
+        print('xtrack_ideal %isec x %i reaches: '%(reaching_dt, len(target_xyz)), x_track.shape)
+        print('utrack_ideal %isec x %i reaches: '%(reaching_dt, len(target_xyz)), u_track.shape)
+        np.savez_compressed('proc_data/pd_x_%isec_x_%itargets'
+                % (reaching_dt, len(target_xyz)),
+                x=x_track[:, :3], dx=x_track[:, 3:])
+        np.savez_compressed('proc_data/pd_u_%isec_x_%itargets'
+                % (reaching_dt, len(target_xyz)),
+                u=u_track)
+        np.savez_compressed('proc_data/pd_targets_%isec_x_%itargets'
+                % (reaching_dt, len(target_xyz)),
+                target_xyz=target_xyz)
+
+
+
         # ideal acceleration
         pd_xyz_ddx = np.diff(pd_xyz_dx, axis=0) / dt
         # ideal jerk
         pd_xyz_dddx = np.diff(pd_xyz_ddx, axis=0) / dt
-        return ideal_path
+
+        return [u_track, x_track]
 
     def filter_data(data, alpha=0.2):
         data_filtered = []
@@ -105,8 +206,9 @@ class ProcessData():
 
         return data_filtered
 
-    def path_error_to_ideal(self, folder, name, n_sessions, n_runs, error_type,
-                      run_time=3, dt=0.005, regenerate=False, order_of_error=0):
+    def calc_path_error_to_ideal(ideal_path, recorded_path, n_sessions,
+            n_runs, order_of_error):
+        #TODO remove run and session from this function, do looping outside
         """
         Function for passing already interpolated data in to compare to an
         ideal path (of the same interpolation)
@@ -121,20 +223,6 @@ class ProcessData():
             3 == jerk error
 
         """
-
-        # account for imperfect test lengths
-        run_time-=0.03
-
-        # check database location for how many runs and sessions we have if
-        # none are provided
-
-        # check if processed data already exists, if so check if user wants to
-        # regenerate
-
-        # generate the ideal path and save it to the session level group, if
-        # one exists overwrite it so we have the actual ideal that was used for
-        # the current calculation saved
-        ideal_path = generate_ideal_path()
         # only need the ideal path for the order of error we are interested in
         ideal_path = ideal_path[order_of_error]
 
@@ -147,13 +235,6 @@ class ProcessData():
 
             # cycle through the runs
             for jj in range(n_runs):
-                # load data from run
-                recorded_path = np.load(filename_recorded_path)['ee_xyz'].squeeze()
-                times = np.load(filename_timeintervals)['time'].squeeze()[:-1]
-                time_intervals = np.cumsum(np.hstack([0, times]))
-                print('Session %i run %i ran for %f seconds ' %
-                      (ii, jj, time_intervals[-1]))
-
                 # Calculate the correct order of error
                 for ii in range(0, order_of_error):
                     recorded_path = np.diff(recorded_path, axis=0) / dt]
