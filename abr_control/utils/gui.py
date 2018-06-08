@@ -74,6 +74,7 @@ def live_plot(i):
     y_max = 0.1
     # cycle through selected tests to plot
     for test in disp_loc:
+        print('plotting %s' %test)
         # set location and legend label
         location = '%ssession000/'%test
         legend_name = test.split('/')[-2]
@@ -84,6 +85,7 @@ def live_plot(i):
         # if we're interested in plotting error, we will average the error over
         # a run and plot the average of each run
         if var_to_plot == 'error':
+            print('plotting error')
             error = []
             for entry in keys:
                 # only look through the keys that point to a run group
@@ -110,22 +112,28 @@ def live_plot(i):
         # dim=N_JOINTS so we will plot the data from the final run of the
         # session
         else:
+            print('plotting %s' %var_to_plot)
             # get the highest numbered run group
             max_key = max([key for key in keys if 'run' in key])
             d = dat.load(params=[var_to_plot],
                     save_location='%s%s'%(location, max_key))
             # load data from highest numbered run
-            d = np.array(d[var_to_plot])
-            # set our plotting limits
-            if np.max(d) > y_max:
-                y_max = np.max(d)
-            if np.min(d) < y_min:
-                y_min = np.min(d)
-            if len(d) > x_max:
-                x_max = len(d)
-            a.set_xlim(x_min, x_max)
-            a.set_ylim(y_min, y_max)
-            a.plot(d, label=legend_name)
+            try:
+                d = np.array(d[var_to_plot])
+                # set our plotting limits
+                if np.max(d) > y_max:
+                    y_max = np.max(d)
+                if np.min(d) < y_min:
+                    y_min = np.min(d)
+                if len(d) > x_max:
+                    x_max = len(d)
+                a.set_xlim(x_min, x_max)
+                a.set_ylim(y_min, y_max)
+                a.plot(d, label=legend_name)
+            except TypeError:
+                print('WARNING: %s%s does not contain the key %s'%(location, max_key,
+                  var_to_plot))
+
 
 
     a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)

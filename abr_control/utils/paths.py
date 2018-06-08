@@ -10,4 +10,4 @@ if sys.platform.startswith('win'):
 else:
     cache_dir = os.path.expanduser(os.path.join("~", ".cache", "abr_control"))
     database_dir = os.path.expanduser(os.path.join("~", ".cache",
-        "abr_control", "abr_control_db.h5")
+        "abr_control", "abr_control_db.h5"))
