@@ -88,9 +88,8 @@ class ProcessData():
 
         return scaled_data
 
-    def generate_ideal_path(reaching_dt, target_xyz, start_xyz):
+    def generate_ideal_path(reaching_time, target_xyz, start_xyz):
 
-        #TODO: update to save to database, or possibly just return the ideal?
         if target_xyz is None:
             print('ERROR: Must provide target(s)')
         x_track = []
@@ -119,8 +118,8 @@ class ProcessData():
         Rs = np.ones(6) * 1e-3
 
         # interpolation sampling rate
-        dt = 0.005
-        timesteps = int(reaching_dt / dt)
+        dt = 0.001
+        timesteps = int(reaching_time / dt)
         print('time steps: ', timesteps)
         continuous = False
 
@@ -172,28 +171,10 @@ class ProcessData():
 
         u_track = np.array(u_track)
         x_track = np.array(x_track)
-        print('xtrack_ideal %isec x %i reaches: '%(reaching_dt, len(target_xyz)), x_track.shape)
-        print('utrack_ideal %isec x %i reaches: '%(reaching_dt, len(target_xyz)), u_track.shape)
-        np.savez_compressed('proc_data/pd_x_%isec_x_%itargets'
-                % (reaching_dt, len(target_xyz)),
-                x=x_track[:, :3], dx=x_track[:, 3:])
-        np.savez_compressed('proc_data/pd_u_%isec_x_%itargets'
-                % (reaching_dt, len(target_xyz)),
-                u=u_track)
-        np.savez_compressed('proc_data/pd_targets_%isec_x_%itargets'
-                % (reaching_dt, len(target_xyz)),
-                target_xyz=target_xyz)
-
-
-
-        # ideal acceleration
-        pd_xyz_ddx = np.diff(pd_xyz_dx, axis=0) / dt
-        # ideal jerk
-        pd_xyz_dddx = np.diff(pd_xyz_ddx, axis=0) / dt
 
         return [u_track, x_track]
 
-    def filter_data(data, alpha=0.2):
+    def filter_data(self, data, alpha=0.2):
         data_filtered = []
         for nn in range(0,len(data)):
             if nn == 0:
@@ -206,9 +187,8 @@ class ProcessData():
 
         return data_filtered
 
-    def calc_path_error_to_ideal(ideal_path, recorded_path, n_sessions,
-            n_runs, order_of_error):
-        #TODO remove run and session from this function, do looping outside
+    def calc_path_error_to_ideal(ideal_path, recorded_path, order_of_error,
+            alpha=0.2):
         """
         Function for passing already interpolated data in to compare to an
         ideal path (of the same interpolation)
@@ -224,27 +204,26 @@ class ProcessData():
 
         """
         # only need the ideal path for the order of error we are interested in
-        ideal_path = ideal_path[order_of_error]
+        ideal_path = ideal_path[:3]
 
-        # instantiate arrays for saving error
-        raw_data = np.zeros((n_sessions, n_runs))
-        error = np.zeros((n_sessions, n_runs))
+        # Calculate the correct order of error
+        for ii in range(0, order_of_error):
+            recorded_path = np.diff(recorded_path, axis=0) / dt
+            ideal_path = np.diff(ideal_path, axis=0) /dt
 
-        # cycle through the sessions
-        for ii in range(n_sessions):
+        # ----- APPLY FILTERS -----
+        # if we're using acceleration or jerk, add a filter to
+        # clean up the signal
+        if order_of_error > 1:
+            recorded_path = self.filter_data(data=recorded_path,
+                    alpha=alpha)
+            ideal_path = self.filter_data(data=ideal_path,
+                    alpha=alpha)
 
-            # cycle through the runs
-            for jj in range(n_runs):
-                # Calculate the correct order of error
-                for ii in range(0, order_of_error):
-                    recorded_path = np.diff(recorded_path, axis=0) / dt]
 
-                # error relative to ideal path
-                error_to_ideal = (np.sum(np.sqrt(np.sum(
-                    (ideal_path - recorded_path)**2,
-                    axis=1))))*dt
+        # error relative to ideal path
+        error_to_ideal = (np.sum(np.sqrt(np.sum(
+            (ideal_path - recorded_path)**2,
+            axis=1))))*dt
 
-                # save the error for this run
-                error[ii,jj] = np.copy(error_to_ideal)
-
-        return error
+        return error_to_ideal
