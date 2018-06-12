@@ -181,7 +181,7 @@ class Training:
 
         # set up lists for tracking data
         self.data = {'q': [], 'dq': [], 'u_base': [], 'u_adapt': [],
-                     'error':[], 'training_signal': [], 'target_xyz': [],
+                     'error':[], 'training_signal': [], 'target': [],
                      'ee_xyz': [], 'input_signal': [], 'filter': [],
                      'time': [], 'weights': [], 'u_avoid': []}
         self.count = 0
@@ -267,7 +267,7 @@ class Training:
             self.data['training_signal'].append(np.copy(self.training_signal))
             end = timeit.default_timer() - start
             self.data['time'].append(np.copy(end))
-            self.data['target_xyz'].append(np.copy(target_xyz))
+            self.data['target'].append(np.copy(target_xyz))
             self.data['input_signal'].append(np.copy(self.adapt_input))
             self.data['ee_xyz'].append(np.copy(ee_xyz))
             self.data['filter'].append(np.copy(self.target))

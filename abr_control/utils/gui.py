@@ -418,6 +418,7 @@ class SearchPage(tk.Frame):
         loc.append('%s/'%value)
 
         # check if we're pointing at a dataset, if so go back one level
+        print('FIRST ATTEMPT TO LOAD: ', ''.join(loc))
         keys = dat.get_keys(''.join(loc))
         # if keys are None, then we are pointing at a dataset
         if keys is None:
@@ -426,6 +427,9 @@ class SearchPage(tk.Frame):
             if browse_datasets:
                 print('deep dive: loading ', (loc[-1])[:-1])
                 print('looking in: ', ''.join(loc[:-1]))
+                print('PARAMS: ', loc[-1][:-1])
+                print('LOC: ', ''.join(loc[:-1]))
+                print("CURRENT DISPLAY LIST: ", disp_loc)
                 loaded_data = dat.load(params=[(loc[-1])[:-1]],
                         save_location=''.join(loc[:-1]))
                 # print the selected dataset to the terminal
@@ -436,7 +440,8 @@ class SearchPage(tk.Frame):
             else:
                 print('Error: ', dat.load(params='error', save_location=''.join(loc)))
                 print('loc points to dataset')
-                go_back_loc_level(self)
+            go_back_loc_level(self)
+
 
         # if keys do exist, check if we're at the session level, at which point
         # we should plot data, not go further down in the search, unless

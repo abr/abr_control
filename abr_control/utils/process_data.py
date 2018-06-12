@@ -19,7 +19,7 @@ from abr_control.utils import DataHandler
 from abr_control.controllers import path_planners
 
 class ProcessData():
-    def __init__(use_cache=True):
+    def __init__(self):
         """
 
         Parameters
@@ -30,22 +30,21 @@ class ProcessData():
             abr_control/utils/paths.py
             False to use the directory passed in as is
         """
-        #TODO: fix the case if user doesn't want to use the cache dir
-        self.dat = DataHandler(use_cache=use_cache)
+        pass
 
-    def get_mean_and_ci(raw_data, n_runs)
+    def get_mean_and_ci(self, raw_data, n_runs):
         sample = []
         upper_bound = []
         lower_bound = []
 
-        for i in range(n_runs):
+        for i in range(n_runs+1):
             data = raw_data[:,i]
             ci = self.bootstrapci(data, np.mean)
             sample.append(np.mean(data))
             lower_bound.append(ci[0])
             upper_bound.append(ci[1])
 
-        return(mean=sample, upper_bound=upper_bound, lower_bound=lower_bound)
+        return [sample, lower_bound, upper_bound]
 
     def bootstrapci(self, data, func, n=3000, p=0.95):
         index=int(n*(1-p)/2)
@@ -54,20 +53,23 @@ class ProcessData():
         r.sort()
         return r[index], r[-index]
 
-    def interpolate_data(data, time_intervals, n_points):
+    def interpolate_data(self, data, time_intervals, n_points):
         run_time = sum(time_intervals)
+        time_intervals = np.cumsum(time_intervals)
         dt = run_time/n_points
         # interpolate to even samples out
         data_interp = []
         for kk in range(data.shape[1]):
+            print('t shape: ', time_intervals.shape)
+            print('dat shape: ', data[:,kk].shape)
             interp = scipy.interpolate.interp1d(time_intervals, data[:, kk])
             data_interp.append(np.array([
-                interp(t) for t in np.arange(0.001, run_time, dt)]))
+                interp(t) for t in np.arange(time_intervals[0], run_time, dt)]))
         data_interp = np.array(data_interp).T
 
         return data_interp
 
-    def scale_data(input_data, baseline_low, baseline_high, scaling_factor=1):
+    def scale_data(self, input_data, baseline_low, baseline_high, scaling_factor=1):
         """
         scale data to some baseline to get values from 0-1 relative
         to baseline times the scaling factor
@@ -82,20 +84,24 @@ class ProcessData():
             the higher error baseline that will be the one
             reference
         """
+        #TODO: add check for whether or not to np.array -ize
+        input_data = np.array(input_data)
+        baseline_low = np.array(baseline_low)
+        baseline_high = np.array(baseline_high)
         scaled_data = ((input_data - baseline_low)
                        / (baseline_high - baseline_low))
         scaled_data *= scaling_factor
 
         return scaled_data
 
-    def generate_ideal_path(reaching_time, target_xyz, start_xyz):
+    def generate_ideal_path(self, reaching_time, target_xyz, start_xyz):
 
         if target_xyz is None:
             print('ERROR: Must provide target(s)')
         x_track = []
         u_track = []
         # create our point mass system dynamics dx = Ax + Bu
-        x = np.hstack([self.start_xyz, np.zeros(3)])  # [x, y, z, dx, dy, dz]
+        x = np.hstack([start_xyz, np.zeros(3)])  # [x, y, z, dx, dy, dz]
         A = np.array([
             [0, 0, 0, 1, 0, 0],
             [0, 0, 0, 0, 1, 0],
@@ -118,23 +124,22 @@ class ProcessData():
         Rs = np.ones(6) * 1e-3
 
         # interpolation sampling rate
-        dt = 0.001
+        dt = 0.005
         timesteps = int(reaching_time / dt)
         print('time steps: ', timesteps)
-        continuous = False
 
         vmax = 1
         kp = 20
         kv = 6
         lamb = kp / kv
 
-        path = path_planners.SecondOrder(None)
-        w = 1e4 / timesteps
+        path = path_planners.SecondOrder(None, w=1e-4, zeta=2, dt=0.003,
+                threshold=0.05)
 
         for ii, target in enumerate(target_xyz):
             u = np.zeros(3)
-            Q = Qs[ii] * np.eye(6)
-            R = Rs[ii] * np.eye(3)
+            # Q = Qs[ii] * np.eye(6)
+            # R = Rs[ii] * np.eye(3)
             print('II: ', ii)
 
             for t in range(timesteps):
@@ -143,9 +148,8 @@ class ProcessData():
                 u_track.append(np.copy(u))
 
                 temp_target = path.step(
-                    y=target, dy=np.zeros(3),
-                    target=target, w=w,
-                    zeta=2, dt=0.003, threshold=0.05)
+                    state=np.hstack((target, np.zeros(3))),
+                    target_pos=target)
 
                 # calculate the position error
                 x_tilde = np.array(x[:3] - temp_target[:3])
@@ -171,8 +175,12 @@ class ProcessData():
 
         u_track = np.array(u_track)
         x_track = np.array(x_track)
+        runtime = reaching_time * len(target_xyz)
+        n_points = len(x_track)
+        print('N POINTS',n_points)
+        t_track = np.ones(n_points) * runtime/n_points
 
-        return [u_track, x_track]
+        return [t_track, x_track]
 
     def filter_data(self, data, alpha=0.2):
         data_filtered = []
@@ -187,8 +195,8 @@ class ProcessData():
 
         return data_filtered
 
-    def calc_path_error_to_ideal(ideal_path, recorded_path, order_of_error,
-            alpha=0.2):
+    def calc_path_error_to_ideal(self, ideal_path, recorded_path, order_of_error,
+            dt, alpha=0.2):
         """
         Function for passing already interpolated data in to compare to an
         ideal path (of the same interpolation)
@@ -203,8 +211,6 @@ class ProcessData():
             3 == jerk error
 
         """
-        # only need the ideal path for the order of error we are interested in
-        ideal_path = ideal_path[:3]
 
         # Calculate the correct order of error
         for ii in range(0, order_of_error):
@@ -215,9 +221,9 @@ class ProcessData():
         # if we're using acceleration or jerk, add a filter to
         # clean up the signal
         if order_of_error > 1:
-            recorded_path = self.filter_data(data=recorded_path,
+            recorded_path = filter_data(data=recorded_path,
                     alpha=alpha)
-            ideal_path = self.filter_data(data=ideal_path,
+            ideal_path = filter_data(data=ideal_path,
                     alpha=alpha)
 
 
