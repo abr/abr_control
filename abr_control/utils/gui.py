@@ -180,6 +180,14 @@ def go_back_loc_level(self):
     #self.entry.delete(0, 'end')
     self.update_list()
 
+def go_to_root_level(self):
+    """
+    Function used to reset database location to root location
+    """
+    global loc
+    loc = ['/']
+    self.update_list()
+
 def toggle_browse_datasets(self):
     """
     Toggles the browse_datasets variable.
@@ -329,7 +337,8 @@ class SearchPage(tk.Frame):
 
         # create our buttons
         home_button = tk.Button(frame_left, text="Home",
-                command=lambda: controller.show_frame(StartPage))
+                command=lambda: go_to_root_level(self))
+                #command=lambda: controller.show_frame(StartPage))
         home_button.grid(row=1, column=1)#, sticky='nsew')
         home_button.configure(background=button_color, foreground=button_text_color)
 
@@ -383,16 +392,13 @@ class SearchPage(tk.Frame):
 	# initialize radio buttons
         self.var_to_plot = tk.StringVar()
         self.var_to_plot.set(var_to_plot)
-        # TODO: incorporate ii into for loop
-        ii=0
-        for var in plotting_variables:
+        for ii, var in enumerate(plotting_variables):
             var_to_plot_radio = tk.Radiobutton(frame_right, text=var,
                     variable=self.var_to_plot,
                     value=var, command=lambda: self.update_var_to_plot(self))
             var_to_plot_radio.grid(row=ii, column=0, ipadx=20, sticky='ew')#, sticky='nsew')
             var_to_plot_radio.configure(background=button_color,
                     foreground=button_text_color)
-            ii += 1
 
 
     def update_var_to_plot(self, *args):
@@ -457,9 +463,8 @@ class SearchPage(tk.Frame):
 
         # if the selection takes us to the next level of groups then erase the
         # search bar
-        else:
-            self.current_location_display.set(''.join(loc))
-            self.update_list()
+        #else:
+        self.update_list()
 
 
     def update_list(self, *args):
@@ -467,6 +472,7 @@ class SearchPage(tk.Frame):
         Function that updates the listbox based on the current search location
         """
         global loc
+        self.current_location_display.set(''.join(loc))
         search_term = self.search_var.get()
 
         # pull keys from the database
