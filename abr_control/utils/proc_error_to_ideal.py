@@ -31,7 +31,8 @@ class PathErrorToIdeal():
     def process(self, test_group, test_list, regenerate=False,
             n_interp_pts=400, order_of_error=1, alpha=0.2, use_cache=True,
             scaling_factor=1, n_runs=None, n_sessions=None, upper_baseline_loc=None,
-            lower_baseline_loc=None):
+            lower_baseline_loc=None, d_thres=0.03, t_thres=0.03):
+
         """
         A function that takes the provided tests from the specified test group and
         interpolates the data for even sampling, compares to an ideal generated
@@ -136,11 +137,6 @@ class PathErrorToIdeal():
             base_loc = loc
             ideal_path_error = np.zeros((n_sessions+1, n_runs+1))
 
-            # set thresholds for test lengths and distances to start position and
-            # targets
-            t_thres = 0.03 # in sec
-            d_thres = 0.01 # in meters
-
             # cycle through the sessions
             for ii in range(n_sessions+1):
 
@@ -150,7 +146,7 @@ class PathErrorToIdeal():
                     keys = dat.get_keys(loc)
 
                     # reset error print
-                    print_list = ['ERROR: the tests must have the same '
+                    print_list = ['\n', 'ERROR: the tests must have the same '
                             'starting position and targets as the ideal '
                             'trajectory, along with a total test length '
                             'within a %fsec threshold'%t_thres,
@@ -219,7 +215,8 @@ class PathErrorToIdeal():
                         # 'start_xyz', 'target', 'reaching_time'
                         param_check = [False, False, False]
 
-                        #TODO check that this works
+                        # Check if our starting position is within tolerance of
+                        # the ideal path
                         if (abs(np.array(ee_xyz[0]) - np.array(ideal_start_xyz))
                                 > d_thres).any():
                             param_check[0] = True
@@ -228,8 +225,9 @@ class PathErrorToIdeal():
                             print_list.append('Test: %s'% ee_xyz[0])
                             print('!!!start_xyz test triggered!!!')
 
-                        #TODO check that this works
-                        if (abs(np.array(target_xyz[0]) - np.array(ideal_target_xyz))
+                        # Check if our target locations are within tolerance of
+                        # the ones used for the ideal path
+                        if (abs(np.array(target_xyz) - np.array(ideal_target_xyz))
                                 > d_thres).any():
                             param_check[1] = True
                             print_list.append('Targets do not match...')
@@ -237,6 +235,8 @@ class PathErrorToIdeal():
                             print_list.append('Test: %s'% target_xyz)
                             print('!!!target_xyz test triggered!!!')
 
+                        # Check if our test length is within tolerance of the
+                        # ideal path test length
                         if np.sum(time)>(np.sum(ideal_reaching_time)+t_thres)or \
                                 np.sum(time)<(np.sum(ideal_reaching_time)-t_thres):
                             param_check[2] = True
@@ -251,7 +251,7 @@ class PathErrorToIdeal():
                         print('Parameter test results: ', param_check)
                         if any(param_check):
                             to_print = '\n'.join(print_list)
-                            Exception(to_print)
+                            raise ValueError('\n'.join(print_list))
 
                         # print('ee_xyz: ', ee_xyz)
                         # print('time: ', time)
