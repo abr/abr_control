@@ -193,70 +193,75 @@ class PathErrorToIdeal():
                     # ----- INTERPOLATE END-EFFECTOR POSITION DATA -----
                     print('%i/%i %s: %s'%(jj, n_runs, base_loc, loc))
                     # check if we have interpolated data saved
+                    # load test data
+                    loaded_data = dat.load(params=['ee_xyz', 'time',
+                        'target'], save_location=loc)
+                    ee_xyz = loaded_data['ee_xyz']
+                    time = loaded_data['time']
+                    target_xyz = loaded_data['target']
+
+                    # only save the unique target locations
+                    target_xyz = self.get_unique_targets(target_xyz)
+
+                    # check to make sure that the reaching time and targets
+                    # match the ones used in the ideal trajectory, otherwise
+                    # throw an error
+                    # 'start_xyz', 'target', 'reaching_time'
+                    param_check = [False, False, False]
+
+                    # Check if our starting position is within tolerance of
+                    # the ideal path
+                    if (abs(np.array(ee_xyz[0]) - np.array(ideal_start_xyz))
+                            > d_thres).any():
+                        param_check[0] = True
+                        print_list.append('Starting positions do not match...')
+                        print_list.append('Ideal: %s'% ideal_start_xyz)
+                        print_list.append('Test: %s'% ee_xyz[0])
+                        print('!!!start_xyz test triggered!!!')
+
+                    # Check if our target locations are within tolerance of
+                    # the ones used for the ideal path
+                    if (abs(np.array(target_xyz) - np.array(ideal_target_xyz))
+                            > d_thres).any():
+                        param_check[1] = True
+                        print_list.append('Targets do not match...')
+                        print_list.append('Ideal: %s'% ideal_target_xyz)
+                        print_list.append('Test: %s'% target_xyz)
+                        print('!!!target_xyz test triggered!!!')
+
+                    # Check if our test length is within tolerance of the
+                    # ideal path test length
+                    if np.sum(time)>(np.sum(ideal_reaching_time)+t_thres)or \
+                            np.sum(time)<(np.sum(ideal_reaching_time)-t_thres):
+                        param_check[2] = True
+                        print_list.append('Test lengths do not match within'
+                                          + ' threshold...')
+                        print_list.append('Ideal: ',
+                                np.sum(ideal_reaching_time),
+                                '+/- %fsec'%t_thres)
+                        print_list.append('Test: %f'% np.sum(time))
+                        print('!!!reaching_time test triggered!!!')
+
+                    print('Parameter test results: ', param_check)
+                    if any(param_check):
+                        to_print = '\n'.join(print_list)
+                        raise ValueError('\n'.join(print_list))
+
+                    # print('ee_xyz: ', ee_xyz)
+                    # print('time: ', time)
+                    # print('target_xyz: ', target_xyz)
+                    # if our parameters match the ideal path interpolate data for even sampling
+
                     if 'ee_xyz_interp_%s'%orders[order_of_error] in keys and not regenerate:
                         # data exists and user does not want to regenerate
                         print('%s ee_xyz_interp exists, passing...'%loc)
-                        pass
+                        ee_xyz_interp = dat.load(
+                                params=['ee_xyz_interp_%s'%orders[order_of_error]],
+                                save_location='%ssession%03d/interp_data/run%03d'%(base_loc,
+                                    ii, jj))
+                        ee_xyz_interp = ee_xyz_interp['ee_xyz_interp_%s'%orders[order_of_error]]
 
                     else:
-                        # load test data
-                        loaded_data = dat.load(params=['ee_xyz', 'time',
-                            'target'], save_location=loc)
-                        ee_xyz = loaded_data['ee_xyz']
-                        time = loaded_data['time']
-                        target_xyz = loaded_data['target']
-
-                        # only save the unique target locations
-                        target_xyz = self.get_unique_targets(target_xyz)
-
-                        # check to make sure that the reaching time and targets
-                        # match the ones used in the ideal trajectory, otherwise
-                        # throw an error
-                        # 'start_xyz', 'target', 'reaching_time'
-                        param_check = [False, False, False]
-
-                        # Check if our starting position is within tolerance of
-                        # the ideal path
-                        if (abs(np.array(ee_xyz[0]) - np.array(ideal_start_xyz))
-                                > d_thres).any():
-                            param_check[0] = True
-                            print_list.append('Starting positions do not match...')
-                            print_list.append('Ideal: %s'% ideal_start_xyz)
-                            print_list.append('Test: %s'% ee_xyz[0])
-                            print('!!!start_xyz test triggered!!!')
-
-                        # Check if our target locations are within tolerance of
-                        # the ones used for the ideal path
-                        if (abs(np.array(target_xyz) - np.array(ideal_target_xyz))
-                                > d_thres).any():
-                            param_check[1] = True
-                            print_list.append('Targets do not match...')
-                            print_list.append('Ideal: %s'% ideal_target_xyz)
-                            print_list.append('Test: %s'% target_xyz)
-                            print('!!!target_xyz test triggered!!!')
-
-                        # Check if our test length is within tolerance of the
-                        # ideal path test length
-                        if np.sum(time)>(np.sum(ideal_reaching_time)+t_thres)or \
-                                np.sum(time)<(np.sum(ideal_reaching_time)-t_thres):
-                            param_check[2] = True
-                            print_list.append('Test lengths do not match within'
-                                              + ' threshold...')
-                            print_list.append('Ideal: ',
-                                    np.sum(ideal_reaching_time),
-                                    '+/- %fsec'%t_thres)
-                            print_list.append('Test: %f'% np.sum(time))
-                            print('!!!reaching_time test triggered!!!')
-
-                        print('Parameter test results: ', param_check)
-                        if any(param_check):
-                            to_print = '\n'.join(print_list)
-                            raise ValueError('\n'.join(print_list))
-
-                        # print('ee_xyz: ', ee_xyz)
-                        # print('time: ', time)
-                        # print('target_xyz: ', target_xyz)
-                        # if our parameters match the ideal path interpolate data for even sampling
                         print('4: Interpolating Data')
                         ee_xyz_interp = proc.interpolate_data(data=ee_xyz,
                                 time_intervals=time, n_points=n_interp_pts)
@@ -265,8 +270,7 @@ class PathErrorToIdeal():
                         print('5: Saving interpolated data')
                         dat.save(data={'ee_xyz_interp_%s'%orders[order_of_error] : ee_xyz_interp},
                                 save_location='%ssession%03d/interp_data/run%03d'%(base_loc,
-                                    ii, jj),
-                                overwrite=True, timestamp=False)
+                                    ii, jj), overwrite=True, timestamp=False)
 
                     # ----- FILTER AND COMPARE TO IDEAL PATH -----
                     # Check if we have comparative error data saved
