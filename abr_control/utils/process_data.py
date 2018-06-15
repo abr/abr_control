@@ -56,7 +56,11 @@ class ProcessData():
     def interpolate_data(self, data, time_intervals, n_points):
         run_time = sum(time_intervals)
         time_intervals = np.cumsum(time_intervals)
-        dt = run_time/n_points
+        dt = (run_time-time_intervals[0])/n_points
+        print('RUN TIME: ', run_time)
+        print('TIME INTERVALS: ', time_intervals.shape)
+        print('N_POINTS: ', n_points)
+        print('DT: ', dt)
         # interpolate to even samples out
         data_interp = []
         for kk in range(data.shape[1]):
@@ -66,6 +70,7 @@ class ProcessData():
             data_interp.append(np.array([
                 interp(t) for t in np.arange(time_intervals[0], run_time, dt)]))
         data_interp = np.array(data_interp).T
+        print('FINAL OUT SIZE: ', data_interp.shape)
 
         return data_interp
 
@@ -221,9 +226,9 @@ class ProcessData():
         # if we're using acceleration or jerk, add a filter to
         # clean up the signal
         if order_of_error > 1:
-            recorded_path = filter_data(data=recorded_path,
+            recorded_path = self.filter_data(data=recorded_path,
                     alpha=alpha)
-            ideal_path = filter_data(data=ideal_path,
+            ideal_path = self.filter_data(data=ideal_path,
                     alpha=alpha)
 
 

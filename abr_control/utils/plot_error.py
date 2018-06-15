@@ -14,16 +14,17 @@ class PlotError():
 
     def plot_mean_and_CI(self, data, color_mean=None,
                          color_shading=None, marker='--'):
+        print('shape: ', data['mean'].shape)
         plt.fill_between(range(data['mean'].shape[0]),
-                         data['upper_bound'],
-                         data['lower_bound'],
+                         100*data['upper_bound'],
+                         100*data['lower_bound'],
                          color=color_shading,
                          alpha=.5)
         if len(data['mean']) == 1:
             plt.plot(np.ones(30) *data['mean'], color_mean)
         else:
             print('color_mean: ', color_mean)
-            plt.plot(data['mean'], marker, color=color_mean)
+            plt.plot(100*data['mean'], marker, color=color_mean)
 
         print('Average of last 5 trials: %.3f' % np.mean(data['mean'][-5:]))
 
@@ -78,13 +79,15 @@ class PlotError():
     def get_error_plot(self, test_group, test_list, show_plot=True,
             save_figure=False, fig_size=[8,3], fig_title='Error',
             x_label='Run Number', y_label='Error', xlim=None, ylim=None,
-            legend_labels=None, colors=None, legend_loc=1, use_cache=True):
+            legend_labels=None, colors=None, legend_loc=1, use_cache=True,
+            order_of_error=0):
 
         dat = DataHandler(use_cache=use_cache)
         # create plot here, this allows for direct call of the plotting
         # function from exterior scripts that have already created a figure
         # The main use for this is for integrating into the plotting GUI
         plt.figure(1, figsize=(fig_size[0], fig_size[1]))
+        orders = ['position', 'velocity', 'acceleration', 'jerk']
 
         if legend_labels is None:
             legend_labels = test_list
@@ -94,7 +97,8 @@ class PlotError():
         for ii, test in enumerate(test_list) :
             print(ii)
             print(test)
-            save_location = '%s/%s/proc_data'%(test_group, test)
+            save_location = '%s/%s/proc_data/%s'%(test_group, test,
+                    orders[order_of_error])
             data.append(dat.load(params=['mean', 'upper_bound', 'lower_bound'],
                 save_location=save_location))
 

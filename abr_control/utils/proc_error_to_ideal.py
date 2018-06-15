@@ -78,7 +78,7 @@ class PathErrorToIdeal():
         """
         dat = DataHandler(use_cache=use_cache)
         proc = ProcessData()
-        orders = ['pos', 'vel', 'acc', 'jerk']
+        orders = ['position', 'velocity', 'acceleration', 'jerk']
         baseline = False
 
         # if a baseline is provided, make sure we have both an upper and lower
@@ -263,8 +263,12 @@ class PathErrorToIdeal():
 
                     else:
                         print('4: Interpolating Data')
+                        print('SHAPE EEXYZ PRE INTERP: ', ee_xyz.shape)
+                        print('N INTERP POINTS', n_interp_pts)
+                        print('TIME?!?!?: ', time.shape)
                         ee_xyz_interp = proc.interpolate_data(data=ee_xyz,
                                 time_intervals=time, n_points=n_interp_pts)
+                        print('SHAPE EEXYZINTERP POST INTERP: ', ee_xyz_interp.shape)
 
                         # save the interpolated error data
                         print('5: Saving interpolated data')
@@ -283,11 +287,19 @@ class PathErrorToIdeal():
                     print('6: Calculating path error to ideal')
                     # print('ideal: ', ideal_path.shape, '\n', ideal_path)
                     # print('rec: ', ee_xyz_interp.shape, '\n', ee_xyz_interp)
-                    path_error = proc.calc_path_error_to_ideal(
+                    print('SHAPE EEXYZ: ', ee_xyz_interp.shape)
+                    print('SHAPE IDEAL: ', ideal_path.shape)
+                    path_error0 = proc.calc_path_error_to_ideal(
                             dt=np.sum(time)/len(time),
                             ideal_path=ideal_path, recorded_path=ee_xyz_interp,
                             order_of_error=order_of_error, alpha=alpha)
 
+                    path_error1 = proc.calc_path_error_to_ideal(
+                            dt=np.sum(time)/len(time),
+                            ideal_path=ideal_path, recorded_path=ee_xyz_interp,
+                            order_of_error=order_of_error+1, alpha=alpha)
+
+                    path_error = path_error0 + path_error1
                     print('7: Storing path error to ideal for session %i : run %i'
                             %(ii, jj))
                     ideal_path_error[ii, jj] = np.copy(path_error)
@@ -337,7 +349,8 @@ class PathErrorToIdeal():
             # save the mean error and bounds relative to ideal
             print('11: Saving CI and Bound Data')
             dat.save(data=final_error,
-                    save_location = base_loc + 'proc_data',
+                    save_location = base_loc
+                    + 'proc_data/%s'%orders[order_of_error],
                     overwrite=True, timestamp=False)
 
             # if we're using a baseline save our baseline data if they are done being processed
