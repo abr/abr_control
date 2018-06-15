@@ -80,7 +80,7 @@ class PlotError():
             save_figure=False, fig_size=[8,3], fig_title='Error',
             x_label='Run Number', y_label='Error', xlim=None, ylim=None,
             legend_labels=None, colors=None, legend_loc=1, use_cache=True,
-            order_of_error=0):
+            order_of_error=[0]):
 
         dat = DataHandler(use_cache=use_cache)
         # create plot here, this allows for direct call of the plotting
@@ -94,6 +94,7 @@ class PlotError():
 
         data = []
 
+        #TODO: cycle through all the orders of error passed in and sum them
         for ii, test in enumerate(test_list) :
             print(ii)
             print(test)

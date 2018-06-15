@@ -289,17 +289,11 @@ class PathErrorToIdeal():
                     # print('rec: ', ee_xyz_interp.shape, '\n', ee_xyz_interp)
                     print('SHAPE EEXYZ: ', ee_xyz_interp.shape)
                     print('SHAPE IDEAL: ', ideal_path.shape)
-                    path_error0 = proc.calc_path_error_to_ideal(
+                    path_error = proc.calc_path_error_to_ideal(
                             dt=np.sum(time)/len(time),
                             ideal_path=ideal_path, recorded_path=ee_xyz_interp,
                             order_of_error=order_of_error, alpha=alpha)
 
-                    path_error1 = proc.calc_path_error_to_ideal(
-                            dt=np.sum(time)/len(time),
-                            ideal_path=ideal_path, recorded_path=ee_xyz_interp,
-                            order_of_error=order_of_error+1, alpha=alpha)
-
-                    path_error = path_error0 + path_error1
                     print('7: Storing path error to ideal for session %i : run %i'
                             %(ii, jj))
                     ideal_path_error[ii, jj] = np.copy(path_error)

@@ -18,17 +18,26 @@ test_list = ['pd/not_weighted_19',
 #              'nengo_ocl/1000_neurons_x_20/gradual_wear21',
 #              'chip/gradual_wear24'
 #              ]
-# proc.process(test_group=test_group,
-#              test_list=test_list,
-#              regenerate=True,
-#              use_cache=True,
-#              order_of_error=0,
-#              upper_baseline_loc=test_list[1],
-#              lower_baseline_loc=test_list[0])
+# Get Positional Error
+proc.process(test_group=test_group,
+             test_list=test_list,
+             regenerate=True,
+             use_cache=True,
+             order_of_error=0,
+             upper_baseline_loc=test_list[1],
+             lower_baseline_loc=test_list[0])
+
+# Get Velocity Error
+proc.process(test_group=test_group,
+             test_list=test_list,
+             regenerate=True,
+             use_cache=True,
+             order_of_error=1,
+             upper_baseline_loc=test_list[1],
+             lower_baseline_loc=test_list[0])
 
 plt.get_error_plot(test_group=test_group,
                    test_list=test_list,
                    show_plot=True,
                    save_figure=False,
-                   order_of_error=0)#,
-                   #orders_of_error=[0,1])
+                   order_of_error=[0, 1])

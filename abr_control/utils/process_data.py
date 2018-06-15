@@ -37,7 +37,7 @@ class ProcessData():
         upper_bound = []
         lower_bound = []
 
-        for i in range(n_runs+1):
+        for i in range(0, n_runs):
             data = raw_data[:,i]
             ci = self.bootstrapci(data, np.mean)
             sample.append(np.mean(data))
