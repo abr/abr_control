@@ -19,10 +19,11 @@ from matplotlib import style
 from PIL import Image, ImageTk
 
 import numpy as np
-from abr_control.utils import DataHandler
+from abr_control.utils import DataHandler, PlotError
 
 # import data handler
 dat = DataHandler(use_cache=True)
+pltE = PlotError()
 
 # set some constants
 LARGE_FONT = ("Verdana", 20)
@@ -53,7 +54,7 @@ disp_loc = []
 # sets whether to display data passed the group 'session'
 browse_datasets = False
 # list of possible plotting variables
-plotting_variables = ['q', 'dq', 'error', 'u', 'adapt']
+plotting_variables = ['q', 'dq', 'error', 'u', 'adapt', 'mean & ci']
 # list of selected variables to plot
 var_to_plot = 'error'
 # variable for toggling whether to save current figure
@@ -75,16 +76,16 @@ def live_plot(i):
     # cycle through selected tests to plot
     for test in disp_loc:
         print('plotting %s' %test)
-        # set location and legend label
-        location = '%ssession000/'%test
         legend_name = test.split('/')[-2]
         legend_name += ' %s'%var_to_plot
-        # get a list of keys in the current group
-        keys = dat.get_keys(location)
 
         # if we're interested in plotting error, we will average the error over
         # a run and plot the average of each run
         if var_to_plot == 'error':
+            # set location and legend label
+            location = '%ssession000/'%test
+            # get a list of keys in the current group
+            keys = dat.get_keys(location)
             print('plotting error')
             error = []
             for entry in keys:
@@ -108,10 +109,23 @@ def live_plot(i):
             a.set_ylim(y_min, y_max)
             a.plot(error, label=legend_name)
 
+        elif var_to_plot == 'mean & ci':
+            location = '%sproc_data/position'%test
+            try:
+                d = dat.load(params=['mean', 'upper_bound', 'lower_bound'],
+                        save_location=location)
+                pltE.plot_data(data=[d], show_plot=False, fig_obj=a)
+            except:
+                print('%s does not contain processed data'%location)
+
         # if we're not plotting error, then every other dataset will have
         # dim=N_JOINTS so we will plot the data from the final run of the
         # session
         else:
+            # set location and legend label
+            location = '%ssession000/'%test
+            # get a list of keys in the current group
+            keys = dat.get_keys(location)
             print('plotting %s' %var_to_plot)
             # get the highest numbered run group
             max_key = max([key for key in keys if 'run' in key])
@@ -136,7 +150,9 @@ def live_plot(i):
 
 
 
-    a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
+    f.tight_layout()
+    if var_to_plot != 'mean & ci':
+        a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
     if save_figure:
         a.figure.savefig('default_figure.pdf')
         save_figure = False
