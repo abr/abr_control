@@ -55,6 +55,10 @@ disp_loc = []
 browse_datasets = False
 # list of possible plotting variables
 plotting_variables = ['q', 'dq', 'error', 'u', 'adapt', 'mean & ci']
+global plotting_colors
+plotting_colors = []
+# boolean that triggers when a test is added or removed from the plotting list
+update_plot = False
 # list of selected variables to plot
 var_to_plot = 'error'
 # variable for toggling whether to save current figure
@@ -65,97 +69,108 @@ def live_plot(i):
     The function that plots the selected tests and data
     """
     global save_figure
-    #TODO update only when there is a change instead of periodically
-    #TODO automatically update range if it is larger than the current max
-    # clear our data before plotting
-    a.clear()
-    x_min = 0.0
-    x_max = 0.1
-    y_min = 0.0
-    y_max = 0.1
-    # cycle through selected tests to plot
-    for test in disp_loc:
-        print('plotting %s' %test)
-        legend_name = test.split('/')[-2]
-        legend_name += ' %s'%var_to_plot
+    global plotting_colors
+    global update_plot
+    global disp_loc
+    if update_plot:
+        #TODO update only when there is a change instead of periodically
+        #TODO automatically update range if it is larger than the current max
+        # clear our data before plotting
+        a.clear()
+        x_min = 0.0
+        x_max = 0.1
+        y_min = 0.0
+        y_max = 0.1
+        # cycle through selected tests to plot
+        for count, test in enumerate(disp_loc):
+            plotting_colors.append(np.around(np.random.rand(3,1), decimals=1))
+            print('plotting %s' %test)
+            legend_name = test.split('/')[-2]
+            legend_name += ' %s'%var_to_plot
+            print('PLOTTING COLORS: ', plotting_colors)
 
-        # if we're interested in plotting error, we will average the error over
-        # a run and plot the average of each run
-        if var_to_plot == 'error':
-            # set location and legend label
-            location = '%ssession000/'%test
-            # get a list of keys in the current group
-            keys = dat.get_keys(location)
-            print('plotting error')
-            error = []
-            for entry in keys:
-                # only look through the keys that point to a run group
-                if 'run' in entry:
-                    # append the average error of every run to plot the error
-                    # change over runs
-                    d = dat.load(params=[var_to_plot],
-                            save_location='%s%s'%(location,
-                            entry))
-                    d = np.mean(d[var_to_plot])
-                    error.append(np.copy(d))
-            # set our plotting range
-            if max(error) > y_max:
-                y_max = max(error)
-            if min(error) < y_min:
-                y_min = min(error)
-            if len(error) > x_max:
-                x_max = len(error)
-            a.set_xlim(x_min, x_max)
-            a.set_ylim(y_min, y_max)
-            a.plot(error, label=legend_name)
-
-        elif var_to_plot == 'mean & ci':
-            location = '%sproc_data/position'%test
-            try:
-                d = dat.load(params=['mean', 'upper_bound', 'lower_bound'],
-                        save_location=location)
-                pltE.plot_data(data=[d], show_plot=False, fig_obj=a)
-            except:
-                print('%s does not contain processed data'%location)
-
-        # if we're not plotting error, then every other dataset will have
-        # dim=N_JOINTS so we will plot the data from the final run of the
-        # session
-        else:
-            # set location and legend label
-            location = '%ssession000/'%test
-            # get a list of keys in the current group
-            keys = dat.get_keys(location)
-            print('plotting %s' %var_to_plot)
-            # get the highest numbered run group
-            max_key = max([key for key in keys if 'run' in key])
-            d = dat.load(params=[var_to_plot],
-                    save_location='%s%s'%(location, max_key))
-            # load data from highest numbered run
-            try:
-                d = np.array(d[var_to_plot])
-                # set our plotting limits
-                if np.max(d) > y_max:
-                    y_max = np.max(d)
-                if np.min(d) < y_min:
-                    y_min = np.min(d)
-                if len(d) > x_max:
-                    x_max = len(d)
+            # if we're interested in plotting error, we will average the error over
+            # a run and plot the average of each run
+            if var_to_plot == 'error':
+                # set location and legend label
+                location = '%ssession000/'%test
+                # get a list of keys in the current group
+                keys = dat.get_keys(location)
+                print('plotting error')
+                error = []
+                for entry in keys:
+                    # only look through the keys that point to a run group
+                    if 'run' in entry:
+                        # append the average error of every run to plot the error
+                        # change over runs
+                        d = dat.load(params=[var_to_plot],
+                                save_location='%s%s'%(location,
+                                entry))
+                        d = np.mean(d[var_to_plot])
+                        error.append(np.copy(d))
+                # set our plotting range
+                if max(error) > y_max:
+                    y_max = max(error)
+                if min(error) < y_min:
+                    y_min = min(error)
+                if len(error) > x_max:
+                    x_max = len(error)
                 a.set_xlim(x_min, x_max)
                 a.set_ylim(y_min, y_max)
-                a.plot(d, label=legend_name)
-            except TypeError:
-                print('WARNING: %s%s does not contain the key %s'%(location, max_key,
-                  var_to_plot))
+                a.plot(error, label=legend_name)
+
+            elif var_to_plot == 'mean & ci':
+                location = '%sproc_data/position'%test
+                try:
+
+                    d = dat.load(params=['mean', 'upper_bound', 'lower_bound'],
+                            save_location=location)
+                    print('plotting colors pre: ', plotting_colors[count])
+                    pltE.plot_data(data=[d], show_plot=False, fig_obj=a,
+                            colors=plotting_colors)
+                except:
+                    print('%s does not contain processed data'%location)
+                    disp_loc.remove(test)
+
+            # if we're not plotting error, then every other dataset will have
+            # dim=N_JOINTS so we will plot the data from the final run of the
+            # session
+            else:
+                # set location and legend label
+                location = '%ssession000/'%test
+                # get a list of keys in the current group
+                keys = dat.get_keys(location)
+                print('plotting %s' %var_to_plot)
+                # get the highest numbered run group
+                max_key = max([key for key in keys if 'run' in key])
+                d = dat.load(params=[var_to_plot],
+                        save_location='%s%s'%(location, max_key))
+                # load data from highest numbered run
+                try:
+                    d = np.array(d[var_to_plot])
+                    # set our plotting limits
+                    if np.max(d) > y_max:
+                        y_max = np.max(d)
+                    if np.min(d) < y_min:
+                        y_min = np.min(d)
+                    if len(d) > x_max:
+                        x_max = len(d)
+                    a.set_xlim(x_min, x_max)
+                    a.set_ylim(y_min, y_max)
+                    a.plot(d, label=legend_name)
+                except TypeError:
+                    print('WARNING: %s%s does not contain the key %s'%(location, max_key,
+                      var_to_plot))
 
 
 
-    f.tight_layout()
-    if var_to_plot != 'mean & ci':
-        a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
-    if save_figure:
-        a.figure.savefig('default_figure.pdf')
-        save_figure = False
+        f.tight_layout()
+        if var_to_plot != 'mean & ci':
+            a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
+        if save_figure:
+            a.figure.savefig('default_figure.pdf')
+            save_figure = False
+        update_plot = False
 
 def save_figure_toggle(self):
     """
@@ -429,6 +444,8 @@ class SearchPage(tk.Frame):
         """
         global loc
         global disp_loc
+        global plotting_colors
+        global update_plot
 
         # delete the current search
         self.entry.delete(0, 'end')
@@ -470,11 +487,17 @@ class SearchPage(tk.Frame):
         # browse_datasets is set to True
         elif not browse_datasets and any('session' in s for s in keys):
                 # check if the selection is already in our list, if so remove it
-                if ''.join(loc) in disp_loc:
-                    disp_loc.remove(''.join(loc))
+                test_name = ''.join(loc)
+                if test_name in disp_loc:
+                    index = disp_loc.index(test_name)
+                    disp_loc.remove(test_name)
+                    # remove the entry of plotting colors that corresponds to
+                    # the test being removed
+                    del plotting_colors[index]
                 else:
                     disp_loc.append(''.join(loc))
                 print("CURRENT DISPLAY LIST: ", disp_loc)
+                update_plot = True
                 go_back_loc_level(self)
 
         # if the selection takes us to the next level of groups then erase the

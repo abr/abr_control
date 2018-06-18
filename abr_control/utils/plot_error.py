@@ -14,6 +14,8 @@ class PlotError():
 
     def plot_mean_and_CI(self, data, color_mean=None,
                          color_shading=None, marker='--'):
+        print('color shading: ', color_shading)
+        print('color mean: ', color_mean)
         print('shape: ', data['mean'].shape)
         self.a.fill_between(range(data['mean'].shape[0]),
                          100*data['upper_bound'],
@@ -54,9 +56,13 @@ class PlotError():
             for ii in range(0,len(data)):
                 colors.append(np.around(np.random.rand(3,1), decimals=1))
 
+        print('plotting colors post: ', colors)
         markers = ['--',] * len(colors)
 
         for ii in range(0, len(data)):
+            print('col %i'%ii)
+            print(colors[ii])
+            print(markers)
             self.plot_mean_and_CI(data[ii], color_mean=colors[ii],
                                   color_shading=colors[ii], marker=markers[ii])
         #self.a.grid()
