@@ -31,7 +31,7 @@ class PathErrorToIdeal():
     def process(self, test_group, test_list, regenerate=False,
             n_interp_pts=400, order_of_error=1, alpha=0.2, use_cache=True,
             scaling_factor=1, n_runs=None, n_sessions=None, upper_baseline_loc=None,
-            lower_baseline_loc=None, d_thres=0.03, t_thres=0.03):
+            lower_baseline_loc=None, d_thres=0.03, t_thres=0.03, db_name=None):
 
         """
         A function that takes the provided tests from the specified test group and
@@ -57,6 +57,8 @@ class PathErrorToIdeal():
             True if saving database to the abr_control .cache location
             False if saving elsewhere, in this case the entire location prior to
             test_group must be prepended to the test_group parameter
+        db_name: string, Optional (Default: abr_control_db if left as None)
+            name of the database being used
         alpha: float, Optional (Default: 0.2)
             the filter constant to use when filtering higher order error
         scaling_factor: int, Optional (Default: 1)
@@ -76,7 +78,7 @@ class PathErrorToIdeal():
             of the baseline calculation. If None no baseline adjustment will be
             made. Test has to be in the same test_group as passed in.
         """
-        dat = DataHandler(use_cache=use_cache)
+        dat = DataHandler(use_cache=use_cache, db_name=db_name)
         proc = ProcessData()
         orders = ['position', 'velocity', 'acceleration', 'jerk']
         baseline = False
@@ -99,39 +101,34 @@ class PathErrorToIdeal():
                 tests.append(test)
             test_list = tests
             baseline = True
-            print('1: Using baselines')
+            print('Lower Error Baseline: %s' % lower_baseline_loc)
+            print('Upper Error Baseline: %s' % upper_baseline_loc)
 
         # Cycle through the list of tests
         for nn, test in enumerate(test_list):
             # update location to the current test
             loc = '%s/%s/'%(test_group, test)
-            print('Checking location: ', loc)
             keys = dat.get_keys(loc)
-            print('2: %i: checking loc %s \n keys: %s'%(nn, loc, keys))
 
             # get the number of runs and sessions if not provided
             if n_sessions is None:
                 n_sessions = max([key for key in keys if 'session' in key])
                 n_sessions = int(n_sessions[7:])
-                print('2a: n_sessions not passed in, using n_sessions of %i'
-                        %n_sessions)
 
             if n_runs is None:
                 max_runs = []
                 for key in keys:
                     if 'session' in key:
-                        print('cur key: ', key)
+                        #print('cur key: ', key)
                         session_keys = dat.get_keys('%s%s'%(loc,key))
-                        print('ses keys: ', session_keys)
+                        #print('ses keys: ', session_keys)
                         runs = max([session_key for session_key in session_keys if
                             'run' in session_key])
                         max_runs.append(int(runs[3:]))
                 n_runs = min(max_runs)
-                print('2b: n_runs not passed in, using n_runs of %i'
-                        %n_runs)
 
-            print('Processing up to run%s of session%s in test %s'
-                    % (n_runs, n_sessions, test))
+            print('%i/%i: %s: %s runs %s sessions' %(nn, len(test_list), test,
+                n_runs, n_sessions))
 
             # save the base test group location
             base_loc = loc
@@ -155,7 +152,7 @@ class PathErrorToIdeal():
                     # ----- GENERATE IDEAL PATH -----
                     # only generate at the start before we process any tests
                     if nn + ii + jj == 0:
-                        print('3a: first run through, generating Ideal Path')
+                        print('Ideal path not found, generating...')
                         # use the lower baseline parameters for generating the
                         # ideal trajectory, the other tests should have the same
                         # starting point, targets, and test length, otherwise an
@@ -184,14 +181,18 @@ class PathErrorToIdeal():
                         # interpolate the ideal path to the same sampling rate as
                         # the tests
                         # print('ideal path shape: ', ideal_path.shape)
-                        print('3b: Interpolating Ideal Path')
+                        print('Interpolating ideal path for even sampling')
                         ideal_path = proc.interpolate_data(
                                 data=ideal_path[:, :3],
                                 time_intervals=ideal_reaching_time,
                                 n_points=n_interp_pts)
 
                     # ----- INTERPOLATE END-EFFECTOR POSITION DATA -----
-                    print('%i/%i %s: %s'%(jj, n_runs, base_loc, loc))
+                    # print the progress as a percentage
+                    print('%f%% processing complete...'
+                            %(100*(((n_runs+1)*ii
+                                + jj)/((n_sessions+1)*(n_runs+1)))),
+                            end='\r')
                     # check if we have interpolated data saved
                     # load test data
                     loaded_data = dat.load(params=['ee_xyz', 'time',
@@ -242,19 +243,15 @@ class PathErrorToIdeal():
                         print_list.append('Test: %f'% np.sum(time))
                         print('!!!reaching_time test triggered!!!')
 
-                    print('Parameter test results: ', param_check)
                     if any(param_check):
                         to_print = '\n'.join(print_list)
                         raise ValueError('\n'.join(print_list))
 
-                    # print('ee_xyz: ', ee_xyz)
-                    # print('time: ', time)
-                    # print('target_xyz: ', target_xyz)
                     # if our parameters match the ideal path interpolate data for even sampling
 
                     if 'ee_xyz_interp_%s'%orders[order_of_error] in keys and not regenerate:
                         # data exists and user does not want to regenerate
-                        print('%s ee_xyz_interp exists, passing...'%loc)
+                        #print('%s ee_xyz_interp exists, passing...'%loc)
                         ee_xyz_interp = dat.load(
                                 params=['ee_xyz_interp_%s'%orders[order_of_error]],
                                 save_location='%ssession%03d/interp_data/run%03d'%(base_loc,
@@ -262,16 +259,12 @@ class PathErrorToIdeal():
                         ee_xyz_interp = ee_xyz_interp['ee_xyz_interp_%s'%orders[order_of_error]]
 
                     else:
-                        print('4: Interpolating Data')
-                        print('SHAPE EEXYZ PRE INTERP: ', ee_xyz.shape)
-                        print('N INTERP POINTS', n_interp_pts)
-                        print('TIME?!?!?: ', time.shape)
+                        #print('4: Interpolating Data')
                         ee_xyz_interp = proc.interpolate_data(data=ee_xyz,
                                 time_intervals=time, n_points=n_interp_pts)
-                        print('SHAPE EEXYZINTERP POST INTERP: ', ee_xyz_interp.shape)
 
                         # save the interpolated error data
-                        print('5: Saving interpolated data')
+                        #print('5: Saving interpolated data')
                         dat.save(data={'ee_xyz_interp_%s'%orders[order_of_error] : ee_xyz_interp},
                                 save_location='%ssession%03d/interp_data/run%03d'%(base_loc,
                                     ii, jj), overwrite=True, timestamp=False)
@@ -284,18 +277,14 @@ class PathErrorToIdeal():
 
                     #else:
                         # calculate the error relative to an ideal path
-                    print('6: Calculating path error to ideal')
-                    # print('ideal: ', ideal_path.shape, '\n', ideal_path)
-                    # print('rec: ', ee_xyz_interp.shape, '\n', ee_xyz_interp)
-                    print('SHAPE EEXYZ: ', ee_xyz_interp.shape)
-                    print('SHAPE IDEAL: ', ideal_path.shape)
+                    #print('6: Calculating path error to ideal')
                     path_error = proc.calc_path_error_to_ideal(
                             dt=np.sum(time)/len(time),
                             ideal_path=ideal_path, recorded_path=ee_xyz_interp,
                             order_of_error=order_of_error, alpha=alpha)
 
-                    print('7: Storing path error to ideal for session %i : run %i'
-                            %(ii, jj))
+                    #print('7: Storing path error to ideal for session %i : run %i'
+                            #%(ii, jj))
                     ideal_path_error[ii, jj] = np.copy(path_error)
                     #TODO add status printing to see progress
                     #TODO: use progress bar that was used in gif creator
@@ -303,13 +292,13 @@ class PathErrorToIdeal():
                 # ----- SCALE TO SPECIFIED BASELINE -----
                 # if we're passed processing the lower and upper baseline
                 if baseline and nn > 1:
-                    print('8a: Doing Baseline Calculation')
+                    #print('8a: Doing Baseline Calculation')
                     session_error = proc.scale_data(input_data=ideal_path_error[ii],
                         baseline_low=lower_baseline, baseline_high=upper_baseline,
                         scaling_factor=scaling_factor)
                 else:
                     session_error = ideal_path_error[ii] * scaling_factor
-                    print('8b: Applying scaling factor')
+                    #print('8b: Applying scaling factor')
 
                 # save the error to ideal path data
                 #TODO: should we even save at this step?
@@ -322,8 +311,8 @@ class PathErrorToIdeal():
                 ideal_path_error[ii] = session_error
 
             # ----- CI AND MEAN -----
-            print('10: Getting CI and bounds')
-            print('IDEAL PATH ERROR SHAPE BEFORE CI: ', ideal_path_error.shape)
+            print('100.000000% processing complete')
+            #print('10: Getting CI and bounds')
             stat_data = proc.get_mean_and_ci(raw_data=ideal_path_error,
                                              n_runs=n_runs)
             mean_data = stat_data[0]
@@ -337,11 +326,10 @@ class PathErrorToIdeal():
                            'n_sessions': n_sessions,
                            'upper_baseline': upper_baseline_loc,
                            'lower_baseline': lower_baseline_loc}
-            print('FINAL ERROR: ', final_error)
-            print('IDEAL PATH ERROR SHAPE AFTER CI: ', np.array(mean_data).shape)
+            #print('FINAL ERROR: ', final_error)
 
             # save the mean error and bounds relative to ideal
-            print('11: Saving CI and Bound Data')
+            #print('11: Saving CI and Bound Data')
             dat.save(data=final_error,
                     save_location = base_loc
                     + 'proc_data/%s'%orders[order_of_error],

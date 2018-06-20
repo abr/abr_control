@@ -25,7 +25,8 @@ proc.process(test_group=test_group,
              use_cache=True,
              order_of_error=0,
              upper_baseline_loc=test_list[1],
-             lower_baseline_loc=test_list[0])
+             lower_baseline_loc=test_list[0],
+             db_name='abr_control_db')
 
 # Get Velocity Error
 proc.process(test_group=test_group,
@@ -34,10 +35,13 @@ proc.process(test_group=test_group,
              use_cache=True,
              order_of_error=1,
              upper_baseline_loc=test_list[1],
-             lower_baseline_loc=test_list[0])
+             lower_baseline_loc=test_list[0],
+             db_name='abr_control_db')
 
 plt.get_error_plot(test_group=test_group,
                    test_list=test_list,
                    show_plot=True,
                    save_figure=False,
+                   use_cache=True,
+                   db_name='abr_control_db',
                    order_of_error=[0, 1])

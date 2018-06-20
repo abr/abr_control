@@ -93,9 +93,9 @@ class PlotError():
             save_figure=False, fig_title='Error',
             x_label='Run Number', y_label='Error', xlim=None, ylim=None,
             legend_labels=None, colors=None, legend_loc=1, use_cache=True,
-            order_of_error=[0]):
+            db_name=None, order_of_error=[0]):
 
-        dat = DataHandler(use_cache=use_cache)
+        dat = DataHandler(use_cache=use_cache, db_name=db_name)
         # create plot here, this allows for direct call of the plotting
         # function from exterior scripts that have already created a figure
         # The main use for this is for integrating into the plotting GUI

@@ -31,19 +31,23 @@ class DataHandler():
       use_cache to false
     """
 
-    def __init__(self, use_cache=True):
+    def __init__(self, use_cache=True, db_name=None):
         """
         use_cache: Boolean, Optional (Default:True)
             True to prepend the abr_control cache folder to the directory
             provided. This location is specified in abr_control/utils/paths.py
             False to use the directory pass in as is
+        db_name: string, Optional (Default: abr_control_db if left as None)
+            name of the database being used
         """
         # create our database if it does not exist
         self.use_cache = use_cache
+        if db_name is None:
+            db_name = 'abr_control_db'
         if self.use_cache:
-            self.db_loc = '%s/abr_control_db.h5'%cache_dir
+            self.db_loc = '%s/%s.h5'%(cache_dir, db_name)
         else:
-            self.db_loc = 'abr_control_db.h5'
+            self.db_loc = '%s.h5'%db_name
 
         db = h5py.File(self.db_loc, 'a')
         db.close()
@@ -69,11 +73,11 @@ class DataHandler():
         #except KeyError:
         if exists is False:
             if create:
-                print('Creating new group %s...'%location)
+                #print('Creating new group %s...'%location)
                 db.create_group(location)
                 exists = True
             else:
-                print('%s group does not exist, to create it set create=True'%location)
+                #print('%s group does not exist, to create it set create=True'%location)
                 exists = False
 
         db.close()
@@ -145,7 +149,7 @@ class DataHandler():
             # if exists, use the value
             if exists:
                 session = 'session%03d' %session
-                print('session is: ', session)
+                #print('session is: ', session)
             else:
                 run = None
                 session = None
@@ -161,16 +165,16 @@ class DataHandler():
 
             if session_keys:
                 session = max(session_keys)
-                print('session is: ', session)
+                #print('session is: ', session)
 
             elif create:
                 # No session can be found, create it if create is True
-                print('The group %s/%s exists, but there is no session'
-                        % (test_group, test_name)
-                      + ' saved... \nCreating session000 group')
+                # print('The group %s/%s exists, but there is no session'
+                #         % (test_group, test_name)
+                #       + ' saved... \nCreating session000 group')
                 self.db.create_group('%s/%s/session000'%(test_group, test_name))
                 session = 'session000'
-                print('session is: ', session)
+                #print('session is: ', session)
 
             else:
                 run = None
@@ -187,7 +191,7 @@ class DataHandler():
             # if exists, use the value
             if exists:
                 run = 'run%03d' %run
-                print('run is: ', run)
+                #print('run is: ', run)
             else:
                 run = None
                 location = '%s/%s/'%(test_group, test_name)
@@ -203,13 +207,13 @@ class DataHandler():
 
             if run_keys:
                 run = max(run_keys)
-                print('run is: ', run)
+                #print('run is: ', run)
 
             else:
-                print('The group %s/%s/%s exists, but there are no runs saved...'
-                      %(test_group, test_name, session))
+                # print('The group %s/%s/%s exists, but there are no runs saved...'
+                #       %(test_group, test_name, session))
                 run = None
-                print('run is: ', run)
+                #print('run is: ', run)
 
         location = '%s/%s/'%(test_group, test_name)
         if session is not None:
@@ -273,7 +277,7 @@ class DataHandler():
             #                      % save_location
             #                      + ' overwrite the dataset set overwrite=True')
 
-        print('Saving data to %s'%save_location)
+        # print('Saving data to %s'%save_location)
 
         if timestamp:
             import time
@@ -295,16 +299,16 @@ class DataHandler():
                     del db[save_location+'/%s'%key]
                     db[save_location].create_dataset('%s'%key, data=data[key])
                 else:
-                    # raise RuntimeError('Dataset %s already exists in %s, set'
-                    #         %(save_location, key)
-                    # + ' overwrite=True to overwrite')
+                    raise RuntimeError('Dataset %s already exists in %s, set'
+                            %(save_location, key)
+                    + ' overwrite=True to overwrite')
                     print('Dataset %s already exists in %s'
                             %(save_location, key)
                             + ' \n Skipping dataset...')
                     print('If you wish to overwrite the old data, set '
                           + 'overwrite to True')
 
-        print('Data saved.')
+        # print('Data saved.')
         db.close()
 
 
@@ -446,26 +450,26 @@ class DataHandler():
         # if the user doesn'r provide either run or session numbers, the
         # highest numbered run and session are searched for in the provided
         # test_group/test_name location
-        print('run: ', run)
-        print('session: ', session)
+        # print('run: ', run)
+        # print('session: ', session)
         if session is None or run is None:
-            if session is not None and run is None:
-                print('Checking for lastest run in session%03d'%session)
-            elif session is None and run is not None:
-                print('Checking for run%i data in latest session'%run)
-            else:
-                print('Checking for lastest session and run...')
+            # if session is not None and run is None:
+            #     print('Checking for lastest run in session%03d'%session)
+            # elif session is None and run is not None:
+            #     print('Checking for run%i data in latest session'%run)
+            # else:
+            #     print('Checking for lastest session and run...')
             [run, session, group_path] = self.last_save_location(session=session,
                     run=run, test_name=test_name, test_group=test_group,
                     create=create)
-            if run is None:
-                print('There is no run saved in %s/%s/%s: Returning None'
-                        % (test_group, test_name, session))
+            # if run is None:
+            #     print('There is no run saved in %s/%s/%s: Returning None'
+            #             % (test_group, test_name, session))
 
         else:
-            print('using user provided run and session')
-            print('run: ', run)
-            print('session: ', session)
+            # print('using user provided run and session')
+            # print('run: ', run)
+            # print('session: ', session)
             session = 'session%03d'%session
             run = 'run%03d'%run
 
@@ -489,11 +493,11 @@ class DataHandler():
         """
         db = h5py.File(self.db_loc, 'a')
         if isinstance(db[group_path], h5py.Dataset):
-            print('The provided path points to a dataset, please provide'
-                    + ' a group to obtain keys')
+            # print('The provided path points to a dataset, please provide'
+            #         + ' a group to obtain keys')
             keys = None
         else:
-            print('looking for keys in %s' % group_path)
+            #print('looking for keys in %s' % group_path)
             keys = list(db[group_path].keys())
         db.close()
         return keys

@@ -57,20 +57,13 @@ class ProcessData():
         run_time = sum(time_intervals)
         time_intervals = np.cumsum(time_intervals)
         dt = (run_time-time_intervals[0])/n_points
-        print('RUN TIME: ', run_time)
-        print('TIME INTERVALS: ', time_intervals.shape)
-        print('N_POINTS: ', n_points)
-        print('DT: ', dt)
         # interpolate to even samples out
         data_interp = []
         for kk in range(data.shape[1]):
-            print('t shape: ', time_intervals.shape)
-            print('dat shape: ', data[:,kk].shape)
             interp = scipy.interpolate.interp1d(time_intervals, data[:, kk])
             data_interp.append(np.array([
                 interp(t) for t in np.arange(time_intervals[0], run_time, dt)]))
         data_interp = np.array(data_interp).T
-        print('FINAL OUT SIZE: ', data_interp.shape)
 
         return data_interp
 
@@ -131,7 +124,7 @@ class ProcessData():
         # interpolation sampling rate
         dt = 0.005
         timesteps = int(reaching_time / dt)
-        print('time steps: ', timesteps)
+        #print('time steps: ', timesteps)
 
         vmax = 1
         kp = 20
@@ -145,7 +138,7 @@ class ProcessData():
             u = np.zeros(3)
             # Q = Qs[ii] * np.eye(6)
             # R = Rs[ii] * np.eye(3)
-            print('II: ', ii)
+            #print('II: ', ii)
 
             for t in range(timesteps):
                 # track trajectory
@@ -182,7 +175,7 @@ class ProcessData():
         x_track = np.array(x_track)
         runtime = reaching_time * len(target_xyz)
         n_points = len(x_track)
-        print('N POINTS',n_points)
+        #print('N POINTS',n_points)
         t_track = np.ones(n_points) * runtime/n_points
 
         return [t_track, x_track]
