@@ -94,6 +94,8 @@ class PathErrorToIdeal():
 
         if upper_baseline_loc is not None and lower_baseline_loc is not None:
             # prepend the baseline tests to the test list
+            # if we are using baselines, they will be the first two tests
+            # processed
             tests = []
             tests.append(lower_baseline_loc)
             tests.append(upper_baseline_loc)
@@ -101,8 +103,12 @@ class PathErrorToIdeal():
                 tests.append(test)
             test_list = tests
             baseline = True
+            print('--------------------')
+            print('Calculating %s error' % orders[order_of_error])
             print('Lower Error Baseline: %s' % lower_baseline_loc)
             print('Upper Error Baseline: %s' % upper_baseline_loc)
+            print('Test List: ', test_list)
+            print('--------------------')
 
         # Cycle through the list of tests
         for nn, test in enumerate(test_list):
@@ -311,7 +317,7 @@ class PathErrorToIdeal():
                 ideal_path_error[ii] = session_error
 
             # ----- CI AND MEAN -----
-            print('100.000000% processing complete')
+            print('100.00000% processing complete   ')
             #print('10: Getting CI and bounds')
             stat_data = proc.get_mean_and_ci(raw_data=ideal_path_error,
                                              n_runs=n_runs)
