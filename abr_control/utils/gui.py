@@ -61,6 +61,7 @@ plotting_colors = []
 update_plot = False
 # list of selected variables to plot
 var_to_plot = 'error'
+last_plotted = var_to_plot
 # variable for toggling whether to save current figure
 save_figure = False
 
@@ -72,18 +73,27 @@ def live_plot(i):
     global plotting_colors
     global update_plot
     global disp_loc
+    global last_plotted
+
+    if last_plotted != var_to_plot:
+        update_plot = True
+
     if update_plot:
         #TODO update only when there is a change instead of periodically
         #TODO automatically update range if it is larger than the current max
         # clear our data before plotting
         a.clear()
+        last_plotted = var_to_plot
         x_min = 0.0
         x_max = 0.1
         y_min = 0.0
         y_max = 0.1
         # cycle through selected tests to plot
         for count, test in enumerate(disp_loc):
-            plotting_colors.append(np.around(np.random.rand(3,1), decimals=1))
+            print('count:',count)
+            print('len colors:',len(plotting_colors))
+            if count+1 > len(plotting_colors):
+                plotting_colors.append(np.around(np.random.rand(3,1), decimals=1))
             print('plotting %s' %test)
             legend_name = test.split('/')[-2]
             legend_name += ' %s'%var_to_plot
@@ -127,7 +137,7 @@ def live_plot(i):
                             save_location=location)
                     print('plotting colors pre: ', plotting_colors[count])
                     pltE.plot_data(data=[d], show_plot=False, fig_obj=a,
-                            colors=plotting_colors)
+                            colors=[plotting_colors[count]])
                 except:
                     print('%s does not contain processed data'%location)
                     disp_loc.remove(test)
