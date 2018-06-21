@@ -197,7 +197,9 @@ def clear_plot(self):
     plot
     """
     global disp_loc
+    global update_plot
     disp_loc = []
+    update_plot = True
 
 def popupmsg(msg):
     """
