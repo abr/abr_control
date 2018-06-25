@@ -100,6 +100,7 @@ class DynamicsAdaptation(Signal):
         self.n_output = n_output
         self.n_neurons = n_neurons
         self.n_ensembles = n_ensembles
+        self.neuron_type = neuron_type
         self.seed = seed
         self.pes_learning_rate = pes_learning_rate
         self.intercepts_bounds = intercepts
@@ -122,10 +123,10 @@ class DynamicsAdaptation(Signal):
         self.nengo_model.config[nengo.Connection].synapse = None
 
         # Set the nerual model to use
-        if neuron_type.lower() == 'lif':
+        if self.neuron_type.lower() == 'lif':
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
 
-        elif neuron_type.lower() == 'relu':
+        elif self.neuron_type.lower() == 'relu':
             if backend == 'nengo_spinnaker':
                 print('Spinnaker can only use LIF neuron models')
                 self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
@@ -322,6 +323,7 @@ class DynamicsAdaptation(Signal):
                   'n_output': self.n_output,
                   'n_neurons': self.n_neurons,
                   'n_ensembles': self.n_ensembles,
+                  'neuron_type': self.neuron_type,
                   'seed': self.seed,
                   'pes': self.pes_learning_rate,
                   'intercepts_bounds': self.intercepts_bounds,
