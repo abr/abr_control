@@ -22,7 +22,7 @@ import numpy as np
 from abr_control.utils import DataHandler, PlotError
 
 # import data handler
-dat = DataHandler(use_cache=True)
+dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
 pltE = PlotError()
 
 # set some constants
@@ -43,6 +43,8 @@ global button_color
 button_color = '#375580'
 global button_text_color
 button_text_color = '#d3d3d3'#'white'
+secondary_text = 'black'
+secondary_bg = '#ffff7f'
 
 f = Figure(figsize=(5,5), dpi=100)
 a = f.add_subplot(111)
@@ -57,6 +59,7 @@ browse_datasets = False
 plotting_variables = ['q', 'dq', 'error', 'u', 'adapt', 'mean & ci']
 global plotting_colors
 plotting_colors = []
+#data_processed = []
 # boolean that triggers when a test is added or removed from the plotting list
 update_plot = False
 # list of selected variables to plot
@@ -440,8 +443,12 @@ class SearchPage(tk.Frame):
                     variable=self.var_to_plot,
                     value=var, command=lambda: self.update_var_to_plot(self))
             var_to_plot_radio.grid(row=ii, column=0, ipadx=20, sticky='ew')#, sticky='nsew')
-            var_to_plot_radio.configure(background=button_color,
-                    foreground=button_text_color)
+            if var == 'mean & ci':
+                var_to_plot_radio.configure(background=secondary_bg,
+                        foreground=secondary_text)
+            else:
+                var_to_plot_radio.configure(background=button_color,
+                        foreground=button_text_color)
 
 
     def update_var_to_plot(self, *args):
@@ -458,6 +465,7 @@ class SearchPage(tk.Frame):
         global disp_loc
         global plotting_colors
         global update_plot
+        #global data_processed
 
         # delete the current search
         self.entry.delete(0, 'end')
@@ -500,14 +508,22 @@ class SearchPage(tk.Frame):
         elif not browse_datasets and any('session' in s for s in keys):
                 # check if the selection is already in our list, if so remove it
                 test_name = ''.join(loc)
+                # if any('proc_data' in keys):
+                #     processed = True
+                # else:
+                #     processed = False
+
                 if test_name in disp_loc:
                     index = disp_loc.index(test_name)
                     disp_loc.remove(test_name)
                     # remove the entry of plotting colors that corresponds to
                     # the test being removed
                     del plotting_colors[index]
+                    #del data_processed[index]
                 else:
                     disp_loc.append(''.join(loc))
+                    #data_processed.append(processed)
+
                 print("CURRENT DISPLAY LIST: ", disp_loc)
                 update_plot = True
                 go_back_loc_level(self)
@@ -517,6 +533,11 @@ class SearchPage(tk.Frame):
         #else:
         self.update_list()
 
+    def data_processed(self, loc, *args):
+        if any('proc_data' in group for group in dat.get_keys(loc)):
+            return True
+        else:
+            return False
 
     def update_list(self, *args):
         """
@@ -531,9 +552,17 @@ class SearchPage(tk.Frame):
 
         self.lbox.delete(0, tk.END)
 
-        for item in lbox_list:
+        for ii, item in enumerate(lbox_list):
             if search_term.lower() in item.lower():
                 self.lbox.insert(tk.END, item)
+
+            if not browse_datasets:
+                print('NOT BROWSING DATASETS')
+                search = '%s%s'%(''.join(loc), item)
+                print('loc: ', search)
+                if self.data_processed(loc=search):
+                    print('DATA CONTAINS PROC DATA!')
+                    self.lbox.itemconfig(ii, bg=secondary_bg, foreground=secondary_text)
 
 app = Page()
 #app.geometry("1280x720")

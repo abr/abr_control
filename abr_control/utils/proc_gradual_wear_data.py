@@ -3,22 +3,18 @@ from abr_control.utils import PlotError
 
 proc = PathErrorToIdeal()
 plt = PlotError()
+db_name='dewolf2018neuromorphic'
 
-test_group = 'loihi2018/weighted'
-test_list = ['pd/not_weighted_19',
-              'pd/weighted_18',
-              'pid/weighted_29',
-              'nengo/1000_neurons_x_1/weighted_46',
-              'nengo_ocl/1000_neurons_x_1/weighted_34'
+test_group = 'gradual_friction_tests'
+test_list = [
+              'pd_no_friction',
+              'pd',
+              # 'pid',
+              'nengo_cpu20k',
+              'nengo_gpu20k',
+              'nengo_loihi20k'
               ]
-# test_group = 'loihi2018/no_weight'
-# test_list = ['pd/pd_5pt_baseline',
-#              'pid/gradual_wear14',
-#              'nengo/1000_neurons_x_20/gradual_wear23',
-#              'nengo_ocl/1000_neurons_x_20/gradual_wear21',
-#              'chip/gradual_wear24'
-#              ]
-# Get Positional Error
+# # Get Positional Error
 # proc.process(test_group=test_group,
 #              test_list=test_list,
 #              regenerate=True,
@@ -26,7 +22,7 @@ test_list = ['pd/not_weighted_19',
 #              order_of_error=0,
 #              upper_baseline_loc=test_list[1],
 #              lower_baseline_loc=test_list[0],
-#              db_name='abr_control_db')
+#              db_name=db_name)
 
 # # Get Velocity Error
 # proc.process(test_group=test_group,
@@ -36,13 +32,14 @@ test_list = ['pd/not_weighted_19',
 #              order_of_error=1,
 #              upper_baseline_loc=test_list[1],
 #              lower_baseline_loc=test_list[0],
-#              db_name='abr_control_db')
+#              db_name=db_name)
 
 plt.get_error_plot(test_group=test_group,
                    test_list=test_list,
                    show_plot=True,
                    save_figure=False,
                    use_cache=True,
-                   db_name='abr_control_db',
-                   order_of_error=[0,1],
-                   sum_errors=True)
+                   db_name=db_name,
+                   order_of_error=[1],
+                   sum_errors=True,
+                   scaling_factor=100)

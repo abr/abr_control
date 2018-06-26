@@ -11,6 +11,7 @@ class PathErrorToIdeal():
         pass
 
     def get_unique_targets(self, target_xyz):
+        #TODO find a better way to do this
         unique_target_xyz = []
         for target in target_xyz:
             match = False
