@@ -18,6 +18,9 @@ from abr_control.utils.paths import cache_dir
 from abr_control.utils import DataHandler
 from abr_control.controllers import path_planners
 
+# import matplotlib
+# matplotlib.use('TkAgg')
+# from matplotlib import pyplot as plt
 class ProcessData():
     def __init__(self):
         """
@@ -37,13 +40,18 @@ class ProcessData():
         upper_bound = []
         lower_bound = []
 
-        for i in range(0, n_runs+1):
+        for i in range(n_runs):
             data = raw_data[:,i]
             ci = self.bootstrapci(data, np.mean)
             sample.append(np.mean(data))
             lower_bound.append(ci[0])
             upper_bound.append(ci[1])
 
+        # plt.figure()
+        # plt.plot(sample)
+        # for ii in range(0, len(raw_data)):
+        #     plt.plot(raw_data[:,i])
+        # plt.show()
         return [sample, lower_bound, upper_bound]
 
     def bootstrapci(self, data, func, n=3000, p=0.95):
@@ -90,6 +98,9 @@ class ProcessData():
                        / (baseline_high - baseline_low))
         scaled_data *= scaling_factor
 
+        # plt.figure()
+        # plt.plot(scaled_data)
+        # plt.show()
         return scaled_data
 
     def generate_ideal_path(self, reaching_time, target_xyz, start_xyz):
@@ -116,29 +127,22 @@ class ProcessData():
             [0, 1, 0],
             [0, 0, 1]])
 
-        # create our state and control cost matrices
-        Qs = np.ones(6) * 10
-        # Rs = [0.35, 0.225, 0.5, 0.2, 0.225]
-        Rs = np.ones(6) * 1e-3
-
         # interpolation sampling rate
         dt = 0.005
         timesteps = int(reaching_time / dt)
-        #print('time steps: ', timesteps)
+        # print('time steps: ', timesteps)
 
         vmax = 1
         kp = 20
-        kv = 6
+        kv = 8
         lamb = kp / kv
 
-        path = path_planners.SecondOrder(None, w=1e-4, zeta=2, dt=0.003,
-                threshold=0.05)
+        path = path_planners.SecondOrder(
+                None, w=1e4, zeta=2, threshold=0.05)
 
         for ii, target in enumerate(target_xyz):
             u = np.zeros(3)
-            # Q = Qs[ii] * np.eye(6)
-            # R = Rs[ii] * np.eye(3)
-            #print('II: ', ii)
+            # print('II: ', ii)
 
             for t in range(timesteps):
                 # track trajectory
@@ -147,7 +151,7 @@ class ProcessData():
 
                 temp_target = path.step(
                     state=np.hstack((target, np.zeros(3))),
-                    target_pos=target)
+                    target_pos=target, dt=0.003)
 
                 # calculate the position error
                 x_tilde = np.array(x[:3] - temp_target[:3])
@@ -212,8 +216,10 @@ class ProcessData():
 
         # Calculate the correct order of error
         for ii in range(0, order_of_error):
-            recorded_path = np.diff(recorded_path, axis=0) / dt
-            ideal_path = np.diff(ideal_path, axis=0) /dt
+            # recorded_path = np.diff(recorded_path, axis=0) / dt
+            # ideal_path = np.diff(ideal_path, axis=0) /dt
+            ideal_path = np.vstack([np.zeros((1, 3)), np.diff(ideal_path, axis=0) / dt])
+            recorded_path = np.vstack([np.zeros((1, 3)), np.diff(recorded_path, axis=0) / dt])
 
         # ----- APPLY FILTERS -----
         # if we're using acceleration or jerk, add a filter to
@@ -223,7 +229,6 @@ class ProcessData():
                     alpha=alpha)
             ideal_path = self.filter_data(data=ideal_path,
                     alpha=alpha)
-
 
         # error relative to ideal path
         error_to_ideal = (np.sum(np.sqrt(np.sum(

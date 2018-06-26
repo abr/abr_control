@@ -2,6 +2,10 @@ import numpy as np
 
 from abr_control.utils import DataHandler, ProcessData
 
+# import matplotlib
+# matplotlib.use('TkAgg')
+# from matplotlib import pyplot as plt
+
 class PathErrorToIdeal():
     """
 
@@ -120,7 +124,8 @@ class PathErrorToIdeal():
             # get the number of runs and sessions if not provided
             if n_sessions is None:
                 n_sessions = max([key for key in keys if 'session' in key])
-                n_sessions = int(n_sessions[7:])
+                # add 1 since base 0
+                n_sessions = int(n_sessions[7:]) + 1
 
             if n_runs is None:
                 max_runs = []
@@ -132,20 +137,21 @@ class PathErrorToIdeal():
                         runs = max([session_key for session_key in session_keys if
                             'run' in session_key])
                         max_runs.append(int(runs[3:]))
-                n_runs = min(max_runs)
+                # add 1 since base 0
+                n_runs = min(max_runs) + 1
 
             print('%i/%i: %s: %s runs %s sessions' %(nn, len(test_list), test,
                 n_runs, n_sessions))
 
             # save the base test group location
             base_loc = loc
-            ideal_path_error = np.zeros((n_sessions+1, n_runs+1))
+            ideal_path_error = np.zeros((n_sessions, n_runs))
 
             # cycle through the sessions
-            for ii in range(n_sessions+1):
+            for ii in range(n_sessions):
 
                 # cycle through the runs
-                for jj in range(n_runs+1):
+                for jj in range(n_runs):
                     loc = '%ssession%03d/run%03d'%(base_loc, ii, jj)
                     keys = dat.get_keys(loc)
 
@@ -244,9 +250,9 @@ class PathErrorToIdeal():
                         param_check[2] = True
                         print_list.append('Test lengths do not match within'
                                           + ' threshold...')
-                        print_list.append('Ideal: ',
-                                np.sum(ideal_reaching_time),
-                                '+/- %fsec'%t_thres)
+                        print_list.append('Ideal: %f +/-%f sec'%
+                                (np.sum(ideal_reaching_time),
+                                 t_thres))
                         print_list.append('Test: %f'% np.sum(time))
                         print('!!!reaching_time test triggered!!!')
 
@@ -272,6 +278,7 @@ class PathErrorToIdeal():
 
                         # save the interpolated error data
                         #print('5: Saving interpolated data')
+                        #TODO: do we want to save this?
                         dat.save(data={'ee_xyz_interp_%s'%orders[order_of_error] : ee_xyz_interp},
                                 save_location='%ssession%03d/interp_data/run%03d'%(base_loc,
                                     ii, jj), overwrite=True, timestamp=False)
@@ -285,8 +292,11 @@ class PathErrorToIdeal():
                     #else:
                         # calculate the error relative to an ideal path
                     #print('6: Calculating path error to ideal')
+                    run_time = sum(time)
+                    time_intervals = np.cumsum(time)
+                    dt = (run_time-time_intervals[0])/n_interp_pts
                     path_error = proc.calc_path_error_to_ideal(
-                            dt=np.sum(time)/len(time),
+                            dt=dt,
                             ideal_path=ideal_path, recorded_path=ee_xyz_interp,
                             order_of_error=order_of_error, alpha=alpha)
 
@@ -345,5 +355,7 @@ class PathErrorToIdeal():
             # if we're using a baseline save our baseline data if they are done being processed
             if baseline and nn == 0:
                 lower_baseline = mean_data
+                # lower_baseline = np.load('pd_5pt_baseline_traj_error.npz')['mean']
             if baseline and nn == 1:
                 upper_baseline = mean_data
+                # upper_baseline = np.load('pd_5pt_baseline_traj_error_friction.npz')['mean']
