@@ -18,9 +18,6 @@ from abr_control.utils.paths import cache_dir
 from abr_control.utils import DataHandler
 from abr_control.controllers import path_planners
 
-# import matplotlib
-# matplotlib.use('TkAgg')
-# from matplotlib import pyplot as plt
 class ProcessData():
     def __init__(self):
         """
@@ -47,11 +44,6 @@ class ProcessData():
             lower_bound.append(ci[0])
             upper_bound.append(ci[1])
 
-        # plt.figure()
-        # plt.plot(sample)
-        # for ii in range(0, len(raw_data)):
-        #     plt.plot(raw_data[:,i])
-        # plt.show()
         return [sample, lower_bound, upper_bound]
 
     def bootstrapci(self, data, func, n=3000, p=0.95):
@@ -94,13 +86,10 @@ class ProcessData():
         input_data = np.array(input_data)
         baseline_low = np.array(baseline_low)
         baseline_high = np.array(baseline_high)
-        scaled_data = ((input_data - baseline_low)
+        scaled_data = ((input_data - 0.5*baseline_low)
                        / (baseline_high - baseline_low))
         scaled_data *= scaling_factor
 
-        # plt.figure()
-        # plt.plot(scaled_data)
-        # plt.show()
         return scaled_data
 
     def generate_ideal_path(self, reaching_time, target_xyz, start_xyz):

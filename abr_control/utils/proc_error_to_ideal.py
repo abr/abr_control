@@ -2,10 +2,6 @@ import numpy as np
 
 from abr_control.utils import DataHandler, ProcessData
 
-# import matplotlib
-# matplotlib.use('TkAgg')
-# from matplotlib import pyplot as plt
-
 class PathErrorToIdeal():
     """
 
@@ -43,7 +39,7 @@ class PathErrorToIdeal():
         interpolates the data for even sampling, compares to an ideal generated
         trajectory, applies a filter for higher order error, and then scales to any
         provided baseline.
-
+:
         test_group: string
             the test group location in the hdf5 database
         test_list: list of strings
@@ -343,7 +339,6 @@ class PathErrorToIdeal():
                            'n_sessions': n_sessions,
                            'upper_baseline': upper_baseline_loc,
                            'lower_baseline': lower_baseline_loc}
-            #print('FINAL ERROR: ', final_error)
 
             # save the mean error and bounds relative to ideal
             #print('11: Saving CI and Bound Data')

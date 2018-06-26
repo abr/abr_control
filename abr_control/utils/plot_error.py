@@ -112,12 +112,9 @@ class PlotError():
         #TODO: cycle through all the orders of error passed in and sum them
         for ii, test in enumerate(test_list) :
             temp_data = []
-            for jj, order in enumerate(order_of_error):
-                print('ii: ', ii)
-                print('error: ', order)
-                print(test)
+            for order in order_of_error:
                 save_location = '%s/%s/proc_data/%s'%(test_group, test,
-                        orders[jj])
+                        orders[order])
                 temp_data.append(dat.load(params=['mean', 'upper_bound', 'lower_bound'],
                    save_location=save_location))
 
