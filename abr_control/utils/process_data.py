@@ -202,14 +202,6 @@ class ProcessData():
             3 == jerk error
 
         """
-
-        # Calculate the correct order of error
-        for ii in range(0, order_of_error):
-            # recorded_path = np.diff(recorded_path, axis=0) / dt
-            # ideal_path = np.diff(ideal_path, axis=0) /dt
-            ideal_path = np.vstack([np.zeros((1, 3)), np.diff(ideal_path, axis=0) / dt])
-            recorded_path = np.vstack([np.zeros((1, 3)), np.diff(recorded_path, axis=0) / dt])
-
         # ----- APPLY FILTERS -----
         # if we're using acceleration or jerk, add a filter to
         # clean up the signal
