@@ -86,7 +86,7 @@ class ProcessData():
         input_data = np.array(input_data)
         baseline_low = np.array(baseline_low)
         baseline_high = np.array(baseline_high)
-        scaled_data = ((input_data - 0.5*baseline_low)
+        scaled_data = ((input_data - baseline_low)
                        / (baseline_high - baseline_low))
         scaled_data *= scaling_factor
 

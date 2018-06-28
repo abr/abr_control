@@ -89,11 +89,11 @@ class PathErrorToIdeal():
             Exception('An upper baseline must be provided along with the lower'
                       + ' baseline')
 
-        if lower_baseline_loc is None and upper_baseline_loc is not None:
+        elif lower_baseline_loc is None and upper_baseline_loc is not None:
             Exception('A lower baseline must be provided along with the upper'
                       + ' baseline')
 
-        if upper_baseline_loc is not None and lower_baseline_loc is not None:
+        elif upper_baseline_loc is not None and lower_baseline_loc is not None:
             # prepend the baseline tests to the test list
             # if we are using baselines, they will be the first two tests
             # processed
@@ -104,12 +104,13 @@ class PathErrorToIdeal():
                 tests.append(test)
             test_list = tests
             baseline = True
-            print('--------------------')
-            print('Calculating %s error' % orders[order_of_error])
-            print('Lower Error Baseline: %s' % lower_baseline_loc)
-            print('Upper Error Baseline: %s' % upper_baseline_loc)
-            print('Test List: ', test_list)
-            print('--------------------')
+
+        print('--------------------')
+        print('Calculating %s error' % orders[order_of_error])
+        print('Lower Error Baseline: %s' % lower_baseline_loc)
+        print('Upper Error Baseline: %s' % upper_baseline_loc)
+        print('Test List: ', test_list)
+        print('--------------------')
 
         # Cycle through the list of tests
         for nn, test in enumerate(test_list):
