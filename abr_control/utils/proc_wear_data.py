@@ -4,21 +4,21 @@ from abr_control.utils import PlotError
 proc = PathErrorToIdeal()
 plt = PlotError()
 db_name='dewolf2018neuromorphic'
-orders_of_error = [1]#, 3]
+orders_of_error = [0,3]
 title = [
-         'abs-vel-error-grad-wear',
-         #'abs-jerk-error-grad-wear'
+        'abs-pos-error-wear',
+        'abs-jerk-error-wear'
         ]
-y_label = ['m*s']#, 'm/s^2']
+y_label = ['m*s', 'm/s^2']
 
-test_group = 'gradual_friction_tests'
+test_group = 'friction_tests'
 test_list = [
               'pd_no_friction',
               'pd',
               'pid',
-              'nengo_cpu20k',
-              'nengo_gpu20k',
-              'nengo_loihi20k'
+              'nengo_cpu1k',
+              'nengo_gpu1k',
+              'nengo_loihi1k'
               ]
 
 for order in orders_of_error:
@@ -29,7 +29,8 @@ for order in orders_of_error:
                  order_of_error=order,
                  # upper_baseline_loc=test_list[1],
                  # lower_baseline_loc=test_list[0],
-                 db_name=db_name)
+                 db_name=db_name,
+                 n_runs=50)
 
 for ii, entry in enumerate(title):
     plt.get_error_plot(test_group=test_group,

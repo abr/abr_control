@@ -34,7 +34,8 @@ class PlotError():
     def plot_data(self, data, legend_labels=None, fig_title='Error',
                   x_label='Run Number', y_label='Error', xlim=None, ylim=None,
                   show_plot=True, save_figure=False, colors=None, legend_loc=1,
-                  fig_obj=None, fig_size=[8,3], scaling_factor=1):
+                  fig_obj=None, fig_size=[8,3], scaling_factor=1,
+                  clear_plot=False, statistical=True):
 
         if fig_obj is None:
             fig = plt.figure(1, figsize=(fig_size[0], fig_size[1]))
@@ -60,13 +61,20 @@ class PlotError():
         print('plotting colors post: ', colors)
         markers = ['--',] * len(colors)
 
-        for ii in range(0, len(data)):
-            print('col %i'%ii)
-            print(colors[ii])
-            print(markers)
-            self.plot_mean_and_CI(data[ii], color_mean=colors[ii],
-                                  color_shading=colors[ii], marker=markers[ii],
-                                  scaling_factor=scaling_factor)
+        # if plotting mean and ci data
+        if statistical:
+            for ii in range(0, len(data)):
+                print('col %i'%ii)
+                print(colors[ii])
+                print(markers)
+                self.plot_mean_and_CI(data[ii], color_mean=colors[ii],
+                                      color_shading=colors[ii], marker=markers[ii],
+                                      scaling_factor=scaling_factor)
+        # otherwise plot the data directly as passed in
+        else:
+            for ii, test in enumerate(data):
+                self.a.plot(scaling_factor*test, marker, color=color_mean)
+
         #self.a.grid()
 
         bg = np.array([1, 1, 1])  # background of the legend is white
@@ -91,12 +99,15 @@ class PlotError():
         if show_plot:
             plt.show()
 
+        if clear_plot:
+            self.a.clear()
+
     def get_error_plot(self, test_group, test_list, show_plot=True,
             save_figure=False, fig_title='Error',
             x_label='Run Number', y_label='Error', xlim=None, ylim=None,
             legend_labels=None, colors=None, legend_loc=1, use_cache=True,
             db_name=None, order_of_error=[0], sum_errors=True,
-            scaling_factor=1):
+            scaling_factor=1, clear_plot=False):
 
         dat = DataHandler(use_cache=use_cache, db_name=db_name)
         # create plot here, this allows for direct call of the plotting
@@ -139,4 +150,49 @@ class PlotError():
                 fig_title=fig_title, x_label=x_label, y_label=y_label,
                 xlim=xlim, ylim=ylim, show_plot=show_plot,
                 save_figure=save_figure, colors=colors, legend_loc=legend_loc,
-                scaling_factor=scaling_factor)
+                scaling_factor=scaling_factor, clear_plot=clear_plot,
+                statistical=True)
+
+    # def get_traj_sub_plot(self, test_group, test_list, show_plot=True,
+    #         save_figure=False, fig_title='Error',
+    #         x_label='Run Number', y_label='Error', xlim=None, ylim=None,
+    #         legend_labels=None, colors=None, legend_loc=1, use_cache=True,
+    #         db_name=None, order_of_error=[0], sum_errors=True,
+    #         scaling_factor=1, clear_plot=False):
+
+    #     dat = DataHandler(use_cache=use_cache, db_name=db_name)
+
+    #     if legend_labels is None:
+    #         legend_labels = test_list
+
+    #     data = []
+
+    #     #TODO: cycle through all the orders of error passed in and sum them
+    #     for ii, test in enumerate(test_list) :
+    #         temp_data = []
+    #         save_location = '%s/%s/proc_data/%s'%(test_group, test,
+    #                 orders[order])
+    #         temp_data.append(dat.load(params=['ee_xyz'],
+    #            save_location=save_location))
+
+    #         ee_xyz = np.zeros(len(temp_data[0]['mean']))
+
+    #         for error_type in temp_data:
+    #             mean += error_type['mean']
+    #             upper += error_type['upper_bound']
+    #             lower += error_type['lower_bound']
+
+    #         # we divide by the number or error terms since they scale data from
+    #         # 0-1, summing error will increase this range (two orders of error
+    #         # will have a range of 0-2)
+    #         data.append({'mean': mean/len(order_of_error), 'lower_bound':
+    #             lower/len(order_of_error), 'upper_bound':
+    #             upper/len(order_of_error)})
+
+
+    #     self.plot_data(data=data, legend_labels=legend_labels,
+    #             fig_title=fig_title, x_label=x_label, y_label=y_label,
+    #             xlim=xlim, ylim=ylim, show_plot=show_plot,
+    #             save_figure=save_figure, colors=colors, legend_loc=legend_loc,
+    #             scaling_factor=scaling_factor, clear_plot=clear_plot,
+    #             statistical=False)

@@ -257,6 +257,11 @@ class PathErrorToIdeal():
                         to_print = '\n'.join(print_list)
                         raise ValueError('\n'.join(print_list))
 
+                    # used for differentiating higher orders of error
+                    run_time = sum(time)
+                    time_intervals = np.cumsum(time)
+                    dt = (run_time-time_intervals[0])/n_interp_pts
+
                     # if our parameters match the ideal path interpolate data for even sampling
 
                     if 'ee_xyz_interp_%s'%orders[order_of_error] in keys and not regenerate:
@@ -273,6 +278,11 @@ class PathErrorToIdeal():
                         ee_xyz_interp = proc.interpolate_data(data=ee_xyz,
                                 time_intervals=time, n_points=n_interp_pts)
 
+                        # Calculate the correct order of error for the recorded path
+                        for ii in range(0, order_of_error):
+                            ee_xyz_interp = np.vstack([np.zeros((1, 3)),
+                                np.diff(ee_xyz_interp, axis=0) / dt])
+
                         # save the interpolated error data
                         #print('5: Saving interpolated data')
                         #TODO: do we want to save this?
@@ -280,18 +290,12 @@ class PathErrorToIdeal():
                                 save_location='%ssession%03d/interp_data/run%03d'%(base_loc,
                                     ii, jj), overwrite=True, timestamp=False)
 
-                    # ----- FILTER AND COMPARE TO IDEAL PATH -----
-                    # Check if we have comparative error data saved
-                    #if 'ideal_path_error_%s'%orders[order_of_error] in keys and not regenerate:
-                        # data exists and user does not want to regenerate
-                    #    pass
+                    # Calculate the correct order of error for the ideal path
+                    for ii in range(0, order_of_error):
+                        ideal_path = np.vstack([np.zeros((1, 3)), np.diff(ideal_path, axis=0) / dt])
 
-                    #else:
-                        # calculate the error relative to an ideal path
+                    # ----- FILTER AND COMPARE TO IDEAL PATH -----
                     #print('6: Calculating path error to ideal')
-                    run_time = sum(time)
-                    time_intervals = np.cumsum(time)
-                    dt = (run_time-time_intervals[0])/n_interp_pts
                     path_error = proc.calc_path_error_to_ideal(
                             dt=dt,
                             ideal_path=ideal_path, recorded_path=ee_xyz_interp,
