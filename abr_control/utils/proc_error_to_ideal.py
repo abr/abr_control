@@ -199,7 +199,7 @@ class PathErrorToIdeal():
 
                     # ----- INTERPOLATE END-EFFECTOR POSITION DATA -----
                     # print the progress as a percentage
-                    print('%f%% processing complete...'
+                    print('%.3f processing complete...'
                             %(100*(((n_runs+1)*ii
                                 + jj)/((n_sessions+1)*(n_runs+1)))),
                             end='\r')
