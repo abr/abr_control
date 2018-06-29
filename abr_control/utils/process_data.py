@@ -38,6 +38,8 @@ class ProcessData():
         lower_bound = []
 
         for i in range(n_runs):
+            #TODO: should be able to remove n_runs and use the length of the
+            #data
             data = raw_data[:,i]
             ci = self.bootstrapci(data, np.mean)
             sample.append(np.mean(data))

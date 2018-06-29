@@ -67,6 +67,9 @@ var_to_plot = 'error'
 last_plotted = var_to_plot
 # variable for toggling whether to save current figure
 save_figure = False
+orders_of_error = ['position', 'velocity', 'acceleration', 'jerk']
+global order_to_plot
+order_to_plot = 'position'
 
 def live_plot(i):
     """
@@ -82,7 +85,6 @@ def live_plot(i):
         update_plot = True
 
     if update_plot:
-        #TODO update only when there is a change instead of periodically
         #TODO automatically update range if it is larger than the current max
         # clear our data before plotting
         a.clear()
@@ -92,15 +94,16 @@ def live_plot(i):
         y_min = 0.0
         y_max = 0.1
         # cycle through selected tests to plot
+        legend_names = []
+        print('STARTING DISP: ', disp_loc)
+        tests_to_remove = []
         for count, test in enumerate(disp_loc):
-            print('count:',count)
-            print('len colors:',len(plotting_colors))
+            print(count, ' : ', test)
             if count+1 > len(plotting_colors):
                 plotting_colors.append(np.around(np.random.rand(3,1), decimals=1))
-            print('plotting %s' %test)
             legend_name = test.split('/')[-2]
             legend_name += ' %s'%var_to_plot
-            print('PLOTTING COLORS: ', plotting_colors)
+            legend_names.append(legend_name)
 
             # if we're interested in plotting error, we will average the error over
             # a run and plot the average of each run
@@ -130,20 +133,21 @@ def live_plot(i):
                     x_max = len(error)
                 a.set_xlim(x_min, x_max)
                 a.set_ylim(y_min, y_max)
-                a.plot(error, label=legend_name)
+                a.plot(error)#, label=legend_name)
 
             elif var_to_plot == 'mean & ci':
-                location = '%sproc_data/position'%test
+                location = '%sproc_data/%s'%(test, order_to_plot)
                 try:
 
                     d = dat.load(params=['mean', 'upper_bound', 'lower_bound'],
                             save_location=location)
-                    print('plotting colors pre: ', plotting_colors[count])
                     pltE.plot_data(data=[d], show_plot=False, fig_obj=a,
-                            colors=[plotting_colors[count]])
+                            colors=[plotting_colors[count]],
+                            legend_labels=None, fig_title = '%s error'%(order_to_plot))
+                    print('%s contains shit'%location)
                 except:
                     print('%s does not contain processed data'%location)
-                    disp_loc.remove(test)
+                    tests_to_remove.append(test)
 
             # if we're not plotting error, then every other dataset will have
             # dim=N_JOINTS so we will plot the data from the final run of the
@@ -170,16 +174,20 @@ def live_plot(i):
                         x_max = len(d)
                     a.set_xlim(x_min, x_max)
                     a.set_ylim(y_min, y_max)
-                    a.plot(d, label=legend_name)
+                    a.plot(d)#, label=legend_name)
                 except TypeError:
                     print('WARNING: %s%s does not contain the key %s'%(location, max_key,
                       var_to_plot))
 
 
 
+
+        for rm_test in tests_to_remove:
+            disp_loc.remove(rm_test)
         f.tight_layout()
+        a.legend(legend_names, loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
         if var_to_plot != 'mean & ci':
-            a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
+            plt.title(var_to_plot)
         if save_figure:
             a.figure.savefig('default_figure.pdf')
             save_figure = False
@@ -367,6 +375,14 @@ class SearchPage(tk.Frame):
         frame_right.grid(row=0,column=2, padx=10)
         frame_right.configure(background=background_color)
 
+        frame_right_top = tk.Frame(frame_right)
+        frame_right_top.grid(row=0,column=0, padx=10, pady=10)
+        frame_right_top.configure(background=background_color)
+
+        frame_right_bottom = tk.Frame(frame_right)
+        frame_right_bottom.grid(row=1,column=0, padx=10, pady=10)
+        frame_right_bottom.configure(background=background_color)
+
         page_title = tk.Label(frame_left, text="Search", font=LARGE_FONT)
         page_title.grid(row=0, column=1)
         page_title.configure(background=background_color, foreground=text_color)
@@ -439,7 +455,7 @@ class SearchPage(tk.Frame):
         self.var_to_plot = tk.StringVar()
         self.var_to_plot.set(var_to_plot)
         for ii, var in enumerate(plotting_variables):
-            var_to_plot_radio = tk.Radiobutton(frame_right, text=var,
+            var_to_plot_radio = tk.Radiobutton(frame_right_top, text=var,
                     variable=self.var_to_plot,
                     value=var, command=lambda: self.update_var_to_plot(self))
             var_to_plot_radio.grid(row=ii, column=0, ipadx=20, sticky='ew')#, sticky='nsew')
@@ -450,11 +466,37 @@ class SearchPage(tk.Frame):
                 var_to_plot_radio.configure(background=button_color,
                         foreground=button_text_color)
 
+        self.order_to_plot = tk.StringVar()
+        self.order_to_plot.set(order_to_plot)
+        self.order_radio_button = []
+        for ii, order in enumerate(orders_of_error):
+            self.order_radio_button.append(tk.Radiobutton(frame_right_bottom, text=order,
+                    variable=self.order_to_plot,
+                    value=order, command=lambda:
+                    self.update_order_to_plot(self)))
+            self.order_radio_button[ii].grid(row=ii, column=0,
+                    ipadx=20, sticky='ew')
+            self.order_radio_button[ii].configure(background='red',
+                    foreground=secondary_text)
+            #order_radio_button.visible = False
 
     def update_var_to_plot(self, *args):
         """updates the global variable of what data to plot"""
         global var_to_plot
         var_to_plot = self.var_to_plot.get()
+        if var_to_plot == 'mean & ci':
+            col = secondary_bg
+        else:
+            col = 'red'
+        for ii, order in enumerate(orders_of_error):
+            self.order_radio_button[ii].configure(background=col)
+
+    def update_order_to_plot(self, *args):
+        global order_to_plot
+        global update_plot
+        order_to_plot = self.order_to_plot.get()
+        update_plot = True
+        self.update_list()
 
     def get_selection(self, *args):
         """
@@ -535,7 +577,11 @@ class SearchPage(tk.Frame):
 
     def data_processed(self, loc, *args):
         if any('proc_data' in group for group in dat.get_keys(loc)):
-            return True
+            if any(order_to_plot in group for group in dat.get_keys('%s/proc_data'%loc)):
+                #print('%s found in %s'%(order_to_plot, loc))
+                return True
+            else:
+                return False
         else:
             return False
 
@@ -557,11 +603,11 @@ class SearchPage(tk.Frame):
                 self.lbox.insert(tk.END, item)
 
             if not browse_datasets:
-                print('NOT BROWSING DATASETS')
+                #print('NOT BROWSING DATASETS')
                 search = '%s%s'%(''.join(loc), item)
-                print('loc: ', search)
+                #print('loc: ', search)
                 if self.data_processed(loc=search):
-                    print('DATA CONTAINS PROC DATA!')
+                    #print('DATA CONTAINS PROC DATA!')
                     self.lbox.itemconfig(ii, bg=secondary_bg, foreground=secondary_text)
 
 app = Page()

@@ -279,7 +279,7 @@ class PathErrorToIdeal():
                                 time_intervals=time, n_points=n_interp_pts)
 
                         # Calculate the correct order of error for the recorded path
-                        for ii in range(0, order_of_error):
+                        for mm in range(0, order_of_error):
                             ee_xyz_interp = np.vstack([np.zeros((1, 3)),
                                 np.diff(ee_xyz_interp, axis=0) / dt])
 
@@ -291,14 +291,17 @@ class PathErrorToIdeal():
                                     ii, jj), overwrite=True, timestamp=False)
 
                     # Calculate the correct order of error for the ideal path
-                    for ii in range(0, order_of_error):
-                        ideal_path = np.vstack([np.zeros((1, 3)), np.diff(ideal_path, axis=0) / dt])
+                    # set ideal_path_diff to ideal_path in case we are at order
+                    # 0 and the for loop does not trigger
+                    ideal_path_diff = ideal_path
+                    for mm in range(0, order_of_error):
+                        ideal_path_diff = np.vstack([np.zeros((1, 3)), np.diff(ideal_path, axis=0) / dt])
 
                     # ----- FILTER AND COMPARE TO IDEAL PATH -----
                     #print('6: Calculating path error to ideal')
                     path_error = proc.calc_path_error_to_ideal(
                             dt=dt,
-                            ideal_path=ideal_path, recorded_path=ee_xyz_interp,
+                            ideal_path=ideal_path_diff, recorded_path=ee_xyz_interp,
                             order_of_error=order_of_error, alpha=alpha)
 
                     #print('7: Storing path error to ideal for session %i : run %i'

@@ -15,9 +15,9 @@ class PlotError():
     def plot_mean_and_CI(self, data, color_mean=None,
                          color_shading=None, marker='--',
                          scaling_factor=1):
-        print('color shading: ', color_shading)
-        print('color mean: ', color_mean)
-        print('shape: ', data['mean'].shape)
+        # print('color shading: ', color_shading)
+        # print('color mean: ', color_mean)
+        # print('shape: ', data['mean'].shape)
         self.a.fill_between(range(data['mean'].shape[0]),
                          scaling_factor*data['upper_bound'],
                          scaling_factor*data['lower_bound'],
@@ -26,10 +26,10 @@ class PlotError():
         if len(data['mean']) == 1:
             self.a.plot(np.ones(30) *data['mean'], color_mean)
         else:
-            print('color_mean: ', color_mean)
+            #print('color_mean: ', color_mean)
             self.a.plot(scaling_factor*data['mean'], marker, color=color_mean)
 
-        print('Average of last 5 trials: %.3f' % np.mean(data['mean'][-5:]))
+        #print('Average of last 5 trials: %.3f' % np.mean(data['mean'][-5:]))
 
     def plot_data(self, data, legend_labels=None, fig_title='Error',
                   x_label='Run Number', y_label='Error', xlim=None, ylim=None,
@@ -37,6 +37,7 @@ class PlotError():
                   fig_obj=None, fig_size=[8,3], scaling_factor=1,
                   clear_plot=False, statistical=True):
 
+        print('***********************using legend labels of: ', legend_labels)
         if fig_obj is None:
             fig = plt.figure(1, figsize=(fig_size[0], fig_size[1]))
             #fig.tight_layout()
@@ -64,9 +65,9 @@ class PlotError():
         # if plotting mean and ci data
         if statistical:
             for ii in range(0, len(data)):
-                print('col %i'%ii)
-                print(colors[ii])
-                print(markers)
+                # print('col %i'%ii)
+                # print(colors[ii])
+                # print(markers)
                 self.plot_mean_and_CI(data[ii], color_mean=colors[ii],
                                       color_shading=colors[ii], marker=markers[ii],
                                       scaling_factor=scaling_factor)
