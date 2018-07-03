@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import colorConverter as cc
 import os
 
-from legend_object import LegendObject
+from abr_control.utils.legend_object import LegendObject
 from abr_control.utils import DataHandler
 
 class PlotError():
@@ -158,7 +158,7 @@ class PlotError():
     #         save_figure=False, fig_title='Error',
     #         x_label='Run Number', y_label='Error', xlim=None, ylim=None,
     #         legend_labels=None, colors=None, legend_loc=1, use_cache=True,
-    #         db_name=None, order_of_error=[0], sum_errors=True,
+    #         db_name=None, order_of_error=[0], sum_splits=True,
     #         scaling_factor=1, clear_plot=False):
 
     #     dat = DataHandler(use_cache=use_cache, db_name=db_name)

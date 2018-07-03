@@ -21,7 +21,8 @@ class Training:
             test_group='testing', test_name="joint_space_training", session=None,
             run=None, weights=None, pes_learning_rate=1e-6, backend=None,
             offset=None, kp=20, kv=6, ki=0, seed=None, SCALES=None, MEANS=None,
-            probe_weights=True, avoid_limits=True, neuron_type='lif'):
+            probe_weights=True, avoid_limits=True, neuron_type='lif',
+            db_name=None):
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The
@@ -101,6 +102,10 @@ class Training:
             with the floor and itself
             NOTE: this is only for joints1 and 2, it may still be possible for
             the gripper to collide with the arm in certain configurations
+        db_name: String, Optional (Default: None)
+            the database to use for saving/loading, when set to None the
+            default will be used (abr_control_db.h5)
+
 
         Attributes
         ----------
@@ -111,6 +116,11 @@ class Training:
             test since following trajectory and not moving to a single final
             point
         """
+        if 'nengo' not in backend:
+            self.use_adapt = False
+        else:
+            self.use_adapt = True
+
         self.run = run
         self.session = session
         self.test_group = test_group
@@ -119,10 +129,10 @@ class Training:
         print("RUN PASSED IN IS: ", self.run)
 
         # instantiate our data handler for saving and load
-        self.data_handler = DataHandler(use_cache=True)
+        self.data_handler = DataHandler(use_cache=True, db_name=db_name)
 
         # load previous weights if they exist is None passed in
-        if weights is None:
+        if weights is None and self.use_adapt:
             weights = self.data_handler.load_data(params=['weights'], session=self.session,
                     run=self.run, test_group=self.test_group,
                     test_name=self.test_name, create=True)
@@ -139,20 +149,21 @@ class Training:
         print('--Generate / load transforms--')
         self.robot_config.init_all()
 
-        print('--Instantiate adapt controller--')
-        # instantiate our adaptive controller
-        self.adapt = signals.DynamicsAdaptation(
-            n_input=sum(adapt_input*2),
-            n_output=sum(adapt_output),
-            n_neurons=n_neurons,
-            n_ensembles=n_ensembles,
-            pes_learning_rate=pes_learning_rate,
-            intercepts=(-0.9, 0),
-            weights_file=weights,
-            backend=backend,
-            probe_weights=probe_weights,
-            seed=seed,
-            neuron_type=neuron_type)
+        if self.use_adapt:
+            print('--Instantiate adapt controller--')
+            # instantiate our adaptive controller
+            self.adapt = signals.DynamicsAdaptation(
+                n_input=sum(adapt_input*2),
+                n_output=sum(adapt_output),
+                n_neurons=n_neurons,
+                n_ensembles=n_ensembles,
+                pes_learning_rate=pes_learning_rate,
+                intercepts=(-0.9, 0),
+                weights_file=weights,
+                backend=backend,
+                probe_weights=probe_weights,
+                seed=seed,
+                neuron_type=neuron_type)
 
         print('--Instantiate OSC controller--')
         # instantiate operational space controller
@@ -261,14 +272,16 @@ class Training:
             self.data['q'].append(np.copy(self.q))
             self.data['dq'].append(np.copy(self.dq))
             self.data['u_base'].append(np.copy(self.u_base))
-            self.data['u_adapt'].append(np.copy(self.u_adapt))
-            self.data['u_avoid'].append(np.copy(self.u_avoid))
+            if self.use_adapt:
+                self.data['u_adapt'].append(np.copy(self.u_adapt))
+                self.data['training_signal'].append(np.copy(self.training_signal))
+                self.data['input_signal'].append(np.copy(self.adapt_input))
+            if self.avoid_limits:
+                self.data['u_avoid'].append(np.copy(self.u_avoid))
             self.data['error'].append(np.copy(error))
-            self.data['training_signal'].append(np.copy(self.training_signal))
             end = timeit.default_timer() - start
             self.data['time'].append(np.copy(end))
             self.data['target'].append(np.copy(target_xyz))
-            self.data['input_signal'].append(np.copy(self.adapt_input))
             self.data['ee_xyz'].append(np.copy(ee_xyz))
             self.data['filter'].append(np.copy(self.target))
 
@@ -295,33 +308,39 @@ class Training:
             else:
                 self.u_base[0] *= 2.0
 
-            # calculate the adaptive control signal
-            training_signal = []
-            adapt_input_q = []
-            adapt_input_dq = []
+            u = self.u_base
 
-            for ii in self.in_index:
-                training_signal.append(self.ctrlr.training_signal[ii])
-                adapt_input_q.append(self.robot_config.scaledown('q',self.q)[ii])
-                adapt_input_dq.append(self.robot_config.scaledown('dq',self.dq)[ii])
+            if self.use_adapt:
+                # calculate the adaptive control signal
+                training_signal = []
+                adapt_input_q = []
+                adapt_input_dq = []
 
-            self.training_signal = np.array(training_signal)
-            self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
+                for ii in self.in_index:
+                    training_signal.append(self.ctrlr.training_signal[ii])
+                    adapt_input_q.append(self.robot_config.scaledown('q',self.q)[ii])
+                    adapt_input_dq.append(self.robot_config.scaledown('dq',self.dq)[ii])
 
-            u_adapt = self.adapt.generate(input_signal=self.adapt_input,
-                                     training_signal=self.training_signal)
+                self.training_signal = np.array(training_signal)
+                self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
 
-            # create array of zeros, we will change the adaptive joints with
-            # their respective outputs. This just puts the adaptive output into
-            # the same shape as our base control
-            self.u_adapt = np.zeros(self.robot_config.N_JOINTS)
-            count = 0
-            for ii in self.out_index:
-                self.u_adapt[ii] = u_adapt[count]
-                count += 1
+                u_adapt = self.adapt.generate(input_signal=self.adapt_input,
+                                         training_signal=self.training_signal)
 
-            # add adaptive signal to base controller
-            u = self.u_base + self.u_adapt
+                # create array of zeros, we will change the adaptive joints with
+                # their respective outputs. This just puts the adaptive output into
+                # the same shape as our base control
+                self.u_adapt = np.zeros(self.robot_config.N_JOINTS)
+                count = 0
+                for ii in self.out_index:
+                    self.u_adapt[ii] = u_adapt[count]
+                    count += 1
+
+                # add adaptive signal to base controller
+                u = self.u_base + self.u_adapt
+            else:
+                self.u_adapt = None
+                self.training_signal = None
 
             if self.avoid_limits:
                 # add in joint limit avoidance
@@ -353,16 +372,18 @@ class Training:
         # Get the last saved location in the database
         [self.run, self.session, location] = self.data_handler.last_save_location(
             session=self.session, run=self.run, test_name=self.test_name,
-            test_group=self.test_group, create=False)
+            test_group=self.test_group, create=True)
         if self.run is None:
             self.run = 0
         else:
             self.run += 1
+
         print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
             self.session, self.run))
 
-        # Get weight from adaptive population
-        self.data['weights'] = self.adapt.get_weights()
+        if self.use_adapt:
+            # Get weight from adaptive population
+            self.data['weights'] = self.adapt.get_weights()
 
         # Save test data
         self.data_handler.save_data(tracked_data=self.data, session=self.session,
@@ -376,8 +397,9 @@ class Training:
                 save_location=loc + self.ctrlr.params['source'], overwrite=overwrite, create=create)
 
         # Save dynamics_adaptation parameters
-        self.data_handler.save(data=self.adapt.params,
-                save_location=loc + self.adapt.params['source'], overwrite=overwrite, create=create)
+        if self.use_adapt:
+            self.data_handler.save(data=self.adapt.params,
+                    save_location=loc + self.adapt.params['source'], overwrite=overwrite, create=create)
 
         # Save robot_config parameters
         self.data_handler.save(data=self.robot_config.params,

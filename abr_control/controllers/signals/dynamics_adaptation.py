@@ -95,6 +95,11 @@ class DynamicsAdaptation(Signal):
                  probe_weights=False, debug_print=False, neuron_type='lif',
                  **kwargs):
 
+        if backend == 'nengo_cpu':
+            backend == 'nengo'
+        if backend == 'nengo_gpu':
+            backend == 'nengo_ocl'
+
         """ Create adaptive population with the provided parameters"""
         self.n_input = n_input
         self.n_output = n_output
