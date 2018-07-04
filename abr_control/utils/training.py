@@ -147,9 +147,12 @@ class Training:
 
         # load previous weights if they exist is None passed in
         if weights is None and self.use_adapt:
-            weights = self.data_handler.load_data(params=['weights'], session=self.session,
-                    run=self.run, test_group=self.test_group,
-                    test_name=self.test_name, create=True)
+            if run == 0:
+                weights = None
+            else:
+                weights = self.data_handler.load_data(params=['weights'], session=self.session,
+                        run=self.run-1, test_group=self.test_group,
+                        test_name=self.test_name, create=True)
 
         print('--Instantiate robot_config--')
         # instantiate our robot config
@@ -307,6 +310,11 @@ class Training:
             loop_time += end
             self.count += 1
 
+        print('--final--')
+        print('error: ', error)
+        print('dt: ', end)
+        print('adapt: ', self.u_adapt)
+
     def generate_u(self):
             # calculate the base operation space control signal
             self.u_base = self.ctrlr.generate(
@@ -381,7 +389,7 @@ class Training:
         print('Run number ', self.run)
         print('*******************')
 
-    def save_data(self):
+    def save_data(self, overwrite=True):
         print('--Saving run data--')
 
         print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
@@ -393,9 +401,10 @@ class Training:
 
         # Save test data
         self.data_handler.save_data(tracked_data=self.data, session=self.session,
-            run=self.run, test_name=self.test_name, test_group=self.test_group)
+            run=self.run, test_name=self.test_name, test_group=self.test_group,
+            overwrite=overwrite)
 
-    def save_parameters(self, overwrite=True, create=True):
+    def save_parameters(self, overwrite=True, create=True, custom_params=None):
         print('--Saving test parameters--')
         loc = '%s/%s/'%(self.test_group, self.test_name)
         # Save OSC parameters
@@ -414,3 +423,9 @@ class Training:
         # Save path planner parameters
         self.data_handler.save(data=self.path.params,
                 save_location=loc + self.path.params['source'], overwrite=overwrite, create=create)
+
+        # Save any extra parameters the user wants kept for the test at hand
+        if custom_params is not None:
+            self.data_handler.save(data=custom_params,
+                    save_location=loc + 'test_parameters', overwrite=overwrite,
+                    create=create)

@@ -56,14 +56,14 @@ disp_loc = []
 # sets whether to display data passed the group 'session'
 browse_datasets = False
 # list of possible plotting variables
-plotting_variables = ['q', 'dq', 'error', 'u', 'adapt', 'mean & ci']
+plotting_variables = ['q', 'dq', 'avg error', 'final error', 'u', 'adapt', 'mean & ci']
 global plotting_colors
 plotting_colors = []
 #data_processed = []
 # boolean that triggers when a test is added or removed from the plotting list
 update_plot = False
 # list of selected variables to plot
-var_to_plot = 'error'
+var_to_plot = 'avg error'
 last_plotted = var_to_plot
 # variable for toggling whether to save current figure
 save_figure = False
@@ -109,22 +109,26 @@ def live_plot(i):
 
             # if we're interested in plotting error, we will average the error over
             # a run and plot the average of each run
-            if var_to_plot == 'error':
+            if var_to_plot == 'avg error' or var_to_plot == 'final error':
                 # set location and legend label
                 location = '%ssession000/'%test
                 # get a list of keys in the current group
                 keys = dat.get_keys(location)
-                print('plotting error')
                 error = []
                 for entry in keys:
                     # only look through the keys that point to a run group
                     if 'run' in entry:
                         # append the average error of every run to plot the error
                         # change over runs
-                        d = dat.load(params=[var_to_plot],
+                        d = dat.load(params=['error'],
                                 save_location='%s%s'%(location,
                                 entry))
-                        d = np.mean(d[var_to_plot])
+                        if var_to_plot == 'avg error':
+                            print('plotting avg error')
+                            d = np.mean(d['error'])
+                        elif var_to_plot == 'final error':
+                            print('plotting final error')
+                            d = np.array(d['error'])[-1]
                         error.append(np.copy(d))
                 # set our plotting range
                 if max(error) > y_max:
@@ -203,12 +207,12 @@ def live_plot(i):
 
         for rm_test in tests_to_remove:
             disp_loc.remove(rm_test)
-        f.tight_layout()
+        #f.tight_layout()
         a.legend(legend_names, loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
         if var_to_plot != 'mean & ci':
-            plt.title(var_to_plot)
+            a.set_title(var_to_plot)
         if save_figure:
-            a.figure.savefig('default_figure.pdf')
+            a.figure.savefig('%s.pdf'%var_to_plot)
             save_figure = False
         update_plot = False
 
@@ -218,7 +222,9 @@ def save_figure_toggle(self):
     toggled to save the current figure
     """
     global save_figure
+    global update_plot
     save_figure = True
+    update_plot = True
     print('Figure Saved')
 
 def clear_plot(self):

@@ -96,9 +96,9 @@ class DynamicsAdaptation(Signal):
                  **kwargs):
 
         if backend == 'nengo_cpu':
-            backend == 'nengo'
+            backend = 'nengo'
         if backend == 'nengo_gpu':
-            backend == 'nengo_ocl'
+            backend = 'nengo_ocl'
 
         """ Create adaptive population with the provided parameters"""
         self.n_input = n_input
@@ -319,7 +319,7 @@ class DynamicsAdaptation(Signal):
             self.sim.async_run_forever()
 
         else:
-            raise Exception('Invalid backend specified')
+            raise Exception('Invalid backend specified: ', backend)
 
     @property
     def params(self):
