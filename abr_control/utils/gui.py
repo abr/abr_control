@@ -87,6 +87,8 @@ def live_plot(i):
     if update_plot:
         #TODO automatically update range if it is larger than the current max
         # clear our data before plotting
+        #TODO: don't delete disp loc if it doesn't contain the data, just don't
+        # show it
         a.clear()
         last_plotted = var_to_plot
         x_min = 0.0
@@ -176,8 +178,25 @@ def live_plot(i):
                     a.set_ylim(y_min, y_max)
                     a.plot(d)#, label=legend_name)
                 except TypeError:
-                    print('WARNING: %s%s does not contain the key %s'%(location, max_key,
-                      var_to_plot))
+                    #TODO: find a better solution than the double try statement
+                    try:
+                        if var_to_plot == 'u':
+                            d = dat.load(params=['u_base'],
+                                    save_location='%s%s'%(location, max_key))
+                            d = np.array(d['u_base'])
+                            # set our plotting limits
+                            if np.max(d) > y_max:
+                                y_max = np.max(d)
+                            if np.min(d) < y_min:
+                                y_min = np.min(d)
+                            if len(d) > x_max:
+                                x_max = len(d)
+                            a.set_xlim(x_min, x_max)
+                            a.set_ylim(y_min, y_max)
+                            a.plot(d)
+                    except TypeError:
+                        print('WARNING: %s%s does not contain the key %s'%(location, max_key,
+                          var_to_plot))
 
 
 
@@ -576,7 +595,8 @@ class SearchPage(tk.Frame):
         self.update_list()
 
     def data_processed(self, loc, *args):
-        if any('proc_data' in group for group in dat.get_keys(loc)):
+        search = dat.get_keys(loc)
+        if search is not None and any('proc_data' in group for group in search):
             if any(order_to_plot in group for group in dat.get_keys('%s/proc_data'%loc)):
                 #print('%s found in %s'%(order_to_plot, loc))
                 return True

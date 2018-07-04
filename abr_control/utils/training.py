@@ -126,8 +126,22 @@ class Training:
         self.test_group = test_group
         self.test_name = test_name
         self.avoid_limits = avoid_limits
-        print("RUN PASSED IN IS: ", self.run)
 
+        if self.run is None or self.session is None:
+            # Get the last saved location in the database
+            [run, session, location] = self.data_handler.last_save_location(
+                session=self.session, run=self.run, test_name=self.test_name,
+                test_group=self.test_group, create=True)
+            if run is None:
+                run = 0
+
+            if self.run is None:
+                self.run = run
+            if self.session is None:
+                self.session = session
+
+        print('RUN: ', self.run)
+        print('SESSION: ', self.session)
         # instantiate our data handler for saving and load
         self.data_handler = DataHandler(use_cache=True, db_name=db_name)
 
@@ -369,14 +383,6 @@ class Training:
 
     def save_data(self):
         print('--Saving run data--')
-        # Get the last saved location in the database
-        [self.run, self.session, location] = self.data_handler.last_save_location(
-            session=self.session, run=self.run, test_name=self.test_name,
-            test_group=self.test_group, create=True)
-        if self.run is None:
-            self.run = 0
-        else:
-            self.run += 1
 
         print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
             self.session, self.run))
