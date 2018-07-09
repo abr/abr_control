@@ -505,5 +505,12 @@ class DataHandler():
     def delete(self, path):
         #TODO: this needs a lot of work, add checks to see if path exists, some
         # feature to double check user is sure, maybe a backup function?
+        #TODO: Add something like a recycling bin so you can undo a delete
         db = h5py.File(self.db_loc, 'a')
         del db[path]
+
+    def rename(self, old, new, delete_old=True):
+        db = h5py.File(self.db_loc, 'a')
+        db[new] = db[old]
+        if delete_old:
+            del db[old]

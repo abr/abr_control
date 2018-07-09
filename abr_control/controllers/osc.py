@@ -156,8 +156,8 @@ class OSC(controller.Controller):
             else:
                 scale = np.ones(3, dtype='float32')
 
-            dx = np.dot(J, dq)
-            u_task[:3] = -self.kv * (dx - target_vel -
+            self.dx = np.dot(J, dq)
+            u_task[:3] = -self.kv * (self.dx - target_vel -
                                      np.clip(sat / scale, 0, 1) *
                                      -self.lamb * scale * x_tilde)
             # low level signal set to zero

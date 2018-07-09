@@ -150,7 +150,6 @@ def live_plot(i):
                     pltE.plot_data(data=[d], show_plot=False, fig_obj=a,
                             colors=[plotting_colors[count]],
                             legend_labels=None, fig_title = '%s error'%(order_to_plot))
-                    print('%s contains shit'%location)
                 except:
                     print('%s does not contain processed data'%location)
                     tests_to_remove.append(test)
@@ -392,11 +391,20 @@ class SearchPage(tk.Frame):
         self.configure(background=background_color)
 
         # create a left and right frame to simplify organization of grid
-        frame_left = tk.Frame(self,parent)
+        frame_top = tk.Frame(self,parent)
+        frame_top.grid(row=0,column=0, padx=10)
+        frame_top.configure(background=background_color)
+
+        # the bottom frame will be used for the parameter comparison table
+        self.frame_bottom = tk.Frame(self,parent)
+        self.frame_bottom.grid(row=0,column=0, padx=10)
+        self.frame_bottom.configure(background=background_color)
+
+        frame_left = tk.Frame(self,frame_top)
         frame_left.grid(row=0,column=0, padx=10)
         frame_left.configure(background=background_color)
 
-        frame_right = tk.Frame(self,parent)
+        frame_right = tk.Frame(self,frame_top)
         frame_right.grid(row=0,column=2, padx=10)
         frame_right.configure(background=background_color)
 
@@ -599,6 +607,7 @@ class SearchPage(tk.Frame):
         # search bar
         #else:
         self.update_list()
+        #self.show_params()
 
     def data_processed(self, loc, *args):
         search = dat.get_keys(loc)
@@ -635,6 +644,40 @@ class SearchPage(tk.Frame):
                 if self.data_processed(loc=search):
                     #print('DATA CONTAINS PROC DATA!')
                     self.lbox.itemconfig(ii, bg=secondary_bg, foreground=secondary_text)
+
+    def show_params(self, *args):
+        module_button = []
+        module_list = []
+        group = ''.join(loc)
+        print('1 group: ', group)
+        tests = dat.get_keys(group)
+        for test in tests:
+            print('2 test: ', test)
+            test_group = '%s%s'%(group,test)
+            keys = dat.get_keys(test_group)
+            print('3 test group: ', test_group)
+            if any('parameters' in key for key in keys):
+                print('4: contains parameters')
+                test_modules = '%s/parameters'%test_group
+                print('5: test modules ', test_modules)
+                modules = dat.get_keys(test_modules)
+                print('**************')
+                print('6: ', test)
+                for ii, module in enumerate(modules):
+                    if module not in module_list:
+                        module_list.append(module)
+                        module_button.append(tk.Button(self.frame_bottom, text=module))
+                        module_button.grid(row=0, column=ii)#, sticky='nsew')
+                        module_button.configure(foreground=button_text_color,
+                                background=button_color)
+                    print('7: ', module)
+                    test_params = '%s/%s'%(test_modules,module)
+                    print('8 test params: ', test_params)
+                    params = dat.get_keys(test_params)
+                    data = dat.load(params=params, save_location=test_params)
+                    for param in params:
+                        print('%s: %s' %(param, data[param]))
+
 
 app = Page()
 #app.geometry("1280x720")

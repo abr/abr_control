@@ -22,7 +22,7 @@ class Training:
             run=None, weights=None, pes_learning_rate=1e-6, backend=None,
             offset=None, kp=20, kv=6, ki=0, seed=None, SCALES=None, MEANS=None,
             probe_weights=True, avoid_limits=True, neuron_type='lif',
-            db_name=None):
+            db_name=None, vmax=1):
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The
@@ -157,7 +157,8 @@ class Training:
         print('--Instantiate robot_config--')
         # instantiate our robot config
         self.robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True,
-                SCALES=SCALES, MEANS=MEANS, init_all=True, offset=offset)
+                SCALES=SCALES, MEANS=MEANS, init_all=True, offset=offset,
+                mass_multiplier=1)
 
         if offset is None:
             self.OFFSET = self.robot_config.OFFSET
@@ -185,13 +186,13 @@ class Training:
         print('--Instantiate OSC controller--')
         # instantiate operational space controller
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
-                vmax=1, null_control=True)
+                vmax=vmax, null_control=True)
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
         self.path = path_planners.SecondOrder(robot_config=self.robot_config,
-                n_timesteps=4000, w=1e4, zeta=2, threshold=0.05)
-        self.dt = 0.003
+                n_timesteps=4000, w=1e4, zeta=3, threshold=0.05)
+        self.dt = 0.004
 
         if self.avoid_limits:
             print('--Instantiate joint avoidance--')
@@ -211,7 +212,7 @@ class Training:
         self.data = {'q': [], 'dq': [], 'u_base': [], 'u_adapt': [],
                      'error':[], 'training_signal': [], 'target': [],
                      'ee_xyz': [], 'input_signal': [], 'filter': [],
-                     'time': [], 'weights': [], 'u_avoid': []}
+                     'time': [], 'weights': [], 'u_avoid': [], 'osc_dx': []}
         self.count = 0
 
         self.adapt_input = np.array(adapt_input)
@@ -301,6 +302,7 @@ class Training:
             self.data['target'].append(np.copy(target_xyz))
             self.data['ee_xyz'].append(np.copy(ee_xyz))
             self.data['filter'].append(np.copy(self.target))
+            self.data['osc_dx'].append(np.copy(self.ctrlr.dx))
 
             if self.count % 1000 == 0:
                 print('error: ', error)
@@ -326,9 +328,9 @@ class Training:
 
             # account for uneven stiction in jaco2 base
             if self.u_base[0] > 0:
-                self.u_base[0] *= 3.0
+                self.u_base[0] *= 5.0
             else:
-                self.u_base[0] *= 2.0
+                self.u_base[0] *= 5.0
 
             u = self.u_base
 
@@ -406,7 +408,7 @@ class Training:
 
     def save_parameters(self, overwrite=True, create=True, custom_params=None):
         print('--Saving test parameters--')
-        loc = '%s/%s/'%(self.test_group, self.test_name)
+        loc = '%s/%s/parameters/'%(self.test_group, self.test_name)
         # Save OSC parameters
         self.data_handler.save(data=self.ctrlr.params,
                 save_location=loc + self.ctrlr.params['source'], overwrite=overwrite, create=create)

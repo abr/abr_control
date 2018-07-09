@@ -94,8 +94,12 @@ class ProcessData():
 
         return scaled_data
 
-    def generate_ideal_path(self, reaching_time, target_xyz, start_xyz):
+    def generate_ideal_path(self, reaching_time, target_xyz, start_xyz, vmax=1,
+            kp=20, kv=8, dt=0.005):
 
+        #TODO: add a check to make sure that target is passed in as a list of
+        #lists, even if one target is passed it should be [[x,y,z]] or else it
+        #doesn't generate correctly
         if target_xyz is None:
             print('ERROR: Must provide target(s)')
         x_track = []
@@ -119,30 +123,30 @@ class ProcessData():
             [0, 0, 1]])
 
         # interpolation sampling rate
-        dt = 0.005
         timesteps = int(reaching_time / dt)
         # print('time steps: ', timesteps)
 
-        vmax = 1
-        kp = 20
-        kv = 8
         lamb = kp / kv
 
         path = path_planners.SecondOrder(
-                None, w=1e4, zeta=2, threshold=0.05)
+                None, w=1e4, zeta=3, threshold=0.05)
 
         for ii, target in enumerate(target_xyz):
             u = np.zeros(3)
             # print('II: ', ii)
 
+            state=np.hstack((target, np.zeros(3)))
             for t in range(timesteps):
                 # track trajectory
                 x_track.append(np.copy(x))
                 u_track.append(np.copy(u))
 
+                # print('target: ', np.hstack((target,np.zeros(3))))
+                # print('target pos: ', target)
+                # print('dt: ', dt)
                 temp_target = path.step(
-                    state=np.hstack((target, np.zeros(3))),
-                    target_pos=target, dt=0.003)
+                    state=state,
+                    target_pos=target, dt=dt)
 
                 # calculate the position error
                 x_tilde = np.array(x[:3] - temp_target[:3])
@@ -173,6 +177,12 @@ class ProcessData():
         #print('N POINTS',n_points)
         t_track = np.ones(n_points) * runtime/n_points
 
+        # import matplotlib
+        # matplotlib.use("TkAgg")
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # plt.plot(x_track[:,3:])
+        # plt.show()
         return [t_track, x_track]
 
     def filter_data(self, data, alpha=0.2):
