@@ -115,6 +115,7 @@ def live_plot(i):
                 # get a list of keys in the current group
                 keys = dat.get_keys(location)
                 error = []
+                final_errs = []
                 for entry in keys:
                     # only look through the keys that point to a run group
                     if 'run' in entry:
@@ -124,12 +125,14 @@ def live_plot(i):
                                 save_location='%s%s'%(location,
                                 entry))
                         if var_to_plot == 'avg error':
-                            print('plotting avg error')
                             d = np.mean(d['error'])
                         elif var_to_plot == 'final error':
-                            print('plotting final error')
                             d = np.array(d['error'])[-1]
+                            final_errs.append(d)
                         error.append(np.copy(d))
+                if var_to_plot == 'final error':
+                    final_errs = np.sum(final_errs)
+                    print('Final error sum %s: '%test, final_errs)
                 # set our plotting range
                 if max(error) > y_max:
                     y_max = max(error)
@@ -397,7 +400,7 @@ class SearchPage(tk.Frame):
 
         # the bottom frame will be used for the parameter comparison table
         self.frame_bottom = tk.Frame(self,parent)
-        self.frame_bottom.grid(row=0,column=0, padx=10)
+        self.frame_bottom.grid(row=1,column=0, padx=10)
         self.frame_bottom.configure(background=background_color)
 
         frame_left = tk.Frame(self,frame_top)
@@ -656,27 +659,28 @@ class SearchPage(tk.Frame):
             test_group = '%s%s'%(group,test)
             keys = dat.get_keys(test_group)
             print('3 test group: ', test_group)
-            if any('parameters' in key for key in keys):
-                print('4: contains parameters')
-                test_modules = '%s/parameters'%test_group
-                print('5: test modules ', test_modules)
-                modules = dat.get_keys(test_modules)
-                print('**************')
-                print('6: ', test)
-                for ii, module in enumerate(modules):
-                    if module not in module_list:
-                        module_list.append(module)
-                        module_button.append(tk.Button(self.frame_bottom, text=module))
-                        module_button.grid(row=0, column=ii)#, sticky='nsew')
-                        module_button.configure(foreground=button_text_color,
-                                background=button_color)
-                    print('7: ', module)
-                    test_params = '%s/%s'%(test_modules,module)
-                    print('8 test params: ', test_params)
-                    params = dat.get_keys(test_params)
-                    data = dat.load(params=params, save_location=test_params)
-                    for param in params:
-                        print('%s: %s' %(param, data[param]))
+            if keys is not None:
+                if any('parameters' in key for key in keys):
+                    print('4: contains parameters')
+                    test_modules = '%s/parameters'%test_group
+                    print('5: test modules ', test_modules)
+                    modules = dat.get_keys(test_modules)
+                    print('**************')
+                    print('6: ', test)
+                    for ii, module in enumerate(modules):
+                        if module not in module_list:
+                            module_list.append(module)
+                            module_button.append(tk.Button(self.frame_bottom, text=module))
+                            module_button[-1].grid(row=0, column=ii)#, sticky='nsew')
+                            module_button[-1].configure(foreground=button_text_color,
+                                    background=button_color)
+                        print('7: ', module)
+                        test_params = '%s/%s'%(test_modules,module)
+                        print('8 test params: ', test_params)
+                        params = dat.get_keys(test_params)
+                        data = dat.load(params=params, save_location=test_params)
+                        for param in params:
+                            print('%s: %s' %(param, data[param]))
 
 
 app = Page()

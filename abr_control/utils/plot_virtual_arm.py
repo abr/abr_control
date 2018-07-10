@@ -13,7 +13,8 @@ session = 0
 #run = 2
 rc = abr_jaco2.Config(use_cython=True, hand_attached=True, init_all=True,
         offset=None)
-offset = rc.OFFSET
+#offset = rc.OFFSET
+offset=[0,0,0]
 rc.init_all()
 
 q_t = []

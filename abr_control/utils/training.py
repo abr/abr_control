@@ -327,10 +327,11 @@ class Training:
                 offset = self.OFFSET)
 
             # account for uneven stiction in jaco2 base
-            if self.u_base[0] > 0:
-                self.u_base[0] *= 5.0
-            else:
-                self.u_base[0] *= 5.0
+            self.u_base[0] *= 5.0
+            # if self.u_base[0] > 0:
+            #     self.u_base[0] *= 5.0
+            # else:
+            #     self.u_base[0] *= 5.0
 
             u = self.u_base
 

@@ -6,8 +6,8 @@ import matplotlib
 matplotlib.use("TKAgg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
-test_group = 'base_control_tuning'
-test_name = 'pd34'
+test_group = '1lb_random_target'
+test_name = 'pd_no_weight_7'
 session = 0
 run = 1
 dt = 0.004
