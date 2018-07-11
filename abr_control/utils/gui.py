@@ -27,6 +27,16 @@ from terminaltables import AsciiTable
 dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
 pltE = PlotError()
 
+# colors for terminal tables
+class bcolors():
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW= '\033[93m'
+    RED = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 # set some constants
 LARGE_FONT = ("Verdana", 20)
 MED_FONT = ("Verdana", 10)
@@ -704,31 +714,57 @@ class SearchPage(tk.Frame):
         param_to_compare = self.param_to_compare_selection.get()
         # get selected module parameters and print them out
         if param_to_compare is not None:
+
             names = []
             test_data = []
+            test_params = []
+
             for name in disp_loc:
+                # extract the test names from the display locations
                 names.append(name.split('/')[-2])
+
             for ii, test in enumerate(disp_loc):
                 module_loc = '%s/parameters/%s'%(test, param_to_compare)
-                temp_data_list = []
-                # TODO: need to add more stringent testing instead of try except
+                # get keys and append them to our list if they are not already
+                # added
                 try:
                     module_keys = dat.get_keys(module_loc)
-                    if ii == 0:
-                        table_header = ['Test Name'] + module_keys
-                    module_data = dat.load(params=module_keys, save_location=module_loc)
                     for jj, key in enumerate(module_keys):
-                        if jj == 0:
-                            temp_data_list.append(names[ii])
-                        temp_data_list.append(module_data[key])
-
+                        if key not in test_params:
+                            test_params.append(key)
+                    # load the parameter dictionary and save it
+                    module_data = dat.load(params=module_keys, save_location=module_loc)
+                    test_data.append(module_data)
                 except:
-                    print('%s is missing %s module data'
-                            %(test,param_to_compare))
-                test_data.append(temp_data_list)
+                    test_data.append({})
+
             table_data = []
+            table_header = ['Test Name'] + test_params
+
+            # set the table header colour
+            for mm, header in enumerate(table_header):
+                table_header[mm] = bcolors.HEADER + header + bcolors.ENDC
+
+            # extract the data from the dictionaries
+            formatted_data = []
+            for ii, test_dict in enumerate(test_data):
+                temp_data = []
+                for key in test_params:
+                    try:
+                        data = test_dict[key]
+                        # compare to the first test in the list to highlight
+                        # differences
+                        #TODO: BUG if the first test does not have the key entry
+                        #then the data will be set to None even though it exists
+                        if ii > 0 and np.all(test_data[0][key] != data):
+                            data = '%s%s%s' %(bcolors.YELLOW, data, bcolors.ENDC)
+                    except KeyError:
+                        data = '%sNone%s' %(bcolors.RED, bcolors.ENDC)
+                    temp_data.append(data)
+                formatted_data.append([names[ii]] + temp_data)
+
             table_data.append(table_header)
-            for row in test_data:
+            for row in formatted_data:
                 table_data.append(row)
             table = AsciiTable(table_data)
             print(table.table)
