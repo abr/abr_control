@@ -21,6 +21,8 @@ from PIL import Image, ImageTk
 import numpy as np
 from abr_control.utils import DataHandler, PlotError
 
+from terminaltables import AsciiTable
+
 # import data handler
 dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
 pltE = PlotError()
@@ -56,7 +58,9 @@ disp_loc = []
 # sets whether to display data passed the group 'session'
 browse_datasets = False
 # list of possible plotting variables
-plotting_variables = ['q', 'dq', 'avg error', 'final error', 'u', 'adapt', 'mean & ci']
+#TODO: need to rename old data that uses 'u' and 'adapt' instead of 'u_base'
+# and 'u_adapt'
+plotting_variables = ['time', 'q', 'dq', 'avg error', 'final error', 'u_base', 'u_adapt', 'mean & ci']
 global plotting_colors
 plotting_colors = []
 #data_processed = []
@@ -70,6 +74,8 @@ save_figure = False
 orders_of_error = ['position', 'velocity', 'acceleration', 'jerk']
 global order_to_plot
 order_to_plot = 'position'
+global param_to_compare
+param_to_compare = None
 
 def live_plot(i):
     """
@@ -97,10 +103,11 @@ def live_plot(i):
         y_max = 0.1
         # cycle through selected tests to plot
         legend_names = []
-        print('STARTING DISP: ', disp_loc)
+        #print('STARTING DISP: ', disp_loc)
         tests_to_remove = []
         for count, test in enumerate(disp_loc):
-            print(count, ' : ', test)
+            #print(count, ' : ', test)
+
             if count+1 > len(plotting_colors):
                 plotting_colors.append(np.around(np.random.rand(3,1), decimals=1))
             legend_name = test.split('/')[-2]
@@ -502,6 +509,11 @@ class SearchPage(tk.Frame):
                 var_to_plot_radio.configure(background=button_color,
                         foreground=button_text_color)
 
+        # variable to track which parameters to compare
+        self.param_to_compare_selection = tk.StringVar()
+        self.param_to_compare_selection.set(None)
+
+        # variable to track what order of error to plot
         self.order_to_plot = tk.StringVar()
         self.order_to_plot.set(order_to_plot)
         self.order_radio_button = []
@@ -550,12 +562,12 @@ class SearchPage(tk.Frame):
         # get cursor selection and update db search location
         index = int(self.lbox.curselection()[0])
         value = self.lbox.get(index)
-        print('You selected item %d: "%s"' % (index, value))
+        # print('You selected item %d: "%s"' % (index, value))
         # append the most recent selection to our search location
         loc.append('%s/'%value)
 
         # check if we're pointing at a dataset, if so go back one level
-        print('FIRST ATTEMPT TO LOAD: ', ''.join(loc))
+        # print('FIRST ATTEMPT TO LOAD: ', ''.join(loc))
         keys = dat.get_keys(''.join(loc))
         # if keys are None, then we are pointing at a dataset
         if keys is None:
@@ -602,7 +614,7 @@ class SearchPage(tk.Frame):
                     disp_loc.append(''.join(loc))
                     #data_processed.append(processed)
 
-                print("CURRENT DISPLAY LIST: ", disp_loc)
+                #print("CURRENT DISPLAY LIST: ", disp_loc)
                 update_plot = True
                 go_back_loc_level(self)
 
@@ -610,7 +622,7 @@ class SearchPage(tk.Frame):
         # search bar
         #else:
         self.update_list()
-        #self.show_params()
+        self.show_params()
 
     def data_processed(self, loc, *args):
         search = dat.get_keys(loc)
@@ -652,36 +664,74 @@ class SearchPage(tk.Frame):
         module_button = []
         module_list = []
         group = ''.join(loc)
-        print('1 group: ', group)
+        #print('1 group: ', group)
         tests = dat.get_keys(group)
         for test in tests:
-            print('2 test: ', test)
+            #print('2 test: ', test)
             test_group = '%s%s'%(group,test)
             keys = dat.get_keys(test_group)
-            print('3 test group: ', test_group)
+            #print('3 test group: ', test_group)
             if keys is not None:
                 if any('parameters' in key for key in keys):
-                    print('4: contains parameters')
+                    #print('4: contains parameters')
                     test_modules = '%s/parameters'%test_group
-                    print('5: test modules ', test_modules)
+                    #print('5: test modules ', test_modules)
                     modules = dat.get_keys(test_modules)
-                    print('**************')
-                    print('6: ', test)
+                    #print('**************')
+                    #print('6: ', test)
                     for ii, module in enumerate(modules):
                         if module not in module_list:
                             module_list.append(module)
-                            module_button.append(tk.Button(self.frame_bottom, text=module))
-                            module_button[-1].grid(row=0, column=ii)#, sticky='nsew')
-                            module_button[-1].configure(foreground=button_text_color,
-                                    background=button_color)
-                        print('7: ', module)
+                            module_button.append(tk.Radiobutton(self.frame_bottom,
+                                text=module,
+                                variable=self.param_to_compare_selection,
+                                value=module, command=lambda:
+                                self.update_param_to_compare(self)))
+                        #print('7: ', module)
                         test_params = '%s/%s'%(test_modules,module)
-                        print('8 test params: ', test_params)
+                        #print('8 test params: ', test_params)
                         params = dat.get_keys(test_params)
                         data = dat.load(params=params, save_location=test_params)
-                        for param in params:
-                            print('%s: %s' %(param, data[param]))
+                        # for param in params:
+                        #     print('%s: %s' %(param, data[param]))
+        for ii, button in enumerate(module_button):
+            button.grid(row=int(np.floor(ii/3)), column=ii%3, sticky='ew')
+            button.configure(foreground=button_text_color,
+                    background=button_color)
 
+    def update_param_to_compare(self, *args):
+        global param_to_compare
+        param_to_compare = self.param_to_compare_selection.get()
+        # get selected module parameters and print them out
+        if param_to_compare is not None:
+            names = []
+            test_data = []
+            for name in disp_loc:
+                names.append(name.split('/')[-2])
+            for ii, test in enumerate(disp_loc):
+                module_loc = '%s/parameters/%s'%(test, param_to_compare)
+                temp_data_list = []
+                # TODO: need to add more stringent testing instead of try except
+                try:
+                    module_keys = dat.get_keys(module_loc)
+                    if ii == 0:
+                        table_header = ['Test Name'] + module_keys
+                    module_data = dat.load(params=module_keys, save_location=module_loc)
+                    for jj, key in enumerate(module_keys):
+                        if jj == 0:
+                            temp_data_list.append(names[ii])
+                        temp_data_list.append(module_data[key])
+
+                except:
+                    print('%s is missing %s module data'
+                            %(test,param_to_compare))
+                test_data.append(temp_data_list)
+            table_data = []
+            table_data.append(table_header)
+            for row in test_data:
+                table_data.append(row)
+            table = AsciiTable(table_data)
+            print(table.table)
 
 app = Page()
 #app.geometry("1280x720")
