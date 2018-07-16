@@ -2,9 +2,12 @@ from abr_control.utils import Target
 import numpy as np
 
 targets = []
-for ii in range(0,1000):
-    targets.append(np.copy(Target.random_target(
-        r=[0.4, 0.8], theta=[0.57, 6.2], phi=[2.1, 4.21])))
+# for ii in range(0,1000):
+#     targets.append(np.copy(Target.random_target(
+#         r=[0.4, 0.8], theta=[0.57, 6.2], phi=[2.1, 4.21])))
+from abr_control.utils import DataHandler
+dat = DataHandler(db_name='dewolf2018neuromorphic')
+targets=dat.load(['autogen_targets'],'1lb_random_target')['autogen_targets'][10:20]
 
 import matplotlib
 matplotlib.use("TKAgg")
@@ -28,6 +31,19 @@ z = targets[:,2]
 #         print('-----------')
 #         print('x: ', x[ii], '\ntheta: ', theta[ii], '\nphi: ', phi[ii])
 ax.scatter(x,y,z,c='r',marker='o')
+for angle in range(0, 360, 2):
+    print('%.2f complete'%(angle/360*100), end='\r')
+    ax.view_init(30, angle)
+    plt.savefig('figures/gif_figs/%05d'%angle)
+bashCommand = ("convert -delay 5 -loop 0 -deconstruct -quantize"
+               + " transparent -layers optimize -resize 1200x2000"
+               + " figures/gif_figs/*.png figures/gif_figs/targets.gif")
+print('100.00% complete')
+print('Creating gif...')
+import subprocess
+process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+print('Finished')
 plt.show()
 # for target in targets:
 #     print('target:', target)

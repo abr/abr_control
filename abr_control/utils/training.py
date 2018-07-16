@@ -121,6 +121,33 @@ class Training:
         else:
             self.use_adapt = True
 
+        self.params = {'source': 'training',
+                  'adapt_input': adapt_input,
+                  'adapt_output': adapt_output,
+                  'n_neurons': n_neurons,
+                  'n_ensembles': n_ensembles,
+                  'test_group': test_group,
+                  'test_name': test_name,
+                  'session': session,
+                  'run': run,
+                  'weights': weights,
+                  'pes_learning_rate': pes_learning_rate,
+                  'backend': backend,
+                  'offset': offset,
+                  'kp': kp,
+                  'kv': kv,
+                  'ki': ki,
+                  'seed': seed,
+                  'SCALES_q': SCALES['q'],
+                  'SCALES_dq': SCALES['dq'],
+                  'MEANS_q': MEANS['q'],
+                  'MEANS_dq': MEANS['dq'],
+                  'probe_weights': probe_weights,
+                  'avoid_limits': avoid_limits,
+                  'neuron_type': neuron_type,
+                  'db_name': db_name,
+                  'vmax': vmax}
+
         self.run = run
         self.session = session
         self.test_group = test_group
@@ -426,6 +453,10 @@ class Training:
         # Save path planner parameters
         self.data_handler.save(data=self.path.params,
                 save_location=loc + self.path.params['source'], overwrite=overwrite, create=create)
+
+        # Save training parameters
+        self.data_handler.save(data=self.params,
+                save_location=loc + self.params['source'], overwrite=overwrite, create=create)
 
         # Save any extra parameters the user wants kept for the test at hand
         if custom_params is not None:

@@ -16,6 +16,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 import matplotlib.animation as animation
 from matplotlib import style
+import seaborn
 from PIL import Image, ImageTk
 
 import numpy as np
@@ -70,7 +71,10 @@ browse_datasets = False
 # list of possible plotting variables
 #TODO: need to rename old data that uses 'u' and 'adapt' instead of 'u_base'
 # and 'u_adapt'
-plotting_variables = ['time', 'q', 'dq', 'avg error', 'final error', 'u_base', 'u_adapt', 'mean & ci']
+plotting_variables = ['time', 'q', 'dq', 'avg error', 'final error', 'u_base',
+    'u_adapt', 'mean & ci',
+    #'activity_over_time', 'proportion_active'
+    ]
 global plotting_colors
 plotting_colors = []
 #data_processed = []
@@ -121,7 +125,7 @@ def live_plot(i):
             if count+1 > len(plotting_colors):
                 plotting_colors.append(np.around(np.random.rand(3,1), decimals=1))
             legend_name = test.split('/')[-2]
-            legend_name += ' %s'%var_to_plot
+            #legend_name += ' %s'%var_to_plot
             legend_names.append(legend_name)
 
             # if we're interested in plotting error, we will average the error over
@@ -133,6 +137,7 @@ def live_plot(i):
                 keys = dat.get_keys(location)
                 error = []
                 final_errs = []
+                avg_errs = []
                 for entry in keys:
                     # only look through the keys that point to a run group
                     if 'run' in entry:
@@ -143,12 +148,19 @@ def live_plot(i):
                                 entry))
                         if var_to_plot == 'avg error':
                             d = np.mean(d['error'])
+                            avg_errs.append(np.copy(d))
                         elif var_to_plot == 'final error':
                             d = np.array(d['error'])[-1]
                             final_errs.append(d)
                         error.append(np.copy(d))
+
+                if var_to_plot == 'avg error':
+                    avg_errs = np.mean(avg_errs)
+                    legend_names[count] += '|mean: %s'%avg_errs
+                    print('Final error sum %s: '%test, final_errs)
                 if var_to_plot == 'final error':
                     final_errs = np.sum(final_errs)
+                    legend_names[count] += '|sum: %s'%final_errs
                     print('Final error sum %s: '%test, final_errs)
                 # set our plotting range
                 if max(error) > y_max:
@@ -173,6 +185,23 @@ def live_plot(i):
                 except:
                     print('%s does not contain processed data'%location)
                     tests_to_remove.append(test)
+
+            # elif var_to_plot == 'activity_over_time':
+            #     # set location and legend label
+            #     location = '%ssession000/'%test
+            #     # get a list of keys in the current group
+            #     keys = dat.get_keys(location)
+            #     print('plotting %s' %var_to_plot)
+            #     # get the highest numbered run group
+            #     max_key = max([key for key in keys if 'run' in key])
+            #     d = dat.load(params=[var_to_plot, 'time', 'activity'],
+            #             save_location='%s%s'%(location, max_key))
+            #     activity_over_time = d[var_to_plot][0]
+            #     activity = d['activity'][0]
+            #     time = d['time']
+            #     plt.plot(np.arange(activity.shape[0])*np.cumsum(time),
+            #             activity_over_time)
+
 
             # if we're not plotting error, then every other dataset will have
             # dim=N_JOINTS so we will plot the data from the final run of the
@@ -671,6 +700,8 @@ class SearchPage(tk.Frame):
                     self.lbox.itemconfig(ii, bg=secondary_bg, foreground=secondary_text)
 
     def show_params(self, *args):
+        #TODO: need to remove module buttons if parameters groups don't exist
+        # in the current directory
         module_button = []
         module_list = []
         group = ''.join(loc)
