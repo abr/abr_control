@@ -121,6 +121,14 @@ class Training:
         else:
             self.use_adapt = True
 
+        # hdf5 has no type None so an error is raised for runs where None
+        # weights are passed in. This get's handled on the dynamics adaptation
+        # side, but at this point they will be None. This is added to avoid the
+        # hdf5 error
+        if weights is None:
+            saved_input_weights = 'None'
+        else:
+            saved_input_weights = weights
         self.params = {'source': 'training',
                   'adapt_input': adapt_input,
                   'adapt_output': adapt_output,
@@ -130,7 +138,7 @@ class Training:
                   'test_name': test_name,
                   'session': session,
                   'run': run,
-                  'weights': weights,
+                  'weights': saved_input_weights,
                   'pes_learning_rate': pes_learning_rate,
                   'backend': backend,
                   'offset': offset,

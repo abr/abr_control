@@ -116,6 +116,7 @@ class DynamicsAdaptation(Signal):
         self.send_redis_spikes = send_redis_spikes
         self.encoders = encoders
         self.probe_weights = probe_weights
+        self.zero_weights = False
 
         self.input_signal = np.zeros(self.n_input)
         self.training_signal = np.zeros(self.n_output)
@@ -167,14 +168,14 @@ class DynamicsAdaptation(Signal):
 
             self.adapt_ens = []
             self.conn_learn = []
-
             for ii in range(self.n_ensembles):
                 self.adapt_ens.append(nengo.Ensemble(n_neurons=self.n_neurons,
                                            dimensions=self.n_input,
                                            intercepts=self.intercepts,
                                            radius=np.sqrt(self.n_input),
                                            **kwargs))
-                print('*** ENSEMBLE %i ***' % ii)
+                if ii == 0:
+                    print('==========\n %i Ensembles' % self.n_ensembles)
 
                 try:
                     # if the NengoLib is installed, use it
@@ -183,13 +184,16 @@ class DynamicsAdaptation(Signal):
                     if self.encoders is None:
                         self.adapt_ens[ii].encoders = (
                             nengolib.stats.ScatteredHypersphere(surface=True))
-                        print('NengoLib used to optimize encoders placement')
+                        if ii==0:
+                            print('NengoLib used to optimize encoders placement')
                     else:
                         self.adapt_ens[ii].encoders = self.encoders
-                        print('Using user defined encoder values')
+                        if ii==0:
+                            print('Using user defined encoder values')
                 except ImportError:
-                    print('Nengo lib not installed, encoder ' +
-                          'placement will be sub-optimal.')
+                    if ii==0:
+                        print('Nengo lib not installed, encoder ' +
+                              'placement will be sub-optimal.')
 
                 # hook up input signal to adaptive population to provide context
                 nengo.Connection(input_signals, self.adapt_ens[ii])
@@ -197,17 +201,24 @@ class DynamicsAdaptation(Signal):
                 # load weights from file if they exist, otherwise use zeros
                 if self.weights_file == '~':
                     self.weights_file = os.path.expanduser(self.weights_file)
-                print('Backend: ', self.backend)
-                print('Weights file: %s' % self.weights_file)
+                if ii==0:
+                    print('Backend: ', self.backend)
+                    print('Shape of weights file: ',
+                            np.array(self.weights_file).shape)
+                    print('Weights file: %s' % self.weights_file)
                 if not os.path.isfile('%s' % self.weights_file):
-                    print('No weights found, starting with zeros')
-                    transform = np.zeros((self.n_output,
-                        self.adapt_ens[ii].n_neurons))
+                    if not isinstance(self.weights_file, dict):
+                        if ii==0:
+                            print('No weights found, starting with zeros')
+                        transform = np.zeros((self.n_output,
+                            self.adapt_ens[ii].n_neurons))
+                        self.zero_weights = True
 
                 # set up learning connections
                 if self.function is not None and (self.weights_file is None or
                         self.weights_file is ''):
-                    print("Using provided function to bootstrap learning")
+                    if ii==0:
+                        print("Using provided function to bootstrap learning")
                     eval_points = Concatenate([nengo.dists.Choice([0]), nengo.dists.Choice([0]),
                         nengo.dists.Uniform(-1, 1), nengo.dists.Uniform(-1, 1)])
                     self.conn_learn.append(nengo.Connection(
@@ -223,12 +234,15 @@ class DynamicsAdaptation(Signal):
                                 transform = np.squeeze(np.load(self.weights_file)['weights']).T
                             else:
                                 transform = np.squeeze(np.load(self.weights_file)['weights'])[ii].T
-                            print('Loading weights: \n', transform)
-                            print('Loaded weights all zeros: ', np.allclose(transform, 0))
+                            if ii == 0:
+                                print('Loading weights: \n', transform)
+                                print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
 
 
-                        print(transform.T.shape)
+                        if ii == 0:
+                            #print('Transform', transform.T.shape)
+                            print('Transform', transform)
 
                         self.conn_learn.append(nengo.Connection(
                                                self.adapt_ens[ii], output,
@@ -237,24 +251,37 @@ class DynamicsAdaptation(Signal):
                                                learning_rule_type=nengo.PES(
                                                  self.pes_learning_rate),
                                                solver=DummySolver(transform.T)))
-                    else:
+                    elif not self.zero_weights:
 
+                        # if passing an npz file
                         if os.path.isfile('%s' % self.weights_file):
-                            if self.n_ensembles ==1:
-                                transform = np.load(self.weights_file)['weights']
-                            else:
-                                transform = np.load(self.weights_file)['weights'][ii]
-                            # remove third dimension if present
-                            if len(transform.shape) > 2:
-                                transform = np.squeeze(transform)
+                            loaded_weights = np.load(self.weights_file)['weights']
+                        # if passing the dictionary in directly
+                        elif isinstance(self.weights_file, dict):
+                            loaded_weights = self.weights_file['weights']
+                        else:
+                            loaded_weights = self.weights_file
+                        # select sub-weights if network broken up into multiple
+                        # ensembles
+                        if self.n_ensembles ==1:
+                            transform = loaded_weights
+                        else:
+                            transform = loaded_weights[ii]
+                        # remove third dimension if present
+                        if len(transform.shape) > 2:
+                            transform = np.squeeze(transform)
+                        if ii == 0:
                             print('Loading weights: \n', transform)
                             print('Loaded weights all zeros: ', np.allclose(transform, 0))
+                            print('Transform', transform)
 
-                        self.conn_learn.append(nengo.Connection(
-                                               self.adapt_ens[ii].neurons, output,
-                                               learning_rule_type=nengo.PES(
-                                                 self.pes_learning_rate),
-                                               transform=transform))
+                    self.conn_learn.append(nengo.Connection(
+                                           self.adapt_ens[ii].neurons, output,
+                                           learning_rule_type=nengo.PES(
+                                             self.pes_learning_rate),
+                                           transform=transform))
+                    if ii==0:
+                        print('==========')
 
                 # hook up the training signal to the learning rule
                 nengo.Connection(
@@ -337,7 +364,8 @@ class DynamicsAdaptation(Signal):
                   #'function': self.function,
                   'send_redis_spikes': self.send_redis_spikes,
                   'encoders': self.encoders,
-                  'probe_weights': self.probe_weights}
+                  'probe_weights': self.probe_weights,
+                  'zero_weights': self.zero_weights}
         return params
 
     def return_params(self):

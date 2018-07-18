@@ -293,12 +293,13 @@ class DataHandler():
                 #print('key: %s has no data, setting to \'no_data\'' % key)
             try:
                 db[save_location].create_dataset('%s'%key, data=data[key])
-            except RuntimeError:
+            except RuntimeError as e:
                 if overwrite:
                     # if dataset already exists, then overwrite the data
                     del db[save_location+'/%s'%key]
                     db[save_location].create_dataset('%s'%key, data=data[key])
                 else:
+                    print(e)
                     raise RuntimeError('Dataset %s already exists in %s, set'
                             %(save_location, key)
                     + ' overwrite=True to overwrite')
@@ -307,6 +308,9 @@ class DataHandler():
                             + ' \n Skipping dataset...')
                     print('If you wish to overwrite the old data, set '
                           + 'overwrite to True')
+            except TypeError as e:
+                print(e)
+                print('Trying to save %s to %s'%(key, save_location))
 
         # print('Data saved.')
         db.close()
