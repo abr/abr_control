@@ -22,7 +22,7 @@ class Training:
             run=None, weights=None, pes_learning_rate=1e-6, backend=None,
             offset=None, kp=20, kv=6, ki=0, seed=None, SCALES=None, MEANS=None,
             probe_weights=True, avoid_limits=True, neuron_type='lif',
-            db_name=None, vmax=1):
+            db_name=None, vmax=1, use_spherical=False):
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The
@@ -202,11 +202,16 @@ class Training:
         print('--Generate / load transforms--')
         self.robot_config.init_all()
 
+        if use_spherical:
+            extra_dim = True
+        else:
+            extra_dim = False
+
         if self.use_adapt:
             print('--Instantiate adapt controller--')
             # instantiate our adaptive controller
             self.adapt = signals.DynamicsAdaptation(
-                n_input=sum(adapt_input*2),
+                n_input=sum(adapt_input*2) + extra_dim,
                 n_output=sum(adapt_output),
                 n_neurons=n_neurons,
                 n_ensembles=n_ensembles,
@@ -381,8 +386,25 @@ class Training:
                     adapt_input_q.append(self.robot_config.scaledown('q',self.q)[ii])
                     adapt_input_dq.append(self.robot_config.scaledown('dq',self.dq)[ii])
 
+                def convert_to_spherical(input_signal):
+                    x0 = input_signal[0]
+                    x1 = input_signal[1]
+                    x2 = input_signal[2]
+                    x3 = input_signal[3]
+
+                    spherical = [
+                                 np.cos(x0),
+                                 np.sin(x0)*np.cos(x1),
+                                 np.sin(x0)*np.sin(x1)*np.cos(x2),
+                                 np.sin(x0)*np.sin(x1)*np.sin(x2)*np.cos(x3),
+                                 np.sin(x0)*np.sin(x1)*np.sin(x2)*np.sin(x3)
+                                ]
+                    return spherical
+
                 self.training_signal = np.array(training_signal)
                 self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
+                if use_spherical:
+                    self.adapt_input = use_spherical(self.adapt_input)
 
                 u_adapt = self.adapt.generate(input_signal=self.adapt_input,
                                          training_signal=self.training_signal)

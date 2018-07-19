@@ -28,10 +28,12 @@ db_name = 'dewolf2018neuromorphic'
 loc = '/%s/%s/'%(test_group, test_name)
 use_cache = True
 n_runs = 10
+use_spherical = True
 
 plt_learning = PlotLearningProfile(test_group=test_group,
         test_name=test_name, db_name=db_name, use_cache=use_cache,
-        intercepts_bounds=None, intercepts_mode=None)
+        intercepts_bounds=[-0.9, -0.1], intercepts_mode=-0.8,
+        use_spherical=use_spherical)
 
 dat = DataHandler(use_cache=use_cache, db_name=db_name)
 # pass input signals for target reaches individually, creates gif of

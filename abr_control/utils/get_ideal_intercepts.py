@@ -11,52 +11,51 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-just_plot = True
+just_plot = False
+use_spherical = True
 test_group = '1lb_random_target'
 test_name = 'nengo_cpu_18_0'
 db_name = 'dewolf2018neuromorphic'
 loc = '/%s/%s/'%(test_group, test_name)
 use_cache = True
 n_runs = 10
-left_min = -0.9
-right_max = 0.9
-include = 0.0
-step = 0.1
 n_bins = 50
 n_neurons = 20000
 # [proportion_neurons_active, proportion_of_time_active]
 max_activity = [0.1, 0]
 min_activity = [0, 0.6]
 
+if use_spherical:
+    save_name = 'neuron_tuning_spherical'
+else:
+    save_name = 'neuron_tuning'
+
 dat = DataHandler(use_cache=use_cache, db_name=db_name)
 
 # Create list of all possible intercepts
-intercepts = []
-left = left_min
-right = right_max
-# keep right constant and cycle through left
-while left<=include:
-    mode = left
-    # cycle through modes
-    while mode <= right:
-        intercepts.append([left, right, mode])
-        mode += step
-        mode = round(mode,1)
-    left += step
-    left = round(left, 1)
-# keep left constant and cycle through right
-left = left_min
-# we've calculated left min to right max in the previous loop
-right = right_max-step
-while right>= include:
-    mode = right
-    # cycle through modes
-    while mode>= left:
-        intercepts.append([left, right, mode])
-        mode -= step
-        mode = round(mode,1)
-    right -= step
-    right = round(right,1)
+# the stop value does not get included, so we use 1.0 instead of 0.9
+intercept_range = np.arange(-.9, 1.0, .1)
+mode_range = np.arange(-.9, 1.0, .2)
+
+intercepts = np.array(np.meshgrid(intercept_range, intercept_range)).T.reshape(-1, 2)
+
+valid = []
+rej = []
+for vals in intercepts:
+    vals[0] = round(vals[0], 1)
+    vals[1] = round(vals[1], 1)
+    if vals[0] < vals[1]:
+        for mode in mode_range:
+            mode = round(mode, 1)
+            if vals[0] <= mode and mode <= vals[1]:
+                if use_spherical:
+                    valid.append(np.array([vals[0],vals[1], mode]))
+                else:
+                    if vals[0] < 0 and vals[1] > 0:
+                        valid.append(np.array([vals[0], vals[1], mode]))
+
+valid = np.array(valid)
+intercepts = valid
 
 # Create the ideal distribution
 bins = np.linspace(0,1,n_bins)
@@ -74,7 +73,8 @@ if not just_plot:
         print(ii)
         plt_learning = PlotLearningProfile(test_group=test_group,
                 test_name=test_name, db_name=db_name, use_cache=use_cache,
-                intercepts_bounds=intercept[:2], intercepts_mode=intercept[2])
+                intercepts_bounds=intercept[:2], intercepts_mode=intercept[2],
+                use_spherical=use_spherical)
 
         session = 0
         s = t.time()
@@ -121,14 +121,16 @@ if not just_plot:
                 'intercepts_mode': intercept[2], 'diff_active': diff_active,
                 'neurons_active': neurons_active, 'prop_time': prop_time,
                 'ideal_dist': ideal_dist, 'sum_diff' : sum_diff}
-        dat.save(data=time_active, save_location='neuron_tuning/%05d'%ii,
+        dat.save(data=time_active, save_location='%s/%05d'%(save_name,ii),
                 overwrite=True)
 
         print(t.time()-s)
         print('~~~~~~~~~~~~~~')
-        print('TIME REMAINING')
         loop = (t.time()-s)/60
         len_remaining = len(intercepts)-ii
+        print('Loop time: ', loop)
+        print('Possibilities remaining: ', len_remaining)
+        print('Approximate time remaining')
         print(loop*len_remaining, ' minutes')
 
 # Plot the activity for the 5 sets of intercepts with the least deviation from
@@ -139,12 +141,12 @@ prop_time = []
 intercepts_load = []
 modes = []
 plt.figure()
-min_to_plot=5
+min_to_plot=10
 for ii ,intercept in enumerate(intercepts) :
     print('intercept:',intercept)
     data = dat.load(params=['intercepts_bounds', 'intercepts_mode', 'diff_active',
             'neurons_active', 'prop_time', 'sum_diff'],
-            save_location='neuron_tuning/%05d'%ii)
+            save_location='%s/%05d'%(save_name,ii))
 
     sum_diff0 = data['sum_diff']
     sum_diff.append(sum_diff0[0])
@@ -162,7 +164,7 @@ for ii ,intercept in enumerate(intercepts) :
     modes.append(modes0)
 
     #plt.hist(act, bins=bins)
-
+#min_to_plot = len(sum_diff)
 indices = np.array(sum_diff).argsort()[:min_to_plot]
 print('Plotting...')
 for ii in range(0, min_to_plot):

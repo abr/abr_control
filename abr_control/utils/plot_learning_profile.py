@@ -22,7 +22,7 @@ from nengo.utils.matplotlib import rasterplot
 
 class PlotLearningProfile:
     def __init__(self, test_group, test_name, db_name=None, use_cache=True,
-            intercepts_bounds=None, intercepts_mode=None):
+            intercepts_bounds=None, intercepts_mode=None, use_spherical=False):
 
         dat = DataHandler(use_cache=use_cache, db_name=db_name)
 
@@ -39,9 +39,16 @@ class PlotLearningProfile:
         else:
             self.intercepts_mode = intercepts_mode
 
+        self.use_spherical = use_spherical
+
+        if self.use_spherical:
+            extra_dim = True
+        else:
+            extra_dim = False
+
         # Create our adaptive ensemble
         self.adapt = signals.DynamicsAdaptation(
-                n_input=int(adapt_params['n_input']),
+                n_input=int(adapt_params['n_input']) + extra_dim,
                 n_output=int(adapt_params['n_output']),
                 n_neurons=int(adapt_params['n_neurons']),
                 n_ensembles=int(adapt_params['n_ensembles']),
@@ -57,8 +64,13 @@ class PlotLearningProfile:
     def plot_activity(self, input_signal, time, input_joints, save_num=0,
             getting_ideal_intercepts=False):
 
-        fig = plt.figure(figsize=(8,15))
+        if self.use_spherical:
+            input_signal = np.array(input_signal).T
+            input_signal = self.convert_to_spherical(input_signal)
+            input_signal = np.array(input_signal).T
+
         if not getting_ideal_intercepts:
+            fig = plt.figure(figsize=(8,15))
             print('Creating probes')
             with self.adapt.nengo_model:
                if not hasattr(self.adapt.nengo_model, 'ens_probes'):
@@ -112,9 +124,9 @@ class PlotLearningProfile:
             time_active.append(np.sum(activity, axis=0)/len(activity))
 
         time_active = np.hstack(time_active)
-        ax2 = fig.add_subplot(312)
         if getting_ideal_intercepts:
             return time_active
+        ax2 = fig.add_subplot(312)
         plt.hist(time_active, bins=np.linspace(0,1,30))
         ax2.set_title('Proportion of time neurons are active %i\n %s, %s' %
                 (save_num, self.intercepts_bounds,
@@ -142,3 +154,21 @@ class PlotLearningProfile:
         plt.savefig('figures/gif_figs/activity/proportion_active_%05d.png'%save_num)
         plt.savefig('figures/gif_figs/activity/proportion_active_%05d.pdf'%save_num)
         plt.close()
+
+    def convert_to_spherical(self, input_signal):
+        x0 = input_signal[0]
+        x1 = input_signal[1]
+        x2 = input_signal[2]
+        x3 = input_signal[3]
+
+        spherical = [
+                     np.cos(x0),
+                     np.sin(x0)*np.cos(x1),
+                     np.sin(x0)*np.sin(x1)*np.cos(x2),
+                     np.sin(x0)*np.sin(x1)*np.sin(x2)*np.cos(x3),
+                     np.sin(x0)*np.sin(x1)*np.sin(x2)*np.sin(x3)
+                    ]
+        #print(spherical)
+        mag = np.linalg.norm(spherical, axis=0)
+        #print('Magnitue of spherical input: ', mag)
+        return spherical
