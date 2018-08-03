@@ -7,7 +7,7 @@ targets = []
 #         r=[0.4, 0.8], theta=[0.57, 6.2], phi=[2.1, 4.21])))
 from abr_control.utils import DataHandler
 dat = DataHandler(db_name='dewolf2018neuromorphic')
-targets=dat.load(['autogen_targets'],'1lb_random_target')['autogen_targets'][10:20]
+targets=dat.load(['autogen_targets'],'1lb_random_target')['autogen_targets']
 
 import matplotlib
 matplotlib.use("TKAgg")
@@ -31,6 +31,9 @@ z = targets[:,2]
 #         print('-----------')
 #         print('x: ', x[ii], '\ntheta: ', theta[ii], '\nphi: ', phi[ii])
 ax.scatter(x,y,z,c='r',marker='o')
+for ii in range(0,len(targets)):
+    ax.text(x[ii], y[ii], z[ii], '%i: (%.2f, %.2f, %.2f)' %(ii,x[ii], y[ii],
+        z[ii]))
 for angle in range(0, 360, 2):
     print('%.2f complete'%(angle/360*100), end='\r')
     ax.view_init(30, angle)

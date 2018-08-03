@@ -294,13 +294,22 @@ class DynamicsAdaptation(Signal):
             if self.backend != 'nengo_spinnaker' and self.send_redis_spikes:
                 # Send spikes via redis
                 def send_spikes(t, x):
-                        v = np.where(x != 0)[0]
-                        if len(v) > 0:
-                            msg = struct.pack('%dI' % len(v), *v)
-                        else:
-                            msg = ''
-                        r.set('spikes', msg)
-                        self.activity = x
+                    v = x
+                    v[v>1e-5]=1
+                    v[v<1e-5]=0
+                    v=v[:8]
+                    v = "%s"%v
+                    v = v[1:]
+                    v = v[:-1]
+                    #print(v)
+                    # v = np.where(x != 0)[0]
+                    # print(v)
+                    # if len(v) > 0:
+                    #     msg = struct.pack('%dI' % len(v), *v)
+                    # else:
+                    #     msg = ''
+                    r.set('arm_hidden_spikes_nengo', v)
+                    self.activity = x
                 source_node = nengo.Node(send_spikes, size_in=self.n_neurons)
                 nengo.Connection(
                     self.adapt_ens[0].neurons[:self.n_neurons],

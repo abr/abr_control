@@ -26,6 +26,7 @@ from terminaltables import AsciiTable
 
 # import data handler
 dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
+#dat = DataHandler(use_cache=True, db_name='control_demo')
 pltE = PlotError()
 
 # colors for terminal tables
@@ -71,8 +72,8 @@ browse_datasets = False
 # list of possible plotting variables
 #TODO: need to rename old data that uses 'u' and 'adapt' instead of 'u_base'
 # and 'u_adapt'
-plotting_variables = ['time', 'q', 'dq', 'avg error', 'final error', 'u_base',
-    'u_adapt', 'mean & ci',
+plotting_variables = ['time', 'q', 'dq', 'q_torque', 'avg error', 'final error', 'u_base',
+    'u_adapt', 'u_vmax', 'mean & ci',
     #'activity_over_time', 'proportion_active'
     ]
 global plotting_colors
@@ -109,6 +110,7 @@ def live_plot(i):
         # clear our data before plotting
         #TODO: don't delete disp loc if it doesn't contain the data, just don't
         # show it
+        line_styles = ['-', '--', '-.', ':']
         a.clear()
         last_plotted = var_to_plot
         x_min = 0.0
@@ -214,6 +216,7 @@ def live_plot(i):
                 print('plotting %s' %var_to_plot)
                 # get the highest numbered run group
                 max_key = max([key for key in keys if 'run' in key])
+                #max_key = 'run000'
                 d = dat.load(params=[var_to_plot],
                         save_location='%s%s'%(location, max_key))
                 # load data from highest numbered run
@@ -228,7 +231,15 @@ def live_plot(i):
                         x_max = len(d)
                     a.set_xlim(x_min, x_max)
                     a.set_ylim(y_min, y_max)
-                    a.plot(d)#, label=legend_name)
+                    if var_to_plot[0] == 'u':
+                        for oo, dof in enumerate(d.T):
+                            a.plot(dof, c=plotting_colors[count],
+                                    label=legend_names[count],
+                                    alpha=1/len(d.T) * (oo+1))
+                    else:
+                        a.plot(d)#, label=legend_name)
+                    if var_to_plot == 'time':
+                        legend_names[count] += ': %.2fms'%(1000*np.mean(d))
                 except TypeError:
                     #TODO: find a better solution than the double try statement
                     try:
@@ -256,7 +267,10 @@ def live_plot(i):
         for rm_test in tests_to_remove:
             disp_loc.remove(rm_test)
         #f.tight_layout()
-        a.legend(legend_names, loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
+        if var_to_plot[0] == 'u':
+            a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
+        else:
+            a.legend(legend_names, loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
         if var_to_plot != 'mean & ci':
             a.set_title(var_to_plot)
         if save_figure:
@@ -567,6 +581,9 @@ class SearchPage(tk.Frame):
                     foreground=secondary_text)
             #order_radio_button.visible = False
 
+        # create the list of parameter module radio buttons
+        self.show_params()
+
     def update_var_to_plot(self, *args):
         """updates the global variable of what data to plot"""
         global var_to_plot
@@ -597,7 +614,7 @@ class SearchPage(tk.Frame):
         #global data_processed
 
         # delete the current search
-        self.entry.delete(0, 'end')
+        #self.entry.delete(0, 'end')
         # get cursor selection and update db search location
         index = int(self.lbox.curselection()[0])
         value = self.lbox.get(index)
@@ -661,7 +678,6 @@ class SearchPage(tk.Frame):
         # search bar
         #else:
         self.update_list()
-        self.show_params()
 
     def data_processed(self, loc, *args):
         search = dat.get_keys(loc)
@@ -700,41 +716,53 @@ class SearchPage(tk.Frame):
                     self.lbox.itemconfig(ii, bg=secondary_bg, foreground=secondary_text)
 
     def show_params(self, *args):
+        #NOTE: OLD WAY, AUTOMATED TO GRAB NEW MODULES AND ADD BUTTON, BUT GETS
+        # VERY SLOW AS DB GROWS
         #TODO: need to remove module buttons if parameters groups don't exist
         # in the current directory
+        # module_button = []
+        # module_list = []
+        # group = ''.join(loc)
+        # #print('1 group: ', group)
+        # tests = dat.get_keys(group)
+        # for test in tests:
+        #     #print('2 test: ', test)
+        #     test_group = '%s%s'%(group,test)
+        #     keys = dat.get_keys(test_group)
+        #     #print('3 test group: ', test_group)
+        #     if keys is not None:
+        #         if any('parameters' in key for key in keys):
+        #             #print('4: contains parameters')
+        #             test_modules = '%s/parameters'%test_group
+        #             #print('5: test modules ', test_modules)
+        #             modules = dat.get_keys(test_modules)
+        #             #print('**************')
+        #             #print('6: ', test)
+        #             for ii, module in enumerate(modules):
+        #                 if module not in module_list:
+        #                     module_list.append(module)
+        #                     module_button.append(tk.Radiobutton(self.frame_bottom,
+        #                         text=module,
+        #                         variable=self.param_to_compare_selection,
+        #                         value=module, command=lambda:
+        #                         self.update_param_to_compare(self)))
+        #                 #print('7: ', module)
+        #                 test_params = '%s/%s'%(test_modules,module)
+        #                 #print('8 test params: ', test_params)
+        #                 params = dat.get_keys(test_params)
+        #                 data = dat.load(params=params, save_location=test_params)
+        #                 # for param in params:
+        #                 #     print('%s: %s' %(param, data[param]))
+
         module_button = []
-        module_list = []
-        group = ''.join(loc)
-        #print('1 group: ', group)
-        tests = dat.get_keys(group)
-        for test in tests:
-            #print('2 test: ', test)
-            test_group = '%s%s'%(group,test)
-            keys = dat.get_keys(test_group)
-            #print('3 test group: ', test_group)
-            if keys is not None:
-                if any('parameters' in key for key in keys):
-                    #print('4: contains parameters')
-                    test_modules = '%s/parameters'%test_group
-                    #print('5: test modules ', test_modules)
-                    modules = dat.get_keys(test_modules)
-                    #print('**************')
-                    #print('6: ', test)
-                    for ii, module in enumerate(modules):
-                        if module not in module_list:
-                            module_list.append(module)
-                            module_button.append(tk.Radiobutton(self.frame_bottom,
-                                text=module,
-                                variable=self.param_to_compare_selection,
-                                value=module, command=lambda:
-                                self.update_param_to_compare(self)))
-                        #print('7: ', module)
-                        test_params = '%s/%s'%(test_modules,module)
-                        #print('8 test params: ', test_params)
-                        params = dat.get_keys(test_params)
-                        data = dat.load(params=params, save_location=test_params)
-                        # for param in params:
-                        #     print('%s: %s' %(param, data[param]))
+        modules = ['OSC', 'dynamics_adaptation', 'jaco2_config',
+                'second_order', 'test_parameters', 'training']
+        for ii, module in enumerate(modules):
+            module_button.append(tk.Radiobutton(self.frame_bottom,
+                text=module,
+                variable=self.param_to_compare_selection,
+                value=module, command=lambda:
+                self.update_param_to_compare(self)))
         for ii, button in enumerate(module_button):
             button.grid(row=int(np.floor(ii/3)), column=ii%3, sticky='ew')
             button.configure(foreground=button_text_color,

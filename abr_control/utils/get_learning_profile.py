@@ -23,16 +23,16 @@ import matplotlib.pyplot as plt
 import time as t
 s = t.time()
 test_group = '1lb_random_target'
-test_name = 'nengo_cpu_20_0'
+test_name = 'nengo_cpu_46_49'
 db_name = 'dewolf2018neuromorphic'
 loc = '/%s/%s/'%(test_group, test_name)
 use_cache = True
 n_runs = 10
-use_spherical = True
+use_spherical = False
 
 plt_learning = PlotLearningProfile(test_group=test_group,
         test_name=test_name, db_name=db_name, use_cache=use_cache,
-        intercepts_bounds=[-0.9, -0.1], intercepts_mode=-0.8,
+        intercepts_bounds=[-0.9, -0.1], intercepts_mode=-0.9,
         use_spherical=use_spherical)
 
 dat = DataHandler(use_cache=use_cache, db_name=db_name)

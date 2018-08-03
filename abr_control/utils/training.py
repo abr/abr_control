@@ -121,6 +121,7 @@ class Training:
         else:
             self.use_adapt = True
 
+        self.use_spherical = use_spherical
         # hdf5 has no type None so an error is raised for runs where None
         # weights are passed in. This get's handled on the dynamics adaptation
         # side, but at this point they will be None. This is added to avoid the
@@ -154,7 +155,8 @@ class Training:
                   'avoid_limits': avoid_limits,
                   'neuron_type': neuron_type,
                   'db_name': db_name,
-                  'vmax': vmax}
+                  'vmax': vmax,
+                  'use_spherical': self.use_spherical}
 
         self.run = run
         self.session = session
@@ -202,7 +204,7 @@ class Training:
         print('--Generate / load transforms--')
         self.robot_config.init_all()
 
-        if use_spherical:
+        if self.use_spherical:
             extra_dim = True
         else:
             extra_dim = False
@@ -216,7 +218,8 @@ class Training:
                 n_neurons=n_neurons,
                 n_ensembles=n_ensembles,
                 pes_learning_rate=pes_learning_rate,
-                intercepts=(-0.9, 0),
+                intercepts=(-0.9, 0.1),
+                intercepts_mode=-0.9,
                 weights_file=weights,
                 backend=backend,
                 probe_weights=probe_weights,
@@ -231,7 +234,7 @@ class Training:
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
         self.path = path_planners.SecondOrder(robot_config=self.robot_config,
-                n_timesteps=4000, w=1e4, zeta=3, threshold=0.05)
+                n_timesteps=3000, w=1e4, zeta=3, threshold=0.05)
         self.dt = 0.004
 
         if self.avoid_limits:
@@ -240,6 +243,8 @@ class Training:
                 self.robot_config,
                 min_joint_angles=[None, 1.3, 0.61, None, None, None],
                 max_joint_angles=[None, 4.99, 5.75, None, None, None],
+                # min_joint_angles=[0.8, None, None, None, None, None],
+                # max_joint_angles=[4.75, None, None, None, None, None],
                 max_torque=[5]*self.robot_config.N_JOINTS,
                 cross_zero=[True, False, False, False, True, False],
                 gradient = [False, False, False, False, False, False])
@@ -252,7 +257,8 @@ class Training:
         self.data = {'q': [], 'dq': [], 'u_base': [], 'u_adapt': [],
                      'error':[], 'training_signal': [], 'target': [],
                      'ee_xyz': [], 'input_signal': [], 'filter': [],
-                     'time': [], 'weights': [], 'u_avoid': [], 'osc_dx': []}
+                     'time': [], 'weights': [], 'u_avoid': [], 'osc_dx': [],
+                     'u_vmax': [], 'q_torque': []}
         self.count = 0
 
         self.adapt_input = np.array(adapt_input)
@@ -269,6 +275,7 @@ class Training:
         print('--Initialize force mode--')
         self.interface.init_force_mode()
 
+    #@profile
     def reach_to_target(self, target_xyz, reaching_time):
         # TODO: ADD NOTE ABOUT USING BASH FOR MULTIPLE RUNS INSTEAD OF JUST
         # CALLING RUN, MENTION PERFORMANCE EFFECTS ETC
@@ -343,11 +350,15 @@ class Training:
             self.data['ee_xyz'].append(np.copy(ee_xyz))
             self.data['filter'].append(np.copy(self.target))
             self.data['osc_dx'].append(np.copy(self.ctrlr.dx))
+            self.data['u_vmax'].append(np.copy(self.ctrlr.u_vmax))
+            q_T = self.interface.get_torque_load()
+            self.data['q_torque'].append(np.copy(q_T))
 
             if self.count % 1000 == 0:
                 print('error: ', error)
                 print('dt: ', end)
                 print('adapt: ', self.u_adapt)
+                print('torque: ', q_T)
 
             loop_time += end
             self.count += 1
@@ -357,6 +368,7 @@ class Training:
         print('dt: ', end)
         print('adapt: ', self.u_adapt)
 
+    #@profile
     def generate_u(self):
             # calculate the base operation space control signal
             self.u_base = self.ctrlr.generate(
@@ -367,7 +379,7 @@ class Training:
                 offset = self.OFFSET)
 
             # account for uneven stiction in jaco2 base
-            self.u_base[0] *= 5.0
+            #self.u_base[0] *= 5.0
             # if self.u_base[0] > 0:
             #     self.u_base[0] *= 5.0
             # else:
@@ -403,8 +415,8 @@ class Training:
 
                 self.training_signal = np.array(training_signal)
                 self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
-                if use_spherical:
-                    self.adapt_input = use_spherical(self.adapt_input)
+                if self.use_spherical:
+                    self.adapt_input = convert_to_spherical(self.adapt_input)
 
                 u_adapt = self.adapt.generate(input_signal=self.adapt_input,
                                          training_signal=self.training_signal)
