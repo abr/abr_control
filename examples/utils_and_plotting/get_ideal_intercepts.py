@@ -100,7 +100,7 @@ if not just_plot:
         input_signal = np.vstack(input_signal)
         times = np.hstack(times)
         act = plt_learning.plot_activity(input_signal=input_signal, time=times,
-                save_num=run, input_joints=adapt_input,
+                save_num=run, #input_joints=adapt_input,
                 getting_ideal_intercepts=True)
 
         # save the activity data

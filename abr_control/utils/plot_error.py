@@ -8,6 +8,7 @@ import os
 from abr_control.utils.legend_object import LegendObject
 from abr_control.utils import DataHandler
 
+#TODO: PEP8 formatting
 class PlotError():
     def __init__(self):
         pass

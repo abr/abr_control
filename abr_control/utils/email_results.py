@@ -8,6 +8,26 @@ import traceback
 
 def send_email(from_email=None, from_password=None, to_email=None,
         subject=None, body=None, file_location=None):
+    """
+    Send an email with the option of adding an attachment
+
+    PARAMETERS
+    ----------
+    from_email: string
+        email address to send from
+    from_password: string
+        password to email address that the email is being sent from
+        NOTE: can create a new email in gmail just for sending data if you
+        are worried about security of your personal email address
+    to_email: string
+        email address to send to
+    subject: string
+        email subject / heading
+    body: string
+        main text / body of email
+    file_location: string
+        path to pdf or image to attach
+    """
     if file_location is None:
         print("No attachment")
     if from_email is None:

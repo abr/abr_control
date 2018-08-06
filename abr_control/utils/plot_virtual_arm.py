@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 import subprocess
 
+#TODO: turn into module
 # remove old figures used for previous gif so we don't get overlap for tests of
 # different lengths
 

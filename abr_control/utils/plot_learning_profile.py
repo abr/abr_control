@@ -3,8 +3,9 @@ Creates a network to run through a simulation with the provided inputs to get
 the neural activity. Three plots will be generated...
 
 Plots
-1. rasterplot showing spikes for each neuron over time
-2. proportion of time active, the number of neurons active for what proportion
+1. rasterplot showing spikes for each neuron over time on one axis, and the
+   input signal of the other
+2. proportion of time active, the number of neurons active vs proportion
    of run time
 3. proportion of neurons that are active over time
 """
@@ -23,6 +24,34 @@ from nengo.utils.matplotlib import rasterplot
 class PlotLearningProfile:
     def __init__(self, test_group, test_name, db_name=None, use_cache=True,
             intercepts_bounds=None, intercepts_mode=None, use_spherical=False):
+        """
+        Creates the nengo simulation with the same parameters as the test
+        passed in
+
+        PARAMETERS
+        ----------
+        test_group: string
+            group path that the desired test belongs to, can include sub groups
+            EX: my_awesome_paper/test_type_A
+        test_name: string
+            the test that data will be loaded from
+        db_name: name of the database to load data from
+        use_cache: Boolean, Optional (Default: None)
+            whether or not the database is saved in the ~/.cache/abr_control
+            folder
+        intercepts_bounds: list with two floats, Optional (Default: None)
+            intercept bounds for the network to see how the activity would
+            change with intercept changes. This allows you to quickly test out
+            options in simulation with your recorded inputs, without having to
+            run a physical arm
+        intercepts_mode: float, Optional (Default: None)
+            Mode where to distribute intercepts around. Allows you to test out
+            alternative in the same way as the intercepts_bounds mentioned
+            above
+        use_spherical: Boolean, Optional (Default: None)
+            If True, increasing the input dimension by 1 and converts inputs to
+            spherical coordinates
+        """
 
         dat = DataHandler(use_cache=use_cache, db_name=db_name)
 
@@ -61,15 +90,32 @@ class PlotLearningProfile:
                 seed=int(adapt_params['seed']),
                 neuron_type=np.array2string(adapt_params['neuron_type']))
 
-    def plot_activity(self, input_signal, time, input_joints, save_num=0,
+    def plot_activity(self, input_signal, time, save_num=0,
             getting_ideal_intercepts=False):
+        """
+        Plots 3 subplots of neural activity to speed up parameter tuning
+
+        PARAMETERS
+        ----------
+        input_signal: list of floats shape of n_inputs x n_timesteps
+        time: list of floats
+            timesteps corresponding to the input signal
+        save_num: int, Optional (Default: 0)
+            number to append to filename of image that is saved
+        get_ideal_intercepts: Boolean, Optional (Default: False)
+            if using script to run through all possible intercept options to
+            find the ideal set, setting this to True skips over some
+            unnecessary sections to speed up the process
+        """
 
         if self.use_spherical:
+            # convert to spherical
             input_signal = np.array(input_signal).T
             input_signal = self.convert_to_spherical(input_signal)
             input_signal = np.array(input_signal).T
 
         if not getting_ideal_intercepts:
+            # create probes to get rasterplot
             fig = plt.figure(figsize=(8,15))
             print('Creating probes')
             with self.adapt.nengo_model:
@@ -80,7 +126,7 @@ class PlotLearningProfile:
                                synapse=None))
 
             sim = nengo.Simulator(self.adapt.nengo_model)
-            temp_in = input_signal * 0
+            temp_in = input_signal
             print('Running sim...')
             for ii, inputs in enumerate(input_signal):
                 #inputs = input_signal[40]
@@ -93,9 +139,10 @@ class PlotLearningProfile:
             print('Plotting spiking activity...')
             for probe in self.adapt.nengo_model.ens_probes:
                 probes.append(sim.data[probe])
-                #NOTE: uncomment break if you want to show rasterplot for all
-                # neurons
-                break
+                #NOTE: uncomment break if you want to show rasterplot for one
+                # ensemble only
+                #TODO: clean this up
+                # break
             probes = np.hstack(probes)
             ax = fig.add_subplot(3,1,1)
             a = rasterplot(np.cumsum(time),probes, ax=ax)
@@ -156,6 +203,14 @@ class PlotLearningProfile:
         plt.close()
 
     def convert_to_spherical(self, input_signal):
+        """
+        Convert the inputs to spherical coordinate, this will increase the
+        number of input dimensions by 1
+
+        PARAMETERS
+        ----------
+        input_signal: list of floats shape of n_inputs x n_timesteps
+        """
         x0 = input_signal[0]
         x1 = input_signal[1]
         x2 = input_signal[2]

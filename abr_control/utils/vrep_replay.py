@@ -1,3 +1,4 @@
+#TODO: need to convert this to work with new database
 """
 send joint angles and target information to Vrep to replay the run
 with data saved in 'file_location'

@@ -1,6 +1,12 @@
 import matplotlib.patches as mpatches
 
 class LegendObject(object):
+    """
+    Class to add box with shading in legend.
+
+    This is mainly used for processed data that contains confidence intervals
+    that tend to be a shade of the mean data line
+    """
     def __init__(self, facecolor='red', edgecolor='white', dashed=False):
         self.facecolor = facecolor
         self.edgecolor = edgecolor
