@@ -1,4 +1,5 @@
 import subprocess
+import os
 def create(fig_loc, save_loc, save_name, delay=5):
     """
     Module that checks fig_loc location for png files and creates a gif
@@ -17,6 +18,8 @@ def create(fig_loc, save_loc, save_name, delay=5):
     delay: int
         changs the delay between images in the gif
     """
+    if not os.path.exists(save_loc):
+        os.makedirs(save_loc)
     bashCommand = ("convert -delay %i -loop 0 -deconstruct -quantize"%delay
                    + " transparent -layers optimize -resize 1200x2000"
                    + " %s/*.png %s/%s.gif"

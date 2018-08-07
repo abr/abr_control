@@ -1,11 +1,12 @@
 import abr_jaco2
-from abr_control.utils import DataHandler
+from abr_control.utils import DataHandler, make_gif
 import numpy as np
 import matplotlib
 matplotlib.use("TKAgg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 import subprocess
+import os
 
 #TODO: turn into module
 # remove old figures used for previous gif so we don't get overlap for tests of
@@ -18,6 +19,8 @@ import subprocess
 
 show_traj = True
 run_num=49
+use_cache=True
+db_name = 'dewolf2018neuromorphic'
 test_group = '1lb_random_target'
 # test_name = 'nengo_cpu_%i_19'%run_num
 # test_name0 = 'nengo_cpu_%i_0'%run_num
@@ -46,8 +49,24 @@ ee_xyz_0 = []
 error_0 = []
 time_t = []
 
+if use_cache:
+    from abr_control.utils.paths import cache_dir
+    save_loc = '%s/figures'%cache_dir
+else:
+    save_loc = 'figures'
+
+if not os.path.exists(save_loc):
+    os.makedirs(save_loc)
+
+files = [f for f in os.listdir('%s/gif_fig_cache'%save_loc) if f.endswith(".png") ]
+for ii, f in enumerate(files):
+    if ii == 0:
+        print('Deleting old temporary figures for gif creation...')
+    os.remove(os.path.join('%s/gif_fig_cache'%save_loc, f))
+    #print(os.path.join('%s/gif_fig_cache'%save_loc, f))
+
 for run in runs:
-    dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
+    dat = DataHandler(use_cache=use_cache, db_name=db_name)
     data = dat.load(params=['q', 'error', 'target', 'ee_xyz', 'filter', 'time'],
             save_location='%s/%s/session%03d/run%03d'%
             (test_group, test_name, session, run))
@@ -80,7 +99,7 @@ for ii in range(0,length,10):
     # ax = [fig.add_subplot(1,3,1, projection='3d'),
     #       fig.add_subplot(1,3,2, projection='3d'),
     #       fig.add_subplot(1,3,3, projection='3d')]
-    print('%.2f complete'%(ii/length*100), end='\r')
+    print('%.2f%% complete'%(ii/length*100), end='\r')
     for jj, run in enumerate(runs):
         ax = fig.add_subplot(np.ceil(len(runs)/3),3,run+1, projection='3d')
         q = q_t[run][ii]
@@ -181,20 +200,24 @@ for ii in range(0,length,10):
             ax.text(-0.5, -0.5, 0.3, test_name0, color='tab:purple')
             if jj == 0:
                 ax.legend(bbox_to_anchor=[-0.55, 0.5], loc='center left')
-    plt.savefig('figures/gif_figs/%05d.png'%ii)
+    plt.savefig('%s/gif_fig_cache/%05d.png'%(save_loc,ii))
     plt.close()
 
 
-#"convert -delay 5 -loop 0 -deconstruct -quantize transparent -layers optimize -resize 1200x2000 figures/gif_figs/*.png figures/gif_figs/gifs/%s-%s.gif"
-bashCommand = ("convert -delay 5 -loop 0 -deconstruct -quantize"
-               + " transparent -layers optimize -resize 1200x2000"
-               + " figures/gif_figs/*.png figures/gif_figs/gifs/"
-               + "%s-%s-%s.gif"
-               %(test_group,test_name, test_name0))
-print('command: ', bashCommand)
-print('100.00% complete')
-print('Creating gif...')
-process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)#,
-        #stdin=subprocess.PIPE, shell=True)
-output, error = process.communicate()
-print('Finished')
+make_gif.create(fig_loc='%s/gif_fig_cache'%save_loc,
+                save_loc='%s/%s/virtual_arm'%(save_loc, db_name),
+                save_name='%s-%s'%(test_name, test_name0),
+                delay=5)
+# #"convert -delay 5 -loop 0 -deconstruct -quantize transparent -layers optimize -resize 1200x2000 figures/gif_figs/*.png figures/gif_figs/gifs/%s-%s.gif"
+# bashCommand = ("convert -delay 5 -loop 0 -deconstruct -quantize"
+#                + " transparent -layers optimize -resize 1200x2000"
+#                + " figures/gif_figs/*.png figures/gif_figs/gifs/"
+#                + "%s-%s-%s.gif"
+#                %(test_group,test_name, test_name0))
+# print('command: ', bashCommand)
+# print('100.00% complete')
+# print('Creating gif...')
+# process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)#,
+#         #stdin=subprocess.PIPE, shell=True)
+# output, error = process.communicate()
+# print('Finished')
