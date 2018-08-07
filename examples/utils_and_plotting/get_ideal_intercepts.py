@@ -21,6 +21,8 @@ use_cache = True
 n_runs = 10
 n_bins = 50
 n_neurons = 20000
+# the following are two points on a line that will be used to create the ideal
+# distribution that will be compared against to find the closest match
 # [proportion_neurons_active, proportion_of_time_active]
 max_activity = [0.1, 0]
 min_activity = [0, 0.6]
@@ -39,6 +41,7 @@ mode_range = np.arange(-.9, 1.0, .2)
 
 intercepts = np.array(np.meshgrid(intercept_range, intercept_range)).T.reshape(-1, 2)
 
+# get a list of all valid intercepts
 valid = []
 rej = []
 for vals in intercepts:
@@ -120,7 +123,8 @@ if not just_plot:
         time_active = {'raw_active': active, 'intercepts_bounds': intercept[:2],
                 'intercepts_mode': intercept[2], 'diff_active': diff_active,
                 'neurons_active': neurons_active, 'prop_time': prop_time,
-                'ideal_dist': ideal_dist, 'sum_diff' : sum_diff}
+                'ideal_dist': ideal_dist, 'sum_diff' : sum_diff, 'test_group':
+                test_group}
         dat.save(data=time_active, save_location='%s/%05d'%(save_name,ii),
                 overwrite=True)
 
