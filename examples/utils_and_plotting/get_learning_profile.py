@@ -14,14 +14,14 @@ Plots
    of run time
 3. proportion of neurons that are active over time
 """
-from abr_control.utils import DataHandler, PlotLearningProfile
+from abr_control.utils import DataHandler, PlotLearningProfile, make_gif
+from abr_control.utils.paths import cache_dir
 import numpy as np
-import time as t
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import time as t
-s = t.time()
+import os
+
 test_group = '1lb_random_target'
 test_name = 'nengo_cpu_46_49'
 db_name = 'dewolf2018neuromorphic'
@@ -40,6 +40,7 @@ dat = DataHandler(use_cache=use_cache, db_name=db_name)
 # activity for each individual reach
 session = 0
 for run in range(0, n_runs):
+    # load data from the current run
     run_data = dat.load(params=['input_signal', 'time'],
             save_location='%ssession%03d/run%03d'
             %(loc, session, run))
@@ -48,8 +49,9 @@ for run in range(0, n_runs):
     adapt_input = training_data['adapt_input']
     input_signal = run_data['input_signal']
     time = run_data['time']
+    # run the simulation to obtain neural activity
     plt_learning.plot_activity(input_signal=input_signal, time=time,
-            save_num=run, input_joints=adapt_input)
+            save_num=run, plot_all_ens=False)
 
 # stack input signal to show activity over the enitre reaching space
 # adapt_input = []
@@ -74,24 +76,13 @@ for run in range(0, n_runs):
 #         error=error, save_num=run, q=q, dq=dq, input_joints=adapt_input)
 
 
-def make_gif(fig_loc, save_loc, save_name, delay=5):
-    import subprocess
-    bashCommand = ("convert -delay %i -loop 0 -deconstruct -quantize"%delay
-                   + " transparent -layers optimize -resize 1200x2000"
-                   + " %s/*.png %s/%s.gif"
-                   %(fig_loc, save_loc, save_name))
-    print('100.00% complete')
-    print('Creating gif...')
-    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-    output, error = process.communicate()
-    print('Finished')
+# a figure is created for each run, combine them into a gif
+load_loc = '%s/figures/gif_fig_cache'%cache_dir
+save_loc = '%s/figures/%s/learning_profile'%(cache_dir, db_name)
+if not os.path.exists(save_loc):
+    os.makedirs(save_loc)
 
-figs = 'figures/gif_figs'
-names = ['activity']
-print('Creating gifs')
-for name in names:
-    make_gif(fig_loc='%s/%s'%(figs, name),
-             save_loc='%s/%s'%(figs, name),
-             save_name=name,
-             delay=200)
-print(t.time()-s)
+make_gif.create(fig_loc=load_loc,
+         save_loc=save_loc,
+         save_name=test_name,
+         delay=200)

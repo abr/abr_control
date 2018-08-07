@@ -6,4 +6,5 @@ from .plot_error import PlotError
 from .convert_data import ConvertData
 import abr_control.utils.email_results
 from .plot_learning_profile import PlotLearningProfile
+import abr_control.utils.make_gif
 # from .training import Training

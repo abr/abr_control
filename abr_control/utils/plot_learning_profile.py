@@ -14,9 +14,11 @@ matplotlib.use("TKAgg")
 import matplotlib.pyplot as plt
 import seaborn
 import numpy as np
+import os
 
 from abr_control.utils import DataHandler
 from abr_control.controllers import signals
+from abr_control.utils.paths import cache_dir
 import nengo
 import nengolib
 from nengo.utils.matplotlib import rasterplot
@@ -53,8 +55,23 @@ class PlotLearningProfile:
             spherical coordinates
         """
 
-        dat = DataHandler(use_cache=use_cache, db_name=db_name)
+        # set up save location
+        if use_cache:
+            self.save_loc = '%s/figures/gif_fig_cache'%(cache_dir)
+        else:
+            self.save_loc = 'figures/gif_fig_cache'
 
+        files = [f for f in os.listdir(self.save_loc) if f.endswith(".png") ]
+        for ii, f in enumerate(files):
+            if ii == 0:
+                print('Deleting old temporary figures for gif creation...')
+            os.remove(os.path.join(self.save_loc, f))
+            #print(os.path.join(self.save_loc, f))
+
+        if not os.path.exists(self.save_loc):
+            os.makedirs(self.save_loc)
+
+        dat = DataHandler(use_cache=use_cache, db_name=db_name)
         loc = '/%s/%s/'%(test_group, test_name)
         param_loc = '%sparameters/dynamics_adaptation'%loc
         keys = dat.get_keys(group_path=param_loc)
@@ -91,7 +108,7 @@ class PlotLearningProfile:
                 neuron_type=np.array2string(adapt_params['neuron_type']))
 
     def plot_activity(self, input_signal, time, save_num=0,
-            getting_ideal_intercepts=False):
+            getting_ideal_intercepts=False, plot_all_ens=False):
         """
         Plots 3 subplots of neural activity to speed up parameter tuning
 
@@ -106,6 +123,11 @@ class PlotLearningProfile:
             if using script to run through all possible intercept options to
             find the ideal set, setting this to True skips over some
             unnecessary sections to speed up the process
+        plot_all_ens: Boolean, Optional (Default: False)
+            True to show all ensembles on rasterplot
+            False to show the first dimension
+            When using large populations of neurons (Ex:1k neurons x 20
+            ensembles) it can slow down plotting of the rasterplot
         """
 
         if self.use_spherical:
@@ -117,7 +139,7 @@ class PlotLearningProfile:
         if not getting_ideal_intercepts:
             # create probes to get rasterplot
             fig = plt.figure(figsize=(8,15))
-            print('Creating probes')
+            print('Creating spike probes...')
             with self.adapt.nengo_model:
                if not hasattr(self.adapt.nengo_model, 'ens_probes'):
                    self.adapt.nengo_model.ens_probes = []
@@ -139,10 +161,8 @@ class PlotLearningProfile:
             print('Plotting spiking activity...')
             for probe in self.adapt.nengo_model.ens_probes:
                 probes.append(sim.data[probe])
-                #NOTE: uncomment break if you want to show rasterplot for one
-                # ensemble only
-                #TODO: clean this up
-                # break
+                if not plot_all_ens:
+                    break
             probes = np.hstack(probes)
             ax = fig.add_subplot(3,1,1)
             a = rasterplot(np.cumsum(time),probes, ax=ax)
@@ -170,6 +190,7 @@ class PlotLearningProfile:
             # axis=1 mean over neurons
             time_active.append(np.sum(activity, axis=0)/len(activity))
 
+        print('Plotting proportion of active time...')
         time_active = np.hstack(time_active)
         if getting_ideal_intercepts:
             return time_active
@@ -196,10 +217,11 @@ class PlotLearningProfile:
         ax2.set_ylabel('Proportion Active')
         ax2.set_xlabel('Time [sec]')
         ax2.set_ylim(0, 1)
-        print("TIME: ", np.sum(time))
+        #print("TIME: ", np.sum(time))
         plt.tight_layout()
-        plt.savefig('figures/gif_figs/activity/proportion_active_%05d.png'%save_num)
-        plt.savefig('figures/gif_figs/activity/proportion_active_%05d.pdf'%save_num)
+        print('Saving Figure')
+        plt.savefig('%s/learning_profile_%05d.png'%(self.save_loc, save_num))
+        #plt.savefig('figures/gif_figs/activity/proportion_active_%05d.pdf'%save_num)
         plt.close()
 
     def convert_to_spherical(self, input_signal):

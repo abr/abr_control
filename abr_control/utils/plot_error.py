@@ -7,6 +7,7 @@ import os
 
 from abr_control.utils.legend_object import LegendObject
 from abr_control.utils import DataHandler
+from abr_control.utils.paths import cache_dir
 
 #TODO: PEP8 formatting
 class PlotError():
@@ -36,7 +37,7 @@ class PlotError():
                   x_label='Run Number', y_label='Error', xlim=None, ylim=None,
                   show_plot=True, save_figure=False, colors=None, legend_loc=1,
                   fig_obj=None, fig_size=[8,3], scaling_factor=1,
-                  clear_plot=False, statistical=True):
+                  clear_plot=False, statistical=True, use_cache=True):
 
         print('***********************using legend labels of: ', legend_labels)
         if fig_obj is None:
@@ -94,9 +95,14 @@ class PlotError():
 
 
         if save_figure:
-            if not os.path.exists('figures'):
-                os.makedirs('figures')
-            plt.savefig('figures/%s.pdf'%(fig_title))
+            if use_cache:
+                save_loc = '%s/figures/plot_error'%cache_dir
+            else:
+                save_loc = 'figures/plot_error'
+
+            if not os.path.exists(save_loc):
+                os.makedirs(save_loc)
+            plt.savefig('%s/%s.pdf'%(save_loc,fig_title))
 
         if show_plot:
             plt.show()
