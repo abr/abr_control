@@ -17,12 +17,11 @@ import nengo
 
 class Training:
 
-    def __init__(self, adapt_input, adapt_output, n_neurons=1000, n_ensembles=1,
+    def __init__(self,
             test_group='testing', test_name="joint_space_training", session=None,
-            run=None, weights=None, pes_learning_rate=1e-6, backend=None,
-            offset=None, kp=20, kv=6, ki=0, seed=None, SCALES=None, MEANS=None,
-            probe_weights=True, avoid_limits=True, neuron_type='lif',
-            db_name=None, vmax=1, use_spherical=False):
+            run=None, offset=None, kp=20, kv=6, ki=0, avoid_limits=True,
+            db_name=None, vmax=1, use_adapt=True, SCALES=None, MEANS=None):
+
         """
         The test script used to collect data for training. The use of the
         adaptive controller and the type of backend can be specified. The
@@ -40,10 +39,6 @@ class Training:
 
         Parameters
         ----------
-        n_neurons: int, Optional (Default: 1000)
-            the number of neurons in the adaptive population
-        n_ensembles: int, Optional (Default: 1)
-            the number of ensembles of n_neurons number of neurons
         test_group: string, Optional (Default: 'testing')
         test_name: string, Optional (Default: 'joint_space_training')
             folder name where data is saved
@@ -55,16 +50,6 @@ class Training:
             The current nth run that specifies to use the weights from the n-1 run.
             If set to None if will automatically increment based off the last saved
             weights.
-        weights: string, Optional (Default: None)
-            the path to the desired saved weights to use. If None will
-            automatically take the most recent weights saved in the 'test_name'
-            directory
-        pes_learning_rate: float, Optional (Default: 1e-6)
-            the learning rate for the adaptive population
-        backend: string
-            None: non adaptive control, Optional (Default: None)
-            'nengo': use nengo as the backend for the adaptive population
-            'nengo_spinnaker': use spinnaker as the adaptive population
         time_limit: float, Optional (Default: 30)
             the time limit for each run in seconds
         offset: float array, Optional (Default: None)
@@ -76,27 +61,6 @@ class Training:
             derivative gain term
         ki: float, Optional (Default: 0)
             integral gain term
-        seed: int Optional, (Default: None)
-            seed used for random number generation in adaptive population
-        MEANS : list of floats, Optional (Default: None)
-            expected mean of joint angles and velocities in [rad] and [rad/sec]
-            respectively. Expected value for each joint. Only used for adaptation
-        SCALES : list of floats, Optional (Default: None)
-            expected variance of joint angles and velocities. Expected value for
-            each joint. Only used for adaptation
-        adapt_input : list of booleans
-            a boolean list of which joint information to pass in to the
-            adaptive population
-            Ex: to use joint 1 and 2 information for a 6DOF arm
-            (starting from base 0)
-            adapt_input = [False, True, True, False, False, False]
-        adapt_output : list of booleans
-            a boolean list of which joints to apply the adaptive signal to
-            Ex: to adapt joint 1 and 2 for a 6DOF arm (starting from base 0)
-            adapt_input = [False, True, True, False, False, False]
-        *NOTE: adapt_input DOES NOT have to be the same as adapt_input*
-        probe_weights: Boolean Optional (Default: False)
-            True to probe adaptive population for decoders
         avoid_limits: Boolean Optional (Default: True)
             Adds joint avoidance controller to prevent the arm from colliding
             with the floor and itself
@@ -105,7 +69,16 @@ class Training:
         db_name: String, Optional (Default: None)
             the database to use for saving/loading, when set to None the
             default will be used (abr_control_db.h5)
-
+        use_adapt: Boolean, Optional (Default: Training)
+            True if using a network for learning, this boolean is used for
+            things like pulling weights from the network to save and saving
+            parameters from the dynamics_adapation module
+        MEANS : list of floats, Optional (Default: None)
+            expected mean of joint angles and velocities in [rad] and [rad/sec]
+            respectively. Expected value for each joint. Only used for adaptation
+        SCALES : list of floats, Optional (Default: None)
+            expected variance of joint angles and velocities. Expected value for
+            each joint. Only used for adaptation
 
         Attributes
         ----------
@@ -116,47 +89,34 @@ class Training:
             test since following trajectory and not moving to a single final
             point
         """
-        if 'nengo' not in backend:
-            self.use_adapt = False
-        else:
-            self.use_adapt = True
 
-        self.use_spherical = use_spherical
-        # hdf5 has no type None so an error is raised for runs where None
-        # weights are passed in. This get's handled on the dynamics adaptation
-        # side, but at this point they will be None. This is added to avoid the
-        # hdf5 error
-        if weights is None:
-            saved_input_weights = 'None'
-        else:
-            saved_input_weights = weights
+        self.use_adapt = use_adapt
         self.params = {'source': 'training',
-                  'adapt_input': adapt_input,
-                  'adapt_output': adapt_output,
-                  'n_neurons': n_neurons,
-                  'n_ensembles': n_ensembles,
                   'test_group': test_group,
                   'test_name': test_name,
                   'session': session,
                   'run': run,
-                  'weights': saved_input_weights,
-                  'pes_learning_rate': pes_learning_rate,
-                  'backend': backend,
                   'offset': offset,
                   'kp': kp,
                   'kv': kv,
                   'ki': ki,
-                  'seed': seed,
-                  'SCALES_q': SCALES['q'],
-                  'SCALES_dq': SCALES['dq'],
-                  'MEANS_q': MEANS['q'],
-                  'MEANS_dq': MEANS['dq'],
-                  'probe_weights': probe_weights,
                   'avoid_limits': avoid_limits,
-                  'neuron_type': neuron_type,
                   'db_name': db_name,
-                  'vmax': vmax,
-                  'use_spherical': self.use_spherical}
+                  'vmax': vmax}
+
+        if SCALES is not None:
+            self.params['SCALES_q'] = SCALES['q']
+            self.params['SCALES_dq'] = SCALES['dq']
+        else:
+            self.params['SCALES_q'] = 'None'
+            self.params['SCALES_dq'] = 'None'
+
+        if MEANS is not None:
+            self.params['MEANS_q'] = MEANS['q']
+            self.params['MEANS_dq'] = MEANS['dq']
+        else:
+            self.params['MEANS_q'] = 'None'
+            self.params['MEANS_dq'] = 'None'
 
         self.run = run
         self.session = session
@@ -182,15 +142,6 @@ class Training:
         # instantiate our data handler for saving and load
         self.data_handler = DataHandler(use_cache=True, db_name=db_name)
 
-        # load previous weights if they exist is None passed in
-        if weights is None and self.use_adapt:
-            if run == 0:
-                weights = None
-            else:
-                weights = self.data_handler.load_data(params=['weights'], session=self.session,
-                        run=self.run-1, test_group=self.test_group,
-                        test_name=self.test_name, create=True)
-
         print('--Instantiate robot_config--')
         # instantiate our robot config
         self.robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True,
@@ -203,28 +154,6 @@ class Training:
             self.OFFSET = offset
         print('--Generate / load transforms--')
         self.robot_config.init_all()
-
-        if self.use_spherical:
-            extra_dim = True
-        else:
-            extra_dim = False
-
-        if self.use_adapt:
-            print('--Instantiate adapt controller--')
-            # instantiate our adaptive controller
-            self.adapt = signals.DynamicsAdaptation(
-                n_input=sum(adapt_input*2) + extra_dim,
-                n_output=sum(adapt_output),
-                n_neurons=n_neurons,
-                n_ensembles=n_ensembles,
-                pes_learning_rate=pes_learning_rate,
-                intercepts=(-0.9, 0.1),
-                intercepts_mode=-0.9,
-                weights_file=weights,
-                backend=backend,
-                probe_weights=probe_weights,
-                seed=seed,
-                neuron_type=neuron_type)
 
         print('--Instantiate OSC controller--')
         # instantiate operational space controller
@@ -260,6 +189,97 @@ class Training:
                      'time': [], 'weights': [], 'u_avoid': [], 'osc_dx': [],
                      'u_vmax': [], 'q_torque': []}
         self.count = 0
+
+    def __init_network__(self, adapt_input, adapt_output, n_neurons=1000, n_ensembles=1,
+            weights=None, pes_learning_rate=1e-6, backend=None, seed=None,
+            probe_weights=True, neuron_type='lif', use_spherical=False):
+        """
+        Instantiate the adpative controller
+
+        Parameters
+        ----------
+        n_neurons: int, Optional (Default: 1000)
+            the number of neurons in the adaptive population
+        n_ensembles: int, Optional (Default: 1)
+            the number of ensembles of n_neurons number of neurons
+        weights: string, Optional (Default: None)
+            the path to the desired saved weights to use. If None will
+            automatically take the most recent weights saved in the 'test_name'
+            directory
+        pes_learning_rate: float, Optional (Default: 1e-6)
+            the learning rate for the adaptive population
+        backend: string
+            None: non adaptive control, Optional (Default: None)
+            'nengo': use nengo as the backend for the adaptive population
+            'nengo_spinnaker': use spinnaker as the adaptive population
+        seed: int Optional, (Default: None)
+            seed used for random number generation in adaptive population
+        adapt_input : list of booleans
+            a boolean list of which joint information to pass in to the
+            adaptive population
+            Ex: to use joint 1 and 2 information for a 6DOF arm
+            (starting from base 0)
+            adapt_input = [False, True, True, False, False, False]
+        adapt_output : list of booleans
+            a boolean list of which joints to apply the adaptive signal to
+            Ex: to adapt joint 1 and 2 for a 6DOF arm (starting from base 0)
+            adapt_input = [False, True, True, False, False, False]
+        *NOTE: adapt_output DOES NOT have to be the same as adapt_input*
+        probe_weights: Boolean Optional (Default: False)
+            True to probe adaptive population for decoders
+        """
+        self.use_spherical = use_spherical
+
+        # hdf5 has no type None so an error is raised for runs where None
+        # weights are passed in. This get's handled on the dynamics adaptation
+        # side, but at this point they will be None. This is added to avoid the
+        # hdf5 error
+        if weights is None:
+            saved_input_weights = 'None'
+        else:
+            saved_input_weights = weights
+
+        self.params['adapt_input'] = adapt_input
+        self.params['adapt_output'] = adapt_output
+        self.params['n_neurons'] = n_neurons
+        self.params['n_ensembles'] = n_ensembles
+        self.params['weights'] = saved_input_weights
+        self.params['pes_learning_rate'] = pes_learning_rate
+        self.params['backend'] = backend
+        self.params['seed'] = seed
+        self.params['probe_weights'] = probe_weights
+        self.params['neuron_type'] = neuron_type
+        self.params['use_spherical'] = self.use_spherical
+
+        # load previous weights if they exist is None passed in
+        if weights is None:
+            if self.run == 0:
+                weights = None
+            else:
+                weights = self.data_handler.load_data(params=['weights'], session=self.session,
+                        run=self.run-1, test_group=self.test_group,
+                        test_name=self.test_name, create=True)
+
+        if self.use_spherical:
+            extra_dim = True
+        else:
+            extra_dim = False
+
+        print('--Instantiate adapt controller--')
+        # instantiate our adaptive controller
+        self.adapt = signals.DynamicsAdaptation(
+            n_input=sum(adapt_input*2) + extra_dim,
+            n_output=sum(adapt_output),
+            n_neurons=n_neurons,
+            n_ensembles=n_ensembles,
+            pes_learning_rate=pes_learning_rate,
+            intercepts=(-0.9, 0.1),
+            intercepts_mode=-0.9,
+            weights_file=weights,
+            backend=backend,
+            probe_weights=probe_weights,
+            seed=seed,
+            neuron_type=neuron_type)
 
         self.adapt_input = np.array(adapt_input)
         self.in_index = np.arange(self.robot_config.N_JOINTS)[self.adapt_input]
