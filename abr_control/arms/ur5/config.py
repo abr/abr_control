@@ -51,7 +51,7 @@ class Config(BaseConfig):
 
         self._T = {}  # dictionary for storing calculated transforms
 
-        self.JOINT_NAMES = ['UR5_joint%i' % ii
+        self.JOINT_NAMES = ['joint%i' % ii
                             for ii in range(self.N_JOINTS)]
 
         # for the null space controller, keep arm near these angles

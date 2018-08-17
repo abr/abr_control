@@ -16,7 +16,7 @@ import time
 class JacoTest():
     def __init__(self):
         self.dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
-        self.save_name = 'ur5_joint_difference_3'
+        self.save_name = 'jaco_joint_difference_6'
 
     def run_sim(self):
         print('Starting simulation...')
@@ -37,7 +37,7 @@ class JacoTest():
 
         # create our VREP interface
         print(np.array(joints).shape)
-        interface = VREP(robot_config, dt=0.04)
+        interface = VREP(robot_config, dt=0.004)
         interface.connect()
 
         # set up lists for tracking data
@@ -73,9 +73,11 @@ class JacoTest():
                     #print(step_actual[4])
                     calc_track.append(np.copy(step_calc))
                     if jj % 10 == 0:
-                        print('%i / %i'%(jj, len(current_run_joints)))
-                        print('Actual: ', step_actual)
-                        print('Calculated: ', step_calc)
+                        print('%i / %i'%(jj+1, len(current_run_joints)))
+                        for step in step_actual:
+                            self.print_joint(name='Actual', joint_xyz=step)
+                        for step in step_calc:
+                            self.print_joint(name='Calculated', joint_xyz=step)
                 #print(actual_track)
         except:
             print(traceback.format_exc())
@@ -95,14 +97,18 @@ class JacoTest():
                     save_location=loc, overwrite=overwrite, create=create)
 
             custom_params = {'Notes': """
-            Previous sim did not work, need to step through simulation to get
-            feedback. Added step function to vrep interface. Had to turn off
-            dynamics and np.copy the actual joint positions since they were
-            a constant value otherwise.
+            joint names were slightly off in sim, fixed to be joint# and EE now
+
+            dt = 0.004
             """}
             self.dat.save(data=custom_params,
                     save_location='simulations/%s/test_parameters'%self.save_name, overwrite=overwrite,
                     create=create)
+
+    def print_joint(self, name, joint_xyz):
+        print('%s: [%.4f, %.4f, %.4f]'%(name, joint_xyz[0], joint_xyz[1],
+            joint_xyz[2]))
+
 
     def calc_things(self):
         data = self.dat.load(params=['actual_joints', 'calculated_joints'],
@@ -164,5 +170,5 @@ class JacoTest():
 
 if __name__ == '__main__':
     runsim = JacoTest()
-    #runsim.run_sim()
+    runsim.run_sim()
     runsim.calc_things()
