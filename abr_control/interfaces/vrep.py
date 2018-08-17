@@ -327,3 +327,21 @@ class VREP(Interface):
             -1,  # set absolute, not relative position
             xyz,
             vrep.simx_opmode_blocking)
+
+    def get_sim_time(self):
+        """
+        Retrieves the simulation time of the last fetched command
+        (i.e. when the last fetched command was processed on the
+        server side). The function can be used to verify how "fresh"
+        a command reply is, or whether a command reply was recently
+        updated.
+
+        Returns time in ms
+        """
+        sim_time = vrep.simxGetLastCmdTime(self.clientID) * 0.001
+        return sim_time
+
+    def step_sim(self):
+        # move simulation ahead one time step
+        vrep.simxSynchronousTrigger(self.clientID)
+        self.count += self.dt

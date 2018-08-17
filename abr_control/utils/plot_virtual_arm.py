@@ -1,4 +1,3 @@
-import abr_jaco2
 from abr_control.utils import DataHandler, make_gif
 import numpy as np
 import matplotlib
@@ -21,21 +20,33 @@ show_traj = True
 run_num=49
 use_cache=True
 db_name = 'dewolf2018neuromorphic'
-test_group = '1lb_random_target'
+test_groups = [
+                'simulations',
+                'simulations',
+              ]
+tests = [
+        'ur5_sim_no_weight_1',
+        'jaco_sim_no_weight_2',
+        ]
 # test_name = 'nengo_cpu_%i_19'%run_num
 # test_name0 = 'nengo_cpu_%i_0'%run_num
 
-test_name = 'nengo_cpu_53_9'
-test_name0 = 'nengo_cpu_48_9'
+# test_name = 'nengo_cpu_53_9'
+# test_name0 = 'nengo_cpu_48_9'
 
-# test_name = 'pd_no_weight_12'
-# test_name0 = 'pd_no_weight_9'
+# test_name = 'pd_no_weight_20'
+# test_name0 = 'pd_no_weight_22'
 
-label_name = '%s : %s'%(test_name, test_name0)
+label_name = '%s : %s'%(tests[0], tests[1])
 session = 0
 runs=[0,1,2,3,4,5,6,7,8,9]
-rc = abr_jaco2.Config(use_cython=True, hand_attached=True, init_all=True,
-        offset=None)
+if 'ur5' in tests[0]:
+    from abr_control.arms import ur5 as arm
+    rc = arm.Config(use_cython=True)
+else:
+    import abr_jaco2
+    rc = abr_jaco2.Config(use_cython=True, hand_attached=True, init_all=True,
+            offset=None)
 #offset = rc.OFFSET
 offset=[0,0,0]
 rc.init_all()
@@ -69,7 +80,7 @@ for run in runs:
     dat = DataHandler(use_cache=use_cache, db_name=db_name)
     data = dat.load(params=['q', 'error', 'target', 'ee_xyz', 'filter', 'time'],
             save_location='%s/%s/session%03d/run%03d'%
-            (test_group, test_name, session, run))
+            (test_groups[0], tests[0], session, run))
     q_t.append(data['q'])
     error_t.append(data['error'])
     ee_xyz_t.append(data['ee_xyz'])
@@ -79,7 +90,7 @@ for run in runs:
 
     data_0 = dat.load(params=['ee_xyz', 'error'],
             save_location='%s/%s/session%03d/run%03d'%
-            (test_group, test_name0, session, run))
+            (test_groups[1], tests[1], session, run))
     ee_xyz_0.append(data_0['ee_xyz'])
     error_0.append(data_0['error'])
 
@@ -174,19 +185,19 @@ for ii in range(0,length,10):
         ax.text(-0.5, -0.5, 0.4, 'Avg: %.3f m'%np.mean(error_t[jj]), color='b')
         ax.text(-0.5, -0.5, 0.5, 'Final: %.3f m'%(error_t[jj][-1]), color='b')
         ax.text(-0.5, -0.5, 0.6, 'Error: %.3f m'%(error), color='b')
-        ax.text(-0.5, -0.5, 0.7, test_name, color='b')
+        ax.text(-0.5, -0.5, 0.7, tests[0], color='b')
 
         if show_traj:
             # plot ee trajectory line
             ax.plot(ee_xyz_t[run][:ii, 0], ee_xyz_t[run][:ii,1], ee_xyz_t[run][:ii,2],
-                    color='b', label=test_name)
+                    color='b', label=tests[0])
             # plot filtered path planner trajectory line
             ax.plot(filter_t[run][:ii, 0], filter_t[run][:ii,1], filter_t[run][:ii,2],
                     c='g')
             # plot ee trajectory line of starting run
             ax.plot(ee_xyz_0[run][:ii, 0], ee_xyz_0[run][:ii,1],
                     ee_xyz_0[run][:ii, 2], c='tab:purple', linestyle='dashed',
-                    label=test_name0)
+                    label=tests[1])
             ax.text(-0.5, -0.5, 0.0, 'Avg: %.3f m'%np.mean(error_0[jj]),
                     color='tab:purple')
             ax.text(-0.5, -0.5, 0.1, 'Final: %.3f m'%(error_0[jj][-1]),
@@ -197,7 +208,7 @@ for ii in range(0,length,10):
                 iii = ii
             ax.text(-0.5, -0.5, 0.2, 'Error: %.3f m'%(error_0[run][iii]),
                     color='tab:purple')
-            ax.text(-0.5, -0.5, 0.3, test_name0, color='tab:purple')
+            ax.text(-0.5, -0.5, 0.3, tests[1], color='tab:purple')
             if jj == 0:
                 ax.legend(bbox_to_anchor=[-0.55, 0.5], loc='center left')
     plt.savefig('%s/gif_fig_cache/%05d.png'%(save_loc,ii))
@@ -206,18 +217,5 @@ for ii in range(0,length,10):
 
 make_gif.create(fig_loc='%s/gif_fig_cache'%save_loc,
                 save_loc='%s/%s/virtual_arm'%(save_loc, db_name),
-                save_name='%s-%s'%(test_name, test_name0),
+                save_name='%s-%s'%(tests[0], tests[1]),
                 delay=5)
-# #"convert -delay 5 -loop 0 -deconstruct -quantize transparent -layers optimize -resize 1200x2000 figures/gif_figs/*.png figures/gif_figs/gifs/%s-%s.gif"
-# bashCommand = ("convert -delay 5 -loop 0 -deconstruct -quantize"
-#                + " transparent -layers optimize -resize 1200x2000"
-#                + " figures/gif_figs/*.png figures/gif_figs/gifs/"
-#                + "%s-%s-%s.gif"
-#                %(test_group,test_name, test_name0))
-# print('command: ', bashCommand)
-# print('100.00% complete')
-# print('Creating gif...')
-# process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)#,
-#         #stdin=subprocess.PIPE, shell=True)
-# output, error = process.communicate()
-# print('Finished')

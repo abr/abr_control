@@ -1,4 +1,3 @@
-import abr_jaco2
 from abr_control.utils import DataHandler, ProcessData
 import os
 import numpy as np
@@ -54,7 +53,8 @@ def plot_data(test_group, test_name, session, run, use_cache=True, db_name=None)
             plt.title('Velocity Profiles: %s\nkp:%i kv:%i vmax:%i'
                     %(test_name, kp, kv, vmax))
         plt.plot(dx[:,ii], 'b',label='dx')
-        plt.plot(filter_t[:, 3+ii],'g', label='filter')
+        plt.plot(filter_t[:, 3+ii],'g', label='filter dx')
+        plt.plot(filter_t[:, ii],'--g', label='filter x')
         plt.plot(filter_t[:, 3+ii]-dx[:,ii],'k', label='filter-dx')
         plt.plot(ideal[:, 3+ii], '--r', label='ideal')
         plt.plot(ee_dxyz[:,ii], 'orange', label='ee_vel')

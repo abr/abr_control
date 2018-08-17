@@ -20,7 +20,7 @@ class Training:
     def __init__(self,
             test_group='testing', test_name="joint_space_training", session=None,
             run=None, offset=None, kp=20, kv=6, ki=0, avoid_limits=True,
-            db_name=None, vmax=1, use_adapt=True, SCALES=None, MEANS=None):
+            db_name=None, vmax=1, SCALES=None, MEANS=None):
 
         """
         The test script used to collect data for training. The use of the
@@ -69,10 +69,6 @@ class Training:
         db_name: String, Optional (Default: None)
             the database to use for saving/loading, when set to None the
             default will be used (abr_control_db.h5)
-        use_adapt: Boolean, Optional (Default: Training)
-            True if using a network for learning, this boolean is used for
-            things like pulling weights from the network to save and saving
-            parameters from the dynamics_adapation module
         MEANS : list of floats, Optional (Default: None)
             expected mean of joint angles and velocities in [rad] and [rad/sec]
             respectively. Expected value for each joint. Only used for adaptation
@@ -90,7 +86,7 @@ class Training:
             point
         """
 
-        self.use_adapt = use_adapt
+        self.use_adapt = False
         self.params = {'source': 'training',
                   'test_group': test_group,
                   'test_name': test_name,
@@ -229,6 +225,7 @@ class Training:
             True to probe adaptive population for decoders
         """
         self.use_spherical = use_spherical
+        self.use_adapt = True
 
         # hdf5 has no type None so an error is raised for runs where None
         # weights are passed in. This get's handled on the dynamics adaptation
@@ -487,10 +484,6 @@ class Training:
         print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
             self.session, self.run))
 
-        if self.use_adapt:
-            # Get weight from adaptive population
-            self.data['weights'] = self.adapt.get_weights()
-
         # Save test data
         self.data_handler.save_data(tracked_data=self.data, session=self.session,
             run=self.run, test_name=self.test_name, test_group=self.test_group,
@@ -502,11 +495,6 @@ class Training:
         # Save OSC parameters
         self.data_handler.save(data=self.ctrlr.params,
                 save_location=loc + self.ctrlr.params['source'], overwrite=overwrite, create=create)
-
-        # Save dynamics_adaptation parameters
-        if self.use_adapt:
-            self.data_handler.save(data=self.adapt.params,
-                    save_location=loc + self.adapt.params['source'], overwrite=overwrite, create=create)
 
         # Save robot_config parameters
         self.data_handler.save(data=self.robot_config.params,
@@ -525,3 +513,23 @@ class Training:
             self.data_handler.save(data=custom_params,
                     save_location=loc + 'test_parameters', overwrite=overwrite,
                     create=create)
+
+    def save_adaptive(self, overwrite=True, create=True):
+        loc = '%s/%s/parameters/'%(self.test_group, self.test_name)
+        #TODO: weights are saved in save_data, but since the adaptive
+        """saving is now separated, we have to either save this again, or make
+        sure that save_adaptive is run first to add weights to the dictionary
+        before the rest of the tracked data is saved in save data. For now it is added here
+        to make sure it is saved, in case the user forgets to run this first"""
+
+        # Get weight from adaptive population
+        self.data['weights'] = self.adapt.get_weights()
+        # Save test data
+        self.data_handler.save_data(tracked_data=self.data, session=self.session,
+            run=self.run, test_name=self.test_name, test_group=self.test_group,
+            overwrite=overwrite)
+
+        # Save dynamics_adaptation parameters
+        self.data_handler.save(data=self.adapt.params,
+                save_location=loc + self.adapt.params['source'], overwrite=overwrite, create=create)
+

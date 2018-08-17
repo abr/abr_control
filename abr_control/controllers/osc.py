@@ -73,10 +73,16 @@ class OSC(controller.Controller):
 
         # run the controller once to generate any functions we might be missing
         # to avoid a long delay in the control loop
+        if hasattr(robot_config, 'OFFSET'):
+            offset = robot_config.OFFSET
+        else:
+            print('robot config has no offset attribute, using zeros')
+            offset = [0,0,0]
+
         self.generate(np.zeros(robot_config.N_JOINTS),
                       np.zeros(robot_config.N_JOINTS),
                       np.zeros(3),
-                      offset=robot_config.OFFSET)
+                      offset=offset)
 
     @property
     def params(self):

@@ -60,6 +60,8 @@ class Config(BaseConfig):
                        * np.sqrt(self.N_JOINTS))
                 }
 
+        self.START_POS = np.array(
+            [0.0, 2.79, 2.62, 4.71, 0.0, 3.04], dtype="float32")
         self._T = {}  # dictionary for storing calculated transforms
 
         # set up saved functions folder to be in the abr_jaco repo

@@ -35,6 +35,8 @@ class Config(BaseConfig):
         super(Config, self).__init__(
             N_JOINTS=6, N_LINKS=7, ROBOT_NAME='ur5', **kwargs)
 
+        self.START_POS =  [0.70010173, 0.79758257, -1.60718906, 0.99171823,
+                1.3501941, 0.0]
         if self.MEANS is None:
             self.MEANS = {  # expected mean of joints angles / velocities
                 'q':  np.array([3.06, .968, -.946, .2, 1.1, -.434]),
