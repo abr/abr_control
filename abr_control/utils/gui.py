@@ -110,6 +110,8 @@ def live_plot(i):
         # clear our data before plotting
         #TODO: don't delete disp loc if it doesn't contain the data, just don't
         # show it
+        # used for setting the legend for multi line data
+        multi_line = False
         line_styles = ['-', '--', '-.', ':']
         a.clear()
         last_plotted = var_to_plot
@@ -231,7 +233,10 @@ def live_plot(i):
                         x_max = len(d)
                     a.set_xlim(x_min, x_max)
                     a.set_ylim(y_min, y_max)
-                    if var_to_plot[0] == 'u':
+                    if np.array(d.T).shape[1] > 1:
+                    # if var_to_plot[0] == 'u' or var_to_plot[0] == 'q' or
+                    # var_to_plot[0] == 'dq':
+                        multi_line = True
                         for oo, dof in enumerate(d.T):
                             a.plot(dof, c=plotting_colors[count],
                                     label=legend_names[count],
@@ -267,7 +272,8 @@ def live_plot(i):
         for rm_test in tests_to_remove:
             disp_loc.remove(rm_test)
         #f.tight_layout()
-        if var_to_plot[0] == 'u':
+        #if var_to_plot[0] == 'u':
+        if multi_line:
             a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
         else:
             a.legend(legend_names, loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)

@@ -142,7 +142,7 @@ class Training:
         # instantiate our robot config
         self.robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True,
                 SCALES=SCALES, MEANS=MEANS, init_all=True, offset=offset,
-                mass_multiplier=1)
+                mass_multiplier=1, hand_dist=0.12)
 
         if offset is None:
             self.OFFSET = self.robot_config.OFFSET
@@ -154,7 +154,7 @@ class Training:
         print('--Instantiate OSC controller--')
         # instantiate operational space controller
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
-                vmax=vmax, null_control=True)
+                vmax=vmax, null_control=False)
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
@@ -393,6 +393,7 @@ class Training:
                 dq=self.dq ,
                 target_pos=self.target[:3],
                 target_vel=self.target[3:],
+                ref_frame='EE',
                 offset = self.OFFSET)
 
             # account for uneven stiction in jaco2 base

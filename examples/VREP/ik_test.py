@@ -16,7 +16,7 @@ import time
 class JacoTest():
     def __init__(self):
         self.dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
-        self.save_name = 'jaco_joint_difference_6'
+        self.save_name = 'jaco_joint_difference_9'
 
     def run_sim(self):
         print('Starting simulation...')
@@ -65,7 +65,8 @@ class JacoTest():
                         else:
                             joint = 'joint%i'%ii
                         current_joint_calc = robot_config.Tx(joint, q=feedback['q'])
-                        interface.set_xyz(name='target', xyz=current_joint_calc)
+                        if joint == 'EE':
+                            interface.set_xyz(name='target', xyz=current_joint_calc)
                         current_joint_act = interface.get_xyz(name=joint)
                         step_actual.append(current_joint_act)
                         step_calc.append(current_joint_calc)
@@ -100,6 +101,11 @@ class JacoTest():
             joint names were slightly off in sim, fixed to be joint# and EE now
 
             dt = 0.004
+
+            EE offset in sim -0.09, in config -0.08, changed sim to -0.08
+
+            EE link was not set up as child of joint like other joint-link
+            pairs
             """}
             self.dat.save(data=custom_params,
                     save_location='simulations/%s/test_parameters'%self.save_name, overwrite=overwrite,

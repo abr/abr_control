@@ -123,6 +123,7 @@ class OSC(controller.Controller):
 
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
+        self.Tx = xyz
 
         # calculate the Jacobian for the end effector
         J = self.robot_config.J(ref_frame, q, x=offset)
@@ -131,9 +132,11 @@ class OSC(controller.Controller):
 
         # calculate the inertia matrix in joint space
         M = self.robot_config.M(q)
+        self.M = M
 
         # calculate the inertia matrix in task space
         M_inv = np.linalg.inv(M)
+        self.M_inv = M_inv
         # calculate the Jacobian for end-effector with no offset
         Mx_inv = np.dot(J, np.dot(M_inv, J.T))
         if np.linalg.det(Mx_inv) != 0:
@@ -209,6 +212,7 @@ class OSC(controller.Controller):
         if self.use_g:
             # add in gravity term in joint space
             u -= self.robot_config.g(q=q)
+            self.u_g = u
 
             # add in gravity term in task space
             # Jbar = np.dot(M_inv, np.dot(J.T, Mx))

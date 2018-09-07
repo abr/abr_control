@@ -35,8 +35,12 @@ class Config(BaseConfig):
         super(Config, self).__init__(
             N_JOINTS=6, N_LINKS=7, ROBOT_NAME='ur5', **kwargs)
 
-        self.START_POS =  [0.70010173, 0.79758257, -1.60718906, 0.99171823,
-                1.3501941, 0.0]
+        # default
+        # self.START_POS =  [0.70010173, 0.79758257, -1.60718906, 0.99171823,
+        #         1.3501941, 0.0]
+
+        # more like jaco start
+        self.START_POS = [0.698, 0.349, -0.698, 0.523, 1.309, 0]
         if self.MEANS is None:
             self.MEANS = {  # expected mean of joints angles / velocities
                 'q':  np.array([3.06, .968, -.946, .2, 1.1, -.434]),
@@ -243,6 +247,13 @@ class Config(BaseConfig):
             [0, 0, 0, 1]])
         self.Tj5l6 = self.Tj5l6a * self.Tj5l6b
 
+        # no axes change, account for offsets
+        self.Thandcomfingers = sp.Matrix([
+            [1, 0, 0, 0.0],
+            [0, 1, 0, 0.0],
+            [0, 0, 1, 0.12],
+            [0, 0, 0, 1]])
+
         # orientation part of the Jacobian (compensating for angular velocity)
         self.J_orientation = [
             self._calc_T('joint0')[:3, :3] * self._KZ,  # joint 0 orientation
@@ -284,8 +295,10 @@ class Config(BaseConfig):
                 self._T[name] = self._calc_T('joint4') * self.Tj4l5
             elif name == 'joint5':
                 self._T[name] = self._calc_T('link5') * self.Tl5j5
-            elif name == 'link6' or name == 'EE':
+            elif name == 'link6': # or name == 'EE':
                 self._T[name] = self._calc_T('joint5') * self.Tj5l6
+            elif name == 'EE':
+                self._T[name] = self._calc_T('link6') * self.Thandcomfingers
 
             else:
                 raise Exception('Invalid transformation name: %s' % name)

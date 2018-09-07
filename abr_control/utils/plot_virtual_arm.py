@@ -21,13 +21,18 @@ run_num=49
 use_cache=True
 db_name = 'dewolf2018neuromorphic'
 test_groups = [
+                #'simulations',
+                '1lb_random_target',
                 'simulations',
-                'simulations',
+                # '1lb_random_target',
               ]
 tests = [
-        'ur5_sim_no_weight_1',
-        'jaco_sim_no_weight_2',
+        #'jaco_sim_no_weight_3',
+        # 'pd_no_weight_47',
+        'pd_no_weight_50',
+        'jaco_sim_no_weight_5',
         ]
+use_offset = False
 # test_name = 'nengo_cpu_%i_19'%run_num
 # test_name0 = 'nengo_cpu_%i_0'%run_num
 
@@ -40,16 +45,27 @@ tests = [
 label_name = '%s : %s'%(tests[0], tests[1])
 session = 0
 runs=[0,1,2,3,4,5,6,7,8,9]
-if 'ur5' in tests[0]:
-    from abr_control.arms import ur5 as arm
-    rc = arm.Config(use_cython=True)
+if 'simulations' in test_groups[0]:
+    if 'ur5' in tests[0]:
+        from abr_control.arms import ur5 as arm
+        rc = arm.Config(use_cython=True)
+    elif 'jaco' in tests[0]:
+        from abr_control.arms import jaco2 as arm
+        rc = arm.Config(use_cython=True, hand_attached=True)
+    offset=[0,0,0]
 else:
     import abr_jaco2
-    rc = abr_jaco2.Config(use_cython=True, hand_attached=True, init_all=True,
-            offset=None)
-#offset = rc.OFFSET
-offset=[0,0,0]
-rc.init_all()
+    # only the first test needs the transforms since the virtual arm is for
+    # that test. The offset is based on the first test listed
+    if use_offset:
+        rc = abr_jaco2.ConfigOffset(use_cython=True, hand_attached=True, init_all=True,
+                offset=None)
+    else:
+        rc = abr_jaco2.Config(use_cython=True, hand_attached=True, init_all=True,
+                offset=None)
+    offset = rc.OFFSET
+    #offset=[0,0,0]
+    rc.init_all()
 
 q_t = []
 error_t = []
@@ -101,8 +117,9 @@ targets_t = np.array(targets_t)
 filter_t = np.array(filter_t)
 
 min_len = []
-for q in q_t:
+for nn, q in enumerate(q_t):
     min_len.append(len(q))
+    #print('%i: %i'%(nn, len(q)))
 length = np.min(min_len)
 
 for ii in range(0,length,10):
@@ -119,14 +136,23 @@ for ii in range(0,length,10):
         ee_xyz = ee_xyz_t[run][ii]
         filter_xyz = filter_t[run][ii, 0:3]
 
-        joint0 = rc.Tx('joint0', q=q, x=offset)
-        joint1 = rc.Tx('joint1', q=q, x=offset)
-        joint2 = rc.Tx('joint2', q=q, x=offset)
-        joint3 = rc.Tx('joint3', q=q, x=offset)
-        joint4 = rc.Tx('joint4', q=q, x=offset)
-        joint5 = rc.Tx('joint5', q=q, x=offset)
+        joint0 = rc.Tx('joint0', q=q)#, x=offset)
+        joint1 = rc.Tx('joint1', q=q)#, x=offset)
+        joint2 = rc.Tx('joint2', q=q)#, x=offset)
+        joint3 = rc.Tx('joint3', q=q)#, x=offset)
+        joint4 = rc.Tx('joint4', q=q)#, x=offset)
+        joint5 = rc.Tx('joint5', q=q)#, x=offset)
+        ee_recalc = rc.Tx('EE', q=q, x=offset)
 
 
+        link0 = np.array(rc.Tx('link0', q=q))#, x=offset)
+        link1 = np.array(rc.Tx('link1', q=q))#, x=offset)
+        link2 = np.array(rc.Tx('link2', q=q))#, x=offset)
+        link3 = np.array(rc.Tx('link3', q=q))#, x=offset)
+        link4 = np.array(rc.Tx('link4', q=q))#, x=offset)
+        link5 = np.array(rc.Tx('link5', q=q))#, x=offset)
+        link6 = np.array(rc.Tx('link6', q=q))#, x=offset)
+        links = np.stack([link0, link1, link2, link3, link4, link5, link6])
 
         joint0 = np.array(joint0)
         joint1 = np.array(joint1)
@@ -134,6 +160,7 @@ for ii in range(0,length,10):
         joint3 = np.array(joint3)
         joint4 = np.array(joint4)
         joint5 = np.array(joint5)
+        ee_recalc = np.array(ee_recalc)
         joints = [joint0, joint1, joint2, joint3, joint4, joint5, ee_xyz]
         joints = np.stack(joints)
 
@@ -152,7 +179,23 @@ for ii in range(0,length,10):
                 marker_size[kk] = 2**5
                 marker[kk] = 'o'
         # plot target location
-        ax.scatter(targets[0], targets[1], targets[2], c='r',marker='o')
+        ax.scatter(targets[0], targets[1], targets[2], c='r',marker='o', s=2**5)
+        # plot COM locations
+        ax.scatter(link0[0], link0[1], link0[2], c='y',
+                marker='o', s=2**5)
+        ax.scatter(link1[0], link1[1], link1[2], c='y',
+                marker='o', s=2**5)
+        ax.scatter(link2[0], link2[1], link2[2], c='y',
+                marker='o', s=2**5)
+        ax.scatter(link3[0], link3[1], link3[2], c='y',
+                marker='o', s=2**5)
+        ax.scatter(link4[0], link4[1], link4[2], c='y',
+                marker='o', s=2**5)
+        ax.scatter(link5[0], link5[1], link5[2], c='y',
+                marker='o', s=2**5)
+        ax.scatter(link6[0], link6[1], link6[2], c='y',
+                marker='o', s=2**5)
+
         # plot joint locations
         ax.scatter(joint0[0], joint0[1], joint0[2], c=colors[0],
                 marker=marker[0], s=marker_size[0])
@@ -186,6 +229,9 @@ for ii in range(0,length,10):
         ax.text(-0.5, -0.5, 0.5, 'Final: %.3f m'%(error_t[jj][-1]), color='b')
         ax.text(-0.5, -0.5, 0.6, 'Error: %.3f m'%(error), color='b')
         ax.text(-0.5, -0.5, 0.7, tests[0], color='b')
+
+        # plot the recalulated EE pos to see if it matches
+        ax.scatter(ee_recalc[0], ee_recalc[1], ee_recalc[2], c='m', marker='*')
 
         if show_traj:
             # plot ee trajectory line

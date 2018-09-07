@@ -21,5 +21,5 @@ print(keys)
 #                         print('OLD: %s \nNEW: %s' %
 #                                 (place, new_place))
 #                         dat.rename(old=place, new=new_place, delete_old=True)
-dat.rename(old=loc+'/jaco_sim_no_weight_2/session000/run000test_parameters',
-        new=loc+'/jaco_sim_no_weight_2/parameters/test_parameters', delete_old=True)
+dat.rename(old=loc+'/jaco_sim_no_weight_5/session000/run009/u_osc',
+        new=loc+'/jaco_sim_no_weight_5/session000/run009/u_base', delete_old=True)
