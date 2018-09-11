@@ -74,6 +74,7 @@ for ii, target_xyz in enumerate(targets):
     Mx = []
     ref_frame_track = []
     ctrlr_q = []
+    Mx_non_singular = []
 
     try:
         feedback = interface.get_feedback()
@@ -156,6 +157,7 @@ for ii, target_xyz in enumerate(targets):
             Mx.append(np.copy(ctrlr.Mx))
             ref_frame_track.append(np.copy(ctrlr.ref_frame))
             ctrlr_q.append(np.copy(ctrlr.q))
+            Mx_non_singular.append(np.copy(ctrlr.Mx_non_singular))
 
             run_time += loop_time
             if run_time %1 == 0:
@@ -182,8 +184,8 @@ for ii, target_xyz in enumerate(targets):
                 'q': q_track, 'Tx': Tx_track, 'u_vmax': vmax_track,
                 'u_Mx': u_Mx, 'u_inertia': u_inertia, 'u_g': u_g, 'M': M, 'M_inv':
                 M_inv, 'Mx_inv': Mx_inv, 'Mx': Mx, 'ref_frame':
-                ref_frame_track,
-                'ctrlr_q': ctrlr_q}
+                ref_frame_track, 'ctrlr_q': ctrlr_q, 'Mx_non_singular':
+                Mx_non_singular}
         dat.save(data=params,
                 save_location=loc, overwrite=overwrite, create=create)
 
