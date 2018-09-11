@@ -21,8 +21,6 @@ run_num=49
 use_cache=True
 db_name = 'dewolf2018neuromorphic'
 test_groups = [
-                #'simulations',
-                #'1lb_random_target',
                 'simulations',
                 'simulations',
                 # '1lb_random_target',

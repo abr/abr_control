@@ -13,10 +13,8 @@ from abr_control.utils import DataHandler
 import timeit
 dat = DataHandler(use_cache=True, db_name='jacoOSCdebug')
 
-save_name = 'jaco_sim_1'
-notes = """
-
-"""
+save_name = 'jaco_sim_3'
+notes = "inv and pinv, rcond = 0.005"
 
 # initialize our robot config
 if 'jaco' in save_name:
@@ -34,9 +32,21 @@ path = path_planners.SecondOrder(robot_config=robot_config,
         n_timesteps=3000, w=1e4, zeta=3, threshold=0.05)
 path_dt = 0.004
 sim_dt = 0.004
-targets = dat.load(params=['autogen_targets'],
-        save_location='1lb_random_target')['autogen_targets']
-#targets = [targets[0]]
+# targets = dat.load(params=['autogen_targets'],
+#         save_location='1lb_random_target')['autogen_targets']
+targets = np.array([
+    [-0.09886674, 0.31435531, 0.69859133],
+    [ 0.47701451, 0.06890294, 0.62898781],
+    [ 0.33978046, -0.22197022, 0.69237045],
+    [ 0.18900816, 0.37003439, 0.66534457],
+    [-0.29493157, -0.3118809,  0.72051759],
+    [-0.016, -0.4, 0.55],
+    [ 0.018233, 0.02109056, 0.80556351],
+    [-0.26065214, -0.04684662, 0.74356301],
+    [ 0.52172849, -0.19677514, 0.6],
+    [-0.47514801,  0.14137595, 0.55877516],
+    ])
+
 ref_frame = 'EE'
 
 for ii, target_xyz in enumerate(targets):

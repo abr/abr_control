@@ -5,8 +5,8 @@ Take a section of a hdf5 database and copy it to a new one.
 Useful to send parts of a database instead of a large file
 """
 
-source_db = 'partialdewolf2018'
-destination_db = 'dewolf2018neuromorphic'
+source_db = 'dewolf2018neuromorphic'
+destination_db = 'partialdewolf2018'
 test_group = 'simulations'
 test_list = ['ur5_sim_no_weight_6']
 
