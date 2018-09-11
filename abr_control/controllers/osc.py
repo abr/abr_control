@@ -79,7 +79,6 @@ class OSC(controller.Controller):
             print('robot config has no offset attribute, using zeros')
             offset = [0,0,0]
 
-        self.Mx_non_singular = []
         self.generate(np.zeros(robot_config.N_JOINTS),
                       np.zeros(robot_config.N_JOINTS),
                       np.zeros(3),
@@ -144,7 +143,7 @@ class OSC(controller.Controller):
             # do the linalg inverse if matrix is non-singular
             # because it's faster and more accurate
             Mx = np.linalg.inv(Mx_inv)
-            self.Mx_non_singular = Mx
+            self.Mx_non_singular = Mx_inv
         else:
             # using the rcond to set singular values < thresh to 0
             # singular values < (rcond * max(singular_values)) set to 0

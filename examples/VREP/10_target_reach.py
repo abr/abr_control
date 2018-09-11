@@ -173,6 +173,8 @@ for ii, target_xyz in enumerate(targets):
 
         print('Simulation terminated...')
 
+        Mx_non_singular = [x for x in Mx_non_singular if x is not None]
+        np.savez_compressed('Mx_non_singular',Mx_non_singular=Mx_non_singular)
         overwrite = True
         create = True
         loc = 'simulations/%s/session000/run%03d'%(save_name, ii)
