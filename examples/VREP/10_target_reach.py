@@ -11,9 +11,12 @@ from abr_control.controllers import path_planners
 from abr_control.interfaces import VREP
 from abr_control.utils import DataHandler
 import timeit
-dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
+dat = DataHandler(use_cache=True, db_name='jacoOSCdebug')
 
-save_name = 'ur5_sim_no_weight_6'
+save_name = 'jaco_sim_1'
+notes = """
+
+"""
 
 # initialize our robot config
 if 'jaco' in save_name:
@@ -33,6 +36,7 @@ path_dt = 0.004
 sim_dt = 0.004
 targets = dat.load(params=['autogen_targets'],
         save_location='1lb_random_target')['autogen_targets']
+#targets = [targets[0]]
 ref_frame = 'EE'
 
 for ii, target_xyz in enumerate(targets):
@@ -56,11 +60,10 @@ for ii, target_xyz in enumerate(targets):
     u_g = []
     M = []
     M_inv = []
-    JEE = []
     Mx_inv = []
     Mx = []
     ref_frame_track = []
-    JEE_q = []
+    ctrlr_q = []
 
     try:
         feedback = interface.get_feedback()
@@ -78,7 +81,8 @@ for ii, target_xyz in enumerate(targets):
         robot_config.orientation(ref_frame, q=zeros)
 
         # calculate end-effector position
-        ee_xyz = robot_config.Tx(ref_frame, q=feedback['q'])
+        ee_xyz = robot_config.Tx(ref_frame, q=feedback['q'],
+                x=robot_config.OFFSET)
         # last three terms used as started point for target EE velocity
         target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
         print('\nSimulation starting...\n')
@@ -101,7 +105,8 @@ for ii, target_xyz in enumerate(targets):
                 dq=feedback['dq'],
                 target_pos=target[:3],
                 target_vel=target[3:],
-                ref_frame=ref_frame)
+                ref_frame=ref_frame,
+                offset=robot_config.OFFSET)
 
             # get loop time before sim
             #time1 = timeit.default_timer()-start
@@ -113,7 +118,8 @@ for ii, target_xyz in enumerate(targets):
             #start = timeit.default_timer()
 
             # calculate end-effector position
-            ee_xyz = robot_config.Tx(ref_frame, q=feedback['q'])
+            ee_xyz = robot_config.Tx(ref_frame, q=feedback['q'],
+                    x=robot_config.OFFSET)
 
             # caclulate error to target
             error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
@@ -136,11 +142,10 @@ for ii, target_xyz in enumerate(targets):
             u_g.append(np.copy(ctrlr.u_g))
             M.append(np.copy(ctrlr.M))
             M_inv.append(np.copy(ctrlr.M_inv))
-            JEE.append(np.copy(ctrlr.JEE))
             Mx_inv.append(np.copy(ctrlr.Mx_inv))
             Mx.append(np.copy(ctrlr.Mx))
             ref_frame_track.append(np.copy(ctrlr.ref_frame))
-            JEE_q.append(np.copy(ctrlr.q))
+            ctrlr_q.append(np.copy(ctrlr.q))
 
             run_time += loop_time
             if run_time %1 == 0:
@@ -160,21 +165,15 @@ for ii, target_xyz in enumerate(targets):
         create = True
         loc = 'simulations/%s/session000/run%03d'%(save_name, ii)
 
-        custom_params = {'sim_dt': sim_dt, 'path_dt': path_dt, 'Notes': """
-        UR5 normally uses link6_com as the EE. Adding the transform from the
-        jaco that shifts this out by 12cm to see if it throws off the ur5
-        control.
-
-        Using J and JEE in osc
-        """}
+        custom_params = {'sim_dt': sim_dt, 'path_dt': path_dt, 'Notes': notes}
 
         params = {'u_base': u_osc, 'ee_xyz': ee_track, 'target': target_track,
                 'filter': filter_track, 'time': time_track, 'error': error_track,
                 'q': q_track, 'Tx': Tx_track, 'u_vmax': vmax_track,
                 'u_Mx': u_Mx, 'u_inertia': u_inertia, 'u_g': u_g, 'M': M, 'M_inv':
-                M_inv, 'JEE': JEE, 'Mx_inv': Mx_inv, 'Mx': Mx, 'ref_frame':
+                M_inv, 'Mx_inv': Mx_inv, 'Mx': Mx, 'ref_frame':
                 ref_frame_track,
-                'JEE_q': JEE_q}
+                'ctrlr_q': ctrlr_q}
         dat.save(data=params,
                 save_location=loc, overwrite=overwrite, create=create)
 

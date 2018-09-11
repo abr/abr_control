@@ -22,15 +22,19 @@ use_cache=True
 db_name = 'dewolf2018neuromorphic'
 test_groups = [
                 #'simulations',
-                '1lb_random_target',
+                #'1lb_random_target',
+                'simulations',
                 'simulations',
                 # '1lb_random_target',
               ]
 tests = [
-        #'jaco_sim_no_weight_3',
+        # 'ur5_sim_no_weight_6',
+        # 'ur5_sim_no_weight_7',
+        'jaco_sim_no_weight_6',
+        'jaco_sim_no_weight_7',
         # 'pd_no_weight_47',
-        'pd_no_weight_50',
-        'jaco_sim_no_weight_5',
+        # 'pd_no_weight_50',
+        # 'jaco_sim_no_weight_5',
         ]
 use_offset = False
 # test_name = 'nengo_cpu_%i_19'%run_num
@@ -49,9 +53,11 @@ if 'simulations' in test_groups[0]:
     if 'ur5' in tests[0]:
         from abr_control.arms import ur5 as arm
         rc = arm.Config(use_cython=True)
+        print('Using UR5 sim config')
     elif 'jaco' in tests[0]:
         from abr_control.arms import jaco2 as arm
         rc = arm.Config(use_cython=True, hand_attached=True)
+        print('Using jaco2 sim config')
     offset=[0,0,0]
 else:
     import abr_jaco2
@@ -60,9 +66,11 @@ else:
     if use_offset:
         rc = abr_jaco2.ConfigOffset(use_cython=True, hand_attached=True, init_all=True,
                 offset=None)
+        print('using jaco2 config with offset')
     else:
         rc = abr_jaco2.Config(use_cython=True, hand_attached=True, init_all=True,
                 offset=None)
+        print('using jaco2 config without offset')
     offset = rc.OFFSET
     #offset=[0,0,0]
     rc.init_all()
@@ -84,6 +92,9 @@ else:
 
 if not os.path.exists(save_loc):
     os.makedirs(save_loc)
+
+if not os.path.exists('%s/gif_fig_cache'%save_loc):
+    os.makedirs('%s/gif_fig_cache'%save_loc)
 
 files = [f for f in os.listdir('%s/gif_fig_cache'%save_loc) if f.endswith(".png") ]
 for ii, f in enumerate(files):
@@ -121,6 +132,23 @@ for nn, q in enumerate(q_t):
     min_len.append(len(q))
     #print('%i: %i'%(nn, len(q)))
 length = np.min(min_len)
+
+
+fig2 = plt.figure(figsize=(15, np.ceil(len(runs)/3)*5))
+ee_xyz_1 = np.array(ee_xyz_t)
+ee_xyz_2 = np.array(ee_xyz_0)
+for run in runs:
+    ax = fig2.add_subplot(np.ceil(len(runs)/3),3,run+1)
+    plt.title(run)
+    ax.plot(ee_xyz_1[run].T[0], 'r', label='%s X'%tests[0])
+    ax.plot(ee_xyz_1[run].T[1], 'b', label='%s Y'%tests[0])
+    ax.plot(ee_xyz_1[run].T[2], 'g', label='%s Z'%tests[0])
+    ax.plot(ee_xyz_2[run].T[0], 'y--', label='%s X'%tests[1])
+    ax.plot(ee_xyz_2[run].T[1], 'c--', label='%s Y'%tests[1])
+    ax.plot(ee_xyz_2[run].T[2], 'm--', label='%s Z'%tests[1])
+    plt.legend()
+plt.savefig('2d_trajectory')
+plt.show()
 
 for ii in range(0,length,10):
     fig = plt.figure(figsize=(15, np.ceil(len(runs)/3)*5))
@@ -214,7 +242,11 @@ for ii in range(0,length,10):
         # plot current filtered path planner target
         ax.scatter(filter_xyz[0], filter_xyz[1], filter_xyz[2], c='g', marker='*')
         # plot lines joining joints
-        ax.plot(joints[:,0], joints[:,1], joints[:,2], 'k')
+        points = [None]*(len(joints)+len(links))
+        points[::2] = links
+        points[1::2] = joints
+        points = np.array(points)
+        ax.plot(points.T[0], points.T[1], points.T[2], 'k')
         ax.set_xlim3d(-0.35,0.35)
         ax.set_ylim3d(-0.35,0.35)
         ax.set_zlim3d(0,0.7)
@@ -265,3 +297,4 @@ make_gif.create(fig_loc='%s/gif_fig_cache'%save_loc,
                 save_loc='%s/%s/virtual_arm'%(save_loc, db_name),
                 save_name='%s-%s'%(tests[0], tests[1]),
                 delay=5)
+

@@ -110,6 +110,8 @@ class Config(BaseConfig):
             self.L.append([0.0, 0.0, 0.12])  # offset for the end of fingers
         self.L = np.array(self.L)
 
+        self.OFFSET = np.array([0.0, 0.0, 0.0])
+
         if self.hand_attached is True:  # add in hand offset
             self.L_HANDCOM = np.array([0.0, 0.0, -0.08])  # com of the hand
 
