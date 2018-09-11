@@ -19,7 +19,7 @@ import os
 show_traj = True
 run_num=49
 use_cache=True
-db_name = 'dewolf2018neuromorphic'
+db_name = 'jacoOSCdebug'
 test_groups = [
                 'simulations',
                 'simulations',
@@ -28,8 +28,8 @@ test_groups = [
 tests = [
         # 'ur5_sim_no_weight_6',
         # 'ur5_sim_no_weight_7',
-        'jaco_sim_no_weight_6',
-        'jaco_sim_no_weight_7',
+        'jaco_sim_5',
+        'jaco_sim_5',
         # 'pd_no_weight_47',
         # 'pd_no_weight_50',
         # 'jaco_sim_no_weight_5',

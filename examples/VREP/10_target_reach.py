@@ -13,8 +13,8 @@ from abr_control.utils import DataHandler
 import timeit
 dat = DataHandler(use_cache=True, db_name='jacoOSCdebug')
 
-save_name = 'jaco_sim_3'
-notes = "inv and pinv, rcond = 0.005"
+save_name = 'jaco_sim_2'
+notes = "inv and pinv, rcond = 0.04"
 
 # initialize our robot config
 if 'jaco' in save_name:
