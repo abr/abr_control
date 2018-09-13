@@ -26,6 +26,7 @@ from terminaltables import AsciiTable
 
 # import data handler
 dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
+#dat = DataHandler(use_cache=True, db_name='jacoOSCdebug')
 #dat = DataHandler(use_cache=True, db_name='control_demo')
 pltE = PlotError()
 
@@ -817,6 +818,8 @@ class SearchPage(tk.Frame):
                 for key in test_params:
                     try:
                         data = test_dict[key]
+                        if key == 'notes':
+                            print(data)
                         # compare to the first test in the list to highlight
                         # differences
                         #TODO: BUG if the first test does not have the key entry

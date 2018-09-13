@@ -15,23 +15,25 @@ import os
 # print('Removing old figures from "gif_figs" folder...')
 # process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)#,
 # output, error = process.communicate()
-
+only_final_frame = False
 show_traj = True
 run_num=49
 use_cache=True
-db_name = 'jacoOSCdebug'
+#db_name = 'jacoOSCdebug'
+db_name = 'dewolf2018neuromorphic'
 test_groups = [
-                'simulations',
-                'simulations',
-                # '1lb_random_target',
+                # 'simulations',
+                # 'simulations',
+                '1lb_random_target',
+                '1lb_random_target',
               ]
 tests = [
         # 'ur5_sim_no_weight_6',
         # 'ur5_sim_no_weight_7',
-        'jaco_sim_5',
-        'jaco_sim_5',
-        # 'pd_no_weight_47',
-        # 'pd_no_weight_50',
+        # 'jaco_sim_5',
+        # 'jaco_sim_5',
+        'pd_no_weight_70',
+        'pd_no_weight_69',
         # 'jaco_sim_no_weight_5',
         ]
 use_offset = False
@@ -132,23 +134,26 @@ for nn, q in enumerate(q_t):
 length = np.min(min_len)
 
 
-fig2 = plt.figure(figsize=(15, np.ceil(len(runs)/3)*5))
-ee_xyz_1 = np.array(ee_xyz_t)
-ee_xyz_2 = np.array(ee_xyz_0)
-for run in runs:
-    ax = fig2.add_subplot(np.ceil(len(runs)/3),3,run+1)
-    plt.title(run)
-    ax.plot(ee_xyz_1[run].T[0], 'r', label='%s X'%tests[0])
-    ax.plot(ee_xyz_1[run].T[1], 'b', label='%s Y'%tests[0])
-    ax.plot(ee_xyz_1[run].T[2], 'g', label='%s Z'%tests[0])
-    ax.plot(ee_xyz_2[run].T[0], 'y--', label='%s X'%tests[1])
-    ax.plot(ee_xyz_2[run].T[1], 'c--', label='%s Y'%tests[1])
-    ax.plot(ee_xyz_2[run].T[2], 'm--', label='%s Z'%tests[1])
-    plt.legend()
-plt.savefig('2d_trajectory')
-plt.show()
+# 2d trajectory plots
+# fig2 = plt.figure(figsize=(15, np.ceil(len(runs)/3)*5))
+# ee_xyz_1 = np.array(ee_xyz_t)
+# ee_xyz_2 = np.array(ee_xyz_0)
+# for run in runs:
+#     ax = fig2.add_subplot(np.ceil(len(runs)/3),3,run+1)
+#     plt.title(run)
+#     ax.plot(ee_xyz_1[run].T[0], 'r', label='%s X'%tests[0])
+#     ax.plot(ee_xyz_1[run].T[1], 'b', label='%s Y'%tests[0])
+#     ax.plot(ee_xyz_1[run].T[2], 'g', label='%s Z'%tests[0])
+#     ax.plot(ee_xyz_2[run].T[0], 'y--', label='%s X'%tests[1])
+#     ax.plot(ee_xyz_2[run].T[1], 'c--', label='%s Y'%tests[1])
+#     ax.plot(ee_xyz_2[run].T[2], 'm--', label='%s Z'%tests[1])
+#     plt.legend()
+# plt.savefig('2d_trajectory')
+# plt.show()
 
 for ii in range(0,length,10):
+    if only_final_frame:
+        ii = length-1
     fig = plt.figure(figsize=(15, np.ceil(len(runs)/3)*5))
     # ax = [fig.add_subplot(1,3,1, projection='3d'),
     #       fig.add_subplot(1,3,2, projection='3d'),
@@ -208,7 +213,7 @@ for ii in range(0,length,10):
         ax.scatter(targets[0], targets[1], targets[2], c='r',marker='o', s=2**5)
         # plot COM locations
         ax.scatter(link0[0], link0[1], link0[2], c='y',
-                marker='o', s=2**5)
+                marker='o', s=2**5, label='COM')
         ax.scatter(link1[0], link1[1], link1[2], c='y',
                 marker='o', s=2**5)
         ax.scatter(link2[0], link2[1], link2[2], c='y',
@@ -224,7 +229,7 @@ for ii in range(0,length,10):
 
         # plot joint locations
         ax.scatter(joint0[0], joint0[1], joint0[2], c=colors[0],
-                marker=marker[0], s=marker_size[0])
+                marker=marker[0], s=marker_size[0], label='Joint')
         ax.scatter(joint1[0], joint1[1], joint1[2], c=colors[1],
                 marker=marker[1], s=marker_size[1])
         ax.scatter(joint2[0], joint2[1], joint2[2], c=colors[2],
@@ -269,7 +274,7 @@ for ii in range(0,length,10):
                     color='b', label=tests[0])
             # plot filtered path planner trajectory line
             ax.plot(filter_t[run][:ii, 0], filter_t[run][:ii,1], filter_t[run][:ii,2],
-                    c='g')
+                    c='g', label='Path Planner')
             # plot ee trajectory line of starting run
             ax.plot(ee_xyz_0[run][:ii, 0], ee_xyz_0[run][:ii,1],
                     ee_xyz_0[run][:ii, 2], c='tab:purple', linestyle='dashed',
@@ -289,10 +294,12 @@ for ii in range(0,length,10):
                 ax.legend(bbox_to_anchor=[-0.55, 0.5], loc='center left')
     plt.savefig('%s/gif_fig_cache/%05d.png'%(save_loc,ii))
     plt.close()
+    if only_final_frame:
+        break
 
-
-make_gif.create(fig_loc='%s/gif_fig_cache'%save_loc,
-                save_loc='%s/%s/virtual_arm'%(save_loc, db_name),
-                save_name='%s-%s'%(tests[0], tests[1]),
-                delay=5)
+if not only_final_frame:
+    make_gif.create(fig_loc='%s/gif_fig_cache'%save_loc,
+                    save_loc='%s/%s/virtual_arm'%(save_loc, db_name),
+                    save_name='%s-%s'%(tests[0], tests[1]),
+                    delay=5)
 

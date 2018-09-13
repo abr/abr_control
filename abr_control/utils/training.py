@@ -141,8 +141,7 @@ class Training:
         print('--Instantiate robot_config--')
         # instantiate our robot config
         self.robot_config = abr_jaco2.Config(use_cython=True, hand_attached=True,
-                SCALES=SCALES, MEANS=MEANS, init_all=True, offset=offset,
-                mass_multiplier=1, hand_dist=0.12)
+                SCALES=SCALES, MEANS=MEANS, init_all=True, offset=offset)
 
         if offset is None:
             self.OFFSET = self.robot_config.OFFSET
@@ -154,7 +153,7 @@ class Training:
         print('--Instantiate OSC controller--')
         # instantiate operational space controller
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
-                vmax=vmax, null_control=False)
+                vmax=vmax, null_control=True)
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target

@@ -71,6 +71,9 @@ class OSC(controller.Controller):
         self.nkp = self.kp * .1
         self.nkv = np.sqrt(self.nkp)
 
+        # save previous joint angles for use in null control
+        self.prev_q = None
+
         # run the controller once to generate any functions we might be missing
         # to avoid a long delay in the control loop
         if hasattr(robot_config, 'OFFSET'):
@@ -236,5 +239,7 @@ class OSC(controller.Controller):
             u_null = np.dot(M, -10.0*dq)
             null_filter = (self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T))
             u += np.dot(null_filter, u_null)
+
+            self.prev_q = q
 
         return u
