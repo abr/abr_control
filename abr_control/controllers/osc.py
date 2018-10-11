@@ -237,9 +237,10 @@ class OSC(controller.Controller):
             # u_null = np.dot(M, (self.nkp * q_des - self.nkv * self.dq_des))
             Jbar = np.dot(M_inv, np.dot(J.T, Mx))
             u_null = np.dot(M, -10.0*dq)
+
             null_filter = (self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T))
             u += np.dot(null_filter, u_null)
 
-            self.prev_q = q
+            self.prev_q = np.copy(q)
 
         return u

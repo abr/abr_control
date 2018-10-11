@@ -13,8 +13,9 @@ from abr_control.utils import DataHandler
 import timeit
 dat = DataHandler(use_cache=True, db_name='jacoOSCdebug')
 
-save_name = 'jaco_sim_2'
-notes = "inv and pinv, rcond = 0.04"
+save_name = 'jaco_sim_13'
+notes = "inv and pinv, gravity in task space,\
+        null space nkp=0, nkv=10, inertia values all = .1 in config"
 
 # initialize our robot config
 if 'jaco' in save_name:
@@ -25,7 +26,7 @@ elif 'ur5' in save_name:
     robot_config = arm.Config(use_cython=True)
 
 # instantiate controller
-ctrlr = OSC(robot_config, kp=30, kv=20, vmax=1.0, null_control=False)
+ctrlr = OSC(robot_config, kp=250, kv=35, vmax=1.0, null_control=True)
 
 # instantiate path planner
 path = path_planners.SecondOrder(robot_config=robot_config,

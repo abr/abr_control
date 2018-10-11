@@ -30,10 +30,10 @@ test_groups = [
 tests = [
         # 'ur5_sim_no_weight_6',
         # 'ur5_sim_no_weight_7',
-        # 'jaco_sim_5',
-        # 'jaco_sim_5',
-        'pd_no_weight_70',
-        'pd_no_weight_69',
+        'jaco_sim_13',
+        'jaco_sim_12',
+        # 'pd_no_weight_47',
+        # 'pd_no_weight_50',
         # 'jaco_sim_no_weight_5',
         ]
 use_offset = False

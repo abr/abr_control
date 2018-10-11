@@ -78,16 +78,16 @@ class Config(BaseConfig):
 
         # inertia values in VREP are divided by mass, account for that here
         self._M_LINKS = [
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link1
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link2
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link4
-            sp.diag(0.25, 0.25, 0.25, 0.01, 0.01, 0.01)]  # link5
+            sp.diag(0.5, 0.5, 0.5, 0.1, 0.1, 0.1),  # link0
+            sp.diag(0.5, 0.5, 0.5, 0.1, 0.1, 0.1),  # link1
+            sp.diag(0.5, 0.5, 0.5, 0.1, 0.1, 0.1),  # link2
+            sp.diag(0.5, 0.5, 0.5, 0.1, 0.1, 0.1),  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.1, 0.1, 0.1),  # link3
+            sp.diag(0.5, 0.5, 0.5, 0.1, 0.1, 0.1),  # link4
+            sp.diag(0.25, 0.25, 0.25, 0.1, 0.1, 0.1)]  # link5
         if self.hand_attached is True:
             self._M_LINKS.append(
-                sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04))  # link6
+                sp.diag(0.37, 0.37, 0.37, 0.1, 0.1, 0.1))  # link6
 
         # the joints don't weigh anything in VREP
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
