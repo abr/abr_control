@@ -31,7 +31,7 @@ class Config(BaseConfig):
     def __init__(self, **kwargs):
 
         super(Config, self).__init__(
-            N_JOINTS=2, N_LINKS=2, ROBOT_NAME='twolink', **kwargs)
+            N_JOINTS=2, N_LINKS=3, ROBOT_NAME='twolink', **kwargs)
 
         if self.MEANS is None:
             self.MEANS = {  # expected mean of joints angles / velocities
@@ -51,10 +51,11 @@ class Config(BaseConfig):
         self.REST_ANGLES = np.array([np.pi/4.0, np.pi/4.0])
 
         # create the inertia matrices for each link of the twolink
+        self._M_LINKS.append(np.diag(np.zeros(6)))  # non-existent link0
         self._M_LINKS.append(np.diag([1.98, 1.98, 1.98,
-                             0.0, 0.0, 15.0]))  # link0
+                             15, 15, 15]))  # link1
         self._M_LINKS.append(np.diag([1.32, 1.32, 1.32,
-                             0.0, 0.0, 8.0]))  # link1
+                             8, 8, 8]))  # link2
 
         # the joints don't weigh anything
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
@@ -63,7 +64,7 @@ class Config(BaseConfig):
         # [x, y, z],  Ignoring lengths < 1e-04
 
         self.L = np.array([
-            [0, 0, 0],  # from origin to l0 (non-existant)
+            [0, 0, 0],  # from origin to l0 (non-existent)
             [0, 0, 0],  # from l0 to j0
             [1.0, 0, 0],  # from j0 to l1 COM
             [1.0, 0, 0],  # from l1 COM to j1
