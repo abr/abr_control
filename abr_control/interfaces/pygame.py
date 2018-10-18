@@ -107,7 +107,7 @@ class PyGame():
 
         return self.arm_sim.get_feedback()
 
-    def send_forces(self, u, dt=None):
+    def send_forces(self, u, dt=None, update_display=True):
         """ Apply the specified torque to the robot
 
         Apply the specified forces to the robot, move the simulation
@@ -123,8 +123,9 @@ class PyGame():
 
         # update the arm sim
         self.arm_sim.send_forces(u, dt=dt)
-        # update the display
-        self._update(self.arm_sim.q)
+        if update_display:
+            # update the display
+            self._update(self.arm_sim.q)
 
     def set_target(self, xyz):
         """ Set the position of the target object.
