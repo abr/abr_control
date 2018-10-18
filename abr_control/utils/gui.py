@@ -61,7 +61,7 @@ button_text_color = '#d3d3d3'#'white'
 secondary_text = 'black'
 secondary_bg = '#ffff7f'
 
-f = Figure(figsize=(5,5), dpi=100)
+f = Figure(figsize=(10,12), dpi=100)
 a = f.add_subplot(111)
 
 # global variable for searching in db
@@ -107,6 +107,14 @@ def live_plot(i):
         update_plot = True
 
     if update_plot:
+        # try:
+        f.clear()
+        #     print('f cleared')
+        # except NameError:
+        #     print('f does not exist')
+        #     pass
+        a = f.add_subplot(111)
+        a.clear()
         #TODO automatically update range if it is larger than the current max
         # clear our data before plotting
         #TODO: don't delete disp loc if it doesn't contain the data, just don't
@@ -114,7 +122,6 @@ def live_plot(i):
         # used for setting the legend for multi line data
         multi_line = False
         line_styles = ['-', '--', '-.', ':']
-        a.clear()
         last_plotted = var_to_plot
         x_min = 0.0
         x_max = 0.1
@@ -232,17 +239,41 @@ def live_plot(i):
                         y_min = np.min(d)
                     if len(d) > x_max:
                         x_max = len(d)
-                    a.set_xlim(x_min, x_max)
-                    a.set_ylim(y_min, y_max)
-                    if np.array(d.T).shape[1] > 1:
+                    if np.array(d.T).shape[0] > 1:
+                    #TODO: add check to remove tests if they don't have the
+                    # variable, ex adaptive signal for pd tests
+                    # should make this it's own function
+
                     # if var_to_plot[0] == 'u' or var_to_plot[0] == 'q' or
                     # var_to_plot[0] == 'dq':
+                    # only add subplots if first test in list, otherwise use
+                    # the already created subplots
+                        if count == 0:
+                            # f.clear()
+                            # f = Figure(figsize=(5,5), dpi=100)
+                            a_sub = []
+                            y_maxes = np.zeros(np.array(d.T).shape[0])
+                            y_mins = np.zeros(np.array(d.T).shape[0])
                         multi_line = True
                         for oo, dof in enumerate(d.T):
-                            a.plot(dof, c=plotting_colors[count],
-                                    label=legend_names[count],
-                                    alpha=1/len(d.T) * (oo+1))
+                            if count == 0:
+                                a_sub.append(f.add_subplot(6,1,oo+1))
+
+                            if np.max(dof) > y_maxes[oo]:
+                                y_maxes[oo] = np.max(dof)
+                            if np.min(dof) < y_mins[oo]:
+                                y_mins[oo] = np.min(dof)
+                            if len(dof) > x_max:
+                                x_max = len(dof)
+
+                            a_sub[oo].set_xlim(x_min, x_max)
+                            a_sub[oo].set_ylim(y_mins[oo], y_maxes[oo])
+                            a_sub[oo].plot(dof, c=plotting_colors[count],
+                                    label=legend_names[count])#,
+                                    #alpha=1/len(d.T) * (oo+1))
                     else:
+                        a.set_xlim(x_min, x_max)
+                        a.set_ylim(y_min, y_max)
                         a.plot(d)#, label=legend_name)
                     if var_to_plot == 'time':
                         legend_names[count] += ': %.2fms'%(1000*np.mean(d))
@@ -275,13 +306,17 @@ def live_plot(i):
         #f.tight_layout()
         #if var_to_plot[0] == 'u':
         if multi_line:
-            a.legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
+            for gg, plotted_test in enumerate(a_sub):
+                a_sub[gg].legend(loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
+                a_sub[gg].set_title(var_to_plot)
+                f.tight_layout()
         else:
             a.legend(legend_names, loc=2)#bbox_to_anchor=(1.05,1), loc=2, borderaxespad=0.)
-        if var_to_plot != 'mean & ci':
+        if var_to_plot != 'mean & ci' and not multi_line:
             a.set_title(var_to_plot)
         if save_figure:
             a.figure.savefig('%s.pdf'%var_to_plot)
+            a.figure.savefig('%s.png'%var_to_plot)
             save_figure = False
         update_plot = False
 
@@ -818,8 +853,6 @@ class SearchPage(tk.Frame):
                 for key in test_params:
                     try:
                         data = test_dict[key]
-                        if key == 'notes':
-                            print(data)
                         # compare to the first test in the list to highlight
                         # differences
                         #TODO: BUG if the first test does not have the key entry

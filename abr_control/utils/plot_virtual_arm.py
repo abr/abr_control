@@ -24,17 +24,22 @@ db_name = 'dewolf2018neuromorphic'
 test_groups = [
                 # 'simulations',
                 # 'simulations',
-                '1lb_random_target',
-                '1lb_random_target',
+                # '1lb_random_target',
+                'weighted_reach_post_tuning',
+                'weighted_reach_post_tuning',
+                #'weighted_reach_post_tuning',
+                #'1lb_random_target',
+                # '1lb_random_target',
+                # 'weighted_reach_post_tuning',
               ]
 tests = [
-        # 'ur5_sim_no_weight_6',
-        # 'ur5_sim_no_weight_7',
-        'jaco_sim_13',
-        'jaco_sim_12',
-        # 'pd_no_weight_47',
-        # 'pd_no_weight_50',
-        # 'jaco_sim_no_weight_5',
+        # 'pd_no_weight_112',
+        'nengo_cpu_weight_4_19',
+        'nengo_cpu_weight_4_9',
+        #'pd_weight_5',
+        #'pd_no_weight_102',
+        # 'nengo_cpu_weight_2_17',
+        # 'nengo_cpu_weight_2_0',
         ]
 use_offset = False
 # test_name = 'nengo_cpu_%i_19'%run_num
@@ -252,7 +257,7 @@ for ii in range(0,length,10):
         ax.plot(points.T[0], points.T[1], points.T[2], 'k')
         ax.set_xlim3d(-0.35,0.35)
         ax.set_ylim3d(-0.35,0.35)
-        ax.set_zlim3d(0,0.7)
+        ax.set_zlim3d(0.5,1.2)
         plt.title('Target %i: %s \n'%(jj, label_name))
         # time_t = np.array(time_t)
         # print(time_t.shape)
@@ -260,10 +265,10 @@ for ii in range(0,length,10):
         # print(ii)
         # print(np.squeeze(time_t[run])[:ii+1])
         plt.xlabel('Time: %.2f sec'%(np.sum(time_t[run][:ii])))
-        ax.text(-0.5, -0.5, 0.4, 'Avg: %.3f m'%np.mean(error_t[jj]), color='b')
-        ax.text(-0.5, -0.5, 0.5, 'Final: %.3f m'%(error_t[jj][-1]), color='b')
-        ax.text(-0.5, -0.5, 0.6, 'Error: %.3f m'%(error), color='b')
-        ax.text(-0.5, -0.5, 0.7, tests[0], color='b')
+        ax.text(-0.5, -0.5, 0.9, 'Avg: %.3f m'%np.mean(error_t[jj]), color='b')
+        ax.text(-0.5, -0.5, 1.0, 'Final: %.3f m'%(error_t[jj][-1]), color='b')
+        ax.text(-0.5, -0.5, 1.1, 'Error: %.3f m'%(error), color='b')
+        ax.text(-0.5, -0.5, 1.2, tests[0], color='b')
 
         # plot the recalulated EE pos to see if it matches
         ax.scatter(ee_recalc[0], ee_recalc[1], ee_recalc[2], c='m', marker='*')
@@ -279,19 +284,19 @@ for ii in range(0,length,10):
             ax.plot(ee_xyz_0[run][:ii, 0], ee_xyz_0[run][:ii,1],
                     ee_xyz_0[run][:ii, 2], c='tab:purple', linestyle='dashed',
                     label=tests[1])
-            ax.text(-0.5, -0.5, 0.0, 'Avg: %.3f m'%np.mean(error_0[jj]),
+            ax.text(-0.5, -0.5, 0.5, 'Avg: %.3f m'%np.mean(error_0[jj]),
                     color='tab:purple')
-            ax.text(-0.5, -0.5, 0.1, 'Final: %.3f m'%(error_0[jj][-1]),
+            ax.text(-0.5, -0.5, 0.6, 'Final: %.3f m'%(error_0[jj][-1]),
                     color='tab:purple')
             if ii >= len(error_0[run]):
                 iii = len(error_0[run])-1
             else:
                 iii = ii
-            ax.text(-0.5, -0.5, 0.2, 'Error: %.3f m'%(error_0[run][iii]),
+            ax.text(-0.5, -0.5, 0.7, 'Error: %.3f m'%(error_0[run][iii]),
                     color='tab:purple')
-            ax.text(-0.5, -0.5, 0.3, tests[1], color='tab:purple')
-            if jj == 0:
-                ax.legend(bbox_to_anchor=[-0.55, 0.5], loc='center left')
+            ax.text(-0.5, -0.5, 0.8, tests[1], color='tab:purple')
+            if jj == len(runs)-1:
+                ax.legend(bbox_to_anchor=[1.15, 0.5], loc='center left')
     plt.savefig('%s/gif_fig_cache/%05d.png'%(save_loc,ii))
     plt.close()
     if only_final_frame:

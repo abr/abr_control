@@ -158,7 +158,7 @@ class Training:
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
         self.path = path_planners.SecondOrder(robot_config=self.robot_config,
-                n_timesteps=3000, w=1e4, zeta=3, threshold=0.05)
+                n_timesteps=3000, w=1e4, zeta=3, threshold=0.0)
         self.dt = 0.004
 
         if self.avoid_limits:
@@ -182,7 +182,7 @@ class Training:
                      'error':[], 'training_signal': [], 'target': [],
                      'ee_xyz': [], 'input_signal': [], 'filter': [],
                      'time': [], 'weights': [], 'u_avoid': [], 'osc_dx': [],
-                     'u_vmax': [], 'q_torque': []}
+                     'u_vmax': [], 'q_torque': [], 'M_inv_singular': []}
         self.count = 0
 
     def __init_network__(self, adapt_input, adapt_output, n_neurons=1000, n_ensembles=1,
@@ -394,6 +394,8 @@ class Training:
                 target_vel=self.target[3:],
                 ref_frame='EE',
                 offset = self.OFFSET)
+
+            self.data['M_inv_singular'].append(np.copy(self.ctrlr.Mx_non_singular))
 
             # account for uneven stiction in jaco2 base
             #self.u_base[0] *= 5.0
