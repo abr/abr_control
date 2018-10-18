@@ -33,7 +33,7 @@ class Config(BaseConfig):
     def __init__(self, **kwargs):
 
         super(Config, self).__init__(
-            N_JOINTS=3, N_LINKS=3, ROBOT_NAME='threelink', **kwargs)
+            N_JOINTS=3, N_LINKS=4, ROBOT_NAME='threelink', **kwargs)
 
         if self.MEANS is None:
             self.MEANS = {  # expected mean of joints angles / velocities
@@ -55,12 +55,14 @@ class Config(BaseConfig):
 
         # create the inertia matrices for each link of the threelink
         # TODO: identify the actual values for these links
-        self._M_LINKS.append(np.diag([10.0, 10.0, 10.0,
-                             0.0, 0.0, 10.0]))  # link0
+        self._M_LINKS.append(np.diag([0.0, 0.0, 0.0,
+                             0.0, 0.0, 0.0]))  # link0
         self._M_LINKS.append(np.diag([10.0, 10.0, 10.0,
                              0.0, 0.0, 10.0]))  # link1
         self._M_LINKS.append(np.diag([10.0, 10.0, 10.0,
                              0.0, 0.0, 10.0]))  # link2
+        self._M_LINKS.append(np.diag([10.0, 10.0, 10.0,
+                             0.0, 0.0, 10.0]))  # link3
 
         # the joints don't weigh anything
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
