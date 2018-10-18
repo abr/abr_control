@@ -31,11 +31,11 @@ class ArmSim():
             L.append(np.sum(self.robot_config.L[ii*2:ii*2+2]))
 
         # compute non changing constants
-        self.K1 = ((1/3. * M[0][0, 0] + M[1][0, 0]) * L[1]**2. +
-                   1/3. * M[1][0, 0] * L[2]**2.)
-        self.K2 = M[1][0, 0] * L[1] * L[2]
-        self.K3 = 1/3. * M[1][0, 0] * L[2]**2.
-        self.K4 = 1/2. * M[1][0, 0] * L[1] * L[2]
+        self.K1 = ((1/3. * M[1][0, 0] + M[2][0, 0]) * L[1]**2. +
+                   1/3. * M[2][0, 0] * L[2]**2.)
+        self.K2 = M[2][0, 0] * L[1] * L[2]
+        self.K3 = 1/3. * M[2][0, 0] * L[2]**2.
+        self.K4 = 1/2. * M[2][0, 0] * L[1] * L[2]
 
         self.dt = dt  # time step
         self.t = 0.0  # time
@@ -114,15 +114,15 @@ class ArmSim():
         dt = self.dt if dt is None else dt
 
         # equations solved for angles
-        C1 = np.cos(self.q[1])
-        S1 = np.sin(self.q[1])
-        M11 = (self.K1 + self.K2 * C1)
-        M12 = (self.K3 + self.K4 * C1)
+        C2 = np.cos(self.q[1])
+        S2 = np.sin(self.q[1])
+        M11 = (self.K1 + self.K2 * C2)
+        M12 = (self.K3 + self.K4 * C2)
         M21 = M12
         M22 = self.K3
-        H1 = (-self.K2 * S1 * self.dq[0] * self.dq[1] -
-              1.0/2.0 * self.K2 * S1 * self.dq[1]**2.0)
-        H2 = 1.0/2.0 * self.K2 * S1 * self.dq[0]**2.0
+        H1 = (-self.K2 * S2 * self.dq[0] * self.dq[1] -
+              1.0/2.0 * self.K2 * S2 * self.dq[1]**2.0)
+        H2 = 1.0/2.0 * self.K2 * S2 * self.dq[0]**2.0
 
         ddq1 = ((H2*M11 - H1*M21 - M11*u[1] + M21*u[0]) /
                 (M12**2. - M11*M22))
