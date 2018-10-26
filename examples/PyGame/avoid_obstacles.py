@@ -1,12 +1,12 @@
 """
-Running the threelink arm with the PyGame display, using the
+Running the three joint arm with the PyGame display, using the
 obstacle avoidance signal. The obstacle location can be moved
 by clicking on the background.
 """
 import numpy as np
 
-from abr_control.arms import threelink as arm
-# from abr_control.arms import twolink as arm
+from abr_control.arms import threejoint as arm
+# from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
 from abr_control.controllers import OSC, signals
 
@@ -48,6 +48,7 @@ try:
 
     print('\nSimulation starting...\n')
     print('\nClick to move the obstacle.\n')
+    count = 0
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
@@ -65,7 +66,8 @@ try:
         u += avoid.generate(q=feedback['q'])
 
         # apply the control signal, step the sim forward
-        interface.send_forces(u)
+        interface.send_forces(
+            u, update_display=True if count % 20 == 0 else False)
 
         # change target location once hand is within
         # 5mm of the target
@@ -80,6 +82,7 @@ try:
         # track data
         ee_path.append(np.copy(hand_xyz))
         target_path.append(np.copy(target_xyz))
+        count += 1
 
 finally:
     # stop and reset the simulation

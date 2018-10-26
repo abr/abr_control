@@ -49,7 +49,7 @@ class BaseConfig():
     Attributes
     ----------
         _C : function
-            placeholder for the partial centripetal and Coriolis function
+            placeholder for the partial centrifugal and Coriolis function
         _dJ : dictionary
             for Jacobian time derivative functions of joints and COMs
         _g : function
@@ -293,7 +293,7 @@ class BaseConfig():
         return np.array(self._R[name](*parameters), dtype='float32')
 
     def C(self, q, dq):
-        """ Loads or calculates the centripetal and Coriolis forces matrix
+        """ Loads or calculates the centrifugal and Coriolis forces matrix
         such that np.dot(C, dq) is the full term
 
         Parameters
@@ -681,7 +681,7 @@ class BaseConfig():
 
         if C is None and C_func is None:
             # if no saved file was loaded, generate function
-            print('Generating centripetal and Coriolis compensation function')
+            print('Generating centrifugal and Coriolis compensation function')
 
             # first get the inertia matrix
             M = self._calc_M(lambdify=False)

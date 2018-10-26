@@ -6,8 +6,8 @@ steps.
 """
 import numpy as np
 
-from abr_control.arms import threelink as arm
-# from abr_control.arms import twolink as arm
+from abr_control.arms import threejoint as arm
+# from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
 from abr_control.controllers import OSC, path_planners
 
@@ -38,10 +38,11 @@ pregenerate_path = False
 print('\nPregenerating path to follow: ', pregenerate_path, '\n')
 try:
     # run ctrl.generate once to load all functions
-    zeros = np.zeros(robot_config.N_JOINTS)
-    ctrlr.generate(q=zeros, dq=zeros,
-                   target_pos=zeros, target_vel=zeros)
-    robot_config.R('EE', q=zeros)
+    zeros_task = np.zeros(3)
+    zeros_joint = np.zeros(robot_config.N_JOINTS)
+    ctrlr.generate(q=zeros_joint, dq=zeros_joint,
+                   target_pos=zeros_task, target_vel=zeros_task)
+    robot_config.R('EE', q=zeros_joint)
 
     print('\nSimulation starting...\n')
     print('\nClick to move the target.\n')
@@ -83,7 +84,8 @@ try:
             target_vel=target[3:])  # (dx, dy, dz)
 
         # apply the control signal, step the sim forward
-        interface.send_forces(u)
+        interface.send_forces(
+            u, update_display=True if count % 20 == 0 else False)
 
         # track data
         ee_path.append(np.copy(hand_xyz))
