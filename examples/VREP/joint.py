@@ -47,7 +47,7 @@ try:
     zeros = np.zeros(robot_config.N_JOINTS)
     ctrlr.generate(q=zeros, dq=zeros, target_pos=target_pos)
     robot_config.Tx('EE', q=zeros)
-    robot_config.orientation('EE', q=zeros)
+    robot_config.R('EE', q=zeros)
 
     print('\nSimulation starting...\n')
 

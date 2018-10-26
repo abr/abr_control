@@ -21,7 +21,7 @@ robot_config = arm.Config(use_cython=True)
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)
 
 # create our VREP interface
-interface = VREP(robot_config, dt=.001)
+interface = VREP(robot_config, dt=.005)
 interface.connect()
 
 # set up lists for tracking data
@@ -34,13 +34,13 @@ try:
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', feedback['q'])
     # make the target offset from that start position
-    target_xyz = start + np.array([0.2, -0.2, 0.01])
+    target_xyz = start + np.array([0.2, -0.2, -0.3])
     interface.set_xyz(name='target', xyz=target_xyz)
 
     # run ctrl.generate once to load all functions
     zeros = np.zeros(robot_config.N_JOINTS)
     ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
-    robot_config.orientation('EE', q=zeros)
+    robot_config.R('EE', q=zeros)
 
     print('\nSimulation starting...\n')
 
