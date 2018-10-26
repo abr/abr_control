@@ -136,16 +136,20 @@ class OSC(controller.Controller):
             u_task[:3] = -self.kv * (dx - target_vel -
                                      np.clip(sat / scale, 0, 1) *
                                      -self.lamb * scale * x_tilde)
+            # low level signal set to zero
+            u = 0.0
         else:
             # generate (x,y,z) force without velocity limiting)
             u_task = -self.kp * x_tilde
+            # low level signal includes velocity compensation
+            u = -self.kv * np.dot(M, dq)
 
         if self.use_dJ:
             # add in estimate of current acceleration
             dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
             # apply mask
             dJ = dJ[:3]
-            u_task -= np.dot(dJ, dq)
+            u_task += np.dot(dJ, dq)
 
         if self.ki != 0:
             # add in the integrated error term
@@ -157,14 +161,11 @@ class OSC(controller.Controller):
             u_task += ee_force
 
         # incorporate task space inertia matrix
-        u = np.dot(J.T, np.dot(Mx, u_task))
-
-        if self.vmax is None:
-            u -= self.kv * np.dot(M, dq)
+        u += np.dot(J.T, np.dot(Mx, u_task))
 
         if self.use_C:
             # add in estimation of full centrifugal and Coriolis effects
-            u -= self.robot_config.c(q=q, dq=dq)
+            u -= np.dot(self.robot_config.C(q=q, dq=dq), dq)
 
         # store the current control signal u for training in case
         # dynamics adaptation signal is being used

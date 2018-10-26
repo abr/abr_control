@@ -43,7 +43,7 @@ try:
     # run ctrl.generate once to load all functions
     zeros = np.zeros(robot_config.N_JOINTS)
     ctrlr.generate(q=zeros, dq=zeros, target_pos=zeros)
-    robot_config.orientation('EE', q=zeros)
+    robot_config.R('EE', q=zeros)
 
     print('\nSimulation starting...\n')
     print('\nClick to move the target.\n')
