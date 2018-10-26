@@ -52,10 +52,12 @@ class Config(BaseConfig):
 
         # create the inertia matrices for each link of the twolink
         self._M_LINKS.append(np.diag(np.zeros(6)))  # non-existent link0
+        # moment of inertia = 1/3 * m * l^2
+        # NOTE: does this need to be transformed to the COM of each link?
         self._M_LINKS.append(np.diag([1.98, 1.98, 1.98,
-                             15, 15, 15]))  # link1
+                             2.56, 2.56, 2.56]))  # link1
         self._M_LINKS.append(np.diag([1.32, 1.32, 1.32,
-                             8, 8, 8]))  # link2
+                             0.6336, 0.6336, 0.6336]))  # link2
 
         # the joints don't weigh anything
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
