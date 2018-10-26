@@ -55,14 +55,13 @@ class Config(BaseConfig):
 
         # create the inertia matrices for each link of the threelink
         # TODO: identify the actual values for these links
-        self._M_LINKS.append(np.diag([0.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0]))  # link0
-        self._M_LINKS.append(np.diag([10.0, 10.0, 10.0,
-                             0.0, 0.0, 10.0]))  # link1
-        self._M_LINKS.append(np.diag([10.0, 10.0, 10.0,
-                             0.0, 0.0, 10.0]))  # link2
-        self._M_LINKS.append(np.diag([10.0, 10.0, 10.0,
-                             0.0, 0.0, 10.0]))  # link3
+        self._M_LINKS.append(sp.zeros(6, 6))  # link0
+        self._M_LINKS.append(sp.diag(1.98, 1.98, 1.98,
+                             0.0, 0.0, 10.0))  # link1
+        self._M_LINKS.append(sp.diag(1.32, 1.32, 1.32,
+                             0.0, 0.0, 10.0))  # link2
+        self._M_LINKS.append(sp.diag(0.8, 0.8, 0.8,
+                             0.0, 0.0, 10.0))  # link3
 
         # the joints don't weigh anything
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
