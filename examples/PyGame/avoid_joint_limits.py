@@ -1,12 +1,12 @@
 """
-Running the threelink arm with the PyGame display, using an exponential
+Running the three joint arm with the PyGame display, using an exponential
 additive signal when to push away from joints and  avoid self collision.
 The target location can be moved by clicking on the background.
 """
 import numpy as np
 
-from abr_control.arms import threelink as arm
-# from abr_control.arms import twolink as arm
+from abr_control.arms import threejoint as arm
+# from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
 from abr_control.controllers import OSC, signals
 
@@ -33,9 +33,9 @@ interface.connect()
 ctrlr = OSC(robot_config, kp=100, vmax=10)
 avoid = signals.AvoidJointLimits(
     robot_config,
-    min_joint_angles=[np.pi/5]*robot_config.N_JOINTS,
-    max_joint_angles=[np.pi/2]*robot_config.N_JOINTS,
-    max_torque=[100]*robot_config.N_JOINTS)
+    min_joint_angles=[np.pi/5.0]*robot_config.N_JOINTS,
+    max_joint_angles=[np.pi/2.0]*robot_config.N_JOINTS,
+    max_torque=[100.0]*robot_config.N_JOINTS)
 
 # create a target
 target_xyz = [0, 2, 0]
@@ -53,6 +53,7 @@ try:
     robot_config.R('EE', q=zeros)
 
     print('\nSimulation starting...\n')
+    count = 0
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
@@ -72,11 +73,13 @@ try:
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward
-        interface.send_forces(u)
+        interface.send_forces(
+            u, update_display=True if count % 20 == 0 else False)
 
         # track data
         ee_path.append(np.copy(hand_xyz))
         target_path.append(np.copy(target_xyz))
+        count += 1
 
 finally:
     # stop and reset the simulation

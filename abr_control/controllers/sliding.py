@@ -92,10 +92,10 @@ class Sliding(controller.Controller):
         # calculate the inertia matrix in joint space
         M = self.robot_config.M(q)
         # calculate the partial centrifugal and Coriolis effects
-        S = self.robot_config.S(q=q, dq=dq)
+        C = self.robot_config.C(q=q, dq=dq)
         # calculate the effects of gravity
         g = self.robot_config.g(q=q)
 
-        u = np.dot(M, ddq_ref) + np.dot(S, dq_ref) + g - self.kd * self.s
+        u = np.dot(M, ddq_ref) + np.dot(C, dq_ref) + g - self.kd * self.s
 
         return u
