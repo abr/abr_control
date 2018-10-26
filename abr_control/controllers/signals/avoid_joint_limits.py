@@ -31,11 +31,8 @@ class AvoidJointLimits(Signal):
     NOTE: use None as a placeholder for joints that have no limits
     """
 
-    def __init__(self, robot_config,
-                 min_joint_angles, max_joint_angles,
-                 max_torque=None,
-                 cross_zero=[False, False, False, False, False, False],
-                 gradient=[False, False, False, False, False, False]):
+    def __init__(self, robot_config, min_joint_angles, max_joint_angles,
+                 max_torque=None, cross_zero=None, gradient=None):
         # shift limits to -pi to pi range
         for ii in range(0,len(min_joint_angles)):
             if min_joint_angles[ii] is not None:
@@ -43,7 +40,11 @@ class AvoidJointLimits(Signal):
             if max_joint_angles[ii] is not None:
                 max_joint_angles[ii] = max_joint_angles[ii] - np.pi
 
+        if cross_zero is None:
+            cross_zero = [False,] * robot_config.N_JOINTS
         self.cross_zero = np.array(cross_zero)
+        if gradient is None:
+            gradient = [False,] * robot_config.N_JOINTS
         self.gradient = np.array(gradient)
 
         self.min_joint_angles = np.asarray(min_joint_angles, dtype='float32')
