@@ -220,9 +220,8 @@ class VREP(Interface):
         self.set_xyz('hand', hand_xyz)
 
         # Update orientation of hand object
-        quaternion = self.robot_config.orientation('EE', q=self.q)
-        angles = transformations.euler_from_quaternion(
-            quaternion, axes='rxyz')
+        angles = transformations.euler_from_matrix(
+            self.robot_config.R('EE', q=self.q), axes='rxyz')
         self.set_orientation('hand', angles)
 
         # move simulation ahead one time step

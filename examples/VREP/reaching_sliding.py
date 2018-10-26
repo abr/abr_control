@@ -41,7 +41,7 @@ try:
     # run ctrl.generate once to load all functions
     zeros = np.zeros(robot_config.N_JOINTS)
     ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
-    robot_config.orientation('EE', q=zeros)
+    robot_config.R('EE', q=zeros)
 
     count = 0.0
     print('\nSimulation starting...\n')
