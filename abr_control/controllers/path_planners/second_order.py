@@ -71,9 +71,15 @@ class SecondOrder(PathPlanner):
         n_states = int(len(state)/2)
         y = state[:n_states]
         dy = state[n_states:]
+        dist = np.linalg.norm(y - target_pos)
 
-        w = self.w
-        if np.linalg.norm(y - target_pos) < self.threshold:
+        # uncomment for toolbot demo
+        # TODO: incorporate this hack properly
+        # upper = 15
+        # lower = -3
+        # w = ((upper-lower)/-0.9) * dist + upper
+
+        if dist < self.threshold:
             # if within a threshold distance, reduce the filter effect
             # NOTE: this is a ad-hoc method of improving performance at
             # short distances
@@ -141,5 +147,6 @@ class SecondOrder(PathPlanner):
         self.target = (self.trajectory[self.n]
                        if self.n < self.n_timesteps else self.target)
         self.n += 1
+        print(self.n)
 
         return self.target

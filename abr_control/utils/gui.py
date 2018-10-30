@@ -74,7 +74,7 @@ browse_datasets = False
 #TODO: need to rename old data that uses 'u' and 'adapt' instead of 'u_base'
 # and 'u_adapt'
 plotting_variables = ['time', 'q', 'dq', 'q_torque', 'avg error', 'final error', 'u_base',
-    'u_adapt', 'u_vmax', 'mean & ci',
+    'u_adapt', 'input_signal', 'training_signal', 'u_vmax', 'mean & ci',
     #'activity_over_time', 'proportion_active'
     ]
 global plotting_colors
@@ -239,7 +239,8 @@ def live_plot(i):
                         y_min = np.min(d)
                     if len(d) > x_max:
                         x_max = len(d)
-                    if np.array(d.T).shape[0] > 1:
+                    # if np.array(d.T).shape[0] > 1:
+                    if np.array(d.T).ndim > 1:
                     #TODO: add check to remove tests if they don't have the
                     # variable, ex adaptive signal for pd tests
                     # should make this it's own function

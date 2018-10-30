@@ -13,8 +13,10 @@ import matplotlib.pyplot as plt
 
 just_plot = False
 use_spherical = True
-test_group = '1lb_random_target'
-test_name = 'nengo_cpu_18_0'
+# False if input being used is already in spherical
+convert_to_spherical = False
+test_group = 'weighted_reach_post_tuning'
+test_name = 'nengo_cpu_weight_12_19'
 db_name = 'dewolf2018neuromorphic'
 loc = '/%s/%s/'%(test_group, test_name)
 use_cache = True
@@ -28,9 +30,9 @@ max_activity = [0.1, 0]
 min_activity = [0, 0.6]
 
 if use_spherical:
-    save_name = 'neuron_tuning_spherical'
+    save_name = '%s/%s/neuron_tuning_spherical'%(test_group, test_name)
 else:
-    save_name = 'neuron_tuning'
+    save_name = '%s/%s/neuron_tuning'%(test_group, test_name)
 
 dat = DataHandler(use_cache=use_cache, db_name=db_name)
 
@@ -71,13 +73,14 @@ ideal_dist = np.hstack((np.linspace(max_activity[0]*n_neurons,
                        np.zeros(n_zero_points)))
 
 # Run through the intercepts in simulation to get the neural activity
+intercepts = [[-0.5, -0.4, -0.5]]
 if not just_plot:
     for ii ,intercept in enumerate(intercepts) :
         print(ii)
         plt_learning = PlotLearningProfile(test_group=test_group,
                 test_name=test_name, db_name=db_name, use_cache=use_cache,
                 intercepts_bounds=intercept[:2], intercepts_mode=intercept[2],
-                use_spherical=use_spherical)
+                use_spherical=convert_to_spherical)
 
         session = 0
         s = t.time()
@@ -89,8 +92,9 @@ if not just_plot:
 
         input_signal = []
         times = []
+        dq = []
         for run in range(0, n_runs):
-            run_data = dat.load(params=['input_signal', 'time'],
+            run_data = dat.load(params=['input_signal', 'time', 'dq'],
                     save_location='%ssession%03d/run%03d'
                     %(loc, session, run))
             training_data = dat.load(params=['adapt_input'],
@@ -98,16 +102,58 @@ if not just_plot:
             adapt_input = training_data['adapt_input']
             input_signal.append(run_data['input_signal'])
             times.append(run_data['time'])
+            # max and min dq code used for finding SCALES
+            #dq.append(run_data['dq'])
             #ideal_dist = np.linspace(
 
+        # max_dq = 0
+        # min_dq = 0
+        # dq=np.array(dq)
+        # for dqs in dq:
+        #     if np.max(dqs) > max_dq:
+        #         max_dq = np.max(dqs)
+        #     if np.min(dqs) < min_dq:
+        #         min_dq = np.min(dqs)
+        # print('MAAAAAAAAAAX: ', max_dq)
+        # print('MIIIIIIIIIIN: ', min_dq)
+        # break
         input_signal = np.vstack(input_signal)
         times = np.hstack(times)
-        act = plt_learning.plot_activity(input_signal=input_signal, time=times,
+        (act, activities) = plt_learning.plot_activity(input_signal=input_signal, time=times,
                 save_num=run, #input_joints=adapt_input,
                 getting_ideal_intercepts=True)
 
         # save the activity data
         active.append(act)
+
+        # check how many neurons are never active
+        print('ACTIVITIES SHAPE: ', np.array(activities).shape)
+        num_inactive = 0
+        num_active = 0
+        times_neuron_fires = []
+        for ens in activities:
+            ens = ens.T
+            for nn, neuron in enumerate(ens):
+                # print('shape2: ', np.array(neuron).shape)
+                # break
+                if np.sum(ens[nn]) == 0:
+                    num_inactive += 1
+                else:
+                    num_active += 1
+                times_neuron_fires.append(np.sum(ens[nn]))
+        print('Number of neurons inactive: ', num_inactive)
+        print('Number of neurons active: ', num_active)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(np.sort(np.array(times_neuron_fires)),
+            label='Number of neurons inactive: %i'% num_inactive)
+        ax.set_ylabel('Number of times fired')
+        ax.set_xlabel('Neuron (sorted low to high)')
+        ax.set_ylim([-100,len(ens.T)+100])
+        ax.plot(np.ones(len(times_neuron_fires))* len(ens.T), 'r',
+        label='Number of timesteps')
+        ax.legend()
+        plt.show()
 
         # save the data for the line plot of the histogram
         y, bins_out = np.histogram(act, bins=bins)

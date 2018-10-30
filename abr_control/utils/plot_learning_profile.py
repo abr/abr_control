@@ -53,6 +53,8 @@ class PlotLearningProfile:
         use_spherical: Boolean, Optional (Default: None)
             If True, increasing the input dimension by 1 and converts inputs to
             spherical coordinates
+            NOTE! if the input being passed in was already converted to
+            spherical coordinates, set this to False
         """
 
         # set up save location
@@ -108,7 +110,9 @@ class PlotLearningProfile:
                 neuron_type=np.array2string(adapt_params['neuron_type']))
 
     def plot_activity(self, input_signal, time, save_num=0,
-            getting_ideal_intercepts=False, plot_all_ens=False):
+            getting_ideal_intercepts=False, plot_all_ens=False,
+            # TODO: delete this line when done with testing
+            error=None, q=None, dq=None, q_baseline=None, dq_baseline=None):
         """
         Plots 3 subplots of neural activity to speed up parameter tuning
 
@@ -172,8 +176,23 @@ class PlotLearningProfile:
                     (save_num, self.intercepts_bounds,
                         self.intercepts_mode))
             ax2 = ax.twinx()
-            ax2.plot(np.cumsum(time), temp_in, 'k')
-            ax2.set_ylabel('input signal')
+            if q is not None and dq is not None:
+                ax2.plot(np.cumsum(time), q[0], 'r', label='q1 adaptive')
+                ax2.plot(np.cumsum(time), dq[0], 'b', label='dq1 adaptive')
+                ax2.plot(np.cumsum(time), q[1], 'g', label='q2 adaptive')
+                ax2.plot(np.cumsum(time), dq[1], 'c', label='dq2 adaptive')
+                ax2.plot(np.linspace(time[0], sum(time), len(q_baseline[0])),
+                        q_baseline[0], 'r--', label='q1 baseline')
+                ax2.plot(np.linspace(time[0], sum(time), len(dq_baseline[0])),
+                        dq_baseline[0], 'b--', label='dq1 baseline')
+                ax2.plot(np.linspace(time[0], sum(time), len(q_baseline[1])),
+                        q_baseline[1], 'g--', label='q2 baseline')
+                ax2.plot(np.linspace(time[0], sum(time), len(dq_baseline[1])),
+                        dq_baseline[1], 'c--', label='dq2 baseline')
+                ax2.legend()
+            else:
+                ax2.plot(np.cumsum(time), temp_in, 'k')
+                ax2.set_ylabel('input signal')
 
         activities = []
         print('Plotting proportion of active neurons...')
@@ -193,7 +212,7 @@ class PlotLearningProfile:
         print('Plotting proportion of active time...')
         time_active = np.hstack(time_active)
         if getting_ideal_intercepts:
-            return time_active
+            return (time_active, activities)
         ax2 = fig.add_subplot(312)
         plt.hist(time_active, bins=np.linspace(0,1,30))
         ax2.set_title('Proportion of time neurons are active %i\n %s, %s' %
@@ -212,11 +231,17 @@ class PlotLearningProfile:
         proportion_active = np.sum(proportion_active,
                 axis=0)/len(proportion_active)
         ax2 = fig.add_subplot(313)
-        ax2.plot(np.cumsum(time), proportion_active)
+        ax2.plot(np.cumsum(time), proportion_active, label='proportion active')
         ax2.set_title('Proportion of active neurons over time %i'%save_num)
         ax2.set_ylabel('Proportion Active')
         ax2.set_xlabel('Time [sec]')
         ax2.set_ylim(0, 1)
+        if error is not None:
+            ax22 = ax2.twinx()
+            ax22.set_ylabel('Error [m]')
+            ax22.plot(np.cumsum(time), error,'r', label='Error')
+            ax2.legend(loc=1)
+            ax22.legend(loc=2)
         #print("TIME: ", np.sum(time))
         plt.tight_layout()
         print('Saving Figure')

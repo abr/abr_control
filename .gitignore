@@ -100,3 +100,5 @@ ENV/
 
 *.swo
 
+# jaco log file
+.jaco2_log.txt

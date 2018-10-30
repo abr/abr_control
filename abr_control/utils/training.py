@@ -19,8 +19,9 @@ class Training:
 
     def __init__(self,
             test_group='testing', test_name="joint_space_training", session=None,
-            run=None, offset=None, kp=20, kv=6, ki=0, avoid_limits=True,
-            db_name=None, vmax=1, SCALES=None, MEANS=None):
+            run=None, offset=None, kp=20, kv=6, ki=0,
+            integrated_error=np.array([0.0, 0.0, 0.0]),
+            avoid_limits=True, db_name=None, vmax=1, SCALES=None, MEANS=None):
 
         """
         The test script used to collect data for training. The use of the
@@ -151,9 +152,18 @@ class Training:
         self.robot_config.init_all()
 
         print('--Instantiate OSC controller--')
+        # if using I term, load previous integrated errors if applicable
+        if ki != 0 and run != 0:
+                integrated_error = self.data_handler.load_data(params=['integrated_error'],
+                        session=self.session,
+                        run=self.run-1, test_group=self.test_group,
+                        test_name=self.test_name,
+                        create=True)['integrated_error']
+                print('Integrated Error: ', integrated_error)
+
         # instantiate operational space controller
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
-                vmax=vmax, null_control=True)
+                vmax=vmax, null_control=True, integrated_error=integrated_error)
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
@@ -187,7 +197,8 @@ class Training:
 
     def __init_network__(self, adapt_input, adapt_output, n_neurons=1000, n_ensembles=1,
             weights=None, pes_learning_rate=1e-6, backend=None, seed=None,
-            probe_weights=True, neuron_type='lif', use_spherical=False):
+            probe_weights=True, neuron_type='lif', use_spherical=False,
+            trig_q=False, trig_dq=False):
         """
         Instantiate the adpative controller
 
@@ -219,12 +230,22 @@ class Training:
             a boolean list of which joints to apply the adaptive signal to
             Ex: to adapt joint 1 and 2 for a 6DOF arm (starting from base 0)
             adapt_input = [False, True, True, False, False, False]
+        trig_q: boolean, Optional (Default: False)
+            True to scale joint angle input to network by sin and cos (doubles
+            dimensionality for angles since both sin and cos are used to conver
+            the entire sin cos space
+        trig_dq: boolean, Optional (Default: False)
+            True to scale joint velocity input to network by sin and cos (doubles
+            dimensionality for angles since both sin and cos are used to conver
+            the entire sin cos space
         *NOTE: adapt_output DOES NOT have to be the same as adapt_input*
         probe_weights: Boolean Optional (Default: False)
             True to probe adaptive population for decoders
         """
         self.use_spherical = use_spherical
         self.use_adapt = True
+        self.trig_q = trig_q
+        self.trig_dq = trig_dq
 
         # hdf5 has no type None so an error is raised for runs where None
         # weights are passed in. This get's handled on the dynamics adaptation
@@ -234,6 +255,23 @@ class Training:
             saved_input_weights = 'None'
         else:
             saved_input_weights = weights
+
+        if self.use_spherical:
+            extra_dim = 1
+        else:
+            extra_dim = 0
+
+        # adapt input gives the numebr of joints being adapted
+        # triq_q and triq_dq should be 1 if True, 0 if False
+        # this will add the extra dimensions needed if converting inputs into
+        # sin cos space
+        extra_dim += int(sum(adapt_input) * (self.trig_q + self.trig_dq))
+
+        print('EXTRA DIM: ', extra_dim)
+        print('Using spherical: ', self.use_spherical)
+        print('j in cossin space: ', self.trig_q)
+        print('dj in cossin space: ', self.trig_dq)
+
 
         self.params['adapt_input'] = adapt_input
         self.params['adapt_output'] = adapt_output
@@ -246,6 +284,9 @@ class Training:
         self.params['probe_weights'] = probe_weights
         self.params['neuron_type'] = neuron_type
         self.params['use_spherical'] = self.use_spherical
+        self.params['trig_q'] = self.trig_q
+        self.params['trig_dq'] = self.trig_dq
+        self.params['extra_dim'] = extra_dim
 
         # load previous weights if they exist is None passed in
         if weights is None:
@@ -256,11 +297,6 @@ class Training:
                         run=self.run-1, test_group=self.test_group,
                         test_name=self.test_name, create=True)
 
-        if self.use_spherical:
-            extra_dim = True
-        else:
-            extra_dim = False
-
         print('--Instantiate adapt controller--')
         # instantiate our adaptive controller
         self.adapt = signals.DynamicsAdaptation(
@@ -269,8 +305,8 @@ class Training:
             n_neurons=n_neurons,
             n_ensembles=n_ensembles,
             pes_learning_rate=pes_learning_rate,
-            intercepts=(-0.9, 0.1),
-            intercepts_mode=-0.9,
+            intercepts=(-0.5, -0.4),
+            intercepts_mode=-0.5,
             weights_file=weights,
             backend=backend,
             probe_weights=probe_weights,
@@ -379,10 +415,11 @@ class Training:
             loop_time += end
             self.count += 1
 
-        print('--final--')
+        print('*~~~~FINAL~~~~*')
         print('error: ', error)
         print('dt: ', end)
         print('adapt: ', self.u_adapt)
+        print('*~~~~~~~~~~~~~*')
 
     #@profile
     def generate_u(self):
@@ -417,22 +454,53 @@ class Training:
                     adapt_input_q.append(self.robot_config.scaledown('q',self.q)[ii])
                     adapt_input_dq.append(self.robot_config.scaledown('dq',self.dq)[ii])
 
+                def convert_to_sin_cos(input_signal):
+                    """
+                    Takes in inputs from the range of -1 to 1 and scales them
+                    to sin-cos space
+                    """
+                    x0 = input_signal[0]
+                    x1 = input_signal[1]
+                    sincos = [np.cos(np.pi*x0), np.sin(np.pi*x0), np.cos(np.pi*x1),
+                            np.sin(np.pi*x1)]
+                    return sincos
+
                 def convert_to_spherical(input_signal):
+                    """
+                    Takes in inputs from the range of -1 to 1 and scales them
+                    to spherical coordiantes
+                    """
                     x0 = input_signal[0]
                     x1 = input_signal[1]
                     x2 = input_signal[2]
                     x3 = input_signal[3]
+                    pi = np.pi
 
+                    # nth input scaled to 0-2pi range, remainder from 0-pi
                     spherical = [
-                                 np.cos(x0),
-                                 np.sin(x0)*np.cos(x1),
-                                 np.sin(x0)*np.sin(x1)*np.cos(x2),
-                                 np.sin(x0)*np.sin(x1)*np.sin(x2)*np.cos(x3),
-                                 np.sin(x0)*np.sin(x1)*np.sin(x2)*np.sin(x3)
+                                 np.cos(x0 * pi/2 + pi/2),
+                                 np.sin(x0 * pi/2 + pi/2) *
+                                        np.cos(x1 * pi/2 + pi/2),
+                                 np.sin(x0 * pi/2 + pi/2) *
+                                        np.sin(x1 * pi/2 + pi/2) *
+                                        np.cos(x2 * pi/2 + pi/2),
+                                 np.sin(x0 * pi/2 + pi/2) *
+                                        np.sin(x1 * pi/2 + pi/2) *
+                                        np.sin(x2 * pi/2 + pi/2) *
+                                        np.cos(x3 * pi/2 + pi/2),
+                                 np.sin(x0 * pi + pi) *
+                                        np.sin(x1 * pi + pi) *
+                                        np.sin(x2 * pi + pi) *
+                                        np.sin(x3 * pi + pi)
                                 ]
                     return spherical
 
                 self.training_signal = np.array(training_signal)
+                if self.trig_q:
+                    adapt_input_q = (convert_to_sin_cos(adapt_input_q))
+                if self.trig_dq:
+                    adapt_input_dq = (convert_to_sin_cos(adapt_input_dq))
+
                 self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
                 if self.use_spherical:
                     self.adapt_input = convert_to_spherical(self.adapt_input)
@@ -485,6 +553,10 @@ class Training:
 
         print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
             self.session, self.run))
+
+        # Save integrated error at the end of the run, we are only interested
+        # in the final value
+        self.data['integrated_error'] = self.ctrlr.integrated_error
 
         # Save test data
         self.data_handler.save_data(tracked_data=self.data, session=self.session,

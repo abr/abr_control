@@ -17,29 +17,23 @@ import os
 # output, error = process.communicate()
 only_final_frame = False
 show_traj = True
-run_num=49
+run_num=10
 use_cache=True
 #db_name = 'jacoOSCdebug'
 db_name = 'dewolf2018neuromorphic'
 test_groups = [
                 # 'simulations',
-                # 'simulations',
-                # '1lb_random_target',
                 'weighted_reach_post_tuning',
                 'weighted_reach_post_tuning',
-                #'weighted_reach_post_tuning',
                 #'1lb_random_target',
-                # '1lb_random_target',
                 # 'weighted_reach_post_tuning',
               ]
 tests = [
-        # 'pd_no_weight_112',
-        'nengo_cpu_weight_4_19',
-        'nengo_cpu_weight_4_9',
-        #'pd_weight_5',
-        #'pd_no_weight_102',
-        # 'nengo_cpu_weight_2_17',
-        # 'nengo_cpu_weight_2_0',
+        #'nengo_cpu_weight_13_79',
+        # 'pid_weight_1_9',
+        # 'pd_weight_7',
+        'pd_no_weight_5',
+        'pd_no_weight_4',
         ]
 use_offset = False
 # test_name = 'nengo_cpu_%i_19'%run_num
