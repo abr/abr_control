@@ -69,7 +69,7 @@ class OSC(controller.Controller):
 
     def generate(self, q, dq,
                  target_pos, target_vel=np.zeros(3),
-                 ref_frame='EE', offset=[0, 0, 0], ee_force=None):
+                 ref_frame='EE', offset=[0, 0, 0]):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -86,9 +86,6 @@ class OSC(controller.Controller):
             the point being controlled, default is the end-effector.
         offset : list, optional (Default: [0, 0, 0])
             point of interest inside the frame of reference [meters]
-        ee_force: float array, Optional, (Default: None)
-            if there are any additional forces to add in task space,
-            add them here
         """
 
         # calculate the end-effector position information
@@ -155,10 +152,6 @@ class OSC(controller.Controller):
             # add in the integrated error term
             self.integrated_error += x_tilde
             u_task -= self.ki * self.integrated_error
-
-        # add in any specified additional task space force
-        if ee_force is not None:
-            u_task += ee_force
 
         # incorporate task space inertia matrix
         u += np.dot(J.T, np.dot(Mx, u_task))
