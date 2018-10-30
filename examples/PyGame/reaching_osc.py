@@ -59,7 +59,8 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target_xyz)
+            target_pos=target_xyz,
+            target_vel=np.zeros(3))
 
         new_target = interface.get_mousexy()
         if new_target is not None:
