@@ -18,7 +18,7 @@ robot_config = arm.Config(use_cython=True)
 arm_sim = arm.ArmSim(robot_config)
 
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=200, vmax=10)
+ctrlr = OSC(robot_config, kp=200, vmax=None)
 
 # create our path planner
 n_timesteps = 250
