@@ -72,6 +72,7 @@ class SecondOrder(PathPlanner):
         y = state[:n_states]
         dy = state[n_states:]
         dist = np.linalg.norm(y - target_pos)
+        w = self.w
 
         # uncomment for toolbot demo
         # TODO: incorporate this hack properly
