@@ -672,7 +672,6 @@ class BaseConfig():
             if True returns a function to calculate the matrix.
             If False returns the Sympy matrix
         """
-        print('Calculating C')
 
         C = None
         C_func = None
@@ -698,7 +697,7 @@ class BaseConfig():
                         dMkidqj = M[kk, ii].diff(self.q[jj])
                         dMijdqk = M[ii, jj].diff(self.q[kk])
                         C[kk, jj] += .5 * (dMkjdqi + dMkidqj - dMijdqk) * self.dq[ii]
-                    C[kk, jj] = C[kk, jj].simplify()
+                    C[kk, jj] = C[kk, jj]
             C = sp.Matrix(C)
 
             # save to file
