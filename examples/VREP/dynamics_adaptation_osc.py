@@ -6,14 +6,10 @@ trajectory of the end-effector is plotted in 3D.
 import numpy as np
 import traceback
 
-# from abr_control.arms import ur5 as arm
 from abr_control.arms import jaco2 as arm
-# from abr_control.arms import onelink as arm
 from abr_control.controllers import OSC, signals
 from abr_control.interfaces import VREP
 
-#backend='nengo'
-backend='nengo_spinnaker'
 # initialize our robot config for the jaco2
 robot_config = arm.Config(use_cython=True, hand_attached=True)
 
@@ -24,27 +20,18 @@ J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
 # instantiate controller
 ctrlr = OSC(robot_config, kp=200, vmax=0.5)
 
-if backend == 'nengo_spinnaker':
-    # 1 sec of simulation takes 5 minutes 30 seconds, adjust
-    # learning rate since spinnaker runs in real time
-    # spinnaker_run_time/sim_run_time = (1sec/sec)/(330sec/sec)
-    time_scale = 1/330
-else:
-    time_scale = 1
-
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
     backend='nengo',
-    n_neurons=500,
-    n_ensembles=1,
-    n_input=robot_config.N_JOINTS,
-    n_output=robot_config.N_JOINTS,
+    n_neurons=5000,
+    n_input=2,  # we apply adaptation on the most heavily stressed joints
+    n_output=2,
     weights_file=None,
-    pes_learning_rate=1e-4,
-    intercepts=(-0.1, 1.0))
+    pes_learning_rate=1e-2,
+    intercepts=(-.9, -.2))
 
 # create our VREP interface
-interface = VREP(robot_config, dt=.001)
+interface = VREP(robot_config, dt=.005)
 interface.connect()
 
 # set up lists for tracking data
@@ -69,21 +56,23 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target_xyz)
-        u_adapt = adapt.generate(input_signal=robot_config.scaledown('q',
-                                 feedback['q']),
-                                 training_signal=ctrlr.training_signal)
-        u += u_adapt * time_scale
-        if count % 10 == 0:
-            print('adapt: ', u_adapt * time_scale)
+
+        scaled = robot_config.scaledown('q', feedback['q'])
+        u_adapt = adapt.generate(
+            input_signal=np.array([scaled[1], scaled[2]]),
+            training_signal=np.array(
+                [ctrlr.training_signal[1], ctrlr.training_signal[2]]))
+        u_adapt = np.array([0, u_adapt[0], u_adapt[1], 0, 0, 0])
+        u += u_adapt
+        print('u_adapt: ', [float('%.3f' % val) for val in u_adapt])
 
         # add an additional force for the controller to adapt to
-        fake_gravity = np.array([[0, -9.81, 0, 0, 0, 0]]).T
-        g = np.zeros((robot_config.N_JOINTS, 1))
-        for ii in range(robot_config.N_LINKS):
-            pars = tuple(feedback['q']) + tuple([0, 0, 0])
-            g += np.dot(J_links[ii](*pars).T, fake_gravity)
-        u += g.squeeze()
-
+        extra_gravity = robot_config.g(feedback['q']) * 2
+        # g = np.zeros((robot_config.N_JOINTS, 1))
+        # for ii in range(robot_config.N_LINKS):
+        #     pars = tuple(feedback['q']) + tuple([0, 0, 0])
+        #     g += np.dot(J_links[ii](*pars).T, fake_gravity)
+        u += extra_gravity
 
         # send forces into VREP, step the sim forward
         interface.send_forces(u)
