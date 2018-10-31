@@ -18,10 +18,10 @@ robot_config = arm.Config(use_cython=True)
 # robot_config = arm.Config(use_cython=True, hand_attached=True)
 
 # instantiate the controller
-ctrlr = Floating(robot_config)
+ctrlr = Floating(robot_config, dynamic=True)
 
 # create the VREP interface and connect up
-interface = VREP(robot_config, dt=.001)
+interface = VREP(robot_config, dt=.005)
 interface.connect()
 
 # set up arrays for tracking end-effector and target position
@@ -44,7 +44,7 @@ try:
         # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
-            dq=feedback['dq'],)
+            dq=feedback['dq'])
         # send forces into VREP
         interface.send_forces(u)
 

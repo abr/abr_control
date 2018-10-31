@@ -20,7 +20,7 @@ ctrlr = OSC(robot_config, kp=200, vmax=0.5)
 avoid = signals.AvoidObstacles(robot_config)
 
 # create our VREP interface
-interface = VREP(robot_config, dt=.001)
+interface = VREP(robot_config, dt=.005)
 interface.connect()
 
 # set up lists for tracking data
@@ -42,7 +42,7 @@ try:
     interface.set_xyz(name='target', xyz=target_xyz)
 
     moving_obstacle = True
-    obstacle_xyz = np.array([0.09596, -0.3661, 0.64204])
+    obstacle_xyz = np.array([0.09596, -0.2661, 0.64204])
     interface.set_xyz(name='obstacle', xyz=obstacle_xyz)
 
     # run ctrl.generate once to load all functions
@@ -70,7 +70,7 @@ try:
         avoid.set_obstacles([[obs_x, obs_y, obs_z, 0.05]])
         if moving_obstacle is True:
             obs_x = .125 + .25 * np.sin(obs_count)
-            obs_count += .01
+            obs_count += .05
             interface.set_xyz(name='obstacle',
                               xyz=[obs_x, obs_y, obs_z])
 

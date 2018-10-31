@@ -26,6 +26,7 @@ def plot_3D(ee_path, target_path=None, save_file_name=None):
     fig = plt.figure(figsize=(6, 6))
 
     ax = fig.add_subplot(1, 1, 1, projection='3d')
+
     # plot start point of hand
     ax.plot([ee_path[0, 0]], [ee_path[0, 1]],
             [ee_path[0, 2]], 'bx', mew=10)
@@ -45,9 +46,8 @@ def plot_3D(ee_path, target_path=None, save_file_name=None):
     ax.set_xlim([-1, 1])
     ax.set_ylim([-.5, .5])
     ax.set_zlim([0, 1])
+    ax.set_aspect('equal')
     ax.legend()
-
-    plt.tight_layout()
 
     if save_file_name is not None:
         plt.savefig(save_file_name + '.pdf', format='pdf')

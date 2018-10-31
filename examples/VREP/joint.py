@@ -13,15 +13,15 @@ from abr_control.controllers import Joint
 from abr_control.interfaces import VREP
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
+# robot_config = arm.Config(use_cython=True)
 # if using the Jaco 2 arm with the hand attached, use the following instead:
-# robot_config = arm.Config(use_cython=True, hand_attached=False)
+robot_config = arm.Config(use_cython=True, hand_attached=False)
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = Joint(robot_config, kp=50)
 
 # create interface and connect
-interface = VREP(robot_config=robot_config, dt=.001)
+interface = VREP(robot_config=robot_config, dt=.005)
 interface.connect()
 
 # make the target an offset of the current configuration
@@ -80,7 +80,7 @@ finally:
     if q_track.shape[0] > 0:
         import matplotlib.pyplot as plt
         plt.plot((q_track + np.pi) % (np.pi * 2) - np.pi)
-        plt.gca().set_color_cycle(None)
+        plt.gca().set_prop_cycle(None)
         plt.plot(np.ones(q_track.shape) *
                 ((target_pos + np.pi) % (np.pi * 2) - np.pi), '--')
         plt.legend(range(robot_config.N_LINKS))
