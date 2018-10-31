@@ -1,6 +1,6 @@
 import numpy as np
 
-from abr_control.arms import twolink as arm
+from abr_control.arms import twojoint as arm
 
 from .testarm import TwoJoint
 

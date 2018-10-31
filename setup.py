@@ -49,8 +49,8 @@ setup(
     cmdclass={'build_ext': build_ext},
     ext_modules=[
         Extension(
-            "abr_control.arms.threelink.arm_files.py3LinkArm",
-            sources=["abr_control/arms/threelink/arm_files/py3LinkArm.pyx"],
+            "abr_control.arms.threejoint.arm_files.py3LinkArm",
+            sources=["abr_control/arms/threejoint/arm_files/py3LinkArm.pyx"],
             language="c++",
         )
     ],
