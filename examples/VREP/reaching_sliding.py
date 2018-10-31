@@ -6,16 +6,16 @@ trajectory of the end-effector is plotted in 3D.
 import numpy as np
 import traceback
 
-from abr_control.arms import ur5 as arm
-# from abr_control.arms import jaco2 as arm
+# from abr_control.arms import ur5 as arm
+from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onelink as arm
 from abr_control.controllers import Sliding
 from abr_control.interfaces import VREP
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
+# robot_config = arm.Config(use_cython=True)
 # if using the Jaco 2 arm with the hand attached, use the following instead:
-# robot_config = arm.Config(use_cython=True, hand_attached=False)
+robot_config = arm.Config(use_cython=True, hand_attached=True)
 
 # instantiate controller
 # NOTE: These values are non-optimal
@@ -83,7 +83,7 @@ finally:
 
         plt.figure()
         plt.plot(np.sqrt(np.sum((np.array(target_track) -
-                                np.array(ee_track))**2, axis=1)))
+                                 np.array(ee_track))**2, axis=1)))
         plt.ylabel('Distance (m)')
         plt.xlabel('Time (ms)')
         plt.title('Distance to target')
