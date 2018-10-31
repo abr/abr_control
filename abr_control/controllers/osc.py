@@ -68,7 +68,7 @@ class OSC(controller.Controller):
         self.nkv = np.sqrt(self.nkp)
 
     def generate(self, q, dq,
-                 target_pos, target_vel=None,
+                 target_pos, target_vel=0,
                  ref_frame='EE', offset=[0, 0, 0]):
         """ Generates the control signal to move the EE to a target
 
@@ -130,8 +130,6 @@ class OSC(controller.Controller):
                 scale = np.ones(3, dtype='float32')
 
             dx = np.dot(J, dq)
-            if target_vel is None:
-                target_vel = np.zeros(3)
             u_task[:3] = -self.kv * (dx - target_vel -
                                      np.clip(sat / scale, 0, 1) *
                                      -self.lamb * scale * x_tilde)
@@ -140,8 +138,9 @@ class OSC(controller.Controller):
         else:
             # generate (x,y,z) force without velocity limiting)
             u_task = -self.kp * x_tilde
-            if target_vel is None:
-                # low level signal includes velocity compensation
+            if np.all(target_vel == 0):
+                # if the target velocity is zero, it's more accurate to
+                # apply velocity compensation in joint space
                 u = -self.kv * np.dot(M, dq)
             else:
                 dx = np.dot(J, dq)
