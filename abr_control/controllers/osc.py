@@ -55,13 +55,13 @@ class OSC(Controller):
 
         self.integrated_error = np.array([0.0, 0.0, 0.0])
 
-        # null_indices is a mask for identifying which joints have REST_ANGLES
-        self.null_indices = ~np.isnan(self.robot_config.REST_ANGLES)
-        self.dq_des = np.zeros(self.robot_config.N_JOINTS)
         self.IDENTITY_N_JOINTS = np.eye(self.robot_config.N_JOINTS)
 
-    def generate(self, q, dq, target_pos, target_vel=0,
-                 ref_frame='EE', offset=None):
+
+    def generate(self, q, dq,
+                 target_pos, target_vel=0,
+                 ctrlr_dof=[True, True, True, False, False, False],
+                 ref_frame='EE', offset=[0, 0, 0], ee_force=None):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -81,6 +81,7 @@ class OSC(Controller):
         """
 
         offset = self.offset_zeros if offset is None else offset
+        n_ctrlr_dof = np.sum(ctrlr_dof)
 
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
@@ -90,7 +91,7 @@ class OSC(Controller):
         # isolate position component of Jacobian
         J = J[:3]
 
-        # calculate the inertia matrix in joint space
+        # calculate the inertia matrix in joint space -------------------------
         M = self.robot_config.M(q)
 
         # calculate the inertia matrix in task space
@@ -106,13 +107,23 @@ class OSC(Controller):
             # singular values < (rcond * max(singular_values)) set to 0
             Mx = np.linalg.pinv(Mx_inv, rcond=.005)
 
-        u_task = np.zeros(3)  # task space control signal
-
-        # calculate the position error
+        # calculate the position error ----------------------------------------
         x_tilde = np.array(xyz - target_pos)
 
+        # # calculate the orientation error -------------------------------------
+        # # get the quaternion for the end effector
+        # q_EE = transformations.quaternion_from_matrix(
+        #     robot_config.R('EE', feedback['q']))
+        #
+        # # calculate the difference between q_EE and q_target
+        # # from (Yuan, 1988)
+        # # dq = (w_d * [x, y, z] - w * [x_d, y_d, z_d] -
+        # #       [x_d, y_d, z_d]^x * [x, y, z])
+        # w_tilde = - ko * (q_target[0] * q_EE[1:] - q_EE[0] * q_target[1:] -
+        #         np.dot(q_target_matrix, q_EE[1:]))
+
+        # implement velocity limiting -----------------------------------------
         if self.vmax is not None:
-            # implement velocity limiting
             sat = self.vmax / (self.lamb * np.abs(x_tilde))
             if np.any(sat < 1):
                 index = np.argmin(sat)
@@ -124,6 +135,8 @@ class OSC(Controller):
                 scale = np.ones(3, dtype='float32')
 
             dx = np.dot(J, dq)
+            if target_vel is None:
+                target_vel = np.zeros(CTRLR_DOF)
             u_task[:3] = -self.kv * (dx - target_vel -
                                      np.clip(sat / scale, 0, 1) *
                                      -self.lamb * scale * x_tilde)
