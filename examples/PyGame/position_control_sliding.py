@@ -1,5 +1,5 @@
 """
-Running the threelink arm with the pygame display. The arm will
+Running sliding control with the PyGame display. The arm will
 move the end-effector to the target, which can be moved by
 clicking on the background.
 """
@@ -40,13 +40,8 @@ target_path = []
 
 
 try:
-    # run ctrl.generate once to load all functions
-    zeros = np.zeros(robot_config.N_JOINTS)
-    ctrlr.generate(q=zeros, dq=zeros, target_pos=zeros)
-    robot_config.R('EE', q=zeros)
-
-    print('\nSimulation starting...\n')
-    print('\nClick to move the target.\n')
+    print('\nSimulation starting...')
+    print('Click to move the target.\n')
 
     count = 0
     while 1:
@@ -58,7 +53,8 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target_xyz)
+            target=target_xyz
+            )
 
         new_target = interface.get_mousexy()
         if new_target is not None:

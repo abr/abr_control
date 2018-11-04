@@ -1,6 +1,6 @@
 """
 Move the UR5 VREP arm to a target position while avoiding an obstacle.
-The simulation ends after 1.5 simulated seconds, and the trajectory
+The simulation ends after 1500 time steps, and the trajectory
 of the end-effector is plotted in 3D.
 """
 import numpy as np
@@ -30,41 +30,41 @@ ee_track = []
 target_track = []
 obstacle_track = []
 
+moving_obstacle = True
+obstacle_xyz = np.array([0.09596, -0.2661, 0.64204])
+
+# control (x, y, z) out of [x, y, z, alpha, beta, gamma]
+ctrlr_dof = [True, True, True, False, False, False]
+
 
 try:
-    num_targets = 0
-    back_to_start = False
-
     # get visual position of end point of object
     feedback = interface.get_feedback()
-    # set up the values to be used by the Jacobian for the object end effector
     start = robot_config.Tx('EE', q=feedback['q'])
 
+    # make the target offset from that start position
     target_xyz = start + np.array([.2, -.2, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
-
-    moving_obstacle = True
-    obstacle_xyz = np.array([0.09596, -0.2661, 0.64204])
     interface.set_xyz(name='obstacle', xyz=obstacle_xyz)
-
-    # run ctrl.generate once to load all functions
-    zeros = np.zeros(robot_config.N_JOINTS)
-    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
-    robot_config.R('EE', q=zeros)
-
-    print('\nSimulation starting...\n')
 
     count = 0.0
     obs_count = 0.0
+    print('\nSimulation starting...\n')
     while count < 1500:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
+
+        target = np.hstack([
+            interface.get_xyz('target'),
+            interface.get_orientation('target')])
+
         # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target_xyz,
-            target_vel=np.zeros(3))
+            target=target,
+            ctrlr_dof=ctrlr_dof,
+            )
 
         # get obstacle position from VREP
         obs_x, obs_y, obs_z = interface.get_xyz('obstacle')
@@ -86,7 +86,7 @@ try:
         ee_xyz = robot_config.Tx('EE', q=feedback['q'])
         # track data
         ee_track.append(np.copy(ee_xyz))
-        target_track.append(np.copy(target_xyz))
+        target_track.append(np.copy(target[:3]))
         obstacle_track.append(np.copy([obs_x, obs_y, obs_z]))
 
         count += 1

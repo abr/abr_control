@@ -1,5 +1,5 @@
 """
-Running the threelink arm with the pygame display. The arm will
+Running operational space control with the PyGame display. The arm will
 move the end-effector to the target, which can be moved by
 clicking on the background.
 """
@@ -45,15 +45,13 @@ interface.set_target(target_xyz)
 ee_path = []
 target_path = []
 
+# control (x, y) out of [x, y, z, alpha, beta, gamma]
+ctrlr_dof = [True, True, False, False, False, False]
+
 
 try:
-    # run ctrl.generate once to load all functions
-    zeros = np.zeros(robot_config.N_JOINTS)
-    ctrlr.generate(q=zeros, dq=zeros, target_pos=np.zeros(3))
-    robot_config.R('EE', q=zeros)
-
-    print('\nSimulation starting...\n')
-    print('\nClick to move the target.\n')
+    print('\nSimulation starting...')
+    print('Click to move the target.\n')
 
     count = 0
     while 1:
@@ -61,12 +59,14 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
+        target = np.hstack([target_xyz, np.zeros(3)])
         # generate an operational space control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target_xyz,
-            target_vel=np.zeros(3))
+            target=target,
+            ctrlr_dof=ctrlr_dof,
+            )
 
         new_target = interface.get_mousexy()
         if new_target is not None:

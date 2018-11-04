@@ -1,8 +1,8 @@
 """
-Running the threelink arm with the PyGame display. The path planning will
-system will generate a trajectory for the controller to follow, moving the
-end-effector smoothly to the target, which changes every n time
-steps.
+Running the operational space control with a second order path planner
+using the PyGame display. The path planning system will generate
+a trajectory for the controller to follow, moving the end-effector
+smoothly to the target, which changes every n time steps.
 """
 import numpy as np
 
@@ -36,18 +36,14 @@ interface.connect()
 ee_path = []
 target_path = []
 
+# control (x, y) out of [x, y, z, alpha, beta, gamma]
+ctrlr_dof = [True, True, False, False, False, False]
+
 pregenerate_path = False
 print('\nPregenerating path to follow: ', pregenerate_path, '\n')
 try:
-    # run ctrl.generate once to load all functions
-    zeros_task = np.zeros(3)
-    zeros_joint = np.zeros(robot_config.N_JOINTS)
-    ctrlr.generate(q=zeros_joint, dq=zeros_joint,
-                   target_pos=zeros_task, target_vel=zeros_task)
-    robot_config.R('EE', q=zeros_joint)
-
-    print('\nSimulation starting...\n')
-    print('\nClick to move the target.\n')
+    print('\nSimulation starting...')
+    print('Click to move the target.\n')
 
     count = 0
     while 1:
@@ -82,8 +78,10 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target[:3],  # (x, y, z)
-            target_vel=target[3:])  # (dx, dy, dz)
+            target=np.hstack([target[:3], np.zeros(3)]),
+            target_vel=np.hstack([target[3:], np.zeros(3)]),
+            ctrlr_dof=ctrlr_dof,
+            )
 
         # apply the control signal, step the sim forward
         interface.send_forces(
