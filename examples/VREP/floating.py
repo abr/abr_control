@@ -30,22 +30,21 @@ q_track = []
 
 
 try:
+    # get the end-effector's initial position
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', q=feedback['q'])
 
-    # run ctrl.generate once to load all functions
-    zeros = np.zeros(robot_config.N_JOINTS)
-    ctrlr.generate(q=zeros, dq=zeros)
-    robot_config.R('EE', q=zeros)
-
     print('\nSimulation starting...\n')
+
     while 1:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
+
         # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'])
+
         # send forces into VREP
         interface.send_forces(u)
 

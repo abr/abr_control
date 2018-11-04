@@ -32,7 +32,7 @@ class Sliding(Controller):
         self.cartesian = cartesian
 
     def generate(self, q, dq,
-                 target_pos, target_vel=None, target_acc=None,
+                 target, target_vel=0, target_acc=0,
                  ref_frame='EE', offset=None):
         """ Generates the control signal to move the EE to a target
 
@@ -42,7 +42,7 @@ class Sliding(Controller):
             current joint angles [radians]
         dq : float numpy.array
             current joint velocities [radians/second]
-        target_pos : float numpy.array
+        target : float numpy.array
             desired joint angles [radians]
         target_vel : float numpy.array, optional (Default: numpy.zeros)
             desired joint velocities [radians/sec]
@@ -55,11 +55,6 @@ class Sliding(Controller):
         offset = self.offset_zeros if offset is None else offset
 
         if self.cartesian:
-            if target_vel is None:
-                target_vel = np.zeros(3)
-            if target_acc is None:
-                target_acc = np.zeros(3)
-
             # calculate the position Jacobian for the end effector
             J = self.robot_config.J(ref_frame, q, x=offset)[:3]
 
@@ -72,18 +67,13 @@ class Sliding(Controller):
 
             dq_ref = np.dot(
                 J_inv,
-                target_vel + self.lamb * (target_pos - xyz))
+                target_vel + self.lamb * (target - xyz))
             ddq_ref = np.dot(
                 J_inv,
                 target_acc + self.lamb * (target_vel - dxyz) -
                 np.dot(dJ, dq_ref))
         else:
-            if target_vel is None:
-                target_vel = np.zeros(self.robot_config.N_JOINTS)
-            if target_acc is None:
-                target_acc = np.zeros(self.robot_config.N_JOINTS)
-
-            q_tilde = q - target_pos
+            q_tilde = q - target
             dq_tilde = dq - target_vel
             dq_ref = target_vel - self.lamb * q_tilde
             ddq_ref = target_acc - self.lamb * dq_tilde

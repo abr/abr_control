@@ -24,7 +24,7 @@ damping = Damping(robot_config, kv=10)
 ctrlr = OSC(robot_config, kp=100, null_controllers=[damping])
 
 # create our path planner
-n_timesteps = 1000  # give 250 time steps to reach target
+n_timesteps = 250  # give 250 time steps to reach target
 path_planner = path_planners.Linear()
 
 # create our interface
@@ -66,8 +66,9 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target[:3],
-            target_vel=target[3:],
+            target=np.hstack([target[:3], np.zeros(3)]),
+            target_vel=np.hstack([target[3:], np.zeros(3)]),
+            ctrlr_dof=ctrlr_dof
             )
 
         # apply the control signal, step the sim forward
