@@ -40,11 +40,15 @@ interface.connect()
 ee_track = []
 target_track = []
 
+# control (x, y, z) out of [x, y, z, alpha, beta, gamma]
+ctrlr_dof = [True, True, True, False, False, False]
+
 
 try:
     # get the end-effector's initial position
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', feedback['q'])
+
     # make the target offset from that start position
     target_xyz = start + np.array([0.2, -0.2, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
@@ -53,11 +57,18 @@ try:
     while 1:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
+
+        target = np.hstack([
+            interface.get_xyz('target'),
+            interface.get_orientation('target')])
+
         # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target_xyz)
+            target=target,
+            ctrlr_dof=ctrlr_dof,
+            )
 
         scaled = robot_config.scaledown('q', feedback['q'])
         u_adapt = adapt.generate(
@@ -70,10 +81,6 @@ try:
 
         # add an additional force for the controller to adapt to
         extra_gravity = robot_config.g(feedback['q']) * 2
-        # g = np.zeros((robot_config.N_JOINTS, 1))
-        # for ii in range(robot_config.N_LINKS):
-        #     pars = tuple(feedback['q']) + tuple([0, 0, 0])
-        #     g += np.dot(J_links[ii](*pars).T, fake_gravity)
         u += extra_gravity
 
         # send forces into VREP, step the sim forward
@@ -83,7 +90,7 @@ try:
         ee_xyz = robot_config.Tx('EE', q=feedback['q'])
         # track data
         ee_track.append(np.copy(ee_xyz))
-        target_track.append(np.copy(target_xyz))
+        target_track.append(np.copy(target[:3]))
 
         count += 1
 

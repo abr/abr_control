@@ -1,6 +1,6 @@
 """
 Move the UR5 VREP arm to a target position.
-The simulation ends after 1.5 simulated seconds, and the
+The simulation ends after 1500 time steps, and the
 trajectory of the end-effector is plotted in 3D.
 """
 import numpy as np
@@ -34,25 +34,24 @@ try:
     # get the end-effector's initial position
     feedback = interface.get_feedback()
     start = robot_config.Tx('EE', feedback['q'])
+
     # make the target offset from that start position
     target_xyz = start + np.array([0.2, -0.2, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
-
-    # run ctrl.generate once to load all functions
-    zeros = np.zeros(robot_config.N_JOINTS)
-    ctrlr.generate(q=zeros, dq=zeros, target_pos=target_xyz)
-    robot_config.R('EE', q=zeros)
 
     count = 0.0
     print('\nSimulation starting...\n')
     while count < 1500:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
+
         # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target_xyz)
+            target=target_xyz
+            )
+
         # send forces into VREP, step the sim forward
         interface.send_forces(u)
 
