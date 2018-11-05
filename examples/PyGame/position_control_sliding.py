@@ -34,10 +34,6 @@ feedback = interface.get_feedback()
 target_xyz = robot_config.Tx('EE', feedback['q'])
 interface.set_target(target_xyz)
 
-# set up lists for tracking data
-ee_path = []
-target_path = []
-
 
 try:
     print('\nSimulation starting...')
@@ -65,9 +61,6 @@ try:
         interface.send_forces(
             u, update_display=True if count % 20 == 0 else False)
 
-        # track data
-        ee_path.append(np.copy(hand_xyz))
-        target_path.append(np.copy(target_xyz))
         count += 1
 
 finally:

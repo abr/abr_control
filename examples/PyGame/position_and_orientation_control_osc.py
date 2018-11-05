@@ -58,10 +58,6 @@ interface.theta = -3 * np.pi / 4
 R = robot_config.R('EE', feedback['q'])
 interface.on_keypress(interface, None)
 
-# set up lists for tracking data
-ee_path = []
-target_path = []
-
 # control (x, y, gamma) out of [x, y, z, alpha, beta, gamma]
 ctrlr_dof = [True, True, False, False, False, True]
 
@@ -94,9 +90,6 @@ try:
         interface.send_forces(
             u, update_display=True if count % 20 == 0 else False)
 
-        # track data
-        ee_path.append(np.copy(hand_xyz))
-        target_path.append(np.copy(target_xyz))
         count += 1
 
 finally:
