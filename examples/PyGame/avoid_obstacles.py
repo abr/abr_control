@@ -42,10 +42,6 @@ target_xyz = [0, 2, 0]
 target_angles = [0, 0, 0]
 interface.set_target(target_xyz)
 
-# set up lists for tracking data
-ee_path = []
-target_path = []
-
 # control (x, y) out of [x, y, z, alpha, beta, gamma]
 ctrlr_dof = [True, True, False, False, False, False]
 
@@ -88,9 +84,6 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
-        # track data
-        ee_path.append(np.copy(hand_xyz))
-        target_path.append(np.copy(target_xyz))
         count += 1
 
 finally:
