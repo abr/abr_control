@@ -14,7 +14,7 @@ from abr_control.utils import transformations
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=200, vmax=0.5)
+ctrlr = OSC(robot_config, kp=200, vmax=10.0)
 
 # create our interface
 interface = VREP(robot_config, dt=.005)
@@ -22,7 +22,9 @@ interface.connect()
 
 # set up lists for tracking data
 ee_track = []
+ee_angles_track = []
 target_track = []
+target_angles_track = []
 
 # control (x, y, beta, gamma) out of [x, y, z, alpha, beta, gamma]
 ctrlr_dof = [True, True, False, False, True, True]
@@ -52,7 +54,10 @@ try:
 
         # track data
         ee_track.append(np.copy(hand_xyz))
+        ee_angles_track.append(transformations.euler_from_matrix(
+            robot_config.R('EE', feedback['q'])))
         target_track.append(np.copy(target[:3]))
+        target_angles_track.append(interface.get_orientation('target'))
         count += 1
 
 finally:
@@ -62,7 +67,9 @@ finally:
     print('Simulation terminated...')
 
     ee_track = np.array(ee_track)
+    ee_angles_track = np.array(ee_angles_track)
     target_track = np.array(target_track)
+    target_angles_track = np.array(target_angles_track)
 
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
@@ -70,11 +77,19 @@ finally:
         from abr_control.utils.plotting import plot_3D
 
         plt.figure()
+        plt.subplot(2, 1, 1)
         plt.plot(np.sqrt(np.sum((np.array(target_track) -
                                 np.array(ee_track))**2, axis=1)))
         plt.ylabel('Distance (m)')
         plt.xlabel('Time (ms)')
         plt.title('Distance to target')
+
+        plt.subplot(2, 1, 2)
+        plt.plot(ee_angles_track)
+        plt.gca().set_prop_cycle(None)
+        plt.plot(target_angles_track, '--')
+
+        plt.tight_layout()
 
         plot_3D(ee_track, target_track)
         plt.show()
