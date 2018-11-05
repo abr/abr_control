@@ -138,17 +138,15 @@ class OSC(Controller):
         # calculate orientation error if orientation is being controlled
         if np.sum(ctrlr_dof[3:]) > 0:
 
-            # NOTE: is this correct? Calculating the current end effector
-            # orientation angles and replacing the ones being controlled?
-            # calculate Euler angles for current orientation
-            # R_EE = self.robot_config.R('EE', q)
-            # angles = np.array(
-            #     transformations.euler_from_matrix(R_EE, axes='sxyz'))
+            # calculate the current end effector Euler angles
+            # replace the non-controlled target orientation angles with
+            # the current orientation angles to minimize distance travelled
+            if np.sum(ctrlr_dof[3:]) < 3:
+                R_EE = self.robot_config.R('EE', q)
+                angles = np.array(
+                    transformations.euler_from_matrix(R_EE, axes='sxyz'))
+                target[3:][not ctrlr_dof[3:]] = angles[not ctrlr_dof[3:]]
 
-            # NOTE: Seems to work the same using zeros instead of the actual
-            # current EE values to fill in dimensions not controlled,
-            # need to set up a test and actually check this
-            # generate quaternion representing target orientation
             q_target = transformations.quaternion_from_euler(
                 target[3], target[4], target[5], axes='sxyz')
 
