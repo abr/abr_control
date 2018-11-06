@@ -1,6 +1,6 @@
 """
 Running operational space control with the PyGame display, using an exponential
-additive signal when to push away from joints and avoid self collision.
+additive signal when to push away from joints.
 The target location can be moved by clicking on the background.
 """
 import numpy as np

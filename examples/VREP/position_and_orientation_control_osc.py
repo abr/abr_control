@@ -78,16 +78,17 @@ finally:
 
         plt.figure()
         plt.subplot(2, 1, 1)
-        plt.plot(np.sqrt(np.sum((np.array(target_track) -
-                                np.array(ee_track))**2, axis=1)))
-        plt.ylabel('Distance (m)')
-        plt.xlabel('Time (ms)')
-        plt.title('Distance to target')
+        plt.plot(ee_track)
+        plt.gca().set_prop_cycle(None)
+        plt.plot(target_track, '--')
+        plt.ylabel('3D position (m)')
 
         plt.subplot(2, 1, 2)
         plt.plot(ee_angles_track)
         plt.gca().set_prop_cycle(None)
         plt.plot(target_angles_track, '--')
+        plt.ylabel('3D orientation (rad)')
+        plt.xlabel('Time (s)')
 
         plt.tight_layout()
 
