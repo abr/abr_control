@@ -13,9 +13,7 @@ class OSC(Controller):
         contains all relevant information about the arm
         such as: number of joints, number of links, mass information etc.
     kp : float, optional (Default: 1)
-        proportional gain term on task space position
-    kp : float, optional (Default: 1)
-        proportional gain term on task space orientation
+        proportional gain term
     kv : float, optional (Default: None)
         derivative gain term, a good starting point is sqrt(kp)
     ki : float, optional (Default: 0)
