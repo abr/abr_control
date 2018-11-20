@@ -152,7 +152,7 @@ class OSC(controller.Controller):
             # singular values < (rcond * max(singular_values)) set to 0
             Mx = np.linalg.pinv(Mx_inv, rcond=.005)
 
-        u_task = np.zeros(3)  # task space control signal
+        self.u_task = np.zeros(3)  # task space control signal
 
         # calculate the position error
         x_tilde = np.array(xyz - target_pos)
@@ -170,22 +170,26 @@ class OSC(controller.Controller):
                 scale = np.ones(3, dtype='float32')
 
             self.dx = np.dot(J, dq)
-            u_task[:3] = -self.kv * (self.dx - target_vel -
+            self.u_task[:3] = -self.kv * (self.dx - target_vel -
                                      np.clip(sat / scale, 0, 1) *
                                      -self.lamb * scale * x_tilde)
             # low level signal set to zero
             u = 0.0
         else:
             # generate (x,y,z) force without velocity limiting)
-            u_task = -self.kp * x_tilde
+            self.u_kp = -self.kp * x_tilde
+            self.u_task = self.u_kp
             if np.all(target_vel == 0):
                 # if the target velocity is zero, it's more accurate to
                 # apply velocity compensation in joint space
-                u = -self.kv * np.dot(M, dq)
+                self.u_kv = -self.kv * np.dot(M, dq)
+                u = self.u_kv
+                self.dx = [0, 0, 0]
             else:
-                dx = np.dot(J, dq)
+                self.dx = np.dot(J, dq)
                 # high level signal includes velocity compensation
-                u_task -= self.kv * (dx - target_vel)
+                self.u_kv = -self.kv * (self.dx - target_vel)
+                self.u_task += self.u_kv
                 u = 0.0
 
         if self.use_dJ:
@@ -193,15 +197,15 @@ class OSC(controller.Controller):
             dJ = self.robot_config.dJ(ref_frame, q=q, dq=dq)
             # apply mask
             dJ = dJ[:3]
-            u_task += np.dot(dJ, dq)
+            self.u_task += np.dot(dJ, dq)
 
         if self.ki != 0:
             # add in the integrated error term
             self.integrated_error += x_tilde
-            u_task -= self.ki * self.integrated_error
+            self.u_task -= self.ki * self.integrated_error
 
         # incorporate task space inertia matrix
-        u += np.dot(J.T, np.dot(Mx, u_task))
+        u += np.dot(J.T, np.dot(Mx, self.u_task))
 
         if self.use_C:
             # add in estimation of full centrifugal and Coriolis effects

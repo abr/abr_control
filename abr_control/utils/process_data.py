@@ -199,7 +199,7 @@ class ProcessData():
         return data_filtered
 
     def calc_path_error_to_ideal(self, ideal_path, recorded_path, order_of_error,
-            dt, alpha=0.2):
+            dt, normalization=None, alpha=0.2):
         """
         Function for passing already interpolated data in to compare to an
         ideal path (of the same interpolation)
@@ -217,6 +217,8 @@ class ProcessData():
         # ----- APPLY FILTERS -----
         # if we're using acceleration or jerk, add a filter to
         # clean up the signal
+        if normalization is None:
+            normalization = 1
         if order_of_error > 1:
             recorded_path = self.filter_data(data=recorded_path,
                     alpha=alpha)
@@ -226,6 +228,6 @@ class ProcessData():
         # error relative to ideal path
         error_to_ideal = (np.sum(np.sqrt(np.sum(
             (ideal_path - recorded_path)**2,
-            axis=1))))*dt
+            axis=1))))*dt / normalization
 
         return error_to_ideal

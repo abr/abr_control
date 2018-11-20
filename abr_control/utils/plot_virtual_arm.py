@@ -7,6 +7,15 @@ from mpl_toolkits.mplot3d import axes3d
 import subprocess
 import os
 
+def align_yaxis(ax1, v1, ax2, v2):
+    """adjust ax2 ylimit so that v2 in ax2 is aligned to v1 in ax1"""
+    _, y1 = ax1.transData.transform((0, v1))
+    _, y2 = ax2.transData.transform((0, v2))
+    inv = ax2.transData.inverted()
+    _, dy = inv.transform((0, 0)) - inv.transform((0, y1-y2))
+    miny, maxy = ax2.get_ylim()
+    ax2.set_ylim(miny+dy, maxy+dy)
+
 #TODO: turn into module
 # remove old figures used for previous gif so we don't get overlap for tests of
 # different lengths
@@ -17,37 +26,39 @@ import os
 # output, error = process.communicate()
 only_final_frame = False
 show_traj = True
-run_num=10
 use_cache=True
+# runs=[0,10,25,40,49, 0,10,25,40,49, 0,10,25,40,49]
+# sessions=[0,0,0,0,0,1,1,1,1,1,2,2,2,2,2]
+runs=[0,1,2,3,4,5,9,14,15,16,20,21,22,26, 27]
+sessions=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+n_columns = 5
+plot_extra = False
 #db_name = 'jacoOSCdebug'
 db_name = 'dewolf2018neuromorphic'
 test_groups = [
-                # 'simulations',
-                'weighted_reach_post_tuning',
-                'weighted_reach_post_tuning',
+                'friction_post_tuning',
+                'friction_post_tuning',
+                # 'weighted_reach_post_tuning',
+                # 'weighted_reach_post_tuning',
                 #'1lb_random_target',
                 # 'weighted_reach_post_tuning',
               ]
 tests = [
-        #'nengo_cpu_weight_13_79',
-        # 'pid_weight_1_9',
-        # 'pd_weight_7',
-        'pd_no_weight_5',
-        'pd_no_weight_4',
+        # 'nengo_loihi_friction_2_0',
+        # 'nengo_loihi_friction_1_0',
+        #'nengo_cpu_friction_5_0',
+        #'pd_friction_7_0',
+        'pd_no_friction_5_0',
+        'pd_no_friction_3_0',
+        #'nengo_cpu_weight_17_99',
+        #'pd_weight_9',
+        #'pd_weight_8',
+        # 'pd_no_weight_14',
+        # 'pd_no_weight_7',
         ]
 use_offset = False
-# test_name = 'nengo_cpu_%i_19'%run_num
-# test_name0 = 'nengo_cpu_%i_0'%run_num
-
-# test_name = 'nengo_cpu_53_9'
-# test_name0 = 'nengo_cpu_48_9'
-
-# test_name = 'pd_no_weight_20'
-# test_name0 = 'pd_no_weight_22'
 
 label_name = '%s : %s'%(tests[0], tests[1])
-session = 0
-runs=[0,1,2,3,4,5,6,7,8,9]
 if 'simulations' in test_groups[0]:
     if 'ur5' in tests[0]:
         from abr_control.arms import ur5 as arm
@@ -82,6 +93,7 @@ filter_t = []
 ee_xyz_0 = []
 error_0 = []
 time_t = []
+u_base_t = []
 
 if use_cache:
     from abr_control.utils.paths import cache_dir
@@ -102,9 +114,13 @@ for ii, f in enumerate(files):
     os.remove(os.path.join('%s/gif_fig_cache'%save_loc, f))
     #print(os.path.join('%s/gif_fig_cache'%save_loc, f))
 
-for run in runs:
+u_min = 0
+u_max = 0
+for ii, run in enumerate(runs):
+    session = sessions[ii]
     dat = DataHandler(use_cache=use_cache, db_name=db_name)
-    data = dat.load(params=['q', 'error', 'target', 'ee_xyz', 'filter', 'time'],
+    data = dat.load(params=['q', 'error', 'target', 'ee_xyz', 'filter', 'time',
+        'u_base'],
             save_location='%s/%s/session%03d/run%03d'%
             (test_groups[0], tests[0], session, run))
     q_t.append(data['q'])
@@ -113,6 +129,11 @@ for run in runs:
     targets_t.append(data['target'])
     filter_t.append(data['filter'])
     time_t.append(data['time'])
+    u_base_t.append(data['u_base'])
+    if np.min(data['u_base']) < u_min:
+        u_min = np.min(data['u_base'])
+    if np.max(data['u_base']) > u_max:
+        u_max = np.max(data['u_base'])
 
     data_0 = dat.load(params=['ee_xyz', 'error'],
             save_location='%s/%s/session%03d/run%03d'%
@@ -149,22 +170,52 @@ length = np.min(min_len)
 #     plt.legend()
 # plt.savefig('2d_trajectory')
 # plt.show()
+if plot_extra:
+    dist_to_filter = []
+    extra_times = []
+    min_dist = 0
+    max_dist = 0
+    for run in runs:
+        targets = targets_t[run]
+        error = error_t[run]
+        filter_xyz = filter_t[run][:, 0:3]
+        filter_err = []
+        extra_times.append(np.linspace(0,4, len(error)))
+        for ii in range(0,len(filter_xyz)):
+            err = np.sqrt(np.sum((filter_xyz[ii] - targets[ii])**2))
+            filter_err.append(err)
+        dist_f = (error - filter_err)
+        dist_to_filter.append(dist_f)
+        if np.min(dist_f) < min_dist:
+            min_dist = np.min(dist_f)
+        if np.max(dist_f) > max_dist:
+            max_dist = np.max(dist_f)
 
 for ii in range(0,length,10):
     if only_final_frame:
         ii = length-1
-    fig = plt.figure(figsize=(15, np.ceil(len(runs)/3)*5))
-    # ax = [fig.add_subplot(1,3,1, projection='3d'),
-    #       fig.add_subplot(1,3,2, projection='3d'),
-    #       fig.add_subplot(1,3,3, projection='3d')]
+    scale = 3
+    if plot_extra:
+        fig = plt.figure(figsize=([scale*(n_columns*2),
+            6*scale*np.ceil(len(runs)/(n_columns*2))]))
+    else:
+        fig = plt.figure(figsize=([1.5*scale*n_columns, scale*np.ceil(len(runs)/n_columns)]))
     print('%.2f%% complete'%(ii/length*100), end='\r')
     for jj, run in enumerate(runs):
-        ax = fig.add_subplot(np.ceil(len(runs)/3),3,run+1, projection='3d')
-        q = q_t[run][ii]
-        targets = targets_t[run][ii]
-        error = error_t[run][ii]
-        ee_xyz = ee_xyz_t[run][ii]
-        filter_xyz = filter_t[run][ii, 0:3]
+        if plot_extra:
+            ax = fig.add_subplot(2*np.ceil(len(runs)/n_columns),n_columns,(2*jj)+1,
+                    projection='3d')#, figsize=(3,3))
+            ax2 = fig.add_subplot(2*np.ceil(len(runs)/n_columns),n_columns,(2*jj)+2,)
+                    #figsize=(3,3))
+            ax3 = ax2.twinx()
+        else:
+            ax = fig.add_subplot(np.ceil(len(runs)/n_columns),n_columns,jj+1, projection='3d')
+        q = q_t[jj][ii]
+        targets = targets_t[jj][ii]
+        error = error_t[jj][ii]
+        ee_xyz = ee_xyz_t[jj][ii]
+        filter_xyz = filter_t[jj][ii, 0:3]
+        u_base = np.array(u_base_t[jj][:ii,:]).T
 
         joint0 = rc.Tx('joint0', q=q)#, x=offset)
         joint1 = rc.Tx('joint1', q=q)#, x=offset)
@@ -252,13 +303,13 @@ for ii in range(0,length,10):
         ax.set_xlim3d(-0.35,0.35)
         ax.set_ylim3d(-0.35,0.35)
         ax.set_zlim3d(0.5,1.2)
-        plt.title('Target %i: %s \n'%(jj, label_name))
+        plt.title('Session %i : Target %i\n%s \n'%(sessions[jj], run, label_name))
         # time_t = np.array(time_t)
         # print(time_t.shape)
         # print(time_t[run].shape)
         # print(ii)
         # print(np.squeeze(time_t[run])[:ii+1])
-        plt.xlabel('Time: %.2f sec'%(np.sum(time_t[run][:ii])))
+        plt.xlabel('Time: %.2f sec'%(np.sum(time_t[jj][:ii])))
         ax.text(-0.5, -0.5, 0.9, 'Avg: %.3f m'%np.mean(error_t[jj]), color='b')
         ax.text(-0.5, -0.5, 1.0, 'Final: %.3f m'%(error_t[jj][-1]), color='b')
         ax.text(-0.5, -0.5, 1.1, 'Error: %.3f m'%(error), color='b')
@@ -269,28 +320,43 @@ for ii in range(0,length,10):
 
         if show_traj:
             # plot ee trajectory line
-            ax.plot(ee_xyz_t[run][:ii, 0], ee_xyz_t[run][:ii,1], ee_xyz_t[run][:ii,2],
+            ax.plot(ee_xyz_t[jj][:ii, 0], ee_xyz_t[jj][:ii,1], ee_xyz_t[jj][:ii,2],
                     color='b', label=tests[0])
             # plot filtered path planner trajectory line
-            ax.plot(filter_t[run][:ii, 0], filter_t[run][:ii,1], filter_t[run][:ii,2],
+            ax.plot(filter_t[jj][:ii, 0], filter_t[jj][:ii,1], filter_t[jj][:ii,2],
                     c='g', label='Path Planner')
             # plot ee trajectory line of starting run
-            ax.plot(ee_xyz_0[run][:ii, 0], ee_xyz_0[run][:ii,1],
-                    ee_xyz_0[run][:ii, 2], c='tab:purple', linestyle='dashed',
+            ax.plot(ee_xyz_0[jj][:ii, 0], ee_xyz_0[jj][:ii,1],
+                    ee_xyz_0[jj][:ii, 2], c='tab:purple', linestyle='dashed',
                     label=tests[1])
             ax.text(-0.5, -0.5, 0.5, 'Avg: %.3f m'%np.mean(error_0[jj]),
                     color='tab:purple')
             ax.text(-0.5, -0.5, 0.6, 'Final: %.3f m'%(error_0[jj][-1]),
                     color='tab:purple')
-            if ii >= len(error_0[run]):
-                iii = len(error_0[run])-1
+            if ii >= len(error_0[jj]):
+                iii = len(error_0[jj])-1
             else:
                 iii = ii
-            ax.text(-0.5, -0.5, 0.7, 'Error: %.3f m'%(error_0[run][iii]),
+            ax.text(-0.5, -0.5, 0.7, 'Error: %.3f m'%(error_0[jj][iii]),
                     color='tab:purple')
             ax.text(-0.5, -0.5, 0.8, tests[1], color='tab:purple')
             if jj == len(runs)-1:
                 ax.legend(bbox_to_anchor=[1.15, 0.5], loc='center left')
+
+        if plot_extra:
+            extra_time = np.squeeze(extra_times[jj])[:ii]
+            for ff, u_joint in enumerate(u_base):
+                ax2.plot(extra_time[:ii], u_joint[:ii], label='u%i'%ff)
+            ax3.plot(extra_time[:ii], dist_to_filter[jj][:ii],
+                    'c--', linewidth=3, label='EE dist to filter')
+            # align_yaxis(ax2, 0, ax3, 0)
+            ax2.set_ylabel('Session %i: Nm'%sessions[jj])
+            ax3.set_xlim(0,4)
+            ax2.set_ylim(u_min, u_max)
+            ax3.set_ylim(min_dist, max_dist)
+            ax3.set_ylabel('m')
+
+    plt.tight_layout()
     plt.savefig('%s/gif_fig_cache/%05d.png'%(save_loc,ii))
     plt.close()
     if only_final_frame:
@@ -300,5 +366,5 @@ if not only_final_frame:
     make_gif.create(fig_loc='%s/gif_fig_cache'%save_loc,
                     save_loc='%s/%s/virtual_arm'%(save_loc, db_name),
                     save_name='%s-%s'%(tests[0], tests[1]),
-                    delay=5)
+                    delay=5, res=[2560,1080])
 

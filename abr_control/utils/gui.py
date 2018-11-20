@@ -74,7 +74,7 @@ browse_datasets = False
 #TODO: need to rename old data that uses 'u' and 'adapt' instead of 'u_base'
 # and 'u_adapt'
 plotting_variables = ['time', 'q', 'dq', 'q_torque', 'avg error', 'final error', 'u_base',
-    'u_adapt', 'input_signal', 'training_signal', 'u_vmax', 'mean & ci',
+    'u_adapt', 'u_friction', 'input_signal', 'training_signal', 'u_vmax', 'mean & ci',
     #'activity_over_time', 'proportion_active'
     ]
 global plotting_colors

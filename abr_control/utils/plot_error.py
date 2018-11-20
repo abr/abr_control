@@ -103,6 +103,7 @@ class PlotError():
             if not os.path.exists(save_loc):
                 os.makedirs(save_loc)
             plt.savefig('%s/%s.pdf'%(save_loc,fig_title))
+            plt.savefig('%s/%s.png'%(save_loc,fig_title))
 
         if show_plot:
             plt.show()
@@ -149,9 +150,20 @@ class PlotError():
             # we divide by the number or error terms since they scale data from
             # 0-1, summing error will increase this range (two orders of error
             # will have a range of 0-2)
-            data.append({'mean': mean/len(order_of_error), 'lower_bound':
+            tmpry = ({'mean': mean/len(order_of_error), 'lower_bound':
                 lower/len(order_of_error), 'upper_bound':
                 upper/len(order_of_error)})
+
+            # double_length = ['nengo_cpu_friction_7_0',
+            #         'nengo_cpu_friction_8_0', 'nengo_loihi_friction_0_0']
+            # if test in double_length:
+            # if 'nengo' in test:
+            #     print('Taking every other test: ', test)
+            #     mn = tmpry['mean'][0::2]
+            #     lw = tmpry['lower_bound'][0::2]
+            #     up = tmpry['upper_bound'][0::2]
+            #     tmpry = {'mean': mn, 'upper_bound': up, 'lower_bound': lw}
+            data.append(tmpry)
 
 
         self.plot_data(data=data, legend_labels=legend_labels,

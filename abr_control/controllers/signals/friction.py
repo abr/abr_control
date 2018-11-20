@@ -1,10 +1,13 @@
+import numpy as np
+
+from .signal import Signal
+
 class Friction(Signal):
     """
     functions for either bootstrapping learning or for artificial perturbations
 
     """
-    def __init__(self, robot_config, Fn=4, uk=0.42, us=0.74, vs=0.1, Fv=1.2,
-        self.robot_config = robot_config
+    def __init__(self, Fn=4, uk=0.42, us=0.74, vs=0.1, Fv=1.2):
         self.Fn = Fn
         self.uk = uk
         self.us = us
@@ -19,6 +22,7 @@ class Friction(Signal):
                   'us': self.us,
                   'vs': self.vs,
                   'Fv': self.Fv}
+        return params
 
     def generate(self, dq, show_plot=False):
         # using static and kinetic coefficients of friction for steel on steel

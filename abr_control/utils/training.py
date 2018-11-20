@@ -21,7 +21,8 @@ class Training:
             test_group='testing', test_name="joint_space_training", session=None,
             run=None, offset=None, kp=20, kv=6, ki=0,
             integrated_error=np.array([0.0, 0.0, 0.0]),
-            avoid_limits=True, db_name=None, vmax=1, SCALES=None, MEANS=None):
+            avoid_limits=True, db_name=None, vmax=1, SCALES=None, MEANS=None,
+            friction_gain=[0.0]):
 
         """
         The test script used to collect data for training. The use of the
@@ -76,6 +77,8 @@ class Training:
         SCALES : list of floats, Optional (Default: None)
             expected variance of joint angles and velocities. Expected value for
             each joint. Only used for adaptation
+        friction_gain: list of floats, Optional (Default:[0])
+            list of gains used to scale friction signal to each joint
 
         Attributes
         ----------
@@ -88,6 +91,7 @@ class Training:
         """
 
         self.use_adapt = False
+        self.friction_gain = np.array(friction_gain)
         self.params = {'source': 'training',
                   'test_group': test_group,
                   'test_name': test_name,
@@ -99,7 +103,8 @@ class Training:
                   'ki': ki,
                   'avoid_limits': avoid_limits,
                   'db_name': db_name,
-                  'vmax': vmax}
+                  'vmax': vmax,
+                  'friction_gain': self.friction_gain}
 
         if SCALES is not None:
             self.params['SCALES_q'] = SCALES['q']
@@ -163,7 +168,8 @@ class Training:
 
         # instantiate operational space controller
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
-                vmax=vmax, null_control=True, integrated_error=integrated_error)
+                vmax=vmax, null_control=True,
+                integrated_error=integrated_error, use_C=True)
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
@@ -176,12 +182,18 @@ class Training:
             self.avoid = signals.AvoidJointLimits(
                 self.robot_config,
                 min_joint_angles=[None, 1.3, 0.61, None, None, None],
-                max_joint_angles=[None, 4.99, 5.75, None, None, None],
+                max_joint_angles=[None, 4.99, 5.5, None, None, None],
                 # min_joint_angles=[0.8, None, None, None, None, None],
                 # max_joint_angles=[4.75, None, None, None, None, None],
-                max_torque=[5]*self.robot_config.N_JOINTS,
+                max_torque=[10]*self.robot_config.N_JOINTS,
                 cross_zero=[True, False, False, False, True, False],
                 gradient = [False, False, False, False, False, False])
+
+        if np.any(self.friction_gain):
+            print('--Instantiate joint friction--')
+            self.friction = signals.Friction(
+                   Fn=4, uk=0.42, us=0.74, vs=0.1, Fv=1.2)
+
 
         print('--Instantiate interface--')
         # instantiate our interface
@@ -192,13 +204,14 @@ class Training:
                      'error':[], 'training_signal': [], 'target': [],
                      'ee_xyz': [], 'input_signal': [], 'filter': [],
                      'time': [], 'weights': [], 'u_avoid': [], 'osc_dx': [],
-                     'u_vmax': [], 'q_torque': [], 'M_inv_singular': []}
+                     'q_torque': [], 'M_inv_singular': [], 'u_kp': [],
+                     'u_kv': [], 'u_friction': [], 'u_task': []}
         self.count = 0
 
     def __init_network__(self, adapt_input, adapt_output, n_neurons=1000, n_ensembles=1,
             weights=None, pes_learning_rate=1e-6, backend=None, seed=None,
             probe_weights=True, neuron_type='lif', use_spherical=False,
-            trig_q=False, trig_dq=False):
+            trig_q=False, trig_dq=False, autoload_weights=True):
         """
         Instantiate the adpative controller
 
@@ -238,9 +251,11 @@ class Training:
             True to scale joint velocity input to network by sin and cos (doubles
             dimensionality for angles since both sin and cos are used to conver
             the entire sin cos space
+        autoload_weights: boolean, Optional (Default: True)
+            If true then weights will be loaded from the previous run
         *NOTE: adapt_output DOES NOT have to be the same as adapt_input*
-        probe_weights: Boolean Optional (Default: False)
-            True to probe adaptive population for decoders
+            probe_weights: Boolean Optional (Default: False)
+                True to probe adaptive population for decoders
         """
         self.use_spherical = use_spherical
         self.use_adapt = True
@@ -292,7 +307,7 @@ class Training:
         if weights is None:
             if self.run == 0:
                 weights = None
-            else:
+            elif autoload_weights:
                 weights = self.data_handler.load_data(params=['weights'], session=self.session,
                         run=self.run-1, test_group=self.test_group,
                         test_name=self.test_name, create=True)
@@ -327,7 +342,6 @@ class Training:
         print('--Initialize force mode--')
         self.interface.init_force_mode()
 
-    #@profile
     def reach_to_target(self, target_xyz, reaching_time):
         # TODO: ADD NOTE ABOUT USING BASH FOR MULTIPLE RUNS INSTEAD OF JUST
         # CALLING RUN, MENTION PERFORMANCE EFFECTS ETC
@@ -402,15 +416,19 @@ class Training:
             self.data['ee_xyz'].append(np.copy(ee_xyz))
             self.data['filter'].append(np.copy(self.target))
             self.data['osc_dx'].append(np.copy(self.ctrlr.dx))
-            self.data['u_vmax'].append(np.copy(self.ctrlr.u_vmax))
             q_T = self.interface.get_torque_load()
             self.data['q_torque'].append(np.copy(q_T))
+            self.data['u_friction'].append(np.copy(self.u_friction))
+            self.data['u_task'].append(np.copy(self.ctrlr.u_task))
+            self.data['u_kp'].append(np.copy(self.ctrlr.u_kp))
+            self.data['u_kv'].append(np.copy(self.ctrlr.u_kv))
 
-            if self.count % 1000 == 0:
-                print('error: ', error)
+            if self.count % 600 == 0:
+                #print('error: ', error)
                 print('dt: ', end)
+                print('friction: ', self.u_friction)
                 print('adapt: ', self.u_adapt)
-                print('torque: ', q_T)
+                #print('torque: ', q_T)
 
             loop_time += end
             self.count += 1
@@ -428,18 +446,11 @@ class Training:
                 q=self.q,
                 dq=self.dq ,
                 target_pos=self.target[:3],
-                target_vel=self.target[3:],
+                #target_vel=self.target[3:],
                 ref_frame='EE',
                 offset = self.OFFSET)
 
             self.data['M_inv_singular'].append(np.copy(self.ctrlr.Mx_non_singular))
-
-            # account for uneven stiction in jaco2 base
-            #self.u_base[0] *= 5.0
-            # if self.u_base[0] > 0:
-            #     self.u_base[0] *= 5.0
-            # else:
-            #     self.u_base[0] *= 5.0
 
             u = self.u_base
 
@@ -465,35 +476,35 @@ class Training:
                             np.sin(np.pi*x1)]
                     return sincos
 
-                def convert_to_spherical(input_signal):
-                    """
-                    Takes in inputs from the range of -1 to 1 and scales them
-                    to spherical coordiantes
-                    """
-                    x0 = input_signal[0]
-                    x1 = input_signal[1]
-                    x2 = input_signal[2]
-                    x3 = input_signal[3]
-                    pi = np.pi
-
-                    # nth input scaled to 0-2pi range, remainder from 0-pi
-                    spherical = [
-                                 np.cos(x0 * pi/2 + pi/2),
-                                 np.sin(x0 * pi/2 + pi/2) *
-                                        np.cos(x1 * pi/2 + pi/2),
-                                 np.sin(x0 * pi/2 + pi/2) *
-                                        np.sin(x1 * pi/2 + pi/2) *
-                                        np.cos(x2 * pi/2 + pi/2),
-                                 np.sin(x0 * pi/2 + pi/2) *
-                                        np.sin(x1 * pi/2 + pi/2) *
-                                        np.sin(x2 * pi/2 + pi/2) *
-                                        np.cos(x3 * pi/2 + pi/2),
-                                 np.sin(x0 * pi + pi) *
-                                        np.sin(x1 * pi + pi) *
-                                        np.sin(x2 * pi + pi) *
-                                        np.sin(x3 * pi + pi)
-                                ]
-                    return spherical
+                # def convert_to_spherical(input_signal):
+                #     """
+                #     Takes in inputs from the range of -1 to 1 and scales them
+                #     to spherical coordiantes
+                #     """
+                #     x0 = input_signal[0]
+                #     x1 = input_signal[1]
+                #     x2 = input_signal[2]
+                #     x3 = input_signal[3]
+                #     pi = np.pi
+                #
+                #     # nth input scaled to 0-2pi range, remainder from 0-pi
+                #     spherical = [
+                #                  np.cos(x0 * pi/2 + pi/2),
+                #                  np.sin(x0 * pi/2 + pi/2) *
+                #                         np.cos(x1 * pi/2 + pi/2),
+                #                  np.sin(x0 * pi/2 + pi/2) *
+                #                         np.sin(x1 * pi/2 + pi/2) *
+                #                         np.cos(x2 * pi/2 + pi/2),
+                #                  np.sin(x0 * pi/2 + pi/2) *
+                #                         np.sin(x1 * pi/2 + pi/2) *
+                #                         np.sin(x2 * pi/2 + pi/2) *
+                #                         np.cos(x3 * pi/2 + pi/2),
+                #                  np.sin(x0 * pi + pi) *
+                #                         np.sin(x1 * pi + pi) *
+                #                         np.sin(x2 * pi + pi) *
+                #                         np.sin(x3 * pi + pi)
+                #                 ]
+                #     return spherical
 
                 self.training_signal = np.array(training_signal)
                 if self.trig_q:
@@ -503,7 +514,7 @@ class Training:
 
                 self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
                 if self.use_spherical:
-                    self.adapt_input = convert_to_spherical(self.adapt_input)
+                    self.adapt_input = self.convert_to_spherical(self.adapt_input)
 
                 u_adapt = self.adapt.generate(input_signal=self.adapt_input,
                                          training_signal=self.training_signal)
@@ -529,6 +540,14 @@ class Training:
                 u += self.u_avoid
             else:
                 self.u_avoid = None
+
+            self.u_friction = np.zeros(self.robot_config.N_JOINTS)
+            if np.any(self.friction_gain):
+                for dd, k_friction in enumerate(self.friction_gain):
+                    if k_friction > 0:
+                        self.u_friction[dd] = (k_friction *
+                            self.friction.generate(self.dq[dd]))
+                u += self.u_friction
 
             return u
 
@@ -566,6 +585,11 @@ class Training:
     def save_parameters(self, overwrite=True, create=True, custom_params=None):
         print('--Saving test parameters--')
         loc = '%s/%s/parameters/'%(self.test_group, self.test_name)
+        if np.any(self.friction_gain):
+            # Save OSC parameters
+            self.data_handler.save(data=self.friction.params,
+                    save_location=loc + self.friction.params['source'], overwrite=overwrite, create=create)
+
         # Save OSC parameters
         self.data_handler.save(data=self.ctrlr.params,
                 save_location=loc + self.ctrlr.params['source'], overwrite=overwrite, create=create)
@@ -606,4 +630,47 @@ class Training:
         # Save dynamics_adaptation parameters
         self.data_handler.save(data=self.adapt.params,
                 save_location=loc + self.adapt.params['source'], overwrite=overwrite, create=create)
+
+    def convert_to_spherical(self, input_signal):
+        x = input_signal
+        pi = np.pi
+        spherical = []
+
+        def scale(input_signal, factor):
+            #TODO: does it make more sense to pass in the range and have the script
+            # handle the division, so we go from 0-factor instead of 0-2*factor?
+            """
+            Takes inputs in the range of -1 to 1 and scales them to the range of
+            0-2*factor
+
+            ex: if factor == pi the inputs will be in the range of 0-2pi
+            """
+            signal = np.copy(input_signal)
+            for ii, dim in enumerate(input_signal):
+                signal[ii] = dim * factor + factor
+            return signal
+
+        def sin_product(input_signal, count):
+            """
+            Handles the sin terms in the conversion to spherical coordinates where
+            we multiple by sin(x_i) n-1 times
+            """
+            tmp = 1
+            for jj in range(0, count):
+                tmp *= np.sin(input_signal[jj])
+            return tmp
+
+        # nth input scaled to 0-2pi range, remainder from 0-pi
+        # cycle through each input
+        x_rad = scale(input_signal=x, factor=pi/2)
+        x_2rad = scale(input_signal=x, factor=pi)
+
+        for ss in range(0, len(x)):
+            sphr = sin_product(input_signal=x_rad, count=ss)
+            sphr*= np.cos(x_rad[ss])
+            spherical.append(sphr)
+        spherical.append(sin_product(input_signal=x_2rad, count=len(x)))
+        return(spherical)
+
+
 

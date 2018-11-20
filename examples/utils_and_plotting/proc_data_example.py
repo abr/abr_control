@@ -4,40 +4,54 @@ from abr_control.utils import PlotError
 proc = PathErrorToIdeal()
 plt = PlotError()
 db_name='dewolf2018neuromorphic'
-regen = True
+regen = False
+plot_only = False
 orders_of_error = [
                    0,
-                   1,
-                   3
+                   # 1,
+                   # 3
                    ]
 title = [
          'abs-pos-error',
-         'abs-vel-error',
-         'abs-jerk-error'
+         # 'abs-vel-error',
+         # 'abs-jerk-error'
         ]
 y_label = [
            'm*s',
-           'm',
-           'm/s^2'
+           # 'm',
+           # 'm/s^2'
            ]
 
-test_group = '1lb_random_target'
+test_group = 'friction_post_tuning'
 test_list = [
-              'pd_no_weight_73',
-              'pd_no_weight_70',
+              'pd_no_friction_5_0',
+              # 'pd_no_friction_2_0',
+              # 'pd_friction_3_0',
+              # 'pd_friction_4_0',
+              # 'pd_friction_6_0',
+              'pd_friction_8_0',
+              # 'nengo_cpu_friction_7_0',
+              # 'nengo_cpu_friction_8_0',
+              # 'nengo_loihi_friction_0_0',
+              # 'nengo_loihi_friction_1_0',
+              # 'nengo_loihi_friction_2_0',
               ]
 
-if regen:
+if not plot_only:
+    print('Processing Data...')
     for order in orders_of_error:
         proc.process(test_group=test_group,
                      test_list=test_list,
-                     regenerate=True,
+                     regenerate=regen,
                      use_cache=True,
                      order_of_error=order,
                      # upper_baseline_loc=test_list[1],
                      # lower_baseline_loc=test_list[0],
-                     db_name=db_name)
+                     db_name=db_name,
+                     path_planner_as_ideal=True,
+                     n_sessions=None)
 
+print('Plotting Data...')
 for ii, entry in enumerate(title):
     plt.get_error_plot(test_group=test_group,
                        test_list=test_list,
