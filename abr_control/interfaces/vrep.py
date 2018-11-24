@@ -131,18 +131,20 @@ class VREP(Interface):
                 vrep.simxGetObjectHandle(self.clientID,
                                          name,
                                          vrep.simx_opmode_blocking)
+
         _, orientation = \
             vrep.simxGetObjectOrientation(
                 self.clientID,
                 self.misc_handles[name],
-                -1,  # orientation relative to world
+                -1, # orientation relative to world
                 vrep.simx_opmode_blocking)
         return orientation
 
     def set_orientation(self, name, angles):
         """ Sets the orientation of an object in VREP
 
-        Sets the orientation of an object using the provided Euler angles .
+        Sets the orientation of an object using the provided Euler angles.
+        Angles must be in a relative xyz frame.
 
         Parameters
         ----------
@@ -160,7 +162,7 @@ class VREP(Interface):
                 vrep.simxGetObjectHandle(self.clientID,
                                          name,
                                          vrep.simx_opmode_blocking)
-        vrep.simxSetObjectOrientation(
+        _ = vrep.simxSetObjectOrientation(
             self.clientID,
             self.misc_handles[name],
             -1,  # orientation relative to world
