@@ -11,6 +11,7 @@ from abr_control.arms import ur5 as arm
 # from abr_control.arms import onelink as arm
 from abr_control.controllers import OSC, Damping
 from abr_control.interfaces import VREP
+from abr_control.utils import transformations
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
@@ -52,6 +53,14 @@ try:
         target = np.hstack([
             interface.get_xyz('target'),
             interface.get_orientation('target')])
+
+        name = 'joint1'
+        vrep_angles = interface.get_orientation('UR5_%s' % name)
+        rc_matrix = robot_config.R(name, feedback['q'])
+        rc_angles = transformations.euler_from_matrix(rc_matrix, axes='sxyz')
+
+        interface.set_xyz('object', robot_config.Tx(name, q=feedback['q']))
+        interface.set_orientation('object', rc_angles)
 
         # calculate the control signal
         u = ctrlr.generate(

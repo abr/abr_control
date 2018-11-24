@@ -41,6 +41,7 @@ class ArmSim():
         self.dt = dt  # time step
 
         self.torque_limit = 1e7  # max amplitude of torque signal allowed
+        self.connect()
 
     def connect(self):
         """ Creates the MapleSim model and set up PyGame.
@@ -50,17 +51,22 @@ class ArmSim():
         self.state = np.zeros(7)
         self.sim = pySim(dt=1e-5)
 
-        self.sim.reset(self.state, self.init_state)
-        self._update_state()
+        self.reset()
         print('Connected to MapleSim model')
 
     def disconnect(self):
         """ Reset the simulation and close PyGame display.
         """
 
+        self.reset()
+        print('MapleSim connection closed...')
+
+    def reset(self):
+        """ Resets the state of the arm to starting conditions.
+        """
+
         self.sim.reset(self.state, self.init_state)
         self._update_state()
-        print('MapleSim connection closed...')
 
     def send_forces(self, u, dt=None):
         """ Apply the specified forces to the robot,
