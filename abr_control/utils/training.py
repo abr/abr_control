@@ -126,6 +126,9 @@ class Training:
         self.test_name = test_name
         self.avoid_limits = avoid_limits
 
+        # instantiate our data handler for saving and load
+        self.data_handler = DataHandler(use_cache=True, db_name=db_name)
+
         if self.run is None or self.session is None:
             # Get the last saved location in the database
             [run, session, location] = self.data_handler.last_save_location(
@@ -141,8 +144,6 @@ class Training:
 
         print('RUN: ', self.run)
         print('SESSION: ', self.session)
-        # instantiate our data handler for saving and load
-        self.data_handler = DataHandler(use_cache=True, db_name=db_name)
 
         print('--Instantiate robot_config--')
         # instantiate our robot config
@@ -671,6 +672,3 @@ class Training:
             spherical.append(sphr)
         spherical.append(sin_product(input_signal=x_2rad, count=len(x)))
         return(spherical)
-
-
-

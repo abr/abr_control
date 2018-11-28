@@ -102,3 +102,9 @@ ENV/
 
 # jaco log file
 .jaco2_log.txt
+
+# ignore files and images
+*.png
+*.jpg
+*.jpeg
+*.pdf

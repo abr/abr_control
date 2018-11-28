@@ -75,9 +75,28 @@ class PlotLearningProfile:
 
         dat = DataHandler(use_cache=use_cache, db_name=db_name)
         loc = '/%s/%s/'%(test_group, test_name)
-        param_loc = '%sparameters/dynamics_adaptation'%loc
-        keys = dat.get_keys(group_path=param_loc)
-        adapt_params = dat.load(params=keys, save_location = param_loc)
+        #TODO: currently hacked in if using loihi where dynadapt is not saved,
+        # need to fix on this end or the test saving end
+        try:
+            param_loc = '%sparameters/dynamics_adaptation'%loc
+            keys = dat.get_keys(group_path=param_loc)
+            adapt_params = dat.load(params=keys, save_location = param_loc)
+        except:
+            print('Test does not contain "dynamics_adaptation" data...')
+            print('Using the following defaults:')
+            adapt_params = {
+                            'n_input': 4,
+                            'n_output': 2,
+                            'n_neurons': 1000,
+                            'n_ensembles': 20,
+                            'pes': 1e-6,
+                            'backend': 'nengo_cpu',
+                            'probe_weights': True,
+                            'seed': 0,
+                            'neuron_type': 'lif'
+                           }
+            print(adapt_params)
+
         if intercepts_bounds is None:
             self.intercepts_bounds = adapt_params['intercepts_bounds']
         else:
@@ -107,12 +126,14 @@ class PlotLearningProfile:
                 backend=adapt_params['backend'],
                 probe_weights=adapt_params['probe_weights'],
                 seed=int(adapt_params['seed']),
-                neuron_type=np.array2string(adapt_params['neuron_type']))
+                #neuron_type=np.array2string(adapt_params['neuron_type']))
+                neuron_type=adapt_params['neuron_type'])
 
     def plot_activity(self, input_signal, time, save_num=0,
             getting_ideal_intercepts=False, plot_all_ens=False,
             # TODO: delete this line when done with testing
-            error=None, q=None, dq=None, q_baseline=None, dq_baseline=None):
+            error=None, q=None, dq=None, q_baseline=None, dq_baseline=None,
+            twinplot=False):
         """
         Plots 3 subplots of neural activity to speed up parameter tuning
 
@@ -137,8 +158,15 @@ class PlotLearningProfile:
         if self.use_spherical:
             # convert to spherical
             input_signal = np.array(input_signal).T
-            input_signal = self.convert_to_spherical(input_signal)
-            input_signal = np.array(input_signal).T
+            #input_signal = self.convert_to_spherical(input_signal)
+            tmpp = []
+            for oo, inputs in enumerate(input_signal):
+                if oo % 100 == 0:
+                    print('%i of %i' %(oo, len(input_signal)))
+                tmpp.append(self.convert_to_spherical(inputs))
+            input_signal = tmpp
+            input_signal = np.array(input_signal)
+            #input_signal = np.array(input_signal).T
 
         if not getting_ideal_intercepts:
             # create probes to get rasterplot
@@ -175,24 +203,25 @@ class PlotLearningProfile:
             plt.title('Spiking activity %i\n %s, %s' %
                     (save_num, self.intercepts_bounds,
                         self.intercepts_mode))
-            ax2 = ax.twinx()
-            if q is not None and dq is not None:
-                ax2.plot(np.cumsum(time), q[0], 'r', label='q1 adaptive')
-                ax2.plot(np.cumsum(time), dq[0], 'b', label='dq1 adaptive')
-                ax2.plot(np.cumsum(time), q[1], 'g', label='q2 adaptive')
-                ax2.plot(np.cumsum(time), dq[1], 'c', label='dq2 adaptive')
-                ax2.plot(np.linspace(time[0], sum(time), len(q_baseline[0])),
-                        q_baseline[0], 'r--', label='q1 baseline')
-                ax2.plot(np.linspace(time[0], sum(time), len(dq_baseline[0])),
-                        dq_baseline[0], 'b--', label='dq1 baseline')
-                ax2.plot(np.linspace(time[0], sum(time), len(q_baseline[1])),
-                        q_baseline[1], 'g--', label='q2 baseline')
-                ax2.plot(np.linspace(time[0], sum(time), len(dq_baseline[1])),
-                        dq_baseline[1], 'c--', label='dq2 baseline')
-                ax2.legend()
-            else:
-                ax2.plot(np.cumsum(time), temp_in, 'k')
-                ax2.set_ylabel('input signal')
+            if twinplot:
+                ax2 = ax.twinx()
+                if q is not None and dq is not None:
+                    ax2.plot(np.cumsum(time), q[0], 'r', label='q1 adaptive')
+                    ax2.plot(np.cumsum(time), dq[0], 'b', label='dq1 adaptive')
+                    ax2.plot(np.cumsum(time), q[1], 'g', label='q2 adaptive')
+                    ax2.plot(np.cumsum(time), dq[1], 'c', label='dq2 adaptive')
+                    ax2.plot(np.linspace(time[0], sum(time), len(q_baseline[0])),
+                            q_baseline[0], 'r--', label='q1 baseline')
+                    ax2.plot(np.linspace(time[0], sum(time), len(dq_baseline[0])),
+                            dq_baseline[0], 'b--', label='dq1 baseline')
+                    ax2.plot(np.linspace(time[0], sum(time), len(q_baseline[1])),
+                            q_baseline[1], 'g--', label='q2 baseline')
+                    ax2.plot(np.linspace(time[0], sum(time), len(dq_baseline[1])),
+                            dq_baseline[1], 'c--', label='dq2 baseline')
+                    ax2.legend()
+                else:
+                    ax2.plot(np.cumsum(time), temp_in, 'k')
+                    ax2.set_ylabel('input signal')
 
         activities = []
         print('Plotting proportion of active neurons...')
@@ -214,7 +243,7 @@ class PlotLearningProfile:
         if getting_ideal_intercepts:
             return (time_active, activities)
         ax2 = fig.add_subplot(312)
-        plt.hist(time_active, bins=np.linspace(0,1,30))
+        plt.hist(time_active, bins=np.linspace(0,1,100))
         ax2.set_title('Proportion of time neurons are active %i\n %s, %s' %
                 (save_num, self.intercepts_bounds,
                     self.intercepts_mode))
@@ -236,12 +265,13 @@ class PlotLearningProfile:
         ax2.set_ylabel('Proportion Active')
         ax2.set_xlabel('Time [sec]')
         ax2.set_ylim(0, 1)
-        if error is not None:
-            ax22 = ax2.twinx()
-            ax22.set_ylabel('Error [m]')
-            ax22.plot(np.cumsum(time), error,'r', label='Error')
-            ax2.legend(loc=1)
-            ax22.legend(loc=2)
+        if twinplot:
+            if error is not None:
+                ax22 = ax2.twinx()
+                ax22.set_ylabel('Error [m]')
+                ax22.plot(np.cumsum(time), error,'r', label='Error')
+                ax2.legend(loc=1)
+                ax22.legend(loc=2)
         #print("TIME: ", np.sum(time))
         plt.tight_layout()
         print('Saving Figure')
@@ -250,27 +280,46 @@ class PlotLearningProfile:
         plt.close()
 
     def convert_to_spherical(self, input_signal):
-        """
-        Convert the inputs to spherical coordinate, this will increase the
-        number of input dimensions by 1
+        #print('Converting input to spherical coordinates...')
+        x = input_signal
+        pi = np.pi
+        spherical = []
 
-        PARAMETERS
-        ----------
-        input_signal: list of floats shape of n_inputs x n_timesteps
-        """
-        x0 = input_signal[0]
-        x1 = input_signal[1]
-        x2 = input_signal[2]
-        x3 = input_signal[3]
+        def scale(input_signal, factor):
+            #TODO: does it make more sense to pass in the range and have the script
+            # handle the division, so we go from 0-factor instead of 0-2*factor?
+            """
+            Takes inputs in the range of -1 to 1 and scales them to the range of
+            0-2*factor
 
-        spherical = [
-                     np.cos(x0),
-                     np.sin(x0)*np.cos(x1),
-                     np.sin(x0)*np.sin(x1)*np.cos(x2),
-                     np.sin(x0)*np.sin(x1)*np.sin(x2)*np.cos(x3),
-                     np.sin(x0)*np.sin(x1)*np.sin(x2)*np.sin(x3)
-                    ]
-        #print(spherical)
-        mag = np.linalg.norm(spherical, axis=0)
-        #print('Magnitue of spherical input: ', mag)
-        return spherical
+            ex: if factor == pi the inputs will be in the range of 0-2pi
+            """
+            signal = np.copy(input_signal)
+            for ii, dim in enumerate(input_signal):
+                signal[ii] = dim * factor + factor
+            return signal
+
+        def sin_product(input_signal, count):
+            """
+            Handles the sin terms in the conversion to spherical coordinates where
+            we multiple by sin(x_i) n-1 times
+            """
+            tmp = 1
+            for jj in range(0, count):
+                tmp *= np.sin(input_signal[jj])
+            return tmp
+
+        # nth input scaled to 0-2pi range, remainder from 0-pi
+        # cycle through each input
+        x_rad = scale(input_signal=x, factor=pi/2)
+        x_2rad = scale(input_signal=x, factor=pi)
+
+        for ss in range(0, len(x)):
+            # if ss%100 == 0:
+            #     print('%i of %i' %(ss, len(x)))
+            sphr = sin_product(input_signal=x_rad, count=ss)
+            sphr*= np.cos(x_rad[ss])
+            spherical.append(sphr)
+        spherical.append(sin_product(input_signal=x_2rad, count=len(x)))
+        #print('Conversion complete.')
+        return(spherical)

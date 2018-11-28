@@ -22,14 +22,18 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import os
 
-test_group = 'weighted_reach_post_tuning'
-test_name = 'nengo_cpu_weight_12_9'
+test_group = 'friction_post_tuning'
+test_name = 'nengo_loihi_friction_3_0'
 db_name = 'dewolf2018neuromorphic'
 loc = '/%s/%s/'%(test_group, test_name)
-baseline_loc = '/weighted_reach_post_tuning/pd_no_weight_4/'
+baseline_loc = None #'/weighted_reach_post_tuning/pd_no_weight_4/'
 use_cache = True
-n_runs = 10
-use_spherical = False
+n_runs = 50
+stack_inputs = True
+# set true to convert the input passed in to spherical coordinates, set to
+# False if you either don't want this or if your input is already converted to
+# spherical
+use_spherical = True
 
 plt_learning = PlotLearningProfile(test_group=test_group,
         test_name=test_name, db_name=db_name, use_cache=use_cache,
@@ -40,6 +44,19 @@ dat = DataHandler(use_cache=use_cache, db_name=db_name)
 # pass input signals for target reaches individually, creates gif of
 # activity for each individual reach
 session = 0
+
+MEANS = {  # expected mean of joint angles / velocities
+    # shift from 0-2pi to -pi to pi
+    'q': np.array([0, 2.3068, 2.155, 0, 0, 0]),
+    'dq': np.array([0, -0.0033, -0.1206, 0, 0, 0]),
+    }
+
+SCALES = {  # expected variance of joint angles / velocities
+    # scale from -1 to 1, 1.5rad/s obtained emperically
+    'q': np.array([1, 4, 0.62, 1, 1, 1]),
+    'dq': np.array([1, 0.15, 0.5, 1, 1, 1]),
+    }
+
 for run in range(0, n_runs):
     # load data from the current run
     run_data = dat.load(params=['input_signal', 'time', 'error', 'q', 'dq'],
@@ -47,53 +64,68 @@ for run in range(0, n_runs):
             %(loc, session, run))
     training_data = dat.load(params=['adapt_input'],
             save_location='%s/parameters/training' %loc)
-    adapt_input = training_data['adapt_input']
-    input_signal = run_data['input_signal']
-    time = run_data['time']
+
+    if stack_inputs:
+        # stack input signal to show activity over the enitre reaching space
+        if run == 0:
+            adapt_input = []
+            input_signal = []
+            time = []
+            error = []
+        error.append(run_data['error'])
+        adapt_input.append(training_data['adapt_input'])
+        q = run_data['q']
+        dq = run_data['dq']
+        input_signal.append([
+                (q.T[1] - MEANS['q'][1]) / SCALES['q'][1],
+                (q.T[2] - MEANS['q'][2]) / SCALES['q'][2],
+                (dq.T[1] - MEANS['dq'][1]) / SCALES['dq'][1],
+                (dq.T[2] - MEANS['dq'][2]) / SCALES['dq'][2],
+                ])
+        #input_signal.append(run_data['input_signal'])
+
+        time.append(run_data['time'])
+    else:
+        adapt_input = training_data['adapt_input']
+        input_signal = run_data['input_signal']
+        time = run_data['time']
+        error = run_data['error']
     # TODO: delete the following lines after debugging up to and not including the
     # plot_activity function call
-    error = run_data['error']
     q = run_data['q']
     q = np.array([q[:,1], q[:,2]])
     dq = run_data['dq']
     dq = np.array([dq[:,1], dq[:,2]])
-    pd_run_data = dat.load(params=['q', 'dq'],
-            save_location='%ssession%03d/run%03d'
-            %(baseline_loc, session, run))
-    q_baseline = pd_run_data['q']
-    q_baseline = np.array([q_baseline[:,1], q_baseline[:,2]])
-    dq_baseline = pd_run_data['dq']
-    dq_baseline = np.array([dq_baseline[:,1], dq_baseline[:,2]])
-    print('q: ', q.shape)
-    print('dq: ', dq.shape)
-    print('q_baseline: ', q_baseline.shape)
-    print('dq_baseline: ', dq_baseline.shape)
-    # run the simulation to obtain neural activity
-    plt_learning.plot_activity(input_signal=input_signal, time=time,
-            save_num=run, plot_all_ens=False, error=error, q=q, dq=dq,
-            q_baseline=q_baseline, dq_baseline=dq_baseline)
+    if baseline_loc is not None:
+        pd_run_data = dat.load(params=['q', 'dq'],
+                save_location='%ssession%03d/run%03d'
+                %(baseline_loc, session, run))
+        q_baseline = pd_run_data['q']
+        q_baseline = np.array([q_baseline[:,1], q_baseline[:,2]])
+        dq_baseline = pd_run_data['dq']
+        dq_baseline = np.array([dq_baseline[:,1], dq_baseline[:,2]])
+    else:
+        q_baseline = None
+        dq_baseline = None
+    if not stack_inputs:
+        # run the simulation to obtain neural activity
+        plt_learning.plot_activity(input_signal=input_signal, time=time,
+                save_num=run, plot_all_ens=False, error=error, q=q, dq=dq,
+                q_baseline=q_baseline, dq_baseline=dq_baseline)
 
-# stack input signal to show activity over the enitre reaching space
-# adapt_input = []
-# input_signal = []
-# time = []
-# for run in range(0, n_runs):
-#     run_data = dat.load(params=['input_signal', 'time', 'error', 'q', 'dq'],
-#             save_location='%ssession%03d/run%03d'
-#             %(loc, session, run))
-#     training_data = dat.load(params=['adapt_input'],
-#             save_location='%s/parameters/training' %loc)
-#     adapt_input.append(training_data['adapt_input'])
-#     input_signal.append(run_data['input_signal'])
-#     time.append(run_data['time'])
-#     error = run_data['error']
-#     q = run_data['q']
-#     dq = run_data['dq']
-#
-# input_signal = np.vstack(input_signal)
-# time = np.hstack(time)
-# plt_learning.plot_activity(input_signal=input_signal, time=time,
-#         error=error, save_num=run, q=q, dq=dq, input_joints=adapt_input)
+if stack_inputs:
+    q = None
+    dq = None
+    # input_signal = np.ndarray.tolist(np.vstack(input_signal))
+    # time = np.ndarray.tolist(np.hstack(time))
+    input_signal = np.hstack(input_signal)
+    print('SHAPPPPPE: ', input_signal.shape)
+    time = np.hstack(time)
+    error = np.hstack(error)
+    # print(input_signal.shape)
+    # print(time.shape)
+    plt_learning.plot_activity(input_signal=input_signal, time=time,
+            error=error, save_num=run, q=q, dq=dq, plot_all_ens=False)
 
 
 # a figure is created for each run, combine them into a gif
