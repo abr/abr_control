@@ -24,7 +24,7 @@ To install ABR_Control, clone this repository and run::
     python setup.py install
     python setup.py develop
 
-ABR_Control is tested to work on Python 3.4+.
+ABR_Control is tested to work on Python 3.4+, Python 2 is not supported.
 
 Usage
 =====
@@ -76,7 +76,7 @@ system, but must provide `connect`, `disconnect`, `send_forces` and
 
     interface.connect()
 
-    target_xyz = [.2, .2 .5]  # in metres
+    target_xyz = [.2, .2, .5]  # in metres
     for ii in range(1000)
         feedback = interface.get_feedback()  # returns a dictionary with q, dq
         u = ctrlr.generate(feedback['q'], feedback['dq'], target_xyz)
