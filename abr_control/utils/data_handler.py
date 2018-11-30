@@ -3,7 +3,8 @@ Handler for saving and loading data from HDF5 database
 
 """
 import numpy as np
-from abr_control.utils.paths import cache_dir
+import os
+from abr_control.utils.paths import database_dir
 try:
     import h5py
 except ImportError:
@@ -45,7 +46,10 @@ class DataHandler():
         if db_name is None:
             db_name = 'abr_control_db'
         if self.use_cache:
-            self.db_loc = '%s/%s.h5'%(cache_dir, db_name)
+            if not os.path.exists(database_dir):
+                os.makedirs(database_dir)
+
+            self.db_loc = '%s/%s.h5'%(database_dir, db_name)
         else:
             self.db_loc = '%s.h5'%db_name
 

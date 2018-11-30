@@ -21,6 +21,17 @@ To install ABR_Control, clone this repository and run::
     sudo apt-get install libfreetype6-dev
     pip install scipy
     pip install cython
+    # For new database features
+    # -------------------------
+    pip install seaborn
+    pip install pytest
+    # for db
+    pip install h5py
+    # for db gui
+    sudo apt-get install python-tk (this is tkinter)
+    pip install pillow
+    pip install terminaltables
+    # -------------------------
     python setup.py install
     python setup.py develop
 

@@ -1,5 +1,7 @@
 import subprocess
 import os
+#TODO update this to work with ubuntu16 using the following link
+# http://blog.ahfr.org/2008/03/making-animated-gifs-with-free-software.html
 def create(fig_loc, save_loc, save_name, delay=5, res=[1200,2000]):
     """
     Module that checks fig_loc location for png files and creates a gif

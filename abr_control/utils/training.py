@@ -587,7 +587,7 @@ class Training:
         print('--Saving test parameters--')
         loc = '%s/%s/parameters/'%(self.test_group, self.test_name)
         if np.any(self.friction_gain):
-            # Save OSC parameters
+            # Save friction parameters
             self.data_handler.save(data=self.friction.params,
                     save_location=loc + self.friction.params['source'], overwrite=overwrite, create=create)
 

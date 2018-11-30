@@ -96,8 +96,8 @@ time_t = []
 u_base_t = []
 
 if use_cache:
-    from abr_control.utils.paths import cache_dir
-    save_loc = '%s/figures'%cache_dir
+    from abr_control.utils.paths import figures_dir
+    save_loc = figures_dir
 else:
     save_loc = 'figures'
 

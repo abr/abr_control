@@ -12,7 +12,7 @@ from tkinter import ttk
 import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg #, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
 import matplotlib.animation as animation
 from matplotlib import style
@@ -581,7 +581,7 @@ class SearchPage(tk.Frame):
 
         # Plotting Window
         canvas = FigureCanvasTkAgg(f, self)
-        canvas.show()
+        canvas.draw()
         canvas.get_tk_widget().grid(row=0, column=1)#, ipadx=100, sticky='w')
         canvas.get_tk_widget().configure(background=background_color)
 
