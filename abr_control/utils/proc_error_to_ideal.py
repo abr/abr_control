@@ -263,10 +263,16 @@ class PathErrorToIdeal():
                     # check if we have interpolated data saved
                     # load test data
                     loaded_data = dat.load(params=['ee_xyz', 'time',
-                        'target'], save_location=loc)
+                        'target', 'filter'], save_location=loc)
                     ee_xyz = loaded_data['ee_xyz']
                     time = loaded_data['time']
+                    # if path_planner_as_ideal:
+                    #     target_xyz = loaded_data['filter']
+                    # else:
                     target_xyz = loaded_data['target']
+
+                    # only save the unique target locations
+                    target_xyz = self.get_unique_targets(target_xyz)
 
                     # check to make sure that the reaching time and targets
                     # match the ones used in the ideal trajectory, otherwise
@@ -286,13 +292,7 @@ class PathErrorToIdeal():
 
                     # Check if our target locations are within tolerance of
                     # the ones used for the ideal path
-                    # avoid the check if using path planner as ideal as the
-                    # path planner for the current test is used for target
-                    # locations throughout the entire movement
                     if not path_planner_as_ideal:
-                        # only save the unique target locations
-                        target_xyz = self.get_unique_targets(target_xyz)
-
                         if (abs(np.array(target_xyz) - np.array(ideal_target_xyz))
                                 > d_thres).any():
                             param_check[1] = True
@@ -329,7 +329,7 @@ class PathErrorToIdeal():
 
                     if 'ee_xyz_interp_%s'%orders[order_of_error] in keys and not regenerate:
                         # data exists and user does not want to regenerate
-                        print('Loading interpolated data: %s...'%loc)
+                        #print('%s ee_xyz_interp exists, passing...'%loc)
                         ee_xyz_interp = dat.load(
                                 params=['ee_xyz_interp_%s'%orders[order_of_error]],
                                 save_location='%ssession%03d/interp_data/run%03d'%(base_loc,
@@ -337,7 +337,6 @@ class PathErrorToIdeal():
                         ee_xyz_interp = ee_xyz_interp['ee_xyz_interp_%s'%orders[order_of_error]]
 
                     else:
-                        print('Calculating interpolated data: %s...'%loc)
                         #print('4: Interpolating Data')
                         ee_xyz_interp = proc.interpolate_data(data=ee_xyz,
                                 time_intervals=time, n_points=n_interp_pts)
@@ -377,15 +376,12 @@ class PathErrorToIdeal():
                     #TODO: use progress bar that was used in gif creator
 
                 # ----- SCALE TO SPECIFIED BASELINE -----
-                # if we're scaling to some baseline and that baseline has
-                # already been calculated, scale our data to it
+                # if we're passed processing the lower and upper baseline
                 if baseline and nn > 1:
                     #print('8a: Doing Baseline Calculation')
                     session_error = proc.scale_data(input_data=ideal_path_error[ii],
                         baseline_low=lower_baseline, baseline_high=upper_baseline,
                         scaling_factor=scaling_factor)
-                # otherwise scale to some constant selected by the user
-                # (default is 1)
                 else:
                     session_error = ideal_path_error[ii] * scaling_factor
                     #print('8b: Applying scaling factor')

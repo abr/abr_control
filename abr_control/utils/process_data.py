@@ -19,7 +19,7 @@ from abr_control.utils import DataHandler
 from abr_control.controllers import path_planners
 
 class ProcessData():
-    def __init__(self, debug=False):
+    def __init__(self):
         """
 
         Parameters
@@ -30,9 +30,7 @@ class ProcessData():
             abr_control/utils/paths.py
             False to use the directory passed in as is
         """
-        self.debug = debug
-        if self.debug:
-            import matplotlib.pyplot as plt
+        pass
 
     def get_mean_and_ci(self, raw_data, n_runs):
         sample = []
@@ -60,9 +58,7 @@ class ProcessData():
     def interpolate_data(self, data, time_intervals, n_points):
         run_time = sum(time_intervals)
         time_intervals = np.cumsum(time_intervals)
-        #TODO: why were we subtracting the first value?
-        # dt = (run_time-time_intervals[0])/n_points
-        dt = run_time/n_points
+        dt = (run_time-time_intervals[0])/n_points
         # interpolate to even samples out
         data_interp = []
         for kk in range(data.shape[1]):
@@ -70,17 +66,6 @@ class ProcessData():
             data_interp.append(np.array([
                 interp(t) for t in np.arange(time_intervals[0], run_time, dt)]))
         data_interp = np.array(data_interp).T
-
-        if self.debug:
-            plt.figure()
-            plt.label('Interpolating Data')
-            for kk in range(data.shape[1]):
-                plt.subplot(1,len(data), kk+1)
-                plt.plot(time_intervals, data[:, kk], label='raw data')
-                plt.plot(np.cumsum(np.ones(len(data_interp[kk])) * dt),
-                        data_interp[kk], label='interpolated')
-                plt.legend()
-            plt.show()
 
         return data_interp
 
