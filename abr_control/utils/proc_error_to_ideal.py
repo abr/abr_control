@@ -1,4 +1,5 @@
 import numpy as np
+import time as t
 
 from abr_control.utils import DataHandler, ProcessData
 
@@ -65,7 +66,7 @@ class PathErrorToIdeal():
             the filter constant to use when filtering higher order error
         scaling_factor: int, Optional (Default: 1)
             the scaling factor to apply after scaling to a baseline.
-        n_sessions: int, Optional (Default:None)
+        n_sessions: list of ints, Optional (Default:None)
             if left as None, then the database will be checked for how many sessions
             are in the provided test
         n_runs: int, Optional (Default:None)
@@ -118,11 +119,33 @@ class PathErrorToIdeal():
         print('Test List: ', test_list)
         print('--------------------')
 
+        #TODO: hacky naming, fix this
+        n_sessions_list = n_sessions
+        n_runs_list = n_runs
+
         # Cycle through the list of tests
         for nn, test in enumerate(test_list):
             # update location to the current test
             loc = '%s/%s/'%(test_group, test)
             keys = dat.get_keys(loc)
+
+            if not isinstance(n_sessions_list, int) and n_sessions_list is not None:
+                print('LEEEEEEEEEEEEEEEEEEEEEN: ',len(n_sessions_list))
+                print('nn: ', nn)
+                if len(n_sessions_list) < nn+1:
+                    print('No session information passed in, using highest number of sessions')
+                    t.sleep(1)
+                    n_sessions = None
+                else:
+                    n_sessions = n_sessions_list[nn]
+
+            if not isinstance(n_runs_list, int) and n_runs_list is not None:
+                if len(n_runs_list) <  nn+1:
+                    print('No run information passed in, using highest number of runs')
+                    t.sleep(1)
+                    n_sessions = None
+                else:
+                    n_runs = n_runs_list[nn]
 
             # get the number of runs and sessions if not provided
             if n_sessions is None:
@@ -339,11 +362,12 @@ class PathErrorToIdeal():
 
                     # ----- FILTER AND COMPARE TO IDEAL PATH -----
                     #print('6: Calculating path error to ideal')
+                    #TODO Add the normalization as an option
                     path_error = proc.calc_path_error_to_ideal(
                             dt=dt,
                             ideal_path=ideal_path_diff, recorded_path=ee_xyz_interp,
                             order_of_error=order_of_error, alpha=alpha,
-                            normalization=ideal_distance)
+                            normalization=None)#ideal_distance)
 
                     #print('7: Storing path error to ideal for session %i : run %i'
                             #%(ii, jj))

@@ -29,9 +29,9 @@ show_traj = True
 use_cache=True
 # runs=[0,10,25,40,49, 0,10,25,40,49, 0,10,25,40,49]
 # sessions=[0,0,0,0,0,1,1,1,1,1,2,2,2,2,2]
-runs=[0,1,2,3,4,5,9,14,15,16,20,21,22,26, 27]
-sessions=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-n_columns = 5
+runs=[4, 9, 14, 19, 24, 29, 34, 39, 44, 49]
+sessions=[0,0,0,0,0,0,0,0,0,0]
+n_columns = 4
 plot_extra = False
 #db_name = 'jacoOSCdebug'
 db_name = 'dewolf2018neuromorphic'
@@ -44,12 +44,12 @@ test_groups = [
                 # 'weighted_reach_post_tuning',
               ]
 tests = [
-        # 'nengo_loihi_friction_2_0',
+        'nengo_loihi_friction_3_0',
         # 'nengo_loihi_friction_1_0',
         #'nengo_cpu_friction_5_0',
         #'pd_friction_7_0',
-        'pd_no_friction_5_0',
-        'pd_no_friction_3_0',
+        'pd_friction_8_0',
+        #'pd_no_friction_3_0',
         #'nengo_cpu_weight_17_99',
         #'pd_weight_9',
         #'pd_weight_8',
@@ -366,5 +366,5 @@ if not only_final_frame:
     make_gif.create(fig_loc='%s/gif_fig_cache'%save_loc,
                     save_loc='%s/%s/virtual_arm'%(save_loc, db_name),
                     save_name='%s-%s'%(tests[0], tests[1]),
-                    delay=5, res=[2560,1080])
+                    delay=5, res=[1920,1080])
 

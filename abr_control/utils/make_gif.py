@@ -22,10 +22,12 @@ def create(fig_loc, save_loc, save_name, delay=5, res=[1200,2000]):
     """
     if not os.path.exists(save_loc):
         os.makedirs(save_loc)
-    bashCommand = ("convert -delay %i -loop 0 -deconstruct -quantize"%delay
-                   + " transparent -layers optimize -resize %ix%i"%(res[0],res[1])
-                   + " %s/*.png %s/%s.gif"
-                   %(fig_loc, save_loc, save_name))
+    bashCommand = ("convert -delay %i -loop 0 -resize %ix%i %s/*.png %s/%s.gif") %(
+                    delay, res[0], res[1], fig_loc, save_loc, save_name)
+    # bashCommand = ("convert -delay %i -loop 0 -deconstruct -quantize"%delay
+    #                + " transparent -layers optimize -resize %ix%i"%(res[0],res[1])
+    #                + " %s/*.png %s/%s.gif"
+    #                %(fig_loc, save_loc, save_name))
     print('Creating gif...')
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     output, error = process.communicate()

@@ -364,7 +364,7 @@ class Training:
         feedback = self.interface.get_feedback()
         self.q = feedback['q']
         self.dq = feedback['dq']
-        self.dq[abs(self.dq) < 0.05] = 0
+        #self.dq[abs(self.dq) < 0.05] = 0
         # calculate end-effector position
         ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
 
@@ -389,7 +389,7 @@ class Training:
             feedback = self.interface.get_feedback()
             self.q = feedback['q']
             self.dq = feedback['dq']
-            self.dq[abs(self.dq) < 0.05] = 0
+            #self.dq[abs(self.dq) < 0.05] = 0
 
             # calculate end-effector position
             ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
@@ -411,8 +411,6 @@ class Training:
             if self.avoid_limits:
                 self.data['u_avoid'].append(np.copy(self.u_avoid))
             self.data['error'].append(np.copy(error))
-            end = timeit.default_timer() - start
-            self.data['time'].append(np.copy(end))
             self.data['target'].append(np.copy(target_xyz))
             self.data['ee_xyz'].append(np.copy(ee_xyz))
             self.data['filter'].append(np.copy(self.target))
@@ -423,6 +421,9 @@ class Training:
             self.data['u_task'].append(np.copy(self.ctrlr.u_task))
             self.data['u_kp'].append(np.copy(self.ctrlr.u_kp))
             self.data['u_kv'].append(np.copy(self.ctrlr.u_kv))
+
+            end = timeit.default_timer() - start
+            self.data['time'].append(np.copy(end))
 
             if self.count % 600 == 0:
                 #print('error: ', error)
@@ -570,7 +571,6 @@ class Training:
 
     def save_data(self, overwrite=True):
         print('--Saving run data--')
-
         print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
             self.session, self.run))
 
@@ -614,6 +614,9 @@ class Training:
                     create=create)
 
     def save_adaptive(self, overwrite=True, create=True):
+        print('--Saving run and adaptive data--')
+        print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
+            self.session, self.run))
         loc = '%s/%s/parameters/'%(self.test_group, self.test_name)
         #TODO: weights are saved in save_data, but since the adaptive
         """saving is now separated, we have to either save this again, or make

@@ -218,7 +218,7 @@ class ProcessData():
         # if we're using acceleration or jerk, add a filter to
         # clean up the signal
         if normalization is None:
-            normalization = 1
+            normalization = 1.0
         if order_of_error > 1:
             recorded_path = self.filter_data(data=recorded_path,
                     alpha=alpha)

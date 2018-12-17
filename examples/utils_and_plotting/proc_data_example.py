@@ -25,16 +25,13 @@ y_label = [
 test_group = 'friction_post_tuning'
 test_list = [
               'pd_no_friction_5_0',
-              # 'pd_no_friction_2_0',
-              # 'pd_friction_3_0',
-              # 'pd_friction_4_0',
-              # 'pd_friction_6_0',
-              'pd_friction_8_0',
-              # 'nengo_cpu_friction_7_0',
-              # 'nengo_cpu_friction_8_0',
-              # 'nengo_loihi_friction_0_0',
-              # 'nengo_loihi_friction_1_0',
-              # 'nengo_loihi_friction_2_0',
+              'pd_no_friction_5_0',
+              # 'pd_friction_11_0',
+              # #'nengo_cpu_friction_12_0',
+              # #'nengo_cpu_friction_19_0',
+              # 'nengo_loihi_friction_6_0',
+              # 'nengo_loihi_friction_7_0',
+              # 'nengo_loihi_friction_8_0',
               ]
 
 if not plot_only:
@@ -49,7 +46,13 @@ if not plot_only:
                      # lower_baseline_loc=test_list[0],
                      db_name=db_name,
                      path_planner_as_ideal=True,
-                     n_sessions=None)
+                     n_sessions=[1,1],#[15, 15, 5, 5, 5, 5],
+                     n_runs=50)
+        #TODO: if have incomplete session and run is not
+        # specified, the next module will take the smallest
+        # set of runs and use that for each session, should
+        # check if incompelte and use the previous sessions
+        # number of runs
 
 print('Plotting Data...')
 for ii, entry in enumerate(title):
@@ -62,7 +65,8 @@ for ii, entry in enumerate(title):
                        order_of_error=[orders_of_error[ii]],
                        sum_errors=False,
                        scaling_factor=1,
-                       colors=['k', 'b', 'g', 'r', 'm', 'y'],
+                       colors=['k', 'b', 'g', 'r', 'y', 'm'],
                        y_label=y_label[ii],
                        fig_title=entry,
-                       clear_plot=True)
+                       clear_plot=True,
+                       legend_loc=0)
