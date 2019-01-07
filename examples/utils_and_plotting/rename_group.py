@@ -1,9 +1,9 @@
 from abr_control.utils import DataHandler
 
 dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
-loc = '/simulations'
+loc = '/friction_post_tuning'
 keys = dat.get_keys(loc)
-print(keys)
+#print(keys)
 
 # for key in keys:
 #     if key != 'autogen_targets':
@@ -21,5 +21,8 @@ print(keys)
 #                         print('OLD: %s \nNEW: %s' %
 #                                 (place, new_place))
 #                         dat.rename(old=place, new=new_place, delete_old=True)
-dat.rename(old=loc+'/jaco_sim_no_weight_5/session000/run009/u_osc',
-        new=loc+'/jaco_sim_no_weight_5/session000/run009/u_base', delete_old=True)
+#dat.delete(loc+'/nengo_cpu_friction_22_0/session004')
+for ii in range(14,15):
+    print('%03d'%ii)
+    dat.rename(old=loc+'/nengo_cpu_friction_21_0/session%03d'%ii,
+            new=loc+'/nengo_cpu_friction_22_0/session%03d'%ii, delete_old=True)

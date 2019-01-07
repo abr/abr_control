@@ -269,7 +269,9 @@ def live_plot(i):
 
                             a_sub[oo].set_xlim(x_min, x_max)
                             a_sub[oo].set_ylim(y_mins[oo], y_maxes[oo])
-                            a_sub[oo].plot(dof, c=plotting_colors[count],
+                            # #TODO FIX THE COLOURS 
+                            # print(plotting_colors[count])
+                            a_sub[oo].plot(dof, c='r',#plotting_colors[count],
                                     label=legend_names[count])#,
                                     #alpha=1/len(d.T) * (oo+1))
                     else:

@@ -27,12 +27,16 @@ def align_yaxis(ax1, v1, ax2, v2):
 only_final_frame = False
 show_traj = True
 use_cache=True
+plot_extra = False
+plot_friction = False
+plot_u = False
 # runs=[0,10,25,40,49, 0,10,25,40,49, 0,10,25,40,49]
 # sessions=[0,0,0,0,0,1,1,1,1,1,2,2,2,2,2]
-runs=[4, 9, 14, 19, 24, 29, 34, 39, 44, 49]
-sessions=[0,0,0,0,0,0,0,0,0,0]
+#runs=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 49]
+runs = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+#sessions=[0,0,0,0,0,0,0,0,0,0]
+sessions = np.zeros(len(runs))
 n_columns = 4
-plot_extra = False
 #db_name = 'jacoOSCdebug'
 db_name = 'dewolf2018neuromorphic'
 test_groups = [
@@ -44,17 +48,11 @@ test_groups = [
                 # 'weighted_reach_post_tuning',
               ]
 tests = [
-        'nengo_loihi_friction_3_0',
-        # 'nengo_loihi_friction_1_0',
-        #'nengo_cpu_friction_5_0',
-        #'pd_friction_7_0',
-        'pd_friction_8_0',
-        #'pd_no_friction_3_0',
-        #'nengo_cpu_weight_17_99',
-        #'pd_weight_9',
-        #'pd_weight_8',
-        # 'pd_no_weight_14',
-        # 'pd_no_weight_7',
+        'nengo_loihi_friction_18_0',
+        'nengo_cpu_friction_23_0',
+        #'pd_no_friction_5_0',
+        #'nengo_cpu_friction_12_0',
+        #'pd_friction_11_0',
         ]
 use_offset = False
 
@@ -120,7 +118,7 @@ for ii, run in enumerate(runs):
     session = sessions[ii]
     dat = DataHandler(use_cache=use_cache, db_name=db_name)
     data = dat.load(params=['q', 'error', 'target', 'ee_xyz', 'filter', 'time',
-        'u_base'],
+        'u_base', 'u_friction'],
             save_location='%s/%s/session%03d/run%03d'%
             (test_groups[0], tests[0], session, run))
     q_t.append(data['q'])
@@ -129,11 +127,20 @@ for ii, run in enumerate(runs):
     targets_t.append(data['target'])
     filter_t.append(data['filter'])
     time_t.append(data['time'])
-    u_base_t.append(data['u_base'])
-    if np.min(data['u_base']) < u_min:
-        u_min = np.min(data['u_base'])
-    if np.max(data['u_base']) > u_max:
-        u_max = np.max(data['u_base'])
+    if plot_friction:
+        u_base_t.append(data['u_friction'])
+        for ss in range(0,len(data['u_friction'])):
+            if np.min(data['u_friction'][ss]) < u_min:
+                u_min = np.min(data['u_friction'][ss])
+            if np.max(data['u_friction'][ss]) > u_max:
+                u_max = np.max(data['u_friction'][ss])
+    else:
+        u_base_t.append(data['u_base'])
+        for ss in range(0,len(data['u_base'])):
+            if np.min(data['u_base'][ss]) < u_min:
+                u_min = np.min(data['u_base'][ss])
+            if np.max(data['u_base'][ss]) > u_max:
+                u_max = np.max(data['u_base'][ss])
 
     data_0 = dat.load(params=['ee_xyz', 'error'],
             save_location='%s/%s/session%03d/run%03d'%
@@ -170,15 +177,17 @@ length = np.min(min_len)
 #     plt.legend()
 # plt.savefig('2d_trajectory')
 # plt.show()
+
+# EXTRA PLOTTING: plot dist to filter
 if plot_extra:
     dist_to_filter = []
     extra_times = []
     min_dist = 0
     max_dist = 0
-    for run in runs:
-        targets = targets_t[run]
-        error = error_t[run]
-        filter_xyz = filter_t[run][:, 0:3]
+    for dd, run in enumerate(runs):
+        targets = targets_t[dd]
+        error = error_t[dd]
+        filter_xyz = filter_t[dd][:, 0:3]
         filter_err = []
         extra_times.append(np.linspace(0,4, len(error)))
         for ii in range(0,len(filter_xyz)):
@@ -345,8 +354,13 @@ for ii in range(0,length,10):
 
         if plot_extra:
             extra_time = np.squeeze(extra_times[jj])[:ii]
+            if plot_friction:
+                ax2_label = 'friction'
+            else:
+                ax2_label = 'u'
             for ff, u_joint in enumerate(u_base):
-                ax2.plot(extra_time[:ii], u_joint[:ii], label='u%i'%ff)
+
+                ax2.plot(extra_time[:ii], u_joint[:ii], label='%s%i'%(ax2_label, ff))
             ax3.plot(extra_time[:ii], dist_to_filter[jj][:ii],
                     'c--', linewidth=3, label='EE dist to filter')
             # align_yaxis(ax2, 0, ax3, 0)

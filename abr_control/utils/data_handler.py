@@ -519,6 +519,15 @@ class DataHandler():
 
     def rename(self, old, new, delete_old=True):
         db = h5py.File(self.db_loc, 'a')
-        db[new] = db[old]
-        if delete_old:
-            del db[old]
+        # check if the group exists
+        exists = self.check_group_exists(location=old, create=False)
+
+        # if group path does not exist, raise an exception to alert the
+        # user
+        if exists is False:
+            raise ValueError('The path %s does not exist'%(old))
+        # otherwise load the keys
+        else:
+            db[new] = db[old]
+            if delete_old:
+                del db[old]

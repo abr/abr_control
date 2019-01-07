@@ -271,9 +271,6 @@ class PathErrorToIdeal():
                     # else:
                     target_xyz = loaded_data['target']
 
-                    # only save the unique target locations
-                    target_xyz = self.get_unique_targets(target_xyz)
-
                     # check to make sure that the reaching time and targets
                     # match the ones used in the ideal trajectory, otherwise
                     # throw an error
@@ -293,6 +290,9 @@ class PathErrorToIdeal():
                     # Check if our target locations are within tolerance of
                     # the ones used for the ideal path
                     if not path_planner_as_ideal:
+                        # only save the unique target locations
+                        target_xyz = self.get_unique_targets(target_xyz)
+
                         if (abs(np.array(target_xyz) - np.array(ideal_target_xyz))
                                 > d_thres).any():
                             param_check[1] = True

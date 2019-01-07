@@ -85,10 +85,10 @@ class PlotLearningProfile:
             print('Test does not contain "dynamics_adaptation" data...')
             print('Using the following defaults:')
             adapt_params = {
-                            'n_input': 4,
-                            'n_output': 2,
-                            'n_neurons': 1000,
-                            'n_ensembles': 20,
+                            'n_input': 11,
+                            'n_output': 5,
+                            'n_neurons': 10000,
+                            'n_ensembles': 1,
                             'pes': 1e-6,
                             'backend': 'nengo_cpu',
                             'probe_weights': True,
@@ -157,11 +157,10 @@ class PlotLearningProfile:
 
         if self.use_spherical:
             # convert to spherical
-            input_signal = np.array(input_signal).T
             #input_signal = self.convert_to_spherical(input_signal)
             tmpp = []
             for oo, inputs in enumerate(input_signal):
-                if oo % 100 == 0:
+                if oo % 100 == 0 or oo == len(input_signal):
                     print('%i of %i' %(oo, len(input_signal)))
                 tmpp.append(self.convert_to_spherical(inputs))
             input_signal = tmpp

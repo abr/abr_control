@@ -23,17 +23,17 @@ import matplotlib.pyplot as plt
 import os
 
 test_group = 'friction_post_tuning'
-test_name = 'nengo_loihi_friction_3_0'
+test_name = 'nengo_loihi_friction_10_0'
 db_name = 'dewolf2018neuromorphic'
 loc = '/%s/%s/'%(test_group, test_name)
 baseline_loc = None #'/weighted_reach_post_tuning/pd_no_weight_4/'
 use_cache = True
-n_runs = 50
-stack_inputs = True
+n_runs = 16
+stack_inputs = False
 # set true to convert the input passed in to spherical coordinates, set to
 # False if you either don't want this or if your input is already converted to
 # spherical
-use_spherical = True
+use_spherical = False
 
 plt_learning = PlotLearningProfile(test_group=test_group,
         test_name=test_name, db_name=db_name, use_cache=use_cache,
@@ -76,13 +76,13 @@ for run in range(0, n_runs):
         adapt_input.append(training_data['adapt_input'])
         q = run_data['q']
         dq = run_data['dq']
-        input_signal.append([
-                (q.T[1] - MEANS['q'][1]) / SCALES['q'][1],
-                (q.T[2] - MEANS['q'][2]) / SCALES['q'][2],
-                (dq.T[1] - MEANS['dq'][1]) / SCALES['dq'][1],
-                (dq.T[2] - MEANS['dq'][2]) / SCALES['dq'][2],
-                ])
-        #input_signal.append(run_data['input_signal'])
+        # input_signal.append([
+        #         (q.T[1] - MEANS['q'][1]) / SCALES['q'][1],
+        #         (q.T[2] - MEANS['q'][2]) / SCALES['q'][2],
+        #         (dq.T[1] - MEANS['dq'][1]) / SCALES['dq'][1],
+        #         (dq.T[2] - MEANS['dq'][2]) / SCALES['dq'][2],
+        #         ])
+        input_signal.append(run_data['input_signal'])
 
         time.append(run_data['time'])
     else:
@@ -118,7 +118,7 @@ if stack_inputs:
     dq = None
     # input_signal = np.ndarray.tolist(np.vstack(input_signal))
     # time = np.ndarray.tolist(np.hstack(time))
-    input_signal = np.hstack(input_signal)
+    input_signal = np.vstack(input_signal)
     print('SHAPPPPPE: ', input_signal.shape)
     time = np.hstack(time)
     error = np.hstack(error)

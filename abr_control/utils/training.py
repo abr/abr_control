@@ -571,7 +571,7 @@ class Training:
 
     def save_data(self, overwrite=True):
         print('--Saving run data--')
-        print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
+        print('Saving tracked data to %s/%s/session%03d/run%03d'%(self.test_group, self.test_name,
             self.session, self.run))
 
         # Save integrated error at the end of the run, we are only interested
@@ -615,7 +615,7 @@ class Training:
 
     def save_adaptive(self, overwrite=True, create=True):
         print('--Saving run and adaptive data--')
-        print('Saving tracked data to %s/%s/session%i/run%i'%(self.test_group, self.test_name,
+        print('Saving tracked data to %s/%s/session%03d/run%03d'%(self.test_group, self.test_name,
             self.session, self.run))
         loc = '%s/%s/parameters/'%(self.test_group, self.test_name)
         #TODO: weights are saved in save_data, but since the adaptive

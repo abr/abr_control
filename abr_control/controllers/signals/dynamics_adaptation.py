@@ -11,7 +11,7 @@ r = redis.StrictRedis(host='127.0.0.1')
 # import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
 from .signal import Signal
-
+os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
 try:
     import nengo
     nengo.rc.set("decoder_cache", "enabled", "False")
@@ -338,7 +338,9 @@ class DynamicsAdaptation(Signal):
                                 'cannot use this backend.')
             import pyopencl as cl
             # Here, the context would be to use all devices from platform [0]
-            ctx = cl.Context(cl.get_platforms()[0].get_devices())
+            ctx = cl.Context(cl.get_platforms()[1].get_devices())
+            print('Using nengo-ocl for parallel computing...')
+            print('Device: ', ctx)
             self.sim = nengo_ocl.Simulator(self.nengo_model, context=ctx, dt=.001)
         elif self.backend == 'nengo_spinnaker':
             try:

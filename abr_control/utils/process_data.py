@@ -17,9 +17,10 @@ import scipy.interpolate
 from abr_control.utils.paths import cache_dir
 from abr_control.utils import DataHandler
 from abr_control.controllers import path_planners
+import matplotlib.pyplot as plt
 
 class ProcessData():
-    def __init__(self):
+    def __init__(self, debug=False):
         """
 
         Parameters
@@ -30,7 +31,7 @@ class ProcessData():
             abr_control/utils/paths.py
             False to use the directory passed in as is
         """
-        pass
+        self.debug=debug
 
     def get_mean_and_ci(self, raw_data, n_runs):
         sample = []
@@ -58,7 +59,9 @@ class ProcessData():
     def interpolate_data(self, data, time_intervals, n_points):
         run_time = sum(time_intervals)
         time_intervals = np.cumsum(time_intervals)
-        dt = (run_time-time_intervals[0])/n_points
+        #TODO: why were we subtracting the first value?
+        # dt = (run_time-time_intervals[0])/n_points
+        dt = run_time/n_points
         # interpolate to even samples out
         data_interp = []
         for kk in range(data.shape[1]):
@@ -67,8 +70,33 @@ class ProcessData():
                 interp(t) for t in np.arange(time_intervals[0], run_time, dt)]))
         data_interp = np.array(data_interp).T
 
+        if self.debug:
+            plt.figure()
+            plt.title('Interpolating Data')
+            for kk in range(data.shape[1]):
+                plt.subplot(1,len(data.T), kk+1)
+                plt.plot(np.cumsum(np.ones(len(data_interp.T[kk])) * dt),
+                        data_interp[:, kk], 'ko', label='interpolated')
+                plt.plot(time_intervals, data[:, kk], 'r', label='raw data')
+                plt.legend()
+            plt.show()
+
         return data_interp
 
+    # def interpolate_data(self, data, time_intervals, n_points):
+    #     run_time = sum(time_intervals)
+    #     time_intervals = np.cumsum(time_intervals)
+    #     dt = (run_time-time_intervals[0])/n_points
+    #     # interpolate to even samples out
+    #     data_interp = []
+    #     for kk in range(data.shape[1]):
+    #         interp = scipy.interpolate.interp1d(time_intervals, data[:, kk])
+    #         data_interp.append(np.array([
+    #             interp(t) for t in np.arange(time_intervals[0], run_time, dt)]))
+    #     data_interp = np.array(data_interp).T
+    #
+    #     return data_interp
+    #
     def scale_data(self, input_data, baseline_low, baseline_high, scaling_factor=1):
         """
         scale data to some baseline to get values from 0-1 relative
@@ -226,8 +254,25 @@ class ProcessData():
                     alpha=alpha)
 
         # error relative to ideal path
-        error_to_ideal = (np.sum(np.sqrt(np.sum(
+        error_to_ideal = (np.sqrt(np.sum(
             (ideal_path - recorded_path)**2,
-            axis=1))))*dt / normalization
+            axis=1)))*dt / normalization
+
+        #self.debug=True
+        if self.debug:
+            plt.figure()
+            plt.subplot(121)
+            plt.title('error')
+            plt.plot(error_to_ideal)
+            plt.legend()
+            plt.subplot(122)
+            plt.title('EE XYZ over time')
+            plt.plot(ideal_path, 'o', label='ideal')
+            plt.plot(recorded_path, label='recorded')
+            plt.legend()
+            plt.show()
+        #self.debug=False
+
+        error_to_ideal = np.sum(error_to_ideal)
 
         return error_to_ideal
