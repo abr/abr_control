@@ -48,7 +48,7 @@ class OSC(Controller):
         self.ko = kp if ko is None else ko
         # TODO: find the appropriate default critical damping value
         # when using different position and orientation gains
-        self.kv = np.sqrt(kp+ko) if kv is None else kv
+        self.kv = np.sqrt(self.kp+self.ko) if kv is None else kv
         self.ki = ki
         self.vmax = vmax
         self.lamb = self.kp / self.kv
@@ -119,7 +119,7 @@ class OSC(Controller):
         # calculate the inertia matrix in task space
         M_inv = np.linalg.inv(M)
         Mx_inv = np.dot(J, np.dot(M_inv, J.T))
-        if np.linalg.det(Mx_inv) != 0:
+        if abs(np.linalg.det(Mx_inv)) >= 1e-5:
             # do the linalg inverse if matrix is non-singular
             # because it's faster and more accurate
             Mx = np.linalg.inv(Mx_inv)
