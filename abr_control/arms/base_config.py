@@ -73,6 +73,8 @@ class BaseConfig():
             for inverse transform calculations for joints and COMs
         _Tx : dictionary
             for point transform calculations for joints and COMs
+        _T : dictionary
+            for transformation matrices for joints and COMs
         config_folder : string
             location to save to and load functions from, based on the hash
             of the subclass, so that generated functions are saved uniquely
@@ -100,6 +102,7 @@ class BaseConfig():
         self._R = {}
         self._T_inv = {}
         self._Tx = {}
+        self._T_func = {}
 
         self._KZ = sp.Matrix([0, 0, 1])
 
@@ -346,8 +349,41 @@ class BaseConfig():
             raise Exception('Mean and/or scaling not defined')
         return x * self.SCALES[name] + self.MEANS[name]
 
-    def Tx(self, name, q, x=None):
+
+    def T(self, name, q, lambdify=True):
         """ Loads or calculates the transformation Matrix for a joint or link
+
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        q : numpy.array
+            joint angles [radians]
+        """
+
+        # check for function in dictionary
+        if self._T_func.get(name, None) is None:
+
+            T, T_func = self._load_from_file('T', lambdify)
+
+            if T is None and T_func is None:
+                T = self._calc_T(name)
+
+            if lambdify is False:
+                return T
+
+            if T_func is None:
+                # self._T_func[name] = sp.lambdify(self.q, T, "numpy")
+                self._T_func[name] = self._generate_and_save_function(
+                    filename='T', expression=T,
+                    parameters=self.q)
+
+        parameters = tuple(q)
+        return self._T_func[name](*parameters)
+
+
+    def Tx(self, name, q, x=[0, 0, 0]):
+        """ Loads or calculates the (x, y, z) position for a joint or link
 
         Parameters
         ----------
