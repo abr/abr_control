@@ -89,11 +89,11 @@ class DynamicsAdaptation(Signal):
     """
 
     def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
-                 seed=None, pes_learning_rate=1e-6, intercepts=(-0.9, 0.0),
+                 seed=None, pes_learning_rate=1e-6, intercepts_bounds=(-0.9, 0.0),
                  intercepts_mode=-0.9, weights_file=None, backend='nengo',
                  function=None, send_redis_spikes=False, encoders=None,
                  probe_weights=False, debug_print=False, neuron_type='lif',
-                 **kwargs):
+                 intercepts=None, **kwargs):
 
         if backend == 'nengo_cpu':
             backend = 'nengo'
@@ -108,8 +108,9 @@ class DynamicsAdaptation(Signal):
         self.neuron_type = neuron_type
         self.seed = seed
         self.pes_learning_rate = pes_learning_rate
-        self.intercepts_bounds = intercepts
+        self.intercepts_bounds = intercepts_bounds
         self.intercepts_mode = intercepts_mode
+        self.intercepts = intercepts
         self.weights_file = weights_file
         self.backend = backend
         self.function = function
@@ -161,10 +162,15 @@ class DynamicsAdaptation(Signal):
 
             # specify intercepts such that neurons are
             # active throughout the whole range specified
-            self.intercepts = AreaIntercepts(
-                dimensions=self.n_input,
-                base=Triangular(self.intercepts_bounds[0],
-                    self.intercepts_mode, self.intercepts_bounds[1]))
+
+
+            if intercepts is None:
+                self.intercepts = AreaIntercepts(
+                    dimensions=self.n_input,
+                    base=Triangular(self.intercepts_bounds[0],
+                        self.intercepts_mode, self.intercepts_bounds[1]))
+            else:
+                self.intercepts = intercepts
 
             self.adapt_ens = []
             self.conn_learn = []

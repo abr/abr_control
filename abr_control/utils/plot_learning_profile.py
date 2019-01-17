@@ -25,7 +25,9 @@ from nengo.utils.matplotlib import rasterplot
 
 class PlotLearningProfile:
     def __init__(self, test_group, test_name, db_name=None, use_cache=True,
-            intercepts_bounds=None, intercepts_mode=None, use_spherical=False):
+            intercepts_bounds=None, intercepts_mode=None, use_spherical=False,
+            encoders=None, intercepts=None, n_inputs=2, n_outputs=2,
+            n_ensembles=1, n_neurons=100):
         """
         Creates the nengo simulation with the same parameters as the test
         passed in
@@ -73,11 +75,11 @@ class PlotLearningProfile:
         if not os.path.exists(self.save_loc):
             os.makedirs(self.save_loc)
 
-        dat = DataHandler(use_cache=use_cache, db_name=db_name)
-        loc = '/%s/%s/'%(test_group, test_name)
         #TODO: currently hacked in if using loihi where dynadapt is not saved,
         # need to fix on this end or the test saving end
         try:
+            dat = DataHandler(use_cache=use_cache, db_name=db_name)
+            loc = '/%s/%s/'%(test_group, test_name)
             param_loc = '%sparameters/dynamics_adaptation'%loc
             keys = dat.get_keys(group_path=param_loc)
             adapt_params = dat.load(params=keys, save_location = param_loc)
@@ -85,10 +87,10 @@ class PlotLearningProfile:
             print('Test does not contain "dynamics_adaptation" data...')
             print('Using the following defaults:')
             adapt_params = {
-                            'n_input': 11,
-                            'n_output': 5,
-                            'n_neurons': 10000,
-                            'n_ensembles': 1,
+                            'n_input': n_inputs,
+                            'n_output': n_outputs,
+                            'n_neurons': n_neurons,
+                            'n_ensembles': n_ensembles,
                             'pes': 1e-6,
                             'backend': 'nengo_cpu',
                             'probe_weights': True,
@@ -97,14 +99,15 @@ class PlotLearningProfile:
                            }
             print(adapt_params)
 
-        if intercepts_bounds is None:
-            self.intercepts_bounds = adapt_params['intercepts_bounds']
-        else:
-            self.intercepts_bounds = intercepts_bounds
-        if intercepts_mode is None:
-            self.intercepts_mode = adapt_params['intercepts_mode']
-        else:
-            self.intercepts_mode = intercepts_mode
+        if intercepts is None:
+            if intercepts_bounds is None:
+                self.intercepts_bounds = adapt_params['intercepts_bounds']
+            else:
+                self.intercepts_bounds = intercepts_bounds
+            if intercepts_mode is None:
+                self.intercepts_mode = adapt_params['intercepts_mode']
+            else:
+                self.intercepts_mode = intercepts_mode
 
         self.use_spherical = use_spherical
 
@@ -120,16 +123,18 @@ class PlotLearningProfile:
                 n_neurons=int(adapt_params['n_neurons']),
                 n_ensembles=int(adapt_params['n_ensembles']),
                 pes_learning_rate=float(adapt_params['pes']),
-                intercepts=self.intercepts_bounds,
+                intercepts_bounds=self.intercepts_bounds,
                 intercepts_mode=self.intercepts_mode,
+                intercepts=intercepts,
                 #weights_file=weights,
                 backend=adapt_params['backend'],
                 probe_weights=adapt_params['probe_weights'],
                 seed=int(adapt_params['seed']),
                 #neuron_type=np.array2string(adapt_params['neuron_type']))
-                neuron_type=adapt_params['neuron_type'])
+                neuron_type=adapt_params['neuron_type'],
+                encoders=encoders)
 
-    def plot_activity(self, input_signal, time, save_num=0,
+    def plot_activity(self, input_signal, time=None, save_num=0,
             getting_ideal_intercepts=False, plot_all_ens=False,
             # TODO: delete this line when done with testing
             error=None, q=None, dq=None, q_baseline=None, dq_baseline=None,
@@ -154,6 +159,9 @@ class PlotLearningProfile:
             When using large populations of neurons (Ex:1k neurons x 20
             ensembles) it can slow down plotting of the rasterplot
         """
+
+        if time is None:
+            time = np.ones(len(input_signal))
 
         if self.use_spherical:
             # convert to spherical
