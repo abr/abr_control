@@ -168,9 +168,16 @@ class Training:
                 print('Integrated Error: ', integrated_error)
 
         # instantiate operational space controller
+        print("""\n\n\n\n
+                RUNNING IN DEBUG MODE\n\n\n
+                NEED TO TURN CORIOLIS TERM BACK ON, WAS SET TO FALSE FOR
+                DEBUGGING SINCE MY COMPUTER CAN'T HANDLE THAT SHI\n\n\n\n
+                oh and need to instantiate interface :)\n\n\n""")
+        time.sleep(1.5)
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
                 vmax=vmax, null_control=True,
-                integrated_error=integrated_error, use_C=True)
+                # integrated_error=integrated_error, use_C=True)
+                integrated_error=integrated_error, use_C=False)
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
@@ -198,7 +205,7 @@ class Training:
 
         print('--Instantiate interface--')
         # instantiate our interface
-        self.interface = abr_jaco2.Interface(robot_config=self.robot_config)
+        #self.interface = abr_jaco2.Interface(robot_config=self.robot_config)
 
         # set up lists for tracking data
         self.data = {'q': [], 'dq': [], 'u_base': [], 'u_adapt': [],
@@ -208,6 +215,7 @@ class Training:
                      'q_torque': [], 'M_inv_singular': [], 'u_kp': [],
                      'u_kv': [], 'u_friction': [], 'u_task': []}
         self.count = 0
+        print('MAIN CLASS INSTANTIATED')
 
     def __init_network__(self, adapt_input, adapt_output, n_neurons=1000, n_ensembles=1,
             weights=None, pes_learning_rate=1e-6, backend=None, seed=None,
@@ -478,36 +486,6 @@ class Training:
                             np.sin(np.pi*x1)]
                     return sincos
 
-                # def convert_to_spherical(input_signal):
-                #     """
-                #     Takes in inputs from the range of -1 to 1 and scales them
-                #     to spherical coordiantes
-                #     """
-                #     x0 = input_signal[0]
-                #     x1 = input_signal[1]
-                #     x2 = input_signal[2]
-                #     x3 = input_signal[3]
-                #     pi = np.pi
-                #
-                #     # nth input scaled to 0-2pi range, remainder from 0-pi
-                #     spherical = [
-                #                  np.cos(x0 * pi/2 + pi/2),
-                #                  np.sin(x0 * pi/2 + pi/2) *
-                #                         np.cos(x1 * pi/2 + pi/2),
-                #                  np.sin(x0 * pi/2 + pi/2) *
-                #                         np.sin(x1 * pi/2 + pi/2) *
-                #                         np.cos(x2 * pi/2 + pi/2),
-                #                  np.sin(x0 * pi/2 + pi/2) *
-                #                         np.sin(x1 * pi/2 + pi/2) *
-                #                         np.sin(x2 * pi/2 + pi/2) *
-                #                         np.cos(x3 * pi/2 + pi/2),
-                #                  np.sin(x0 * pi + pi) *
-                #                         np.sin(x1 * pi + pi) *
-                #                         np.sin(x2 * pi + pi) *
-                #                         np.sin(x3 * pi + pi)
-                #                 ]
-                #     return spherical
-
                 self.training_signal = np.array(training_signal)
                 if self.trig_q:
                     adapt_input_q = (convert_to_sin_cos(adapt_input_q))
@@ -636,11 +614,16 @@ class Training:
                 save_location=loc + self.adapt.params['source'], overwrite=overwrite, create=create)
 
     def convert_to_spherical(self, input_signal):
-        x = input_signal
+        """
+        converts an input signal of shape time x N_joints and converts to
+        spherical
+        """
+        print('IN: ', input_signal.shape)
+        x = input_signal.T
         pi = np.pi
         spherical = []
 
-        def scale(input_signal, factor):
+        def scale(input_signal):
             #TODO: does it make more sense to pass in the range and have the script
             # handle the division, so we go from 0-factor instead of 0-2*factor?
             """
@@ -650,8 +633,11 @@ class Training:
             ex: if factor == pi the inputs will be in the range of 0-2pi
             """
             signal = np.copy(input_signal)
+            factor = pi
             for ii, dim in enumerate(input_signal):
-                signal[ii] = dim * factor + factor
+                if ii == len(input_signal)-1:
+                    factor = 2*pi
+                signal[ii] = dim * factor# + factor
             return signal
 
         def sin_product(input_signal, count):
@@ -666,12 +652,13 @@ class Training:
 
         # nth input scaled to 0-2pi range, remainder from 0-pi
         # cycle through each input
-        x_rad = scale(input_signal=x, factor=pi/2)
-        x_2rad = scale(input_signal=x, factor=pi)
+        x_rad = scale(input_signal=x)
 
         for ss in range(0, len(x)):
             sphr = sin_product(input_signal=x_rad, count=ss)
             sphr*= np.cos(x_rad[ss])
             spherical.append(sphr)
-        spherical.append(sin_product(input_signal=x_2rad, count=len(x)))
+        spherical.append(sin_product(input_signal=x_rad, count=len(x)))
+        spherical = np.array(spherical).T
+        print('OUT: ', np.array(spherical).shape)
         return(spherical)

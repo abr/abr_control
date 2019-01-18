@@ -22,13 +22,13 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import os
 
-test_group = 'friction_post_tuning'
-test_name = 'nengo_loihi_friction_10_0'
-db_name = 'dewolf2018neuromorphic'
+test_group = 'testing'
+test_name = 'nengo_loihi_tuning_106_0'
+db_name = 'loihi_tuning_2019'
 loc = '/%s/%s/'%(test_group, test_name)
 baseline_loc = None #'/weighted_reach_post_tuning/pd_no_weight_4/'
 use_cache = True
-n_runs = 16
+n_runs = 1
 stack_inputs = False
 # set true to convert the input passed in to spherical coordinates, set to
 # False if you either don't want this or if your input is already converted to
@@ -63,7 +63,7 @@ for run in range(0, n_runs):
             save_location='%ssession%03d/run%03d'
             %(loc, session, run))
     training_data = dat.load(params=['adapt_input'],
-            save_location='%s/parameters/training' %loc)
+            save_location='%sparameters/training' %loc)
 
     if stack_inputs:
         # stack input signal to show activity over the enitre reaching space
