@@ -25,8 +25,8 @@ from abr_control.utils import DataHandler, PlotError
 from terminaltables import AsciiTable
 
 # import data handler
-#dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
-dat = DataHandler(use_cache=True, db_name='loihi_tuning_2019')
+dat = DataHandler(use_cache=True, db_name='dewolf2018neuromorphic')
+#dat = DataHandler(use_cache=True, db_name='loihi_tuning_2019')
 #dat = DataHandler(use_cache=True, db_name='jacoOSCdebug')
 #dat = DataHandler(use_cache=True, db_name='control_demo')
 pltE = PlotError()
