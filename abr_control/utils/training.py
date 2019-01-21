@@ -351,9 +351,7 @@ class Training:
         print('--Initialize force mode--')
         self.interface.init_force_mode()
 
-    def reach_to_target(self, target_xyz, reaching_time):
-        # TODO: ADD NOTE ABOUT USING BASH FOR MULTIPLE RUNS INSTEAD OF JUST
-        # CALLING RUN, MENTION PERFORMANCE EFFECTS ETC
+    def reach_to_target(self, reaching_time=None, target_xyz=None):
         """
 
         Parameters
@@ -367,87 +365,117 @@ class Training:
         # track loop_time for stopping test
         loop_time = 0
 
-        # get joint angle and velocity feedback to reset starting point to
-        # current end-effector position
-        feedback = self.interface.get_feedback()
-        self.q = feedback['q']
-        self.dq = feedback['dq']
-        #self.dq[abs(self.dq) < 0.05] = 0
-        # calculate end-effector position
-        ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
+        self.data['target'] = []
+        self.data['scaled_error'] = []
+        # counter to loop through a list of recorded inputs
+        self.generate_counter = 0
 
-        # last three terms used as started point for target EE velocity
-        self.target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
-
-        print('--Starting main control loop--')
-        # M A I N   C O N T R O L   L O O P
-        while loop_time < reaching_time:
+        while self.generate_counter < self.input_signal_len:
             start = timeit.default_timer()
-            prev_xyz = ee_xyz
-
-            # use our filter to get the next point along the trajectory to our
-            # final target location
-            self.target = self.path.step(state=self.target, target_pos=target_xyz,
-                    dt=self.dt)
-
-            # calculate euclidean distance to target
-            error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
-
-            # get joint angle and velocity feedback
-            feedback = self.interface.get_feedback()
-            self.q = feedback['q']
-            self.dq = feedback['dq']
-            #self.dq[abs(self.dq) < 0.05] = 0
-
-            # calculate end-effector position
-            ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
-
-            # Calculate the control signal and the adaptive signal
             u = self.generate_u()
-
-            # send forces
-            self.interface.send_forces(np.array(u, dtype='float32'))
-
-            # track data
-            self.data['q'].append(np.copy(self.q))
-            self.data['dq'].append(np.copy(self.dq))
-            self.data['u_base'].append(np.copy(self.u_base))
-            if self.use_adapt:
-                self.data['u_adapt'].append(np.copy(self.u_adapt))
-                self.data['training_signal'].append(np.copy(self.training_signal))
-                self.data['input_signal'].append(np.copy(self.adapt_input))
-            if self.avoid_limits:
-                self.data['u_avoid'].append(np.copy(self.u_avoid))
-            self.data['error'].append(np.copy(error))
-            self.data['target'].append(np.copy(target_xyz))
-            self.data['ee_xyz'].append(np.copy(ee_xyz))
-            self.data['filter'].append(np.copy(self.target))
-            self.data['osc_dx'].append(np.copy(self.ctrlr.dx))
-            q_T = self.interface.get_torque_load()
-            self.data['q_torque'].append(np.copy(q_T))
-            self.data['u_friction'].append(np.copy(self.u_friction))
-            self.data['u_task'].append(np.copy(self.ctrlr.u_task))
-            self.data['u_kp'].append(np.copy(self.ctrlr.u_kp))
-            self.data['u_kv'].append(np.copy(self.ctrlr.u_kv))
-
-            end = timeit.default_timer() - start
-            self.data['time'].append(np.copy(end))
-
-            if self.count % 600 == 0:
-                #print('error: ', error)
-                print('dt: ', end)
-                print('friction: ', self.u_friction)
-                print('adapt: ', self.u_adapt)
-                #print('torque: ', q_T)
-
-            loop_time += end
+            self.generate_counter += 1
+            self.data['time'].append(timeit.default_timer()-start)
             self.count += 1
+        self.redis_server.set('end_lock_step', 'True')
 
-        print('*~~~~FINAL~~~~*')
-        print('error: ', error)
-        print('dt: ', end)
-        print('adapt: ', self.u_adapt)
-        print('*~~~~~~~~~~~~~*')
+
+    # def reach_to_target(self, target_xyz, reaching_time):
+    #     # TODO: ADD NOTE ABOUT USING BASH FOR MULTIPLE RUNS INSTEAD OF JUST
+    #     # CALLING RUN, MENTION PERFORMANCE EFFECTS ETC
+    #     """
+
+    #     Parameters
+    #     ----------
+    #     target_xyz: numpy array of floats
+    #         x,y,z position of target [meters]
+    #     reaching_time: float
+    #         time [seconds] to reach to target
+    #     """
+
+    #     # track loop_time for stopping test
+    #     loop_time = 0
+
+    #     # get joint angle and velocity feedback to reset starting point to
+    #     # current end-effector position
+    #     feedback = self.interface.get_feedback()
+    #     self.q = feedback['q']
+    #     self.dq = feedback['dq']
+    #     #self.dq[abs(self.dq) < 0.05] = 0
+    #     # calculate end-effector position
+    #     ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
+
+    #     # last three terms used as started point for target EE velocity
+    #     self.target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
+
+    #     print('--Starting main control loop--')
+    #     # M A I N   C O N T R O L   L O O P
+    #     while loop_time < reaching_time:
+    #         start = timeit.default_timer()
+    #         prev_xyz = ee_xyz
+
+    #         # use our filter to get the next point along the trajectory to our
+    #         # final target location
+    #         self.target = self.path.step(state=self.target, target_pos=target_xyz,
+    #                 dt=self.dt)
+
+    #         # calculate euclidean distance to target
+    #         error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
+
+    #         # get joint angle and velocity feedback
+    #         feedback = self.interface.get_feedback()
+    #         self.q = feedback['q']
+    #         self.dq = feedback['dq']
+    #         #self.dq[abs(self.dq) < 0.05] = 0
+
+    #         # calculate end-effector position
+    #         ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
+
+    #         # Calculate the control signal and the adaptive signal
+    #         u = self.generate_u()
+
+    #         # send forces
+    #         self.interface.send_forces(np.array(u, dtype='float32'))
+
+    #         # track data
+    #         self.data['q'].append(np.copy(self.q))
+    #         self.data['dq'].append(np.copy(self.dq))
+    #         self.data['u_base'].append(np.copy(self.u_base))
+    #         if self.use_adapt:
+    #             self.data['u_adapt'].append(np.copy(self.u_adapt))
+    #             self.data['training_signal'].append(np.copy(self.training_signal))
+    #             self.data['input_signal'].append(np.copy(self.adapt_input))
+    #         if self.avoid_limits:
+    #             self.data['u_avoid'].append(np.copy(self.u_avoid))
+    #         self.data['error'].append(np.copy(error))
+    #         self.data['target'].append(np.copy(target_xyz))
+    #         self.data['ee_xyz'].append(np.copy(ee_xyz))
+    #         self.data['filter'].append(np.copy(self.target))
+    #         self.data['osc_dx'].append(np.copy(self.ctrlr.dx))
+    #         q_T = self.interface.get_torque_load()
+    #         self.data['q_torque'].append(np.copy(q_T))
+    #         self.data['u_friction'].append(np.copy(self.u_friction))
+    #         self.data['u_task'].append(np.copy(self.ctrlr.u_task))
+    #         self.data['u_kp'].append(np.copy(self.ctrlr.u_kp))
+    #         self.data['u_kv'].append(np.copy(self.ctrlr.u_kv))
+
+    #         end = timeit.default_timer() - start
+    #         self.data['time'].append(np.copy(end))
+
+    #         if self.count % 600 == 0:
+    #             #print('error: ', error)
+    #             print('dt: ', end)
+    #             print('friction: ', self.u_friction)
+    #             print('adapt: ', self.u_adapt)
+    #             #print('torque: ', q_T)
+
+    #         loop_time += end
+    #         self.count += 1
+
+    #     print('*~~~~FINAL~~~~*')
+    #     print('error: ', error)
+    #     print('dt: ', end)
+    #     print('adapt: ', self.u_adapt)
+    #     print('*~~~~~~~~~~~~~*')
 
     #@profile
     def generate_u(self):
@@ -618,7 +646,7 @@ class Training:
         converts an input signal of shape time x N_joints and converts to
         spherical
         """
-        print('IN: ', input_signal.shape)
+        #print('IN: ', input_signal.shape)
         x = input_signal.T
         pi = np.pi
         spherical = []
@@ -660,5 +688,5 @@ class Training:
             spherical.append(sphr)
         spherical.append(sin_product(input_signal=x_rad, count=len(x)))
         spherical = np.array(spherical).T
-        print('OUT: ', np.array(spherical).shape)
+        #print('OUT: ', np.array(spherical).shape)
         return(spherical)
