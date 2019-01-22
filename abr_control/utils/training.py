@@ -168,16 +168,9 @@ class Training:
                 print('Integrated Error: ', integrated_error)
 
         # instantiate operational space controller
-        print("""\n\n\n\n
-                RUNNING IN DEBUG MODE\n\n\n
-                NEED TO TURN CORIOLIS TERM BACK ON, WAS SET TO FALSE FOR
-                DEBUGGING SINCE MY COMPUTER CAN'T HANDLE THAT SHI\n\n\n\n
-                oh and need to instantiate interface :)\n\n\n""")
-        time.sleep(1.5)
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
                 vmax=vmax, null_control=True,
-                # integrated_error=integrated_error, use_C=True)
-                integrated_error=integrated_error, use_C=False)
+                integrated_error=integrated_error, use_C=True)
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target

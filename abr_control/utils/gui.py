@@ -684,7 +684,9 @@ class SearchPage(tk.Frame):
                 loaded_data = dat.load(params=[(loc[-1])[:-1]],
                         save_location=''.join(loc[:-1]))
                 # print the selected dataset to the terminal
-                print(loc[-2], '\n', loaded_data)
+                for browse_key in loaded_data:
+                    print('SIZE: ', np.array(loaded_data[browse_key]).shape)
+                    print(loc[-2], '\n', loaded_data)
 
             # if browse_datasets is not selected then go back a level in the
             # search
