@@ -170,7 +170,7 @@ class Training:
         # instantiate operational space controller
         self.ctrlr = OSC(robot_config=self.robot_config, kp=kp, kv=kv, ki=ki,
                 vmax=vmax, null_control=True,
-                integrated_error=integrated_error, use_C=True)
+                integrated_error=integrated_error, use_C=False)
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
@@ -264,6 +264,11 @@ class Training:
         self.trig_q = trig_q
         self.trig_dq = trig_dq
 
+        self.adapt_input = np.array(adapt_input)
+        self.in_index = np.arange(self.robot_config.N_JOINTS)[self.adapt_input]
+        self.adapt_output = np.array(adapt_output)
+        self.out_index = np.arange(self.robot_config.N_JOINTS)[self.adapt_output]
+
         # hdf5 has no type None so an error is raised for runs where None
         # weights are passed in. This get's handled on the dynamics adaptation
         # side, but at this point they will be None. This is added to avoid the
@@ -289,6 +294,9 @@ class Training:
         print('j in cossin space: ', self.trig_q)
         print('dj in cossin space: ', self.trig_dq)
 
+        encoders = self.generate_encoders(input_signal=None,
+                n_neurons=n_neurons, use_spherical=use_spherical,
+                run=self.run)
 
         self.params['adapt_input'] = adapt_input
         self.params['adapt_output'] = adapt_output
@@ -313,7 +321,20 @@ class Training:
                 weights = self.data_handler.load_data(params=['weights'], session=self.session,
                         run=self.run-1, test_group=self.test_group,
                         test_name=self.test_name, create=True)
+        if self.use_spherical:
+            extra_dim = 1
+        else:
+            extra_dim = 0
 
+        n_input = sum(adapt_input*2) + extra_dim
+
+        intercepts = signals.AreaIntercepts(
+            dimensions=n_input,
+            base=signals.Triangular(-0.9, -0.9, 0.0))
+
+        rng = np.random.RandomState(seed)
+        intercepts = intercepts.sample(n_neurons, rng=rng)
+        intercepts = np.array(intercepts)
         print('--Instantiate adapt controller--')
         # instantiate our adaptive controller
         self.adapt = signals.DynamicsAdaptation(
@@ -322,7 +343,7 @@ class Training:
             n_neurons=n_neurons,
             n_ensembles=n_ensembles,
             pes_learning_rate=pes_learning_rate,
-            intercepts=(-0.5, -0.4),
+            intercepts=intercepts,
             intercepts_mode=-0.5,
             weights_file=weights,
             backend=backend,
@@ -330,10 +351,7 @@ class Training:
             seed=seed,
             neuron_type=neuron_type)
 
-        self.adapt_input = np.array(adapt_input)
-        self.in_index = np.arange(self.robot_config.N_JOINTS)[self.adapt_input]
-        self.adapt_output = np.array(adapt_output)
-        self.out_index = np.arange(self.robot_config.N_JOINTS)[self.adapt_output]
+        self.adapt.params['encoders'] = encoders
 
     def connect_to_arm(self):
         # connect to and initialize the arm
@@ -373,10 +391,11 @@ class Training:
         self.target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
         print('--Starting main control loop--')
+        print('Target: ', target_xyz)
         # M A I N   C O N T R O L   L O O P
         while loop_time < reaching_time:
             start = timeit.default_timer()
-            prev_xyz = ee_xyz
+            # prev_xyz = ee_xyz
 
             # use our filter to get the next point along the trajectory to our
             # final target location
@@ -384,7 +403,7 @@ class Training:
                     dt=self.dt)
 
             # calculate euclidean distance to target
-            error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
+            # error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
 
             # get joint angle and velocity feedback
             feedback = self.interface.get_feedback()
@@ -393,7 +412,7 @@ class Training:
             #self.dq[abs(self.dq) < 0.05] = 0
 
             # calculate end-effector position
-            ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
+            # ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
 
             # Calculate the control signal and the adaptive signal
             u = self.generate_u()
@@ -411,21 +430,19 @@ class Training:
                 self.data['input_signal'].append(np.copy(self.adapt_input))
             if self.avoid_limits:
                 self.data['u_avoid'].append(np.copy(self.u_avoid))
-            self.data['error'].append(np.copy(error))
+            #self.data['error'].append(np.copy(error))
             self.data['target'].append(np.copy(target_xyz))
-            self.data['ee_xyz'].append(np.copy(ee_xyz))
+            #self.data['ee_xyz'].append(np.copy(ee_xyz))
             self.data['filter'].append(np.copy(self.target))
-            self.data['osc_dx'].append(np.copy(self.ctrlr.dx))
-            q_T = self.interface.get_torque_load()
-            self.data['q_torque'].append(np.copy(q_T))
+            # self.data['osc_dx'].append(np.copy(self.ctrlr.dx))
+            # q_T = self.interface.get_torque_load()
+            # self.data['q_torque'].append(np.copy(q_T))
             self.data['u_friction'].append(np.copy(self.u_friction))
-            self.data['u_task'].append(np.copy(self.ctrlr.u_task))
-            self.data['u_kp'].append(np.copy(self.ctrlr.u_kp))
-            self.data['u_kv'].append(np.copy(self.ctrlr.u_kv))
+            # self.data['u_task'].append(np.copy(self.ctrlr.u_task))
+            # self.data['u_kp'].append(np.copy(self.ctrlr.u_kp))
+            # self.data['u_kv'].append(np.copy(self.ctrlr.u_kv))
 
             end = timeit.default_timer() - start
-            self.data['time'].append(np.copy(end))
-
             if self.count % 600 == 0:
                 #print('error: ', error)
                 print('dt: ', end)
@@ -433,11 +450,13 @@ class Training:
                 print('adapt: ', self.u_adapt)
                 #print('torque: ', q_T)
 
+            self.data['time'].append(np.copy(end))
+
             loop_time += end
             self.count += 1
 
         print('*~~~~FINAL~~~~*')
-        print('error: ', error)
+        # print('error: ', error)
         print('dt: ', end)
         print('adapt: ', self.u_adapt)
         print('*~~~~~~~~~~~~~*')
@@ -465,8 +484,11 @@ class Training:
 
                 for ii in self.in_index:
                     training_signal.append(self.ctrlr.training_signal[ii])
-                    adapt_input_q.append(self.robot_config.scaledown('q',self.q)[ii])
-                    adapt_input_dq.append(self.robot_config.scaledown('dq',self.dq)[ii])
+                    # adapt_input_q.append(self.robot_config.scaledown('q',self.q)[ii])
+                    # adapt_input_dq.append(self.robot_config.scaledown('dq',self.dq)[ii])
+
+                [adapt_input_q, adapt_input_dq] = self.generate_scaled_inputs(
+                        q=np.copy(self.q), dq=np.copy(self.dq))
 
                 def convert_to_sin_cos(input_signal):
                     """
@@ -533,10 +555,10 @@ class Training:
 
         print('**** RUN STATS ****')
         print('Number of steps: ', self.count)
-        print('Average loop speed: ',
-              sum(self.data['time'])/len(self.data['time']))
-        print('Average Error/Step: ',
-              sum(self.data['error'])/len(self.data['error']))
+        # print('Average loop speed: ',
+        #       sum(self.data['time'])/len(self.data['time']))
+        # print('Average Error/Step: ',
+        #       sum(self.data['error'])/len(self.data['error']))
         print('Run number ', self.run)
         print('*******************')
 
@@ -655,3 +677,152 @@ class Training:
         spherical = np.array(spherical).T
         #print('OUT: ', np.array(spherical).shape)
         return(spherical)
+
+    def generate_encoders(self, input_signal=None, n_neurons=1000, thresh=0.008,
+            use_spherical=True, run=0):
+        """
+        Accepts inputs signal in the shape of time X dim and outputs encoders
+        for the specified number of neurons by sampling from the input
+
+        *NOTE* the input must be passed in prior to spherical conversion, if
+        any is being done
+        """
+        #TODO: scale thresh based on dimensionality of input, 0.008 for 2DOF
+        # and 10k neurons, 10DOF 10k use 0.08, for 10DOF 100 went up to 0.708 by end
+        # 0.3 works well for 1000
+        # first run so we need to generate encoders for the sessions
+        thresh = 0.3
+        debug = False
+        if debug:
+            print('\n\n\nDEBUG LOAD ENCODERS\n\n\n')
+            encoders = np.load('encoders-backup.npz')['encoders']
+        elif run == 0:
+            print('First run of session, generating encoders...')
+            if input_signal is None:
+                print('''No input signal passed in for sampling, using recorded
+                        data...''')
+                data = np.load('input_signal.npz')
+                qs = data['q']
+                dqs = data['dq']
+                [qs, dqs] = self.generate_scaled_inputs(q=qs, dq=dqs)
+                input_signal = np.hstack((qs, dqs))
+                self.input_signal_len = len(input_signal)
+                print('input_signal_length: ', self.input_signal_len)
+                if self.input_signal_len < n_neurons:
+                    print('\n\n\n')
+                    print("ERROR: more neurons than sample points to choose")
+                    print('Currently not supported')
+                    print('\n\n\n')
+            ii = 0
+            same_count = 0
+            prev_index = 0
+            while (input_signal.shape[0] > n_neurons):
+                if ii%1000 == 0:
+                    print(input_signal.shape)
+                    print('thresh: ', thresh)
+                # choose a random set of indices
+                n_indices = input_signal.shape[0]
+                # make sure we're dealing with an even number
+                n_indices -= 0 if ((n_indices % 2) == 0) else 1
+                n_half = int(n_indices / 2)
+
+                randomized_indices = np.random.permutation(range(n_indices))
+                a = randomized_indices[:n_half]
+                b = randomized_indices[n_half:]
+
+                data1 = input_signal[a]
+                data2 = input_signal[b]
+
+                distances = np.linalg.norm(data1 - data2, axis=1)
+
+                under_thresh = distances > thresh
+
+                input_signal = np.vstack([data1, data2[under_thresh]])
+                ii += 1
+                if prev_index == n_indices:
+                    same_count += 1
+                else:
+                    same_count = 0
+
+                if same_count == 500:
+                    same_count = 0
+                    thresh += 0.001
+                    print('All values are within threshold, but not at target size.')
+                    print('Increasing threshold to %.4f' %thresh)
+                prev_index = n_indices
+
+            while (input_signal.shape[0] != n_neurons):
+                print('Too many indices removed, appending random entries to'
+                        + ' match dimensionality')
+                np.append(input_signal, (np.random(input_signal)))
+            print(input_signal.shape)
+            print('thresh: ', thresh)
+            if use_spherical:
+                encoders = self.convert_to_spherical(input_signal)
+            else:
+                encoders = np.array(input_signal)
+
+        # seccessive run so load the encoders used for run 0
+        else:
+            print('Loading encoders used for run 0...')
+            encoders = self.data_handler.load(params=['encoders'],
+                    save_location='%s/%s/parameters/dynamics_adaptation/'
+                                   %(self.test_group, self.test_name))['encoders']
+        np.savez_compressed('encoders-backup.npz', encoders=encoders)
+        encoders = np.array(encoders)
+        return encoders
+
+    def generate_scaled_inputs(self, q, dq, in_index=None):
+        '''
+        pass q dq in as time x dim shape
+        accepts the 6 joint positions and velocities of the jaco2 and does the
+        mean subtraction and scaling. Can set which joints are of interest with
+        in_index, if it is not passed in the self.in_index instantiated in
+        __init_network__ will be used
+
+        returns two n x 6 lists scaled, one for q and one for dq
+        '''
+        # check if we received a 1D input (one timestep) or a 2D input (list of
+        # inputs over time)
+        # if np.squeeze(q)[0] > 1 and np.squeeze(q)[1] > 1:
+        #     print('Scaling list of inputs')
+        if in_index is None:
+            in_index = self.in_index
+        qs = q.T
+        dqs = dq.T
+        #print('raw q: ', np.array(qs).T.shape)
+
+        # add bias to joints 0 and 4 so that the input signal doesn't keep
+        # bouncing back and forth over the 0 to 2*pi line
+        qs[0] = (qs[0] + np.pi) % (2*np.pi)
+        qs[4] = (qs[4] + np.pi) % (2*np.pi)
+
+        MEANS = {  # expected mean of joint angles / velocities
+            # shift from 0-2pi to -pi to pi
+            'q': np.array([3.20, 2.14, 1.52, 4.68, 3.00, 3.00]),
+            'dq': np.array([0.002, -0.117, -0.200, 0.002, -0.021, 0.002]),
+            }
+        SCALES = {  # expected variance of joint angles / velocities
+            'q': np.array([0.2, 1.14, 1.06, 1.0, 2.8, 0.01]),
+            'dq': np.array([0.06, 0.45, 0.7, 0.25, 0.4, 0.01]),
+            }
+
+        for pp in range(0, 6):
+            qs[pp] = (qs[pp] - MEANS['q'][pp]) / SCALES['q'][pp]
+            dqs[pp] = (dqs[pp] - MEANS['dq'][pp]) / SCALES['dq'][pp]
+
+        qs = qs
+        dqs = dqs
+        scaled_q = []
+        scaled_dq = []
+        #print(in_index)
+        for ii in in_index:
+            scaled_q.append(qs[ii])
+            scaled_dq.append(dqs[ii])
+        scaled_q = np.array(scaled_q).T
+        scaled_dq = np.array(scaled_dq).T
+        #print('scaled q: ', np.array(scaled_q).shape)
+
+        return [scaled_q, scaled_dq]
+
+
