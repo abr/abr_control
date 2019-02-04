@@ -141,6 +141,28 @@ class SecondOrder(PathPlanner):
 
             plt.show()
 
+    def generate_path_function(self, state, target_pos, runtime):
+        self.n_timesteps = 1000
+        self.generate_path(state=state, target_pos=target_pos)
+        dist = np.sqrt(np.sum((target_pos[:3] - self.trajectory[-1][:3])**2))
+        while dist > 0.001:
+            print('filter not at target, increasing timesteps')
+            self.n_timesteps += 500
+            self.generate_path(state=state, target_pos=target_pos)
+            dist = np.sqrt(np.sum((target_pos[:3] - self.trajectory[-1][:3])**2))
+        import scipy.interpolate
+        times = np.linspace(0, runtime, self.n_timesteps)
+        x = scipy.interpolate.interp1d(times, self.trajectory[:,0])
+        y = scipy.interpolate.interp1d(times, self.trajectory[:,1])
+        z = scipy.interpolate.interp1d(times, self.trajectory[:,2])
+        self.path_func = [x,y,z]
+
+    def next_timestep(self,t):
+        target = [self.path_func[0](t),
+                  self.path_func[1](t),
+                  self.path_func[2](t)]
+        return target
+
     def next_target(self):
         """ Return the next target point along the generated trajectory """
 
