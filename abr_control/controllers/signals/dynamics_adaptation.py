@@ -130,6 +130,7 @@ class DynamicsAdaptation(Signal):
         self.nengo_model.config[nengo.Connection].synapse = None
 
         # Set the nerual model to use
+        self.neuron_type = self.neuron_type.tolist()
         if self.neuron_type.lower() == 'lif':
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
 
@@ -193,7 +194,7 @@ class DynamicsAdaptation(Signal):
                         if ii==0:
                             print('NengoLib used to optimize encoders placement')
                     else:
-                        self.adapt_ens[ii].encoders = self.encoders
+                        self.adapt_ens[ii].encoders = self.encoders[ii]
                         if ii==0:
                             print('Using user defined encoder values')
                 except ImportError:
@@ -375,6 +376,7 @@ class DynamicsAdaptation(Signal):
                   'neuron_type': self.neuron_type,
                   'seed': self.seed,
                   'pes': self.pes_learning_rate,
+                  'intercepts': self.intercepts,
                   'intercepts_bounds': self.intercepts_bounds,
                   'intercepts_mode': self.intercepts_mode,
                   'backend': self.backend,

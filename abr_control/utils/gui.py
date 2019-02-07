@@ -132,11 +132,12 @@ def live_plot(i):
         legend_names = []
         #print('STARTING DISP: ', disp_loc)
         tests_to_remove = []
+        plotting_colors=['r', 'g', 'b', 'o', 'y', 'm', 'k', 'tab:purple', 'tab:grey']
         for count, test in enumerate(disp_loc):
             #print(count, ' : ', test)
 
-            if count+1 > len(plotting_colors):
-                plotting_colors.append(np.around(np.random.rand(3,1), decimals=1))
+            # if count+1 > len(plotting_colors):
+            #     plotting_colors.append(np.around(np.random.rand(3,1), decimals=1))
             legend_name = test.split('/')[-2]
             #legend_name += ' %s'%var_to_plot
             legend_names.append(legend_name)
@@ -193,7 +194,7 @@ def live_plot(i):
                     d = dat.load(params=['mean', 'upper_bound', 'lower_bound'],
                             save_location=location)
                     pltE.plot_data(data=[d], show_plot=False, fig_obj=a,
-                            colors=[plotting_colors[count]],
+                            #colors=[plotting_colors[count]],
                             legend_labels=None, fig_title = '%s error'%(order_to_plot))
                 except:
                     print('%s does not contain processed data'%location)
@@ -272,7 +273,9 @@ def live_plot(i):
                             a_sub[oo].set_ylim(y_mins[oo], y_maxes[oo])
                             # #TODO FIX THE COLOURS 
                             # print(plotting_colors[count])
-                            a_sub[oo].plot(dof, c='r',#plotting_colors[count],
+                            print(plotting_colors)
+                            print(count)
+                            a_sub[oo].plot(dof, c=plotting_colors[count],
                                     label=legend_names[count])#,
                                     #alpha=1/len(d.T) * (oo+1))
                     else:

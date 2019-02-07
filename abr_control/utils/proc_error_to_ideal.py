@@ -314,9 +314,15 @@ class PathErrorToIdeal():
                         print_list.append('Test: %f'% np.sum(time))
                         print('!!!reaching_time test triggered!!!')
 
-                    if any(param_check):
-                        to_print = '\n'.join(print_list)
-                        raise ValueError('\n'.join(print_list))
+                    #NOTE: commented because misalignment with timed filter and start
+                    #filter needs a start position before the arm is connected and a
+                    #position is read back. Previously recorded start is used,
+                    #which may slightly vary between tests due to tolerance set
+                    #in joint controller for returning to home position
+
+                    # if any(param_check):
+                    #     to_print = '\n'.join(print_list)
+                    #     raise ValueError('\n'.join(print_list))
 
                     # used for differentiating higher orders of error
                     run_time = sum(time)

@@ -24,7 +24,7 @@ def align_yaxis(ax1, v1, ax2, v2):
 # print('Removing old figures from "gif_figs" folder...')
 # process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)#,
 # output, error = process.communicate()
-only_final_frame = False
+only_final_frame = True
 show_traj = True
 use_cache=True
 plot_extra = False
@@ -33,10 +33,11 @@ plot_u = False
 # runs=[0,10,25,40,49, 0,10,25,40,49, 0,10,25,40,49]
 # sessions=[0,0,0,0,0,1,1,1,1,1,2,2,2,2,2]
 #runs=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 49]
-runs = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+runs = range(0,49)
+#runs = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
 #sessions=[0,0,0,0,0,0,0,0,0,0]
 sessions = np.zeros(len(runs))
-n_columns = 4
+n_columns = 10
 #db_name = 'jacoOSCdebug'
 db_name = 'dewolf2018neuromorphic'
 test_groups = [
@@ -48,8 +49,12 @@ test_groups = [
                 # 'weighted_reach_post_tuning',
               ]
 tests = [
-        'nengo_loihi_friction_18_0',
-        'nengo_cpu_friction_23_0',
+        'nengo_loihi_friction_31_0',
+        # 'nengo_loihi_friction_28_0',
+        # 'nengo_cpu_friction_50_0',
+        'nengo_cpu_friction_49_0',
+        # 'nengo_loihi_friction_19_0',
+        #'nengo_cpu_friction_20_0',
         #'pd_no_friction_5_0',
         #'nengo_cpu_friction_12_0',
         #'pd_friction_11_0',
@@ -370,8 +375,9 @@ for ii in range(0,length,10):
             ax3.set_ylim(min_dist, max_dist)
             ax3.set_ylabel('m')
 
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.savefig('%s/gif_fig_cache/%05d.png'%(save_loc,ii))
+    ax.clear()
     plt.close()
     if only_final_frame:
         break

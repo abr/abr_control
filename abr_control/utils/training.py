@@ -90,6 +90,7 @@ class Training:
             point
         """
 
+        self.remove_arm = False
         self.use_adapt = False
         self.friction_gain = np.array(friction_gain)
         self.params = {'source': 'training',
@@ -174,9 +175,11 @@ class Training:
 
         print('--Instantiate path planner--')
         # instantiate our filter to smooth out trajectory to final target
-        self.path = path_planners.SecondOrder(robot_config=self.robot_config,
-                n_timesteps=3000, w=1e4, zeta=3, threshold=0.0)
+        # self.path = path_planners.SecondOrder(robot_config=self.robot_config,
+        #         n_timesteps=3000, w=1e4, zeta=3, threshold=0.0)
         self.dt = 0.004
+
+        self.path = path_planners.dmpFilter()
 
         if self.avoid_limits:
             print('--Instantiate joint avoidance--')
@@ -198,7 +201,8 @@ class Training:
 
         print('--Instantiate interface--')
         # instantiate our interface
-        self.interface = abr_jaco2.Interface(robot_config=self.robot_config)
+        if not self.remove_arm:
+            self.interface = abr_jaco2.Interface(robot_config=self.robot_config)
 
         # set up lists for tracking data
         self.data = {'q': [], 'dq': [], 'u_base': [], 'u_adapt': [],
@@ -283,11 +287,8 @@ class Training:
         else:
             extra_dim = 0
 
-        # adapt input gives the numebr of joints being adapted
-        # triq_q and triq_dq should be 1 if True, 0 if False
-        # this will add the extra dimensions needed if converting inputs into
-        # sin cos space
-        extra_dim += int(sum(adapt_input) * (self.trig_q + self.trig_dq))
+        n_input = sum(adapt_input*2) + extra_dim
+
 
         print('EXTRA DIM: ', extra_dim)
         print('Using spherical: ', self.use_spherical)
@@ -295,8 +296,9 @@ class Training:
         print('dj in cossin space: ', self.trig_dq)
 
         encoders = self.generate_encoders(input_signal=None,
-                n_neurons=n_neurons, use_spherical=use_spherical,
+                n_neurons=n_neurons*n_ensembles, use_spherical=use_spherical,
                 run=self.run)
+        encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
 
         self.params['adapt_input'] = adapt_input
         self.params['adapt_output'] = adapt_output
@@ -321,12 +323,6 @@ class Training:
                 weights = self.data_handler.load_data(params=['weights'], session=self.session,
                         run=self.run-1, test_group=self.test_group,
                         test_name=self.test_name, create=True)
-        if self.use_spherical:
-            extra_dim = 1
-        else:
-            extra_dim = 0
-
-        n_input = sum(adapt_input*2) + extra_dim
 
         intercepts = signals.AreaIntercepts(
             dimensions=n_input,
@@ -349,18 +345,20 @@ class Training:
             backend=backend,
             probe_weights=probe_weights,
             seed=seed,
-            neuron_type=neuron_type)
+            neuron_type=neuron_type,
+            encoders=encoders)
 
-        self.adapt.params['encoders'] = encoders
-
+        # self.adapt.params['encoders'] = encoders
+        #
     def connect_to_arm(self):
         # connect to and initialize the arm
-        print('--Connect to arm--')
-        self.interface.connect()
-        self.interface.init_position_mode()
-        self.interface.send_target_angles(self.robot_config.INIT_TORQUE_POSITION)
-        print('--Initialize force mode--')
-        self.interface.init_force_mode()
+        if not self.remove_arm:
+            print('--Connect to arm--')
+            self.interface.connect()
+            self.interface.init_position_mode()
+            self.interface.send_target_angles(self.robot_config.INIT_TORQUE_POSITION)
+            print('--Initialize force mode--')
+            self.interface.init_force_mode()
 
     def reach_to_target(self, target_xyz, reaching_time):
         # TODO: ADD NOTE ABOUT USING BASH FOR MULTIPLE RUNS INSTEAD OF JUST
@@ -374,21 +372,23 @@ class Training:
         reaching_time: float
             time [seconds] to reach to target
         """
-
         # track loop_time for stopping test
         loop_time = 0
 
         # get joint angle and velocity feedback to reset starting point to
         # current end-effector position
-        feedback = self.interface.get_feedback()
+        if not self.remove_arm:
+            feedback = self.interface.get_feedback()
+        else:
+            feedback = {'q': np.zeros(6), 'dq': np.zeros(6)}
         self.q = feedback['q']
         self.dq = feedback['dq']
         #self.dq[abs(self.dq) < 0.05] = 0
         # calculate end-effector position
         ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
 
-        # last three terms used as started point for target EE velocity
-        self.target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
+        # # last three terms used as started point for target EE velocity
+        # self.target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
 
         print('--Starting main control loop--')
         print('Target: ', target_xyz)
@@ -399,25 +399,35 @@ class Training:
 
             # use our filter to get the next point along the trajectory to our
             # final target location
-            self.target = self.path.step(state=self.target, target_pos=target_xyz,
-                    dt=self.dt)
+            # self.target = self.path.step(state=self.target, target_pos=target_xyz,
+            #         dt=self.dt)
+
+            # self.target = self.path.next_timestep(t=loop_time)
+
 
             # calculate euclidean distance to target
             # error = np.sqrt(np.sum((ee_xyz - target_xyz)**2))
 
             # get joint angle and velocity feedback
+            #if not self.remove_arm:
             feedback = self.interface.get_feedback()
+            #else:
+            #    feedback = {'q': np.zeros(6), 'dq': np.zeros(6)}
             self.q = feedback['q']
             self.dq = feedback['dq']
             #self.dq[abs(self.dq) < 0.05] = 0
 
             # calculate end-effector position
-            # ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
+            ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
+
+            # step through our path planner based on the current runtime
+            self.target = self.path.next_timestep(t=loop_time)
 
             # Calculate the control signal and the adaptive signal
             u = self.generate_u()
 
             # send forces
+            #if not self.remove_arm:
             self.interface.send_forces(np.array(u, dtype='float32'))
 
             # track data
@@ -443,12 +453,12 @@ class Training:
             # self.data['u_kv'].append(np.copy(self.ctrlr.u_kv))
 
             end = timeit.default_timer() - start
-            if self.count % 600 == 0:
-                #print('error: ', error)
-                print('dt: ', end)
-                print('friction: ', self.u_friction)
-                print('adapt: ', self.u_adapt)
-                #print('torque: ', q_T)
+            # if self.count % 600 == 0:
+            #     #print('error: ', error)
+            #     print('dt: ', end)
+            #     print('friction: ', self.u_friction)
+            #     print('adapt: ', self.u_adapt)
+            #     #print('torque: ', q_T)
 
             self.data['time'].append(np.copy(end))
 
@@ -458,8 +468,10 @@ class Training:
         print('*~~~~FINAL~~~~*')
         # print('error: ', error)
         print('dt: ', end)
+        print('friction: ', self.u_friction)
         print('adapt: ', self.u_adapt)
         print('*~~~~~~~~~~~~~*')
+
 
     #@profile
     def generate_u(self):
@@ -549,9 +561,10 @@ class Training:
     def stop(self):
         print('--Disconnecting--')
         # close the connection to the arm
-        self.interface.init_position_mode()
-        self.interface.send_target_angles(self.robot_config.INIT_TORQUE_POSITION)
-        self.interface.disconnect()
+        if not self.remove_arm:
+            self.interface.init_position_mode()
+            self.interface.send_target_angles(self.robot_config.INIT_TORQUE_POSITION)
+            self.interface.disconnect()
 
         print('**** RUN STATS ****')
         print('Number of steps: ', self.count)
@@ -699,8 +712,7 @@ class Training:
         elif run == 0:
             print('First run of session, generating encoders...')
             if input_signal is None:
-                print('''No input signal passed in for sampling, using recorded
-                        data...''')
+                print('No input signal passed in for sampling, using recorded data')
                 data = np.load('input_signal.npz')
                 qs = data['q']
                 dqs = data['dq']
@@ -708,11 +720,6 @@ class Training:
                 input_signal = np.hstack((qs, dqs))
                 self.input_signal_len = len(input_signal)
                 print('input_signal_length: ', self.input_signal_len)
-                if self.input_signal_len < n_neurons:
-                    print('\n\n\n')
-                    print("ERROR: more neurons than sample points to choose")
-                    print('Currently not supported')
-                    print('\n\n\n')
             ii = 0
             same_count = 0
             prev_index = 0
@@ -744,17 +751,23 @@ class Training:
                 else:
                     same_count = 0
 
-                if same_count == 500:
+                if same_count == 50:
                     same_count = 0
                     thresh += 0.001
                     print('All values are within threshold, but not at target size.')
                     print('Increasing threshold to %.4f' %thresh)
                 prev_index = n_indices
 
+            first_time = True
             while (input_signal.shape[0] != n_neurons):
-                print('Too many indices removed, appending random entries to'
-                        + ' match dimensionality')
-                np.append(input_signal, (np.random(input_signal)))
+                if first_time:
+                    print('Too many indices removed, appending random entries to'
+                            + ' match dimensionality')
+                    print('shape: ', input_signal.shape)
+                first_time = False
+                row = np.random.randint(input_signal.shape[0])
+                input_signal = np.vstack((input_signal, input_signal[row]))
+
             print(input_signal.shape)
             print('thresh: ', thresh)
             if use_spherical:
@@ -770,6 +783,7 @@ class Training:
                                    %(self.test_group, self.test_name))['encoders']
         np.savez_compressed('encoders-backup.npz', encoders=encoders)
         encoders = np.array(encoders)
+        print(encoders.shape)
         return encoders
 
     def generate_scaled_inputs(self, q, dq, in_index=None):
@@ -824,5 +838,11 @@ class Training:
         #print('scaled q: ', np.array(scaled_q).shape)
 
         return [scaled_q, scaled_dq]
+
+    def generate_path(self, target_xyz, start_xyz, time_limit):
+        self.path.generate_path_function(
+                target_xyz=target_xyz,
+                start_xyz=start_xyz,
+                time_limit=4)
 
 

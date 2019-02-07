@@ -97,17 +97,28 @@ class PlotLearningProfile:
                             'seed': 0,
                             'neuron_type': 'lif'
                            }
-            print(adapt_params)
+        print(adapt_params)
 
-        if intercepts is None:
-            if intercepts_bounds is None:
-                self.intercepts_bounds = adapt_params['intercepts_bounds']
-            else:
-                self.intercepts_bounds = intercepts_bounds
-            if intercepts_mode is None:
-                self.intercepts_mode = adapt_params['intercepts_mode']
-            else:
-                self.intercepts_mode = intercepts_mode
+        encoders = adapt_params['encoders']
+
+        intercepts = signals.AreaIntercepts(
+            dimensions=n_inputs,
+            base=signals.Triangular(-0.9, -0.9, 0.0))
+
+        seed = 0
+        rng = np.random.RandomState(seed)
+        intercepts = intercepts.sample(adapt_params['n_neurons'], rng=rng)
+        intercepts = np.array(intercepts)
+
+        # if intercepts is None:
+        if intercepts_bounds is None:
+            self.intercepts_bounds = adapt_params['intercepts_bounds']
+        else:
+            self.intercepts_bounds = intercepts_bounds
+        if intercepts_mode is None:
+            self.intercepts_mode = adapt_params['intercepts_mode']
+        else:
+            self.intercepts_mode = intercepts_mode
 
         self.use_spherical = use_spherical
 
@@ -257,6 +268,22 @@ class PlotLearningProfile:
         ax2.set_ylabel('Number of active neurons')
         ax2.set_xlabel('Proportion of Time')
 
+        num_inactive = 0
+        num_active = 0
+        times_neuron_fires = []
+        for ens in activities:
+            ens = ens.T
+            for nn, neuron in enumerate(ens):
+                # print('shape2: ', np.array(neuron).shape)
+                # break
+                if np.sum(ens[nn]) == 0:
+                    num_inactive += 1
+                else:
+                    num_active += 1
+                times_neuron_fires.append(np.sum(ens[nn]))
+        print('Number of neurons inactive: ', num_inactive)
+        print('Number of neurons active: ', num_active)
+
         proportion_active = []
         for activity in activities:
             # axis=0 mean over time
@@ -268,7 +295,8 @@ class PlotLearningProfile:
                 axis=0)/len(proportion_active)
         ax2 = fig.add_subplot(313)
         ax2.plot(np.cumsum(time), proportion_active, label='proportion active')
-        ax2.set_title('Proportion of active neurons over time %i'%save_num)
+        ax2.set_title(('Proportion of active neurons over time %i\n'%save_num
+            + 'Active: %i,  Inactive: %i'%(num_active, num_inactive)))
         ax2.set_ylabel('Proportion Active')
         ax2.set_xlabel('Time [sec]')
         ax2.set_ylim(0, 1)

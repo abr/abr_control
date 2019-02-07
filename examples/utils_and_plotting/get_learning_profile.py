@@ -22,14 +22,14 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import os
 
-test_group = 'testing'
-test_name = 'nengo_loihi_tuning_106_0'
-db_name = 'loihi_tuning_2019'
+test_group = 'friction_post_tuning'
+test_name = 'nengo_cpu_friction_49_0'
+db_name = 'dewolf2018neuromorphic'
 loc = '/%s/%s/'%(test_group, test_name)
 baseline_loc = None #'/weighted_reach_post_tuning/pd_no_weight_4/'
 use_cache = True
-n_runs = 1
-stack_inputs = False
+n_runs = 49
+stack_inputs = True
 # set true to convert the input passed in to spherical coordinates, set to
 # False if you either don't want this or if your input is already converted to
 # spherical

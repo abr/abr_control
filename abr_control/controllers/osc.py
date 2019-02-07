@@ -142,7 +142,7 @@ class OSC(controller.Controller):
         self.M_inv = M_inv
         # calculate the Jacobian for end-effector with no offset
         Mx_inv = np.dot(J, np.dot(M_inv, J.T))
-        if np.linalg.det(Mx_inv) != 0:
+        if np.linalg.det(Mx_inv) > 1e-4:
             # do the linalg inverse if matrix is non-singular
             # because it's faster and more accurate
             Mx = np.linalg.inv(Mx_inv)
