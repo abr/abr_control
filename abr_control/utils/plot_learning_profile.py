@@ -25,7 +25,7 @@ from nengo.utils.matplotlib import rasterplot
 
 class PlotLearningProfile:
     def __init__(self, test_group, test_name, db_name=None, use_cache=True,
-            intercepts_bounds=None, intercepts_mode=None, use_spherical=False,
+            use_spherical=False,
             encoders=None, intercepts=None, n_inputs=2, n_outputs=2,
             n_ensembles=1, n_neurons=100):
         """
@@ -43,15 +43,6 @@ class PlotLearningProfile:
         use_cache: Boolean, Optional (Default: None)
             whether or not the database is saved in the ~/.cache/abr_control
             folder
-        intercepts_bounds: list with two floats, Optional (Default: None)
-            intercept bounds for the network to see how the activity would
-            change with intercept changes. This allows you to quickly test out
-            options in simulation with your recorded inputs, without having to
-            run a physical arm
-        intercepts_mode: float, Optional (Default: None)
-            Mode where to distribute intercepts around. Allows you to test out
-            alternative in the same way as the intercepts_bounds mentioned
-            above
         use_spherical: Boolean, Optional (Default: None)
             If True, increasing the input dimension by 1 and converts inputs to
             spherical coordinates
@@ -99,27 +90,6 @@ class PlotLearningProfile:
                            }
         print(adapt_params)
 
-        encoders = adapt_params['encoders']
-
-        intercepts = signals.AreaIntercepts(
-            dimensions=n_inputs,
-            base=signals.Triangular(-0.9, -0.9, 0.0))
-
-        seed = 0
-        rng = np.random.RandomState(seed)
-        intercepts = intercepts.sample(adapt_params['n_neurons'], rng=rng)
-        intercepts = np.array(intercepts)
-
-        # if intercepts is None:
-        if intercepts_bounds is None:
-            self.intercepts_bounds = adapt_params['intercepts_bounds']
-        else:
-            self.intercepts_bounds = intercepts_bounds
-        if intercepts_mode is None:
-            self.intercepts_mode = adapt_params['intercepts_mode']
-        else:
-            self.intercepts_mode = intercepts_mode
-
         self.use_spherical = use_spherical
 
         if self.use_spherical:
@@ -134,8 +104,8 @@ class PlotLearningProfile:
                 n_neurons=int(adapt_params['n_neurons']),
                 n_ensembles=int(adapt_params['n_ensembles']),
                 pes_learning_rate=float(adapt_params['pes']),
-                intercepts_bounds=self.intercepts_bounds,
-                intercepts_mode=self.intercepts_mode,
+                intercepts_bounds=None,
+                intercepts_mode=None,
                 intercepts=intercepts,
                 #weights_file=weights,
                 backend=adapt_params['backend'],

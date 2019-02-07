@@ -15,70 +15,167 @@ Plots
 3. proportion of neurons that are active over time
 """
 from abr_control.utils import DataHandler, PlotLearningProfile, make_gif
+from abr_control.controllers import signals
 from abr_control.utils.paths import cache_dir
 import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import os
-def sample_encoders(input_signal, n_neurons=1000):
-    iterations = int(1.1*n_neurons)
-    ii = 0
-    same_count = 0
-    prev_index = 0
-    thresh = .008
-    while (input_signal.shape[0] > n_neurons):
-    #for ii in range(iterations):
-        if ii%500 == 0:
-            print(input_signal.shape)
-            print('thresh: ', thresh)
-        # choose a random set of indices
-        n_indices = input_signal.shape[0]
-        # make sure we're dealing with an even number
-        n_indices -= 0 if ((n_indices % 2) == 0) else 1
-        n_half = int(n_indices / 2)
 
-        randomized_indices = np.random.permutation(range(n_indices))
-        a = randomized_indices[:n_half]
-        b = randomized_indices[n_half:]
+def generate_encoders(input_signal=None, n_neurons=1000, thresh=0.008,
+        use_spherical=True, run=0):
+    """
+    Accepts inputs signal in the shape of time X dim and outputs encoders
+    for the specified number of neurons by sampling from the input
 
-        data1 = input_signal[a]
-        data2 = input_signal[b]
+    *NOTE* the input must be passed in prior to spherical conversion, if
+    any is being done
+    """
+    #TODO: scale thresh based on dimensionality of input, 0.008 for 2DOF
+    # and 10k neurons, 10DOF 10k use 0.08, for 10DOF 100 went up to 0.708 by end
+    # 0.3 works well for 1000
+    # first run so we need to generate encoders for the sessions
+    debug = False
+    if debug:
+        print('\n\n\nDEBUG LOAD ENCODERS\n\n\n')
+        encoders = np.load('encoders-backup.npz')['encoders']
+    elif run == 0:
+        print('First run of session, generating encoders...')
+        if input_signal is None:
+            print('No input signal passed in for sampling, using recorded data')
+            data = np.load('input_signal.npz')
+            qs = data['q']
+            dqs = data['dq']
+            print(np.array(qs).shape)
+            [qs, dqs] = generate_scaled_inputs(q=qs, dq=dqs, in_index=in_index)
+            input_signal = np.hstack((qs, dqs))
+            input_signal_len = len(input_signal)
+            print('input_signal_length: ', input_signal_len)
+        ii = 0
+        same_count = 0
+        prev_index = 0
+        while (input_signal.shape[0] > n_neurons):
+            if ii%1000 == 0:
+                print(input_signal.shape)
+                print('thresh: ', thresh)
+            # choose a random set of indices
+            n_indices = input_signal.shape[0]
+            # make sure we're dealing with an even number
+            n_indices -= 0 if ((n_indices % 2) == 0) else 1
+            n_half = int(n_indices / 2)
 
-        distances = np.linalg.norm(data1 - data2, axis=1)
+            randomized_indices = np.random.permutation(range(n_indices))
+            a = randomized_indices[:n_half]
+            b = randomized_indices[n_half:]
 
-        under_thresh = distances > thresh
+            data1 = input_signal[a]
+            data2 = input_signal[b]
 
-        input_signal = np.vstack([data1, data2[under_thresh]])
-        ii += 1
-        if prev_index == n_indices:
-            same_count += 1
-        else:
-            same_count = 0
+            distances = np.linalg.norm(data1 - data2, axis=1)
 
-        if same_count == 500:
-            same_count = 0
-            if thresh > 0.001:
-                thresh += 0.001
-            elif thresh > 0.0001:
-                thresh -= 0.0001
+            under_thresh = distances > thresh
+
+            input_signal = np.vstack([data1, data2[under_thresh]])
+            ii += 1
+            if prev_index == n_indices:
+                same_count += 1
             else:
-                print(distances)
-                import time
-                time.sleep(100)
+                same_count = 0
 
-            print('All values are within threshold, but not at target size.')
-            print('Dropping threshold to %.4f' %thresh)
-        prev_index = n_indices
+            if same_count == 50:
+                same_count = 0
+                thresh += 0.001
+                print('All values are within threshold, but not at target size.')
+                print('Increasing threshold to %.4f' %thresh)
+            prev_index = n_indices
 
-    encoders = convert_to_spherical(input_signal)
+        first_time = True
+        while (input_signal.shape[0] != n_neurons):
+            if first_time:
+                print('Too many indices removed, appending random entries to'
+                        + ' match dimensionality')
+                print('shape: ', input_signal.shape)
+            first_time = False
+            row = np.random.randint(input_signal.shape[0])
+            input_signal = np.vstack((input_signal, input_signal[row]))
+
+        print(input_signal.shape)
+        print('thresh: ', thresh)
+        if use_spherical:
+            encoders = convert_to_spherical(input_signal)
+        else:
+            encoders = np.array(input_signal)
+
+    # seccessive run so load the encoders used for run 0
+    # else:
+    #     print('Loading encoders used for run 0...')
+    #     encoders = self.data_handler.load(params=['encoders'],
+    #             save_location='%s/%s/parameters/dynamics_adaptation/'
+    #                             %(self.test_group, self.test_name))['encoders']
+    np.savez_compressed('encoders-backup.npz', encoders=encoders)
+    encoders = np.array(encoders)
+    print(encoders.shape)
     return encoders
 
-# convert to 3D
+def generate_scaled_inputs(q, dq, in_index):
+    '''
+    pass q dq in as time x dim shape
+    accepts the 6 joint positions and velocities of the jaco2 and does the
+    mean subtraction and scaling. Can set which joints are of interest with
+    in_index, if it is not passed in the self.in_index instantiated in
+    __init_network__ will be used
+
+    returns two n x 6 lists scaled, one for q and one for dq
+
+    '''
+    # check if we received a 1D input (one timestep) or a 2D input (list of
+    # inputs over time)
+    # if np.squeeze(q)[0] > 1 and np.squeeze(q)[1] > 1:
+    #     print('Scaling list of inputs')
+    qs = q.T
+    dqs = dq.T
+    #print('raw q: ', np.array(qs).T.shape)
+
+    # add bias to joints 0 and 4 so that the input signal doesn't keep
+    # bouncing back and forth over the 0 to 2*pi line
+    qs[0] = (qs[0] + np.pi) % (2*np.pi)
+    qs[4] = (qs[4] + np.pi) % (2*np.pi)
+
+    MEANS = {  # expected mean of joint angles / velocities
+        # shift from 0-2pi to -pi to pi
+        'q': np.array([3.20, 2.14, 1.52, 4.68, 3.00, 3.00]),
+        'dq': np.array([0.002, -0.117, -0.200, 0.002, -0.021, 0.002]),
+        }
+    SCALES = {  # expected variance of joint angles / velocities
+        'q': np.array([0.2, 1.14, 1.06, 1.0, 2.8, 0.01]),
+        'dq': np.array([0.06, 0.45, 0.7, 0.25, 0.4, 0.01]),
+        }
+
+    for pp in range(0, 6):
+        qs[pp] = (qs[pp] - MEANS['q'][pp]) / SCALES['q'][pp]
+        dqs[pp] = (dqs[pp] - MEANS['dq'][pp]) / SCALES['dq'][pp]
+
+    qs = qs
+    dqs = dqs
+    scaled_q = []
+    scaled_dq = []
+    #print(in_index)
+    for ii in in_index:
+        scaled_q.append(qs[ii])
+        scaled_dq.append(dqs[ii])
+    scaled_q = np.array(scaled_q).T
+    scaled_dq = np.array(scaled_dq).T
+    #print('scaled q: ', np.array(scaled_q).shape)
+
+    return [scaled_q, scaled_dq]
+
 def convert_to_spherical(input_signal):
-    """ converts an input signal of shape time x N_joints and converts to spherical
     """
-    print('IN: ', input_signal.shape)
+    converts an input signal of shape time x N_joints and converts to
+    spherical
+    """
+    #print('IN: ', input_signal.shape)
     x = input_signal.T
     pi = np.pi
     spherical = []
@@ -120,9 +217,8 @@ def convert_to_spherical(input_signal):
         spherical.append(sphr)
     spherical.append(sin_product(input_signal=x_rad, count=len(x)))
     spherical = np.array(spherical).T
-    print('OUT: ', np.array(spherical).shape)
+    #print('OUT: ', np.array(spherical).shape)
     return(spherical)
-
 
 # NOTE: if not using hdf5 database, just load in your own data for
 # input_signal
@@ -141,7 +237,7 @@ else:
     db_name = None
     test_group = None
     test_name = None
-    input_signal = np.ones((1000,3))
+    input_signal = np.load('input_signal.npz')
 
 # TODO: need to clean this up in the final form
 # default in dynadapt using triangular intercepts, if using them keep
@@ -150,21 +246,49 @@ else:
 # here and intercepts_mode and intercepts_bounds will be ignored
 
 n_neurons = 1000
+n_ensembles = 45
+use_spherical = True
+n_inputs = 11
+n_outputs = 5
+adapt_input = [True, True, True, True, True, False]
+in_index = np.arange(6)[adapt_input]
+seed = 0
 
-# Define your intercepts
-intercepts = None
+intercepts = signals.AreaIntercepts(
+    dimensions=n_inputs,
+    base=signals.Triangular(-0.9, -0.9, 0.0))
+
+rng = np.random.RandomState(seed)
+intercepts = intercepts.sample(n_neurons, rng=rng)
+intercepts = np.array(intercepts)
+
 
 # Define your encoders
-encoders = sample_encoders(input_signal=input_signal_non_spherical,
-        n_neurons=n_neurons)
+# Leave input_signal as None and the function will load from the npz file,
+# hacky but how it is for now
+encoders = generate_encoders(input_signal=None, thresh=0.008,
+        n_neurons=n_neurons*n_ensembles, use_spherical=use_spherical)
+
+encoders = encoders.reshape(n_ensembles, n_neurons, n_inputs)
+
+data = np.load('input_signal.npz')
+qs = data['q']
+dqs = data['dq']
+[input_q, input_dq] = generate_scaled_inputs(
+        q=qs, dq=dqs, in_index=in_index)
+input_signal = np.hstack((input_q, input_dq))
+
+if use_spherical:
+    input_signal = convert_to_spherical(input_signal)
 
 plt_learning = PlotLearningProfile(test_group=test_group,
         test_name=test_name, db_name=db_name, use_cache=True,
-        intercepts_bounds=[-0.5, -0.1], intercepts_mode=-0.4,
-        encoders=encoders, intercepts=intercepts, #use_spherical=False,
-        n_inputs=3, n_outputs=1, n_neurons=n_neurons, n_ensembles=1)
+        #intercepts_bounds=[-0.5, -0.1], intercepts_mode=-0.4,
+        encoders=encoders, intercepts=intercepts, use_spherical=False,
+        n_inputs=n_inputs, n_outputs=n_outputs, n_neurons=n_neurons,
+        n_ensembles=n_ensembles)
 
-plt_learning.plot_activity(input_signal=input_signal_spherical, time=None,
+plt_learning.plot_activity(input_signal=input_signal, time=None,
         save_num=0, plot_all_ens=False, error=None, q=None, dq=None,
         q_baseline=None, dq_baseline=None)
 

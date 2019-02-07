@@ -130,7 +130,8 @@ class DynamicsAdaptation(Signal):
         self.nengo_model.config[nengo.Connection].synapse = None
 
         # Set the nerual model to use
-        self.neuron_type = self.neuron_type.tolist()
+        # if not isinstance(self.neuron_type, list):
+        #     self.neuron_type = self.neuron_type.tolist()
         if self.neuron_type.lower() == 'lif':
             self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
 
