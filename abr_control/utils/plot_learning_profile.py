@@ -24,10 +24,18 @@ import nengolib
 from nengo.utils.matplotlib import rasterplot
 
 class PlotLearningProfile:
-    def __init__(self, test_group, test_name, db_name=None, use_cache=True,
-            use_spherical=False,
-            encoders=None, intercepts=None, n_inputs=2, n_outputs=2,
-            n_ensembles=1, n_neurons=100):
+    def __init__(self,
+                 n_input,
+                 n_output,
+                 n_neurons,
+                 n_ensembles,
+                 pes_learning_rate,
+                 intercepts,
+                 backend,
+                 probe_weights,
+                 seed,
+                 neuron_type,
+                 encoders):
         """
         Creates the nengo simulation with the same parameters as the test
         passed in
@@ -43,18 +51,10 @@ class PlotLearningProfile:
         use_cache: Boolean, Optional (Default: None)
             whether or not the database is saved in the ~/.cache/abr_control
             folder
-        use_spherical: Boolean, Optional (Default: None)
-            If True, increasing the input dimension by 1 and converts inputs to
-            spherical coordinates
-            NOTE! if the input being passed in was already converted to
-            spherical coordinates, set this to False
         """
 
         # set up save location
-        if use_cache:
-            self.save_loc = '%s/figures/gif_fig_cache'%(cache_dir)
-        else:
-            self.save_loc = 'figures/gif_fig_cache'
+        self.save_loc = '%s/figures/gif_fig_cache'%(cache_dir)
 
         files = [f for f in os.listdir(self.save_loc) if f.endswith(".png") ]
         for ii, f in enumerate(files):
@@ -66,54 +66,19 @@ class PlotLearningProfile:
         if not os.path.exists(self.save_loc):
             os.makedirs(self.save_loc)
 
-        #TODO: currently hacked in if using loihi where dynadapt is not saved,
-        # need to fix on this end or the test saving end
-        try:
-            dat = DataHandler(use_cache=use_cache, db_name=db_name)
-            loc = '/%s/%s/'%(test_group, test_name)
-            param_loc = '%sparameters/dynamics_adaptation'%loc
-            keys = dat.get_keys(group_path=param_loc)
-            adapt_params = dat.load(params=keys, save_location = param_loc)
-        except:
-            print('Test does not contain "dynamics_adaptation" data...')
-            print('Using the following defaults:')
-            adapt_params = {
-                            'n_input': n_inputs,
-                            'n_output': n_outputs,
-                            'n_neurons': n_neurons,
-                            'n_ensembles': n_ensembles,
-                            'pes': 1e-6,
-                            'backend': 'nengo_cpu',
-                            'probe_weights': True,
-                            'seed': 0,
-                            'neuron_type': 'lif'
-                           }
-        print(adapt_params)
-
-        self.use_spherical = use_spherical
-
-        if self.use_spherical:
-            extra_dim = True
-        else:
-            extra_dim = False
-
         # Create our adaptive ensemble
         self.adapt = signals.DynamicsAdaptation(
-                n_input=int(adapt_params['n_input']) + extra_dim,
-                n_output=int(adapt_params['n_output']),
-                n_neurons=int(adapt_params['n_neurons']),
-                n_ensembles=int(adapt_params['n_ensembles']),
-                pes_learning_rate=float(adapt_params['pes']),
-                intercepts_bounds=None,
-                intercepts_mode=None,
-                intercepts=intercepts,
-                #weights_file=weights,
-                backend=adapt_params['backend'],
-                probe_weights=adapt_params['probe_weights'],
-                seed=int(adapt_params['seed']),
-                #neuron_type=np.array2string(adapt_params['neuron_type']))
-                neuron_type=adapt_params['neuron_type'],
-                encoders=encoders)
+                 n_input=n_input,
+                 n_output=n_output,
+                 n_neurons=n_neurons,
+                 n_ensembles=n_ensembles,
+                 pes_learning_rate=pes_learning_rate,
+                 intercepts=intercepts,
+                 backend=backend,
+                 probe_weights=probe_weights,
+                 seed=seed,
+                 neuron_type=neuron_type,
+                 encoders=encoders)
 
     def plot_activity(self, input_signal, time=None, save_num=0,
             getting_ideal_intercepts=False, plot_all_ens=False,
@@ -144,17 +109,17 @@ class PlotLearningProfile:
         if time is None:
             time = np.ones(len(input_signal))
 
-        if self.use_spherical:
-            # convert to spherical
-            #input_signal = self.convert_to_spherical(input_signal)
-            tmpp = []
-            for oo, inputs in enumerate(input_signal):
-                if oo % 100 == 0 or oo == len(input_signal):
-                    print('%i of %i' %(oo, len(input_signal)))
-                tmpp.append(self.convert_to_spherical(inputs))
-            input_signal = tmpp
-            input_signal = np.array(input_signal)
-            #input_signal = np.array(input_signal).T
+        # if self.use_spherical:
+        #     # convert to spherical
+        #     #input_signal = self.convert_to_spherical(input_signal)
+        #     tmpp = []
+        #     for oo, inputs in enumerate(input_signal):
+        #         if oo % 100 == 0 or oo == len(input_signal):
+        #             print('%i of %i' %(oo, len(input_signal)))
+        #         tmpp.append(self.convert_to_spherical(inputs))
+        #     input_signal = tmpp
+        #     input_signal = np.array(input_signal)
+        #     #input_signal = np.array(input_signal).T
 
         if not getting_ideal_intercepts:
             # create probes to get rasterplot
