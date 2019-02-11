@@ -30,14 +30,12 @@ use_cache=True
 plot_extra = False
 plot_friction = False
 plot_u = False
-# runs=[0,10,25,40,49, 0,10,25,40,49, 0,10,25,40,49]
-# sessions=[0,0,0,0,0,1,1,1,1,1,2,2,2,2,2]
 #runs=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 49]
-runs = range(0,49)
-#runs = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
-#sessions=[0,0,0,0,0,0,0,0,0,0]
+# runs = range(0,17)
+# runs = range(18,35)
+runs = range(36,50)
 sessions = np.zeros(len(runs))
-n_columns = 10
+n_columns = 5
 #db_name = 'jacoOSCdebug'
 db_name = 'dewolf2018neuromorphic'
 test_groups = [
@@ -49,9 +47,10 @@ test_groups = [
                 # 'weighted_reach_post_tuning',
               ]
 tests = [
-        'nengo_loihi_friction_31_0',
+        'nengo_loihi_friction_39_0',
+        #'nengo_loihi_friction_37_0',
         # 'nengo_loihi_friction_28_0',
-        # 'nengo_cpu_friction_50_0',
+        # # 'nengo_cpu_friction_50_0',
         'nengo_cpu_friction_49_0',
         # 'nengo_loihi_friction_19_0',
         #'nengo_cpu_friction_20_0',
@@ -317,7 +316,7 @@ for ii in range(0,length,10):
         ax.set_xlim3d(-0.35,0.35)
         ax.set_ylim3d(-0.35,0.35)
         ax.set_zlim3d(0.5,1.2)
-        plt.title('Session %i : Target %i\n%s \n'%(sessions[jj], run, label_name))
+        #plt.title('Session %i : Target %i\n%s \n'%(sessions[jj], run, label_name))
         # time_t = np.array(time_t)
         # print(time_t.shape)
         # print(time_t[run].shape)

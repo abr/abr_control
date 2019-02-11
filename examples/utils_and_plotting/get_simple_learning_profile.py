@@ -90,15 +90,15 @@ def generate_encoders(input_signal=None, n_neurons=1000, thresh=0.008,
                 print('Increasing threshold to %.4f' %thresh)
             prev_index = n_indices
 
-        first_time = True
-        while (input_signal.shape[0] != n_neurons):
-            if first_time:
-                print('Too many indices removed, appending random entries to'
-                        + ' match dimensionality')
-                print('shape: ', input_signal.shape)
-            first_time = False
-            row = np.random.randint(input_signal.shape[0])
-            input_signal = np.vstack((input_signal, input_signal[row]))
+        if input_signal.shape[0] != n_neurons:
+            import nengolib
+            print('Too many indices removed, appending with uniform hypersphere')
+            print('shape: ', input_signal.shape)
+            length = n_neurons - input_signal.shape[0]
+            hypersphere = nengolib.stats.ScatteredHypersphere(surface=True)
+            hyper_inputs = hypersphere.sample(length, input_signal.shape[1])
+            input_signal = np.vstack((input_signal, hyper_inputs))
+
 
         print(input_signal.shape)
         print('thresh: ', thresh)
@@ -222,7 +222,7 @@ def convert_to_spherical(input_signal):
 
 # NOTE: if not using hdf5 database, just load in your own data for
 # input_signal
-use_db = True
+use_db = False
 if use_db:
     test_group = 'testing'
     test_name = 'nengo_loihi_tuning_106_0'
@@ -234,10 +234,10 @@ if use_db:
     input_signal_spherical = run_data['input_signal']
     input_signal_non_spherical = run_data['input_signal_non_spherical']
 else:
-    db_name = None
+    db_name = 'dewolf2018neuromorphic'
     test_group = None
-    test_name = None
-    input_signal = np.load('input_signal.npz')
+    input_signal_file = 'cpu_1k_input_signal.npz'
+    input_signal = np.load(input_signal_file)
 
 # TODO: need to clean this up in the final form
 # default in dynadapt using triangular intercepts, if using them keep
@@ -246,17 +246,24 @@ else:
 # here and intercepts_mode and intercepts_bounds will be ignored
 
 n_neurons = 1000
-n_ensembles = 45
+n_ensembles = 1
+test_name = '1k x %i: %s'%(n_ensembles, input_signal_file)
 use_spherical = True
 n_inputs = 11
 n_outputs = 5
 adapt_input = [True, True, True, True, True, False]
 in_index = np.arange(6)[adapt_input]
 seed = 0
+if n_ensembles == 1:
+    thresh = 0.3
+elif n_ensembles == 50:
+    thresh = 0.0008
+else:
+    thresh = 0.08
 
 intercepts = signals.AreaIntercepts(
     dimensions=n_inputs,
-    base=signals.Triangular(-0.9, -0.9, 0.0))
+    base=signals.Triangular(-0.7, -0.7, -0.6))
 
 rng = np.random.RandomState(seed)
 intercepts = intercepts.sample(n_neurons, rng=rng)
@@ -266,7 +273,7 @@ intercepts = np.array(intercepts)
 # Define your encoders
 # Leave input_signal as None and the function will load from the npz file,
 # hacky but how it is for now
-encoders = generate_encoders(input_signal=None, thresh=0.008,
+encoders = generate_encoders(input_signal=None, thresh=thresh,
         n_neurons=n_neurons*n_ensembles, use_spherical=use_spherical)
 
 encoders = encoders.reshape(n_ensembles, n_neurons, n_inputs)
@@ -298,7 +305,7 @@ save_loc = '%s/figures/%s/learning_profile'%(cache_dir, db_name)
 if not os.path.exists(save_loc):
     os.makedirs(save_loc)
 
-make_gif.create(fig_loc=load_loc,
-         save_loc=save_loc,
-         save_name=test_name,
-         delay=200)
+# make_gif.create(fig_loc=load_loc,
+#          save_loc=save_loc,
+#          save_name=test_name,
+#          delay=200)

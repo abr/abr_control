@@ -188,9 +188,8 @@ class PlotLearningProfile:
             a = rasterplot(np.cumsum(time),probes, ax=ax)
             plt.ylabel('Neuron')
             plt.xlabel('Time [sec]')
-            plt.title('Spiking activity %i\n %s, %s' %
-                    (save_num, self.intercepts_bounds,
-                        self.intercepts_mode))
+            plt.title('Spiking activity %i\n' %
+                    (save_num))
             if twinplot:
                 ax2 = ax.twinx()
                 if q is not None and dq is not None:
@@ -232,9 +231,8 @@ class PlotLearningProfile:
             return (time_active, activities)
         ax2 = fig.add_subplot(312)
         plt.hist(time_active, bins=np.linspace(0,1,100))
-        ax2.set_title('Proportion of time neurons are active %i\n %s, %s' %
-                (save_num, self.intercepts_bounds,
-                    self.intercepts_mode))
+        ax2.set_title('Proportion of time neurons are active %i\n' %
+                (save_num))
         ax2.set_ylabel('Number of active neurons')
         ax2.set_xlabel('Proportion of Time')
 
@@ -279,7 +277,7 @@ class PlotLearningProfile:
                 ax22.legend(loc=2)
         #print("TIME: ", np.sum(time))
         plt.tight_layout()
-        print('Saving Figure')
+        print('Saving Figure to %s/learning_profile_%05d.png'%(self.save_loc, save_num))
         plt.savefig('%s/learning_profile_%05d.png'%(self.save_loc, save_num))
         #plt.savefig('figures/gif_figs/activity/proportion_active_%05d.pdf'%save_num)
         plt.close()
