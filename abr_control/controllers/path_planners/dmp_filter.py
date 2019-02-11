@@ -14,7 +14,6 @@ except ImportError:
     print('\npydmps library required, see ' +
           'https://github.com/studywolf/pydmps\n')
 
-from abr_control.arms import ur5 as arm
 from abr_control.interfaces import VREP
 from abr_control.controllers import OSC
 import scipy.interpolate
