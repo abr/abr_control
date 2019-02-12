@@ -227,25 +227,31 @@ class PlotLearningProfile:
         proportion_active = np.sum(proportion_active,
                 axis=0)/len(proportion_active)
         ax2 = fig.add_subplot(313)
-        ax2.plot(np.cumsum(time), proportion_active, label='proportion active')
+        #if twinplot:
+        lw = 1
+        c = 'k'
+        if error is not None:
+            ax22 = ax2.twinx()
+            ax22.set_ylabel('Input signal')
+            ax22.plot(input_signal)
+            ax2.legend(loc=1)
+            ax22.legend(loc=2)
+            lw = 3
+            c = '--k'
+        ax2.plot(np.cumsum(time), proportion_active, c, lw=lw, label='proportion active')
+
         ax2.set_title(('Proportion of active neurons over time %i\n'%save_num
             + 'Active: %i,  Inactive: %i'%(num_active, num_inactive)))
         ax2.set_ylabel('Proportion Active')
         ax2.set_xlabel('Time [sec]')
         ax2.set_ylim(0, 1)
-        if twinplot:
-            if error is not None:
-                ax22 = ax2.twinx()
-                ax22.set_ylabel('Error [m]')
-                ax22.plot(np.cumsum(time), error,'r', label='Error')
-                ax2.legend(loc=1)
-                ax22.legend(loc=2)
         #print("TIME: ", np.sum(time))
         plt.tight_layout()
         print('Saving Figure to %s/learning_profile_%05d.png'%(self.save_loc, save_num))
+        plt.legend()
         plt.savefig('%s/learning_profile_%05d.png'%(self.save_loc, save_num))
-        #plt.savefig('figures/gif_figs/activity/proportion_active_%05d.pdf'%save_num)
         plt.close()
+        print('Done.')
 
     def convert_to_spherical(self, input_signal):
         #print('Converting input to spherical coordinates...')

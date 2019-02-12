@@ -22,6 +22,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import os
+import nengolib
 
 def generate_encoders(input_signal=None, n_neurons=1000, thresh=0.008,
         use_spherical=True, run=0):
@@ -82,7 +83,6 @@ def generate_encoders(input_signal=None, n_neurons=1000, thresh=0.008,
             prev_index = n_indices
 
         if input_signal.shape[0] != n_neurons:
-            import nengolib
             print('Too many indices removed, appending with uniform hypersphere')
             print('shape: ', input_signal.shape)
             length = n_neurons - input_signal.shape[0]
@@ -211,21 +211,9 @@ def convert_to_spherical(input_signal):
     #print('OUT: ', np.array(spherical).shape)
     return(spherical)
 
-# get the input signal for our sim
-input_signal_file = 'cpu_1k_input_signal.npz'
-data = np.load(input_signal_file)
-qs = data['qs']
-dqs = data['dqs']
-print(np.array(qs).shape)
-# the joints to adapt
-adapt_input = [True, True, True, True, True, False]
-in_index = np.arange(6)[adapt_input]
-[qs, dqs] = generate_scaled_inputs(q=qs, dq=dqs, in_index=in_index)
-input_signal = np.hstack((qs, dqs))
-use_spherical = True
 
 # True to load parameters from a test, False to provide them manually
-use_db = True
+use_db = False
 if use_db:
     test_group = 'friction_post_tuning'
     test_name = 'nengo_cpu_friction_53_0'
@@ -239,27 +227,269 @@ if use_db:
     n_input = int(data['n_input'])
     n_output = int(data['n_output'])
     n_neurons = int(data['n_neurons'])
-    n_ensembles = int(data['n_ensembles'])
+    #n_ensembles = int(data['n_ensembles'])
+    n_ensembles = 1
     pes_learning_rate = float(data['pes'])
-    intercepts = data['intercepts']
+    #intercepts = data['intercepts']
     backend = data['backend'].tolist()
     seed = int(data['seed'])
     neuron_type = data['neuron_type'].tolist()
-    encoders = data['encoders']
+    #encoders = data['encoders']
+
+    print("\n\n\n****TEMPORARY HACK TO GET PARTIAL INPUT SIGNAL****\n\n\n")
+    runs = 50
+    ctr = 0
+    for run in range(40, runs):
+        tmp = dat.load(params=['input_signal'],
+            save_location='%s/session000/run%03d'%(loc,run))['input_signal']
+        if ctr == 0:
+            input_signal = tmp
+        else:
+            input_signal = np.vstack((input_signal, tmp))
+        ctr += 1
+
+    print("\n\n\n****TEMPORARY HACK TO GEN SPHERICAL ENCODERS****\n\n\n")
+    encoders = generate_encoders(input_signal=input_signal, thresh=0.0008,
+            n_neurons=n_neurons*n_ensembles, use_spherical=False)
+
+    encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
+
+    # print("\n\n\n****TEMPORARY HACK TO PLOT INPUT SIGNAL****\n\n\n")
+    # from abr_control.utils import make_gif
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # a1 = plt.subplot(221, projection='3d')
+    # a2 = plt.subplot(222, projection='3d')
+    # a3 = plt.subplot(223, projection='3d')
+    # a4 = plt.subplot(224, projection='3d')
+    #
+    # a1.set_title('q0,q1,q2')
+    # a1.scatter(
+    #         input_signal[:, 0],
+    #         input_signal[:, 1],
+    #         input_signal[:, 2],
+    #         )
+    # a2.set_title('q3,q4,spherical')
+    # a2.scatter(
+    #         input_signal[:, 3],
+    #         input_signal[:, 4],
+    #         input_signal[:, 10],
+    #         )
+    # a3.set_title('dq0,dq1,dq2')
+    # a3.scatter(
+    #         input_signal[:, 5],
+    #         input_signal[:, 6],
+    #         input_signal[:, 7],
+    #         )
+    # a4.set_title('dq3,dq4,spherical')
+    # a4.scatter(
+    #         input_signal[:, 8],
+    #         input_signal[:, 9],
+    #         input_signal[:, 10],
+    #         )
+    # r = 1
+    # pi = np.pi
+    # cos = np.cos
+    # sin = np.sin
+    # phi, theta = np.mgrid[0.0:pi:100j, 0.0:2.0*pi:100j]
+    # x = r*sin(phi)*cos(theta)
+    # y = r*sin(phi)*sin(theta)
+    # z = r*cos(phi)
+    #
+    # a1.set_aspect(1)
+    # a1.plot_surface(
+    #     x, y, z,  rstride=1, cstride=1, color='c', alpha=0.3, linewidth=0)
+    # a2.set_aspect(1)
+    # a2.plot_surface(
+    #     x, y, z,  rstride=1, cstride=1, color='c', alpha=0.3, linewidth=0)
+    # a3.set_aspect(1)
+    # a3.plot_surface(
+    #     x, y, z,  rstride=1, cstride=1, color='c', alpha=0.3, linewidth=0)
+    # a4.set_aspect(1)
+    # a4.plot_surface(
+    #     x, y, z,  rstride=1, cstride=1, color='c', alpha=0.3, linewidth=0)
+    # from abr_control.utils.paths import cache_dir
+    # for ii in np.arange(0,360,10):
+    #     a1.view_init(30, ii)
+    #     a2.view_init(30, ii)
+    #     a3.view_init(30, ii)
+    #     a4.view_init(30, ii)
+    #     plt.savefig('%s/figures/gif_fig_cache/%03d.png'%(cache_dir,ii))
+    #
+    # make_gif.create(
+    #     fig_loc='%s/figures/gif_fig_cache/'%(cache_dir),
+    #     save_loc='%s/figures/gif_fig_cache/'%(cache_dir),
+    #     save_name='11D_input_signal')
+
+
+    # print("\n\n\n****TEMPORARY HACK TO GEN SCATHYP ENC****\n\n\n")
+    # hypersphere = nengolib.stats.ScatteredHypersphere(surface=True)
+    # encoders = hypersphere.sample(n_neurons*n_ensembles, n_input)
+    # encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
+
+    # print("\n\n\n****TEMPORARY HACK TO GEN INTERCEPTS****\n\n\n")
+    # intercepts = signals.AreaIntercepts(
+    #     dimensions=n_input,
+    #     base=signals.Triangular(-0.9, -0.9, 0.0))
+    #
+    # rng = np.random.RandomState(seed)
+    # intercepts = intercepts.sample(n_neurons, rng=rng)
+    # intercepts = np.array(intercepts)
+
+    print("\n\n\n****TEMPORARY HACK TO GEN INTERCEPTS****\n\n\n")
+    intercepts = signals.AreaIntercepts(
+        dimensions=n_input,
+        base=signals.Triangular(-0.7, -0.7, -0.3))
+
+    rng = np.random.RandomState(seed)
+    intercepts = intercepts.sample(n_neurons, rng=rng)
+    intercepts = np.array(intercepts)
+
+
+
+    # print("\n\n\n****TEMPORARY HACK TO GEN ENCODERS****\n\n\n")
+    # # get the input signal for our sim
+    # input_signal_file = 'cpu_1k_input_signal.npz'
+    # data = np.load(input_signal_file)
+    # qs = data['qs']
+    # dqs = data['dqs']
+    # # the joints to adapt
+    # adapt_input = [True, True, True, True, True, False]
+    # in_index = np.arange(6)[adapt_input]
+    # [qs, dqs] = generate_scaled_inputs(q=qs, dq=dqs, in_index=in_index)
+    # input_signal_new = np.hstack((qs, dqs))
+    # Define your encoders
+    # encoders = generate_encoders(input_signal=input_signal_new, thresh=0.0008,
+    #         n_neurons=n_neurons*n_ensembles, use_spherical=True)
+    #
+    # encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
+
+    # print("\n\n\n****TEMPORARY HACK TO GEN PARTIAL SESSION ENCODERS****\n\n\n")
+    # runs = 50
+    # ctr = 0
+    # for run in range(40, runs):
+    #     tmp = dat.load(params=['q','dq'],
+    #         save_location='%s/session000/run%03d'%(loc,run))
+    #     if ctr == 0:
+    #         q = tmp['q']
+    #         dq = tmp['dq']
+    #     else:
+    #         q = np.vstack((q, tmp['q']))
+    #         dq = np.vstack((dq, tmp['dq']))
+    #     ctr += 1
+    #
+    # adapt_input = [True, True, True, True, True, False]
+    # in_index = np.arange(6)[adapt_input]
+    # [qs, dqs] = generate_scaled_inputs(q=q, dq=dq, in_index=in_index)
+    # input_signal_new = np.hstack((qs, dqs))
+    #
+    # encoders = generate_encoders(input_signal=input_signal_new, thresh=0.2,
+    #         n_neurons=n_neurons*n_ensembles, use_spherical=True)
+    #
+    # encoders_preshape = np.copy(encoders)
+    #
+    # encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
+
+    # print("\n\n\n****TEMPORARY HACK TO PLOT encoders****\n\n\n")
+    # from abr_control.utils import make_gif
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # a1 = plt.subplot(221, projection='3d')
+    # a2 = plt.subplot(222, projection='3d')
+    # a3 = plt.subplot(223, projection='3d')
+    # a4 = plt.subplot(224, projection='3d')
+    #
+    # a1.set_title('q0,q1,q2')
+    # a1.scatter(
+    #         encoders_preshape[:, 0],
+    #         encoders_preshape[:, 1],
+    #         encoders_preshape[:, 2],
+    #         )
+    # a2.set_title('q3,q4,spherical')
+    # a2.scatter(
+    #         encoders_preshape[:, 3],
+    #         encoders_preshape[:, 4],
+    #         encoders_preshape[:, 10],
+    #         )
+    # a3.set_title('dq0,dq1,dq2')
+    # a3.scatter(
+    #         encoders_preshape[:, 5],
+    #         encoders_preshape[:, 6],
+    #         encoders_preshape[:, 7],
+    #         )
+    # a4.set_title('dq3,dq4,spherical')
+    # a4.scatter(
+    #         encoders_preshape[:, 8],
+    #         encoders_preshape[:, 9],
+    #         encoders_preshape[:, 10],
+    #         )
+    # r = 1
+    # pi = np.pi
+    # cos = np.cos
+    # sin = np.sin
+    # phi, theta = np.mgrid[0.0:pi:100j, 0.0:2.0*pi:100j]
+    # x = r*sin(phi)*cos(theta)
+    # y = r*sin(phi)*sin(theta)
+    # z = r*cos(phi)
+    #
+    # a1.set_aspect(1)
+    # a1.plot_surface(
+    #     x, y, z,  rstride=1, cstride=1, color='c', alpha=0.3, linewidth=0)
+    # a2.set_aspect(1)
+    # a2.plot_surface(
+    #     x, y, z,  rstride=1, cstride=1, color='c', alpha=0.3, linewidth=0)
+    # a3.set_aspect(1)
+    # a3.plot_surface(
+    #     x, y, z,  rstride=1, cstride=1, color='c', alpha=0.3, linewidth=0)
+    # a4.set_aspect(1)
+    # a4.plot_surface(
+    #     x, y, z,  rstride=1, cstride=1, color='c', alpha=0.3, linewidth=0)
+    # from abr_control.utils.paths import cache_dir
+    # for ii in np.arange(0,360,10):
+    #     a1.view_init(30, ii)
+    #     a2.view_init(30, ii)
+    #     a3.view_init(30, ii)
+    #     a4.view_init(30, ii)
+    #     plt.savefig('%s/figures/gif_fig_cache/%03d.png'%(cache_dir,ii))
+    #
+    # make_gif.create(
+    #     fig_loc='%s/figures/gif_fig_cache/'%(cache_dir),
+    #     save_loc='%s/figures/gif_fig_cache/'%(cache_dir),
+    #     save_name='11D_input_signal')
 
 else:
+    # get the input signal for our sim
+    input_signal_file = 'cpu_53_input_signal.npz'
+    data = np.load(input_signal_file)
+    qs = data['qs']
+    dqs = data['dqs']
+    # the joints to adapt
+    adapt_input = [True, True, True, True, True, False]
+    in_index = np.arange(6)[adapt_input]
+    [qs, dqs] = generate_scaled_inputs(q=qs, dq=dqs, in_index=in_index)
+    input_signal = np.hstack((qs, dqs))
+    use_spherical = False
+    # set the decimal percent from the end of the run to use for input
+    # 1 == all runs, 0.1 = last 10% of runs
+    portion=0.2
+    print('Original Input Signal Shape: ', np.array(input_signal).shape)
+    if not use_spherical:
+        input_signal = input_signal[-int(np.array(input_signal).shape[0]*portion):, :]
+        print('Input Signal Shape from Selection: ', np.array(input_signal).shape)
+        input_signal = convert_to_spherical(input_signal)
+
     backend = 'nengo_cpu'
     seed = 0
     neuron_type = 'lif'
     n_neurons = 1000
-    n_ensembles = 50
+    n_ensembles = 1
     test_name = '1k x %i: %s'%(n_ensembles, input_signal_file)
     n_input = 11
     n_output = 5
     seed = 0
 
     if n_ensembles == 1:
-        thresh = 0.3
+        thresh = 0.03
     elif n_ensembles == 50:
         thresh = 0.0008
     else:
@@ -279,8 +509,8 @@ else:
 
     encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
 
-if use_spherical:
-    input_signal = convert_to_spherical(input_signal)
+    if use_spherical:
+        input_signal = convert_to_spherical(input_signal)
 
 plt_learning = PlotLearningProfile(
                  n_input=n_input,
