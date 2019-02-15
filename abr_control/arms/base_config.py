@@ -8,7 +8,7 @@ from sympy.utilities.autowrap import autowrap
 import sys
 
 import abr_control.utils.os_utils
-from abr_control.utils.paths import cache_dir
+from abr_control.utils.paths import control_cache
 
 
 # TODO : store lambdified functions, currently running into pickling errors
@@ -121,7 +121,7 @@ class BaseConfig():
         self.offset = offset
 
         # specify / create the folder to save to and load from
-        self.config_folder = (cache_dir + '/%s/saved_functions/' % ROBOT_NAME)
+        self.config_folder = (control_cache + '/%s/saved_functions/' % ROBOT_NAME)
         # create a unique hash for the config file
         hasher = hashlib.md5()
         with open(sys.modules[self.__module__].__file__, 'rb') as afile:

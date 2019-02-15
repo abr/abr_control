@@ -9,7 +9,7 @@ import logging
 r = redis.StrictRedis(host='127.0.0.1')
 
 # import abr_control.utils.os_utils
-from abr_control.utils.paths import cache_dir
+from abr_control.utils.paths import control_cache
 from .signal import Signal
 os.environ['PYOPENCL_COMPILER_OUTPUT'] = '1'
 try:
