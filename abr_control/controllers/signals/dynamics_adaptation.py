@@ -182,7 +182,7 @@ class DynamicsAdaptation(Signal):
                                            intercepts=self.intercepts,
                                            radius=np.sqrt(self.n_input),
                                            **kwargs))
-                if ii == 0:
+                if ii == 0 and debug_print:
                     print('==========\n %i Ensembles' % self.n_ensembles)
 
                 try:
@@ -192,11 +192,11 @@ class DynamicsAdaptation(Signal):
                     if self.encoders is None:
                         self.adapt_ens[ii].encoders = (
                             nengolib.stats.ScatteredHypersphere(surface=True))
-                        if ii==0:
+                        if ii==0 and debug_print:
                             print('NengoLib used to optimize encoders placement')
                     else:
                         self.adapt_ens[ii].encoders = self.encoders[ii]
-                        if ii==0:
+                        if ii==0 and debug_print:
                             print('Using user defined encoder values')
                 except ImportError:
                     if ii==0:
@@ -209,14 +209,14 @@ class DynamicsAdaptation(Signal):
                 # load weights from file if they exist, otherwise use zeros
                 if self.weights_file == '~':
                     self.weights_file = os.path.expanduser(self.weights_file)
-                if ii==0:
+                if ii==0 and debug_print:
                     print('Backend: ', self.backend)
                     print('Shape of weights file: ',
                             np.array(self.weights_file).shape)
                     print('Weights file: %s' % self.weights_file)
                 if not os.path.isfile('%s' % self.weights_file):
                     if not isinstance(self.weights_file, dict):
-                        if ii==0:
+                        if ii==0 and debug_print:
                             print('No weights found, starting with zeros')
                         transform = np.zeros((self.n_output,
                             self.adapt_ens[ii].n_neurons))
@@ -242,13 +242,13 @@ class DynamicsAdaptation(Signal):
                                 transform = np.squeeze(np.load(self.weights_file)['weights']).T
                             else:
                                 transform = np.squeeze(np.load(self.weights_file)['weights'])[ii].T
-                            if ii == 0:
+                            if ii == 0 and debug_print:
                                 print('Loading weights: \n', transform)
                                 print('Loaded weights all zeros: ', np.allclose(transform, 0))
 
 
 
-                        if ii == 0:
+                        if ii == 0 and debug_print:
                             #print('Transform', transform.T.shape)
                             print('Transform', transform)
 
@@ -278,7 +278,7 @@ class DynamicsAdaptation(Signal):
                         # remove third dimension if present
                         if len(transform.shape) > 2:
                             transform = np.squeeze(transform)
-                        if ii == 0:
+                        if ii == 0 and debug_print:
                             print('Loading weights: \n', transform)
                             print('Loaded weights all zeros: ', np.allclose(transform, 0))
                             print('Transform', transform)
@@ -288,7 +288,7 @@ class DynamicsAdaptation(Signal):
                                            learning_rule_type=nengo.PES(
                                              self.pes_learning_rate),
                                            transform=transform))
-                    if ii==0:
+                    if ii==0 and debug_print:
                         print('==========')
 
                 # hook up the training signal to the learning rule
