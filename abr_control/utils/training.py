@@ -11,7 +11,7 @@ import scipy
 import redis
 
 from abr_control.controllers import OSC, signals, path_planners
-from abr_control.utils import DataHandler
+from abr_analyze.utils import DataHandler, NetworkUtils
 import abr_jaco2
 import nengo
 
@@ -128,7 +128,7 @@ class Training:
         self.avoid_limits = avoid_limits
 
         # instantiate our data handler for saving and load
-        self.data_handler = DataHandler(use_cache=True, db_name=db_name)
+        self.data_handler = DataHandler(db_name=db_name)
 
         if self.run is None or self.session is None:
             # Get the last saved location in the database
@@ -161,7 +161,7 @@ class Training:
         print('--Instantiate OSC controller--')
         # if using I term, load previous integrated errors if applicable
         if ki != 0 and run != 0:
-                integrated_error = self.data_handler.load_data(params=['integrated_error'],
+                integrated_error = self.data_handler.load_run_data(parameters=['integrated_error'],
                         session=self.session,
                         run=self.run-1, test_group=self.test_group,
                         test_name=self.test_name,
@@ -217,7 +217,7 @@ class Training:
     def __init_network__(self, adapt_input, adapt_output, n_neurons=1000, n_ensembles=1,
             weights=None, pes_learning_rate=1e-6, backend=None, seed=None,
             probe_weights=True, neuron_type='lif', use_spherical=False,
-            trig_q=False, trig_dq=False, autoload_weights=True):
+            autoload_weights=True):
         """
         Instantiate the adpative controller
 
@@ -249,24 +249,15 @@ class Training:
             a boolean list of which joints to apply the adaptive signal to
             Ex: to adapt joint 1 and 2 for a 6DOF arm (starting from base 0)
             adapt_input = [False, True, True, False, False, False]
-        trig_q: boolean, Optional (Default: False)
-            True to scale joint angle input to network by sin and cos (doubles
-            dimensionality for angles since both sin and cos are used to conver
-            the entire sin cos space
-        trig_dq: boolean, Optional (Default: False)
-            True to scale joint velocity input to network by sin and cos (doubles
-            dimensionality for angles since both sin and cos are used to conver
-            the entire sin cos space
         autoload_weights: boolean, Optional (Default: True)
             If true then weights will be loaded from the previous run
         *NOTE: adapt_output DOES NOT have to be the same as adapt_input*
             probe_weights: Boolean Optional (Default: False)
                 True to probe adaptive population for decoders
         """
+        self.net_utils = NetworkUtils()
         self.use_spherical = use_spherical
         self.use_adapt = True
-        self.trig_q = trig_q
-        self.trig_dq = trig_dq
 
         self.adapt_input = np.array(adapt_input)
         self.in_index = np.arange(self.robot_config.N_JOINTS)[self.adapt_input]
@@ -292,13 +283,25 @@ class Training:
 
         print('EXTRA DIM: ', extra_dim)
         print('Using spherical: ', self.use_spherical)
-        print('j in cossin space: ', self.trig_q)
-        print('dj in cossin space: ', self.trig_dq)
 
-        encoders = self.generate_encoders(input_signal=None,
-                n_neurons=n_neurons*n_ensembles, use_spherical=use_spherical,
-                run=self.run)
-        encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
+        if self.run == 0:
+            # get our saved q and dq values
+            input_signal_file = 'cpu_53_input_signal.npz'
+            data = np.load(input_signal_file)
+            qs = data['qs']
+            dqs = data['dqs']
+            [qs, dqs] = self.net_utils.generate_scaled_inputs(q=qs, dq=dqs, in_index=self.in_index)
+            input_signal = np.hstack((dqs, qs))
+            input_signal = self.net_utils.convert_to_spherical(input_signal)
+
+            encoders = self.net_utils.generate_encoders(input_signal=input_signal,
+                    n_neurons=n_neurons*n_ensembles)
+            encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
+        else:
+            print('Loading encoders used for run 0...')
+            encoders = self.data_handler.load(parameters=['encoders'],
+                    save_location='%s/%s/parameters/dynamics_adaptation/'
+                                   %(self.test_group, self.test_name))['encoders']
 
         self.params['adapt_input'] = adapt_input
         self.params['adapt_output'] = adapt_output
@@ -311,8 +314,6 @@ class Training:
         self.params['probe_weights'] = probe_weights
         self.params['neuron_type'] = neuron_type
         self.params['use_spherical'] = self.use_spherical
-        self.params['trig_q'] = self.trig_q
-        self.params['trig_dq'] = self.trig_dq
         self.params['extra_dim'] = extra_dim
 
         # load previous weights if they exist is None passed in
@@ -320,13 +321,17 @@ class Training:
             if self.run == 0:
                 weights = None
             elif autoload_weights:
-                weights = self.data_handler.load_data(params=['weights'], session=self.session,
+                weights = self.data_handler.load_run_data(parameters=['weights'], session=self.session,
                         run=self.run-1, test_group=self.test_group,
                         test_name=self.test_name, create=True)
 
+
+        left_bound = -0.5
+        right_bound = -0.2
+        mode = -0.3
         intercepts = signals.AreaIntercepts(
             dimensions=n_input,
-            base=signals.Triangular(-0.9, -0.9, 0.0))
+            base=signals.Triangular(left_bound, mode, right_bound))
 
         rng = np.random.RandomState(seed)
         intercepts = intercepts.sample(n_neurons, rng=rng)
@@ -340,7 +345,6 @@ class Training:
             n_ensembles=n_ensembles,
             pes_learning_rate=pes_learning_rate,
             intercepts=intercepts,
-            intercepts_mode=-0.5,
             weights_file=weights,
             backend=backend,
             probe_weights=probe_weights,
@@ -348,6 +352,8 @@ class Training:
             neuron_type=neuron_type,
             encoders=encoders)
 
+        self.adapt.params['intercept_bounds'] = [left_bound, right_bound]
+        self.adapt.params['intercept_mode'] = mode
         # self.adapt.params['encoders'] = encoders
         #
     def connect_to_arm(self):
@@ -499,29 +505,15 @@ class Training:
                     # adapt_input_q.append(self.robot_config.scaledown('q',self.q)[ii])
                     # adapt_input_dq.append(self.robot_config.scaledown('dq',self.dq)[ii])
 
-                [adapt_input_q, adapt_input_dq] = self.generate_scaled_inputs(
-                        q=np.copy(self.q), dq=np.copy(self.dq))
+                [adapt_input_q, adapt_input_dq] = self.net_utils.generate_scaled_inputs(
+                        q=np.copy(self.q), dq=np.copy(self.dq), in_index=self.in_index)
 
-                def convert_to_sin_cos(input_signal):
-                    """
-                    Takes in inputs from the range of -1 to 1 and scales them
-                    to sin-cos space
-                    """
-                    x0 = input_signal[0]
-                    x1 = input_signal[1]
-                    sincos = [np.cos(np.pi*x0), np.sin(np.pi*x0), np.cos(np.pi*x1),
-                            np.sin(np.pi*x1)]
-                    return sincos
 
                 self.training_signal = np.array(training_signal)
-                if self.trig_q:
-                    adapt_input_q = (convert_to_sin_cos(adapt_input_q))
-                if self.trig_dq:
-                    adapt_input_dq = (convert_to_sin_cos(adapt_input_dq))
 
-                self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
+                self.adapt_input = np.hstack((adapt_input_dq, adapt_input_q))
                 if self.use_spherical:
-                    self.adapt_input = self.convert_to_spherical(self.adapt_input)
+                    self.adapt_input = self.net_utils.convert_to_spherical(self.adapt_input)
 
                 u_adapt = self.adapt.generate(input_signal=self.adapt_input,
                                          training_signal=self.training_signal)
@@ -585,7 +577,7 @@ class Training:
         self.data['integrated_error'] = self.ctrlr.integrated_error
 
         # Save test data
-        self.data_handler.save_data(tracked_data=self.data, session=self.session,
+        self.data_handler.save_run_data(tracked_data=self.data, session=self.session,
             run=self.run, test_name=self.test_name, test_group=self.test_group,
             overwrite=overwrite)
 
@@ -633,211 +625,13 @@ class Training:
         # Get weight from adaptive population
         self.data['weights'] = self.adapt.get_weights()
         # Save test data
-        self.data_handler.save_data(tracked_data=self.data, session=self.session,
+        self.data_handler.save_run_data(tracked_data=self.data, session=self.session,
             run=self.run, test_name=self.test_name, test_group=self.test_group,
             overwrite=overwrite)
 
         # Save dynamics_adaptation parameters
         self.data_handler.save(data=self.adapt.params,
                 save_location=loc + self.adapt.params['source'], overwrite=overwrite, create=create)
-
-    def convert_to_spherical(self, input_signal):
-        """
-        converts an input signal of shape time x N_joints and converts to
-        spherical
-        """
-        #print('IN: ', input_signal.shape)
-        x = input_signal.T
-        pi = np.pi
-        spherical = []
-
-        def scale(input_signal):
-            #TODO: does it make more sense to pass in the range and have the script
-            # handle the division, so we go from 0-factor instead of 0-2*factor?
-            """
-            Takes inputs in the range of -1 to 1 and scales them to the range of
-            0-2*factor
-
-            ex: if factor == pi the inputs will be in the range of 0-2pi
-            """
-            signal = np.copy(input_signal)
-            factor = pi
-            for ii, dim in enumerate(input_signal):
-                if ii == len(input_signal)-1:
-                    factor = 2*pi
-                signal[ii] = dim * factor# + factor
-            return signal
-
-        def sin_product(input_signal, count):
-            """
-            Handles the sin terms in the conversion to spherical coordinates where
-            we multiple by sin(x_i) n-1 times
-            """
-            tmp = 1
-            for jj in range(0, count):
-                tmp *= np.sin(input_signal[jj])
-            return tmp
-
-        # nth input scaled to 0-2pi range, remainder from 0-pi
-        # cycle through each input
-        x_rad = scale(input_signal=x)
-
-        for ss in range(0, len(x)):
-            sphr = sin_product(input_signal=x_rad, count=ss)
-            sphr*= np.cos(x_rad[ss])
-            spherical.append(sphr)
-        spherical.append(sin_product(input_signal=x_rad, count=len(x)))
-        spherical = np.array(spherical).T
-        #print('OUT: ', np.array(spherical).shape)
-        return(spherical)
-
-    def generate_encoders(self, input_signal=None, n_neurons=1000, thresh=0.008,
-            use_spherical=True, run=0):
-        """
-        Accepts inputs signal in the shape of time X dim and outputs encoders
-        for the specified number of neurons by sampling from the input
-
-        *NOTE* the input must be passed in prior to spherical conversion, if
-        any is being done
-        """
-        #TODO: scale thresh based on dimensionality of input, 0.008 for 2DOF
-        # and 10k neurons, 10DOF 10k use 0.08, for 10DOF 100 went up to 0.708 by end
-        # 0.3 works well for 1000
-        # first run so we need to generate encoders for the sessions
-        thresh = 0.3
-        debug = False
-        if debug:
-            print('\n\n\nDEBUG LOAD ENCODERS\n\n\n')
-            encoders = np.load('encoders-backup.npz')['encoders']
-        elif run == 0:
-            print('First run of session, generating encoders...')
-            if input_signal is None:
-                print('No input signal passed in for sampling, using recorded data')
-                data = np.load('input_signal.npz')
-                qs = data['q']
-                dqs = data['dq']
-                [qs, dqs] = self.generate_scaled_inputs(q=qs, dq=dqs)
-                input_signal = np.hstack((qs, dqs))
-                self.input_signal_len = len(input_signal)
-                print('input_signal_length: ', self.input_signal_len)
-            ii = 0
-            same_count = 0
-            prev_index = 0
-            while (input_signal.shape[0] > n_neurons):
-                if ii%1000 == 0:
-                    print(input_signal.shape)
-                    print('thresh: ', thresh)
-                # choose a random set of indices
-                n_indices = input_signal.shape[0]
-                # make sure we're dealing with an even number
-                n_indices -= 0 if ((n_indices % 2) == 0) else 1
-                n_half = int(n_indices / 2)
-
-                randomized_indices = np.random.permutation(range(n_indices))
-                a = randomized_indices[:n_half]
-                b = randomized_indices[n_half:]
-
-                data1 = input_signal[a]
-                data2 = input_signal[b]
-
-                distances = np.linalg.norm(data1 - data2, axis=1)
-
-                under_thresh = distances > thresh
-
-                input_signal = np.vstack([data1, data2[under_thresh]])
-                ii += 1
-                if prev_index == n_indices:
-                    same_count += 1
-                else:
-                    same_count = 0
-
-                if same_count == 50:
-                    same_count = 0
-                    thresh += 0.001
-                    print('All values are within threshold, but not at target size.')
-                    print('Increasing threshold to %.4f' %thresh)
-                prev_index = n_indices
-
-            first_time = True
-            while (input_signal.shape[0] != n_neurons):
-                if first_time:
-                    print('Too many indices removed, appending random entries to'
-                            + ' match dimensionality')
-                    print('shape: ', input_signal.shape)
-                first_time = False
-                row = np.random.randint(input_signal.shape[0])
-                input_signal = np.vstack((input_signal, input_signal[row]))
-
-            print(input_signal.shape)
-            print('thresh: ', thresh)
-            if use_spherical:
-                encoders = self.convert_to_spherical(input_signal)
-            else:
-                encoders = np.array(input_signal)
-
-        # seccessive run so load the encoders used for run 0
-        else:
-            print('Loading encoders used for run 0...')
-            encoders = self.data_handler.load(params=['encoders'],
-                    save_location='%s/%s/parameters/dynamics_adaptation/'
-                                   %(self.test_group, self.test_name))['encoders']
-        np.savez_compressed('encoders-backup.npz', encoders=encoders)
-        encoders = np.array(encoders)
-        print(encoders.shape)
-        return encoders
-
-    def generate_scaled_inputs(self, q, dq, in_index=None):
-        '''
-        pass q dq in as time x dim shape
-        accepts the 6 joint positions and velocities of the jaco2 and does the
-        mean subtraction and scaling. Can set which joints are of interest with
-        in_index, if it is not passed in the self.in_index instantiated in
-        __init_network__ will be used
-
-        returns two n x 6 lists scaled, one for q and one for dq
-        '''
-        # check if we received a 1D input (one timestep) or a 2D input (list of
-        # inputs over time)
-        # if np.squeeze(q)[0] > 1 and np.squeeze(q)[1] > 1:
-        #     print('Scaling list of inputs')
-        if in_index is None:
-            in_index = self.in_index
-        qs = q.T
-        dqs = dq.T
-        #print('raw q: ', np.array(qs).T.shape)
-
-        # add bias to joints 0 and 4 so that the input signal doesn't keep
-        # bouncing back and forth over the 0 to 2*pi line
-        qs[0] = (qs[0] + np.pi) % (2*np.pi)
-        qs[4] = (qs[4] + np.pi) % (2*np.pi)
-
-        MEANS = {  # expected mean of joint angles / velocities
-            # shift from 0-2pi to -pi to pi
-            'q': np.array([3.20, 2.14, 1.52, 4.68, 3.00, 3.00]),
-            'dq': np.array([0.002, -0.117, -0.200, 0.002, -0.021, 0.002]),
-            }
-        SCALES = {  # expected variance of joint angles / velocities
-            'q': np.array([0.2, 1.14, 1.06, 1.0, 2.8, 0.01]),
-            'dq': np.array([0.06, 0.45, 0.7, 0.25, 0.4, 0.01]),
-            }
-
-        for pp in range(0, 6):
-            qs[pp] = (qs[pp] - MEANS['q'][pp]) / SCALES['q'][pp]
-            dqs[pp] = (dqs[pp] - MEANS['dq'][pp]) / SCALES['dq'][pp]
-
-        qs = qs
-        dqs = dqs
-        scaled_q = []
-        scaled_dq = []
-        #print(in_index)
-        for ii in in_index:
-            scaled_q.append(qs[ii])
-            scaled_dq.append(dqs[ii])
-        scaled_q = np.array(scaled_q).T
-        scaled_dq = np.array(scaled_dq).T
-        #print('scaled q: ', np.array(scaled_q).shape)
-
-        return [scaled_q, scaled_dq]
 
     def generate_path(self, target_xyz, start_xyz, time_limit):
         self.path.generate_path_function(
