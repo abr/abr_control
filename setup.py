@@ -28,7 +28,10 @@ def read(*filenames, **kwargs):
 root = os.path.dirname(os.path.realpath(__file__))
 version = runpy.run_path(
     os.path.join(root, 'abr_control', 'version.py'))['version']
+
 setup_requires = ["setuptools>=18.0", "cython", "numpy"]
+install_requires = ["cloudpickle", "sympy", "nengo", "matplotlib", "scipy"]
+tests_require = ["pytest", "pytest-xdist"]
 
 setup(
     name="abr_control",
@@ -42,10 +45,9 @@ setup(
     license="Free for non-commercial use",
     description="A library for controlling and interfacing with robots.",
     long_description=read('README.rst'),
-    install_requires=setup_requires + [
-        "cloudpickle", "sympy", "nengo", "matplotlib", "scipy",
-    ],
+    install_requires=setup_requires + install_requires,
     setup_requires=setup_requires,
+    extras_require={"tests": tests_require},
     cmdclass={'build_ext': build_ext},
     ext_modules=[
         Extension(
