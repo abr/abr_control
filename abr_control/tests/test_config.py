@@ -2,7 +2,7 @@ import numpy as np
 
 from abr_control.arms import twojoint as arm
 
-from .testarm import TwoJoint
+from .dummy_arm import TwoJoint
 
 def test_R():
     test_arm = TwoJoint()
