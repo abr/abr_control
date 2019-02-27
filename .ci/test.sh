@@ -5,7 +5,7 @@ if [[ ! -e .ci/common.sh || ! -e abr_control ]]; then
 fi
 source .ci/common.sh
 
-# This script runs the test suite
+# This script runs the test suite and collects coverage information
 
 NAME=$0
 COMMAND=$1
@@ -13,7 +13,9 @@ COMMAND=$1
 if [[ "$COMMAND" == "install" ]]; then
     exe pip install -e .[tests]
 elif [[ "$COMMAND" == "script" ]]; then
-    exe pytest -v -n 2 --color=yes --durations 20 abr_control
+    exe pytest -v -n 2 --color=yes --durations 20 --cov=abr_control abr_control
+elif [[ "$COMMAND" == "after_script" ]]; then
+    exe eval "bash <(curl -s https://codecov.io/bash)"
 elif [[ -z "$COMMAND" ]]; then
     echo "$NAME requires a command like 'install' or 'script'"
 else

@@ -31,7 +31,7 @@ version = runpy.run_path(
 
 setup_requires = ["setuptools>=18.0", "cython", "numpy"]
 install_requires = ["cloudpickle", "sympy", "nengo", "matplotlib", "scipy"]
-tests_require = ["pytest", "pytest-xdist"]
+tests_require = ["pytest", "pytest-xdist", "pytest-cov", "coverage"]
 
 setup(
     name="abr_control",
