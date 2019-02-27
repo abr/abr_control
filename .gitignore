@@ -91,6 +91,9 @@ ENV/
 # Rope project settings
 .ropeproject
 
+# PyCharm project settings
+.idea
+
 # editor autosaves
 *~
 *.swp
