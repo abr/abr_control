@@ -1,0 +1,37 @@
+language: minimal
+sudo: false
+notifications:
+  email:
+    - travis.dewolf@appliedbrainresearch.com
+cache:
+  directories:
+  - $HOME/miniconda
+  timeout: 600
+
+env:
+  global:
+    - PYTHON="3.6"
+    - PIP_UPGRADE="true"
+    - PIP_UPGRADE_STRATEGY="eager"
+
+matrix:
+  include:
+    - env: MODE="test"
+
+before_install:
+  - source .ci/conda.sh install
+
+install:
+  - .ci/$MODE.sh install
+
+script:
+  - .ci/$MODE.sh script
+
+before_cache:
+  - .ci/conda.sh before_cache
+
+after_success:
+  - .ci/$MODE.sh after_success
+
+after_script:
+  - .ci/$MODE.sh after_script
