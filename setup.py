@@ -29,9 +29,21 @@ root = os.path.dirname(os.path.realpath(__file__))
 version = runpy.run_path(
     os.path.join(root, 'abr_control', 'version.py'))['version']
 
-setup_requires = ["setuptools>=18.0", "cython", "numpy"]
-install_requires = ["cloudpickle", "sympy", "nengo", "matplotlib", "scipy"]
-tests_require = ["pytest", "pytest-xdist", "pytest-cov", "coverage"]
+setup_requires = [
+    "setuptools>=18.0",
+    "cython>=0.29.0",
+    "numpy>=1.16.0"]
+install_requires = [
+    "cloudpickle>=0.8.0",
+    "sympy>=1.3",
+    "nengo>=2.8.0",
+    "matplotlib>=3.0.0",
+    "scipy>=1.2.0"]
+tests_require = [
+    "pytest>=4.3.0",
+    "pytest-xdist>=1.26.0",
+    "pytest-cov>=2.6.0",
+    "coverage>=4.5.0"]
 
 setup(
     name="abr_control",
