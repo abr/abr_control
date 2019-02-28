@@ -11,7 +11,7 @@ NAME=$0
 COMMAND=$1
 
 if [[ "$COMMAND" == "install" ]]; then
-    exe pip install -e .[tests]
+    exe pip install -e ".[tests]"
 elif [[ "$COMMAND" == "script" ]]; then
     exe pytest -v -n 2 --color=yes --durations 20 --cov=abr_control abr_control
 elif [[ "$COMMAND" == "after_script" ]]; then

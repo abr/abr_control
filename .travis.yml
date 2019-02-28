@@ -17,6 +17,7 @@ env:
 matrix:
   include:
     - env: MODE="test"
+    - env: MODE="static"
 
 before_install:
   - source .ci/conda.sh install
