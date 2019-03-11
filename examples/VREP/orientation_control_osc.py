@@ -13,8 +13,13 @@ from abr_control.utils import transformations
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
+# if using the Jaco 2 arm with the hand attached, use the following instead:
+# robot_config = arm.Config(use_cython=True, hand_attached=False)
+
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=200, ko=200)
+ctrlr = OSC(robot_config, kp=200, ko=200, null_controllers=[damping])
 
 # create our interface
 interface = VREP(robot_config, dt=.005)
