@@ -586,9 +586,11 @@ class BaseConfig():
             if 'EE' in name:
                 end_point = self.N_JOINTS
             elif 'link' in name:
-                end_point = min(int(name.strip('link')), self.N_LINKS)
+                end_point = int(name.strip('link'))
             elif 'joint' in name:
-                end_point = min(int(name.strip('joint')), self.N_JOINTS)
+                end_point = int(name.strip('joint'))
+            # can't have more joint derivatives than there are joints
+            end_point = min(end_point, self.N_JOINTS)
 
             # add on the orientation information up to the last joint
             for ii in range(end_point):
