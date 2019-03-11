@@ -15,11 +15,11 @@ robot_config = arm.Config(use_cython=True)
 # if using the Jaco 2 arm with the hand attached, use the following instead:
 # robot_config = arm.Config(use_cython=True, hand_attached=False)
 
+avoid = AvoidObstacles(robot_config)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # instantiate the REACH controller with obstacle avoidance
-ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[damping])
-avoid = AvoidObstacles(robot_config)
+ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[avoid, damping])
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)
@@ -75,9 +75,6 @@ try:
             obs_count += .05
             interface.set_xyz(name='obstacle',
                               xyz=[obs_x, obs_y, obs_z])
-
-        # add in obstacle avoidance control signal
-        u += avoid.generate(q=feedback['q'])
 
         # send forces into VREP, step the sim forward
         interface.send_forces(u)

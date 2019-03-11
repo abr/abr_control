@@ -3,7 +3,6 @@ Running operational space control using VREP. The controller will
 move the end-effector to the target object's position and orientation.
 """
 import numpy as np
-import pygame
 
 from abr_control.arms import ur5 as arm
 from abr_control.controllers import OSC
@@ -13,8 +12,11 @@ from abr_control.utils import transformations
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
+
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=200, vmax=10.0)
+ctrlr = OSC(robot_config, kp=200, vmax=10.0, null_controllers=[damping])
 
 # create our interface
 interface = VREP(robot_config, dt=.005)

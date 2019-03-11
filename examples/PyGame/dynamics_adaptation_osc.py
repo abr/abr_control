@@ -6,6 +6,8 @@ can be by clicking inside the display.
 To turn adaptation on or off, press the spacebar.
 """
 import numpy as np
+from os import environ
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
 from abr_control.arms import threejoint as arm
