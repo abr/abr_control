@@ -5,6 +5,8 @@ the z axis. The (x, y) target can be changed by clicking on the background,
 and the target orientation can be changed with the left/right arrow keys.
 """
 import numpy as np
+from os import environ
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
 from abr_control.arms import threejoint as arm

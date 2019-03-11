@@ -4,6 +4,8 @@ move the end-effector to a target orientation, which can be changed by
 pressing the left/right arrow keys.
 """
 import numpy as np
+from os import environ
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
 from abr_control.arms import threejoint as arm
@@ -33,8 +35,8 @@ def on_keypress(self, key):
         [np.sin(interface.theta), np.cos(interface.theta), 0],
         [0, 0, 1]])
     R_target = np.dot(R_theta, R)
-    self.target_angles = transformations.euler_from_matrix(R_target,
-                                                           axes='sxyz')
+    self.target_angles = transformations.euler_from_matrix(
+        R_target, axes='sxyz')
 
 
 # create our interface
