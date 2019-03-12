@@ -149,7 +149,6 @@ def test_C():
     test_arm = TwoJoint()
     robot_config = arm.Config()
 
-    count = 0
     q_vals = np.linspace(0, 2*np.pi, 15)
     for q0 in q_vals:
         for q1 in q_vals:

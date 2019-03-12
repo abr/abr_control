@@ -15,11 +15,11 @@ class KBHit:
     KBHIT.set_normal_term()
 
     if KBHit.kbhit():
-        c = KBHIT.getch # variabe to store key press
+        c = KBHIT.getch # variable to store key press
 
         if ord(c) == ord('s'):
             print('Starting Script')
-    
+
     Further examples can be found at
     http://home.wlu.edu/~levys/software/kbhit.py
     http://code.activestate.com/recipes/572182-how-to-implement-kbhit-on-linux/
@@ -51,5 +51,5 @@ class KBHit:
     def kbhit(self):
         """ Returns True if keyboard character was hit, False otherwise.
         """
-        dr, dw, de = select([sys.stdin], [], [], 0)
+        dr, _, _ = select([sys.stdin], [], [], 0)
         return dr != []

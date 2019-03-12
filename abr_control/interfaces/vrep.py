@@ -1,8 +1,8 @@
 import numpy as np
-from .vrep_files import vrep
 
 from abr_control.utils import transformations
 from .interface import Interface
+from .vrep_files import vrep
 
 
 # TODO: add ability to load models files so that vrep only has to be open
@@ -63,9 +63,10 @@ class VREP(Interface):
         vrep.simxSynchronous(self.clientID, True)
 
         # get the handles for each joint and set up streaming
-        self.joint_handles = [vrep.simxGetObjectHandle(self.clientID,
-                              name,
-                              vrep.simx_opmode_blocking)[1] for name in
+        self.joint_handles = [vrep.simxGetObjectHandle(
+            self.clientID,
+            name,
+            vrep.simx_opmode_blocking)[1] for name in
                               self.robot_config.JOINT_NAMES]
 
         # get handle for target and set up streaming

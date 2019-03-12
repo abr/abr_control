@@ -33,8 +33,10 @@ class AvoidJointLimits(Signal):
 
     def __init__(self, robot_config, min_joint_angles, max_joint_angles,
                  max_torque=None, cross_zero=None, gradient=None):
+        super(AvoidJointLimits, self).__init__(robot_config)
+
         # shift limits to -pi to pi range
-        for ii in range(0,len(min_joint_angles)):
+        for ii in range(0, robot_config.N_JOINTS):
             if min_joint_angles[ii] is not None:
                 min_joint_angles[ii] = min_joint_angles[ii] - np.pi
             if max_joint_angles[ii] is not None:
@@ -63,7 +65,6 @@ class AvoidJointLimits(Signal):
         self.no_limits_min = np.isnan(self.min_joint_angles)
         self.no_limits_max = np.isnan(self.max_joint_angles)
 
-        self.robot_config = robot_config
         self.max_torque = (np.ones(robot_config.N_JOINTS)
                            if max_torque is None else np.asarray(max_torque))
 
@@ -77,8 +78,10 @@ class AvoidJointLimits(Signal):
         q = q - (np.ones(len(q)) * np.pi)  # shift to -pi to pi range
 
         # determines which direction to push based on what limit is closer
-        closer_to_min_index = abs(q - self.min_joint_angles) >= abs(q - self.max_joint_angles)
-        closer_to_max_index = abs(q - self.min_joint_angles) <= abs(q - self.max_joint_angles)
+        closer_to_min_index = (
+            abs(q - self.min_joint_angles) >= abs(q - self.max_joint_angles))
+        closer_to_max_index = (
+            abs(q - self.min_joint_angles) <= abs(q - self.max_joint_angles))
 
         # initialize arrays
         avoid_min = np.zeros(self.robot_config.N_JOINTS)
@@ -87,12 +90,14 @@ class AvoidJointLimits(Signal):
         # get the minimum force between the exponential curve as q
         # approaches limit and max force if user wants a gradient
         # force field instead of hard stop
-        avoid_min[self.gradient] = np.minimum(np.exp(1.0/(q[self.gradient]
-                                                     - self.min_joint_angles[self.gradient])),
-                                              self.max_torque[self.gradient])
-        avoid_max[self.gradient] = -np.minimum(np.exp(-1.0/(q[self.gradient]
-                                                      - self.max_joint_angles[self.gradient])),
-                                              self.max_torque[self.gradient])
+        avoid_min[self.gradient] = np.minimum(
+            np.exp(1.0/(q[self.gradient] -
+                        self.min_joint_angles[self.gradient])),
+            self.max_torque[self.gradient])
+        avoid_max[self.gradient] = -np.minimum(
+            np.exp(-1.0/(q[self.gradient] -
+                         self.max_joint_angles[self.gradient])),
+            self.max_torque[self.gradient])
 
         # if passed limit set max torque
         min_index = (q - self.min_joint_angles) < 0
@@ -101,15 +106,17 @@ class AvoidJointLimits(Signal):
         # Check which limit is closer
         # Only affects joints who's working area crosses the 0-2pi threshold
         # check if in negative half of working area
-        min_index[self.cross_zero] = (min_index[self.cross_zero]
-                                      * ((q[self.cross_zero]
-                                          - self.max_joint_angles[self.cross_zero]) > 0)
-                                      * closer_to_max_index[self.cross_zero])
+        min_index[self.cross_zero] = (
+            min_index[self.cross_zero] * (
+                (q[self.cross_zero] -
+                 self.max_joint_angles[self.cross_zero]) > 0) *
+            closer_to_max_index[self.cross_zero])
         # check if in positive half of working area
-        max_index[self.cross_zero] = (max_index[self.cross_zero]
-                                      * ((q[self.cross_zero]
-                                          -self.min_joint_angles[self.cross_zero]) < 0)
-                                      * closer_to_min_index[self.cross_zero])
+        max_index[self.cross_zero] = (
+            max_index[self.cross_zero] * (
+                (q[self.cross_zero] -
+                 self.min_joint_angles[self.cross_zero]) < 0) *
+            closer_to_min_index[self.cross_zero])
 
         avoid_min[min_index] = self.max_torque[min_index]
         avoid_min[self.no_limits_min] = 0.0

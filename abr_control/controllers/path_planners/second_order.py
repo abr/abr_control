@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib
-matplotlib.use("TKAgg")
 
 from .path_planner import PathPlanner
 
+matplotlib.use("TKAgg")
 
 class SecondOrder(PathPlanner):
     """ Implement a trajectory controller on top of a controller
@@ -17,10 +17,6 @@ class SecondOrder(PathPlanner):
 
     Parameters
     ----------
-    robot_config : class instance
-        passes in all relevant information about the arm
-        from its config, such as: number of joints, number
-        of links, mass information etc.
     n_timesteps : int, optional (Default: 100)
         the number of time steps to reach the target
     dt : float, optional (Default: 0.001)
@@ -34,9 +30,8 @@ class SecondOrder(PathPlanner):
         filtering effects to improve convergence in practice
     """
 
-    def __init__(self, robot_config, n_timesteps=100, dt=0.001,
+    def __init__(self, n_timesteps=100, dt=0.001,
                  zeta=2.0, w=1e4, threshold=0.02):
-        super(SecondOrder, self).__init__(robot_config)
 
         self.n_timesteps = n_timesteps
         self.dt = dt
@@ -91,7 +86,7 @@ class SecondOrder(PathPlanner):
         n_states = int(len(state)/2)
 
         self.trajectory = []
-        for ii in range(self.n_timesteps):
+        for _ in range(self.n_timesteps):
             self.trajectory.append(np.copy(state))
             state = self.step(state, target_pos, dt=self.dt)
         self.trajectory = np.array(self.trajectory)
@@ -104,11 +99,11 @@ class SecondOrder(PathPlanner):
             plt.figure()
             plt.subplot(2, 1, 1)
             plt.plot(np.ones((self.n_timesteps, n_states)) *
-                              np.arange(self.n_timesteps)[:, None],
+                     np.arange(self.n_timesteps)[:, None],
                      self.trajectory[:, :n_states])
             plt.gca().set_prop_cycle(None)
             plt.plot(np.ones((self.n_timesteps, n_states)) *
-                              np.arange(self.n_timesteps)[:, None],
+                     np.arange(self.n_timesteps)[:, None],
                      np.ones((self.n_timesteps, n_states)) * target_pos, '--')
             plt.legend(['%i' % ii for ii in range(n_states)] +
                        ['%i_target' % ii for ii in range(n_states)])
@@ -116,7 +111,7 @@ class SecondOrder(PathPlanner):
 
             plt.subplot(2, 1, 2)
             plt.plot(np.ones((self.n_timesteps, n_states)) *
-                              np.arange(self.n_timesteps)[:, None],
+                     np.arange(self.n_timesteps)[:, None],
                      self.trajectory[:, n_states:])
             plt.legend(['d%i' % ii for ii in range(n_states)])
             plt.title('Trajectory velocities')
