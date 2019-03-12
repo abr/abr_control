@@ -2,15 +2,14 @@
 Move the jaco2 to a target position with an adaptive controller
 that will account for a 2lb weight in its hand
 """
-import numpy as np
 import os
 import timeit
 import traceback
-import redis
+import nengo
+import numpy as np
 
 from abr_control.controllers import OSC, signals, path_planners
 import abr_jaco2
-import nengo
 
 class Training:
 
@@ -19,7 +18,7 @@ class Training:
 
     def run_test(self, n_neurons=1000, n_ensembles=1, decimal_scale=1,
                  test_name="adaptive_training", session=None, run=None,
-                 weights_file=None ,pes_learning_rate=1e-6, backend=None,
+                 weights_file=None, pes_learning_rate=1e-6, backend=None,
                  autoload=False, time_limit=30, target_type='single',
                  offset=None, avoid_limits=False, additional_mass=0,
                  kp=20, kv=6, ki=0, integrate_err=False, ee_adaptation=False,
@@ -171,13 +170,13 @@ class Training:
             dmps.imitate_path(dmps_traj)
 
         # get averages and scale of target locations for scaling into network
-        x_avg = np.mean(PRESET_TARGET[:,0])
-        y_avg = np.mean(PRESET_TARGET[:,1])
-        z_avg = np.mean(PRESET_TARGET[:,2])
+        x_avg = np.mean(PRESET_TARGET[:, 0])
+        y_avg = np.mean(PRESET_TARGET[:, 1])
+        z_avg = np.mean(PRESET_TARGET[:, 2])
 
-        x_scale = np.max(PRESET_TARGET[:,0]) - np.min(PRESET_TARGET[:,0])
-        y_scale = np.max(PRESET_TARGET[:,1]) - np.min(PRESET_TARGET[:,1])
-        z_scale = np.max(PRESET_TARGET[:,2]) - np.min(PRESET_TARGET[:,2])
+        x_scale = np.max(PRESET_TARGET[:, 0]) - np.min(PRESET_TARGET[:, 0])
+        y_scale = np.max(PRESET_TARGET[:, 1]) - np.min(PRESET_TARGET[:, 1])
+        z_scale = np.max(PRESET_TARGET[:, 2]) - np.min(PRESET_TARGET[:, 2])
 
         # initialize our robot config
         robot_config = abr_jaco2.Config(
@@ -188,9 +187,9 @@ class Training:
 
         # get Jacobians to each link for calculating perturbation
         self.J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
-                   for ii in range(robot_config.N_LINKS)]
+                        for ii in range(robot_config.N_LINKS)]
 
-        self.JEE  = robot_config._calc_J('EE', x=[0, 0, 0])
+        self.JEE = robot_config._calc_J('EE', x=[0, 0, 0])
 
         # account for wrist to fingers offset
         R_func = robot_config._calc_R('EE')
@@ -304,8 +303,9 @@ class Training:
                 run_num = 0
                 int_err_prev = [0, 0, 0]
             else:
-                int_err_prev = np.squeeze(np.load(location + '/run%i_data/int_err%i.npz'
-                                       % (run_num-1, run_num-1))['int_err'])[-1]
+                int_err_prev = np.squeeze(
+                    np.load(location + '/run%i_data/int_err%i.npz' %
+                            (run_num-1, run_num-1))['int_err'])[-1]
         else:
             int_err_prev = None
 
@@ -317,13 +317,13 @@ class Training:
         # add joint avoidance controller if specified to do so
         if avoid_limits:
             avoid = signals.AvoidJointLimits(
-                      robot_config,
-                      # joint 4 flipped because does not cross 0-2pi line
-                      min_joint_angles=[None, 1.1, 0.5, 3.5, 2.0, 1.6],
-                      max_joint_angles=[None, 3.65, 6.25, 6.0, 5.0, 4.6],
-                      max_torque=[4]*robot_config.N_JOINTS,
-                      cross_zero=[True, False, False, False, True, False],
-                      gradient = [False, True, True, True, True, False])
+                robot_config,
+                # joint 4 flipped because does not cross 0-2pi line
+                min_joint_angles=[None, 1.1, 0.5, 3.5, 2.0, 1.6],
+                max_joint_angles=[None, 3.65, 6.25, 6.0, 5.0, 4.6],
+                max_torque=[4]*robot_config.N_JOINTS,
+                cross_zero=[True, False, False, False, True, False],
+                gradient=[False, True, True, True, True, False])
         # if not planning the trajectory (figure8 target) then use a second
         # order filter to smooth out the trajectory to target(s)
         if target_type != 'figure8':
@@ -363,7 +363,7 @@ class Training:
 
         try:
             interface.init_force_mode()
-            for ii in range(0,len(PRESET_TARGET)):
+            for ii in range(0, len(PRESET_TARGET)):
                 # counter for print statements
                 count = 0
 
@@ -376,7 +376,7 @@ class Training:
                 dq = feedback['dq']
                 dq[abs(dq) < 0.05] = 0
                 # calculate end-effector position
-                ee_xyz = robot_config.Tx('EE', q=q, x= OFFSET)
+                ee_xyz = robot_config.Tx('EE', q=q, x=OFFSET)
 
                 # last three terms used as started point for target EE velocity
                 target = np.concatenate((ee_xyz, np.array([0, 0, 0])), axis=0)
@@ -384,22 +384,23 @@ class Training:
                 # M A I N   C O N T R O L   L O O P
                 while loop_time < time_limit:
                     start = timeit.default_timer()
-                    prev_xyz = ee_xyz
 
                     if target_type == 'vision':
                         TARGET_XYZ = self.get_target_from_camera()
                         TARGET_XYZ = self.normalize_target(TARGET_XYZ)
-                        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
+                        target = path.step(y=target[:3], dy=target[3:],
+                                           target=TARGET_XYZ, w=w,
                                            zeta=zeta, dt=dt, threshold=0.05)
 
                     elif target_type == 'figure8':
-                        y, dy, ddy = dmps.step()
+                        y, dy, _ = dmps.step()
                         target = [0.65, y[0], y[1], 0, dy[0], dy[1]]
                         TARGET_XYZ = target[:3]
 
                     else:
                         TARGET_XYZ = PRESET_TARGET[ii]
-                        target = path.step(y=target[:3], dy=target[3:], target=TARGET_XYZ, w=w,
+                        target = path.step(y=target[:3], dy=target[3:],
+                                           target=TARGET_XYZ, w=w,
                                            zeta=zeta, dt=dt, threshold=0.05)
 
                     # calculate euclidean distance to target
@@ -412,16 +413,17 @@ class Training:
                     dq[abs(dq) < 0.05] = 0
 
                     # calculate end-effector position
-                    ee_xyz = robot_config.Tx('EE', q=q, x= OFFSET)
+                    ee_xyz = robot_config.Tx('EE', q=q, x=OFFSET)
 
                     if ee_adaptation and joint_adaptation:
                         # adaptive control in state space
                         training_signal = TARGET_XYZ - ee_xyz
                         # calculate the adaptive control signal
-                        adapt_input = np.array([robot_config.scaledown('q',q)[1],
-                                                   robot_config.scaledown('q',q)[2],
-                                                   robot_config.scaledown('dq',dq)[1],
-                                                   robot_config.scaledown('dq',dq)[2]])
+                        adapt_input = np.array([
+                            robot_config.scaledown('q', q)[1],
+                            robot_config.scaledown('q', q)[2],
+                            robot_config.scaledown('dq', dq)[1],
+                            robot_config.scaledown('dq', dq)[2]])
                         u_adapt = adapt.generate(input_signal=adapt_input,
                                                  training_signal=training_signal)
                         u_adapt /= decimal_scale
@@ -446,10 +448,10 @@ class Training:
                     # calculate the base operation space control signal
                     u_base = ctrlr.generate(
                         q=q,
-                        dq=dq ,
+                        dq=dq,
                         target_pos=target[:3],
                         target_vel=target[3:],
-                        offset = OFFSET,
+                        offset=OFFSET,
                         ee_adapt=u_adapt)
 
                     # account for stiction in jaco2 base
@@ -462,10 +464,11 @@ class Training:
                         training_signal = np.array([ctrlr.training_signal[1],
                                                     ctrlr.training_signal[2]])
                         # calculate the adaptive control signal
-                        adapt_input = np.array([robot_config.scaledown('q',q)[1],
-                                                   robot_config.scaledown('q',q)[2],
-                                                   robot_config.scaledown('dq',dq)[1],
-                                                   robot_config.scaledown('dq',dq)[2]])
+                        adapt_input = np.array([
+                            robot_config.scaledown('q', q)[1],
+                            robot_config.scaledown('q', q)[2],
+                            robot_config.scaledown('dq', dq)[1],
+                            robot_config.scaledown('dq', dq)[2]])
                         u_adapt = adapt.generate(input_signal=adapt_input,
                                                  training_signal=training_signal)
 
@@ -481,19 +484,23 @@ class Training:
                     elif redis_adaptation:
                         training_signal = np.array([ctrlr.training_signal[1],
                                                     ctrlr.training_signal[2]])
-                        adapt_input = np.array([robot_config.scaledown('q',q)[1],
-                                                   robot_config.scaledown('q',q)[2],
-                                                   robot_config.scaledown('dq',dq)[1],
-                                                   robot_config.scaledown('dq',dq)[2]])
+                        adapt_input = np.array([
+                            robot_config.scaledown('q', q)[1],
+                            robot_config.scaledown('q', q)[2],
+                            robot_config.scaledown('dq', dq)[1],
+                            robot_config.scaledown('dq', dq)[2]])
                         # send input information to redis
-                        redis_server.set('input_signal', '%.3f %.3f %.3f %.3f' %
-                                             (adapt_input[0], adapt_input[1],
-                                              adapt_input[2], adapt_input[3]))
-                        redis_server.set('training_signal', '%.3f %.3f' %
-                                             (training_signal[0],training_signal[1]))
+                        redis_server.set(
+                            'input_signal', '%.3f %.3f %.3f %.3f' %
+                            (adapt_input[0], adapt_input[1],
+                             adapt_input[2], adapt_input[3]))
+                        redis_server.set(
+                            'training_signal', '%.3f %.3f' %
+                            (training_signal[0], training_signal[1]))
                         # get adaptive output back
                         u_adapt = redis_server.get('u_adapt').decode('ascii')
-                        u_adapt = np.array([float(val) for val in u_adapt.split()])
+                        u_adapt = np.array(
+                            [float(val) for val in u_adapt.split()])
                         u_adapt = np.array([0,
                                             u_adapt[0],
                                             u_adapt[1],
@@ -561,7 +568,7 @@ class Training:
             [location, run_num] = adapt.weights_location(test_name=test_name, run=run,
                                                          session=session)
             print("RUN OUT IS: ", run_num)
-            if backend != None:
+            if backend is not None:
                 run_num += 1
 
                 # Save the learned weights
@@ -697,4 +704,4 @@ class Training:
         Fv = 1.2
         Ff = Fc + (Fs-Fc) * np.exp(-sgn_v * v/vs) - Fv * v
         Ff *= np.array([0.9, 1.1])
-        return(Ff)
+        return Ff

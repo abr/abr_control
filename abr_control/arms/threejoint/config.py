@@ -22,7 +22,7 @@ class Config(BaseConfig):
         z isolation vector in orientational part of Jacobian
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 tranforms from joint 1 to link 1
+    ex: Tj1l1 transforms from joint 1 to link 1
 
     Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for
@@ -56,12 +56,12 @@ class Config(BaseConfig):
         # create the inertia matrices for each link of the three joint
         # TODO: identify the actual values for these links
         self._M_LINKS.append(sp.zeros(6, 6))  # link0
-        self._M_LINKS.append(sp.diag(1.98, 1.98, 1.98,
-                             0.0, 0.0, 10.0))  # link1
-        self._M_LINKS.append(sp.diag(1.32, 1.32, 1.32,
-                             0.0, 0.0, 10.0))  # link2
-        self._M_LINKS.append(sp.diag(0.8, 0.8, 0.8,
-                             0.0, 0.0, 10.0))  # link3
+        self._M_LINKS.append(sp.diag(
+            1.98, 1.98, 1.98, 0.0, 0.0, 10.0))  # link1
+        self._M_LINKS.append(sp.diag(
+            1.32, 1.32, 1.32, 0.0, 0.0, 10.0))  # link2
+        self._M_LINKS.append(sp.diag(
+            0.8, 0.8, 0.8, 0.0, 0.0, 10.0))  # link3
 
         # the joints don't weigh anything
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
@@ -69,15 +69,15 @@ class Config(BaseConfig):
         # segment lengths associated with each joint
         # [x, y, z],  Ignoring lengths < 1e-04
 
-        self.L = np.array([
-            [0, 0, 0],  # from origin to l0 (non-existant)
-            [0, 0, 0],  # from l0 to j0
-            [1.0, 0, 0],  # from j0 to l1 COM
-            [1.0, 0, 0],  # from l1 COM to j1
-            [0.6, 0, 0],  # from j1 to l2 COM
-            [0.6, 0, 0],  # from l2 COM to j2
-            [0.35, 0, 0],  # from j2 to l3 COM
-            [0.35, 0, 0]],  # from l3 COM to EE
+        self.L = np.array(
+            [[0, 0, 0],  # from origin to l0 (non-existant)
+             [0, 0, 0],  # from l0 to j0
+             [1.0, 0, 0],  # from j0 to l1 COM
+             [1.0, 0, 0],  # from l1 COM to j1
+             [0.6, 0, 0],  # from j1 to l2 COM
+             [0.6, 0, 0],  # from l2 COM to j2
+             [0.35, 0, 0],  # from j2 to l3 COM
+             [0.35, 0, 0]],  # from l3 COM to EE
             dtype='float32')
 
         # Transform matrix : origin -> link 0

@@ -19,11 +19,14 @@ class AvoidObstacles(Signal):
         how close is the system allowed to get to obstacles
     """
 
-    def __init__(self, robot_config, obstacles=[], threshold=.2):
+    def __init__(self, robot_config, obstacles=None, threshold=.2):
 
-        self.robot_config = robot_config
+        super(AvoidObstacles, self).__init__(robot_config)
+
         self.threshold = threshold
-        self.obstacles = np.copy(obstacles)
+        obstacles = [] if obstacles is None else obstacles
+        self.obstacles = np.array(obstacles)
+
 
     def generate(self, q):  # noqa901
         """ Generates the control signal

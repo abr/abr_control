@@ -72,8 +72,8 @@ class PyGame():
         # create transparent arm lines
         self.lines_base = []
         for ii in range(len(self.L)):
-            self.lines_base.append(pygame.Surface((self.L[ii], line_width),
-                                   pygame.SRCALPHA, 32))
+            self.lines_base.append(pygame.Surface(
+                (self.L[ii], line_width), pygame.SRCALPHA, 32))
             # color in transparent arm lines
             self.lines_base[ii].fill(line_color)
 
@@ -139,7 +139,7 @@ class PyGame():
         self.target = (xyz[:2] * np.array([1, -1]) *
                        self.scaling_term + self.base_offset)
 
-    def add_circle(self, xyz, radius, color=[0, 0, 100]):
+    def add_circle(self, xyz, radius, color=None):
         """ Add an obstacle to the list.
 
         Parameters
@@ -151,6 +151,8 @@ class PyGame():
         color : list, optional (Default: [0, 0, 100])
             colour of the circle
         """
+
+        color = [0, 0, 100] if color is None else color
 
         circle = list(xyz[:2] * np.array([1, -1]) *
                       self.scaling_term + self.base_offset)

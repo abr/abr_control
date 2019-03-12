@@ -22,7 +22,7 @@ class Config(BaseConfig):
         offset to the center of mass of the hand [meters]
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 tranforms from joint 1 to link 1
+    ex: Tj1l1 transforms from joint 1 to link 1
 
     Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for
@@ -282,7 +282,7 @@ class Config(BaseConfig):
                 self._T[name] = self._calc_T('joint4') * self.Tj4l5
             elif name == 'joint5':
                 self._T[name] = self._calc_T('link5') * self.Tl5j5
-            elif name == 'link6' or name == 'EE':
+            elif name in ('link6', 'EE'):
                 self._T[name] = self._calc_T('joint5') * self.Tj5l6
 
             else:

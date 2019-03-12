@@ -1,16 +1,14 @@
 import glob
-import redis
-import struct
+import logging
 import os
-import time
+import struct
+
+import redis
 import numpy as np
 import scipy.special
-import logging
-r = redis.StrictRedis(host='127.0.0.1')
 
 # import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
-from .signal import Signal
 
 try:
     import nengo
@@ -23,8 +21,10 @@ except ImportError:
     raise Exception('Nengo_extras module needs to be installed to ' +
                     'bootstrap learning.')
 
+r = redis.StrictRedis(host='127.0.0.1')
 
-class DynamicsAdaptation(Signal):
+
+class DynamicsAdaptation():
     """ An implementation of nonlinear dynamics adaptation using Nengo,
     as described in (DeWolf, Stewart, Slotine, and Eliasmith, 2016)
 
@@ -33,9 +33,6 @@ class DynamicsAdaptation(Signal):
 
     Parameters
     ----------
-    robot_config : class instance
-        contains all relevant information about the arm
-        such as: number of joints, number of links, mass information etc.
     n_input : int
         the number of inputs going into the adaptive population
     n_output : int
@@ -92,8 +89,6 @@ class DynamicsAdaptation(Signal):
                  function=None, send_redis_spikes=False, encoders=None,
                  probe_weights=False, debug_print=False, **kwargs):
 
-        """ Create adaptive population with the provided parameters"""
-
         self.input_signal = np.zeros(n_input)
         self.training_signal = np.zeros(n_output)
         self.output = np.zeros(n_output)
@@ -145,10 +140,13 @@ class DynamicsAdaptation(Signal):
             self.conn_learn = []
 
             for ii in range(n_ensembles):
-                self.adapt_ens.append(nengo.Ensemble(n_neurons=n_neurons, dimensions=n_input,
-                                           intercepts=intercepts,
-                                           radius=np.sqrt(n_input),
-                                           **kwargs))
+                self.adapt_ens.append(
+                    nengo.Ensemble(
+                        n_neurons=n_neurons,
+                        dimensions=n_input,
+                        intercepts=intercepts,
+                        radius=np.sqrt(n_input),
+                        **kwargs))
                 print('*** ENSEMBLE %i ***' % ii)
 
                 try:
@@ -166,7 +164,7 @@ class DynamicsAdaptation(Signal):
                     print('Nengo lib not installed, encoder ' +
                           'placement will be sub-optimal.')
 
-                # hook up input signal to adaptive population to provide context
+                # hook up input signal to adaptive population for context
                 nengo.Connection(input_signals, self.adapt_ens[ii])
 
                 # load weights from file if they exist, otherwise use zeros
@@ -176,57 +174,70 @@ class DynamicsAdaptation(Signal):
                 print('Weights file: %s' % weights_file)
                 if not os.path.isfile('%s' % weights_file):
                     print('No weights found, starting with zeros')
-                    transform = np.zeros((n_output, self.adapt_ens[ii].n_neurons))
+                    transform = np.zeros(
+                        (n_output, self.adapt_ens[ii].n_neurons))
 
                 # set up learning connections
-                if function is not None and (weights_file is None or weights_file is ''):
+                if function is not None and (
+                        weights_file is None or weights_file is ''):
                     print("Using provided function to bootstrap learning")
-                    eval_points = Concatenate([nengo.dists.Choice([0]), nengo.dists.Choice([0]),
-                        nengo.dists.Uniform(-1, 1), nengo.dists.Uniform(-1, 1)])
-                    self.conn_learn.append(nengo.Connection(
-                                           self.adapt_ens[ii], output,
-                                           learning_rule_type=nengo.PES(
-                                               pes_learning_rate),
-                                           function=function,
-                                           eval_points=eval_points))
+                    eval_points = Concatenate([
+                        nengo.dists.Choice([0]),
+                        nengo.dists.Choice([0]),
+                        nengo.dists.Uniform(-1, 1),
+                        nengo.dists.Uniform(-1, 1)])
+                    self.conn_learn.append(
+                        nengo.Connection(
+                            self.adapt_ens[ii],
+                            output,
+                            learning_rule_type=nengo.PES(pes_learning_rate),
+                            function=function,
+                            eval_points=eval_points))
                 else:
                     if backend == 'nengo_spinnaker':
                         if os.path.isfile('%s' % weights_file):
                             if n_ensembles == 1:
-                                transform = np.squeeze(np.load(weights_file)['weights']).T
+                                transform = np.squeeze(
+                                    np.load(weights_file)['weights']).T
                             else:
-                                transform = np.squeeze(np.load(weights_file)['weights'])[ii].T
+                                transform = np.squeeze(
+                                    np.load(weights_file)['weights'])[ii].T
                             print('Loading weights: \n', transform)
-                            print('Loaded weights all zeros: ', np.allclose(transform, 0))
+                            print('Loaded weights all zeros: ',
+                                  np.allclose(transform, 0))
 
 
 
                         print(transform.T.shape)
 
-                        self.conn_learn.append(nengo.Connection(
-                                               self.adapt_ens[ii], output,
-                                               function=lambda x: np.zeros(n_output),
-                                               learning_rule_type=nengo.PES(
-                                                 pes_learning_rate),
-                                               solver=DummySolver(transform.T)))
+                        self.conn_learn.append(
+                            nengo.Connection(
+                                self.adapt_ens[ii],
+                                output,
+                                function=lambda x: np.zeros(n_output),
+                                learning_rule_type=nengo.PES(pes_learning_rate),
+                                solver=DummySolver(transform.T)))
                     else:
 
                         if os.path.isfile('%s' % weights_file):
-                            if n_ensembles ==1:
+                            if n_ensembles == 1:
                                 transform = np.load(weights_file)['weights']
                             else:
-                                transform = np.load(weights_file)['weights'][ii]
+                                transform = (
+                                    np.load(weights_file)['weights'][ii])
                             # remove third dimension if present
                             if len(transform.shape) > 2:
                                 transform = np.squeeze(transform)
                             print('Loading weights: \n', transform)
-                            print('Loaded weights all zeros: ', np.allclose(transform, 0))
+                            print('Loaded weights all zeros: ',
+                                  np.allclose(transform, 0))
 
-                        self.conn_learn.append(nengo.Connection(
-                                               self.adapt_ens[ii].neurons, output,
-                                               learning_rule_type=nengo.PES(
-                                                 pes_learning_rate),
-                                               transform=transform))
+                        self.conn_learn.append(
+                            nengo.Connection(
+                                self.adapt_ens[ii].neurons,
+                                output,
+                                learning_rule_type=nengo.PES(pes_learning_rate),
+                                transform=transform))
 
                 # hook up the training signal to the learning rule
                 nengo.Connection(
@@ -239,13 +250,13 @@ class DynamicsAdaptation(Signal):
             if backend != 'nengo_spinnaker' and send_redis_spikes:
                 # Send spikes via redis
                 def send_spikes(t, x):
-                        v = np.where(x != 0)[0]
-                        if len(v) > 0:
-                            msg = struct.pack('%dI' % len(v), *v)
-                        else:
-                            msg = ''
-                        r.set('spikes', msg)
-                        self.activity = x
+                    v = np.where(x != 0)[0]
+                    if len(v) > 0:
+                        msg = struct.pack('%dI' % len(v), *v)
+                    else:
+                        msg = ''
+                    r.set('spikes', msg)
+                    self.activity = x
                 source_node = nengo.Node(send_spikes, size_in=n_neurons)
                 nengo.Connection(
                     self.adapt_ens[0].neurons[:n_neurons],
@@ -257,7 +268,8 @@ class DynamicsAdaptation(Signal):
             nengo.Connection(self.adapt_ens[0], x_node, synapse=None)
 
             if backend == 'nengo' and probe_weights:
-                self.nengo_model.weights_probe = nengo.Probe(self.conn_learn[0], 'weights', synapse=None)
+                self.nengo_model.weights_probe = nengo.Probe(
+                    self.conn_learn[0], 'weights', synapse=None)
 
 
 
@@ -275,7 +287,8 @@ class DynamicsAdaptation(Signal):
             import pyopencl as cl
             # Here, the context would be to use all devices from platform [0]
             ctx = cl.Context(cl.get_platforms()[0].get_devices())
-            self.sim = nengo_ocl.Simulator(self.nengo_model, context=ctx, dt=.001)
+            self.sim = nengo_ocl.Simulator(self.nengo_model,
+                                           context=ctx, dt=.001)
         elif backend == 'nengo_spinnaker':
             try:
                 import nengo_spinnaker
@@ -346,12 +359,12 @@ class DynamicsAdaptation(Signal):
 
         test_name = cache_dir + '/saved_weights/' + test_name
 
-        # if session is not None, then the user has specified what session to save the
-        # current weights in
+        # if session is not None, then user has specified what session
+        # to save the current weights in
         if session is not None:
             test_name += '/session%i' % session
-        # If no session is specified, check if there is already one created, if not
-        # then save the run to 'session0'
+        # If no session is specified, check if there is already one created,
+        # if not then save the run to 'session0'
         else:
             prev_sessions = glob.glob(test_name + '/session*')
             run_cache = []
@@ -362,19 +375,20 @@ class DynamicsAdaptation(Signal):
 
         # check if the provided test_name exists, if not, create it
         if not os.path.exists(test_name):
-            print("The provided directory: '%s' does not exist, creating folder..."
-                % test_name)
+            print("Provided directory: '%s' does not exist, creating folder..."
+                  % test_name)
             os.makedirs(test_name)
 
-        # if no run is specified, check what the most recent run saved is and save as
-        # the next one in the series. If no run exists then save it as 'run0'
-        # if saving, if loading throw an error that no weights file exists
+        # if no run is specified, check what the most recent run saved is and
+        # save as the next one in the series. If no run exists then save it as
+        # 'run0' if saving, if loading throw an error no weights file exists
         if run is None:
             prev_runs = glob.glob(test_name + '/*.npz')
             run_cache = []
             if prev_runs:
-                for ii in range(0, len(prev_runs)):
-                    run_cache.append(int(prev_runs[ii][prev_runs[ii].rfind('/')+4:prev_runs[ii].find('.npz')]))
+                for val in prev_runs:
+                    run_cache.append(
+                        int(val[val.rfind('/')+4:val.find('.npz')]))
                 run_num = max(run_cache)
             else:
                 run_num = -1
@@ -407,15 +421,17 @@ class DynamicsAdaptation(Signal):
             print('save location: ', test_name + '/run%i' % (run_num +1))
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
-                weights=([nengo_spinnaker.utils.learning.get_learnt_decoders(
-                         self.sim, ens) for ens in self.adapt_ens]))
+                weights=([
+                    nengo_spinnaker.utils.learning.get_learnt_decoders(
+                        self.sim, ens) for ens in self.adapt_ens]))
 
         else:
             print('save location: ', test_name + '/run%i' % (run_num +1))
             np.savez_compressed(
                 test_name + '/run%i' % (run_num + 1),
-                weights=([self.sim.signals[self.sim.model.sig[conn]['weights']]
-                         for conn in self.conn_learn]))
+                weights=([
+                    self.sim.signals[self.sim.model.sig[conn]['weights']]
+                    for conn in self.conn_learn]))
 
     def load_weights(self, **kwargs):
         """ Loads the most recently saved weights unless otherwise specified
@@ -471,8 +487,8 @@ class AreaIntercepts(nengo.dists.Distribution):
 
     def sample(self, n, d=None, rng=np.random):
         s = self.base.sample(n=n, d=d, rng=rng)
-        for i in range(len(s)):
-            s[i] = self.transform(s[i])
+        for ii, ss in enumerate(s):
+            s[ii] = self.transform(ss)
         return s
 
 class Triangular(nengo.dists.Distribution):
@@ -497,4 +513,5 @@ class Triangular(nengo.dists.Distribution):
         if d is None:
             return rng.triangular(self.left, self.mode, self.right, size=n)
         else:
-            return rng.triangular(self.left, self.mode, self.right, size=(n, d))
+            return rng.triangular(self.left, self.mode,
+                                  self.right, size=(n, d))

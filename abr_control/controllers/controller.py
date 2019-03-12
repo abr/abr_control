@@ -1,3 +1,5 @@
+import numpy as np
+
 class Controller:
     """
     The base functions for all controllers
@@ -11,6 +13,8 @@ class Controller:
 
     def __init__(self, robot_config):
         self.robot_config = robot_config
+
+        self.offset_zeros = np.zeros(3)
 
     def generate(self, q, dq):
         """

@@ -33,7 +33,7 @@ class Sliding(controller.Controller):
 
     def generate(self, q, dq,
                  target_pos, target_vel=None, target_acc=None,
-                 ref_frame='EE', offset=[0, 0, 0]):
+                 ref_frame='EE', offset=None):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -48,9 +48,12 @@ class Sliding(controller.Controller):
             desired joint velocities [radians/sec]
         ref_frame : string, optional (Default: 'EE')
             the point being controlled, default is the end-effector.
-        offset : list, optional (Default: [0, 0, 0])
+        offset : list, optional (Default: None)
             point of interest inside the frame of reference [meters]
         """
+
+        offset = self.offset_zeros if offset is None else offset
+
         if self.cartesian:
             if target_vel is None:
                 target_vel = np.zeros(3)
