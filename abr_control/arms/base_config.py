@@ -1,11 +1,12 @@
-import cloudpickle
 import hashlib
 import importlib
-import numpy as np
 import os
+import sys
+
+import cloudpickle
+import numpy as np
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
-import sys
 
 import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
@@ -124,6 +125,8 @@ class BaseConfig():
         # set up an (x,y,z) offset
         self.x = [sp.Symbol('x'), sp.Symbol('y'), sp.Symbol('z')]
 
+        self.x_zeros = np.zeros(3)
+
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
     def _generate_and_save_function(self, filename, expression, parameters):
@@ -219,7 +222,7 @@ class BaseConfig():
         parameters = tuple(q)
         return np.array(self._g(*parameters), dtype='float32').flatten()
 
-    def dJ(self, name, q, dq, x=[0, 0, 0]):
+    def dJ(self, name, q, dq, x=None):
         """ Loads or calculates the derivative of the Jacobian wrt time
 
         Parameters
@@ -228,12 +231,14 @@ class BaseConfig():
             name of the joint, link, or end-effector
         q : numpy.array
             joint angles [radians]
-        x : numpy.array, optional (Default: [0,0,0])
+        x : numpy.array, optional (Default: None)
             the [x,y,z] offset inside reference frame of 'name' [meters]
             if not specified, (0, 0, 0) is hard coded in, rather than using
             variable (x, y, z), which results in significant speedups.
 
         """
+
+        x = self.x_zeros if x is None else x
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._dJ.get(funcname, None) is None:
@@ -241,7 +246,7 @@ class BaseConfig():
         parameters = tuple(q) + tuple(dq) + tuple(x)
         return np.array(self._dJ[funcname](*parameters), dtype='float32')
 
-    def J(self, name, q, x=[0, 0, 0]):
+    def J(self, name, q, x=None):
         """ Loads or calculates the Jacobian for a joint or link
 
         Parameters
@@ -256,6 +261,7 @@ class BaseConfig():
             variable (x, y, z), which results in significant speedups.
         """
 
+        x = self.x_zeros if x is None else x
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._J.get(funcname, None) is None:
@@ -340,7 +346,7 @@ class BaseConfig():
             raise Exception('Mean and/or scaling not defined')
         return x * self.SCALES[name] + self.MEANS[name]
 
-    def Tx(self, name, q, x=[0, 0, 0]):
+    def Tx(self, name, q, x=None):
         """ Loads or calculates the transformation Matrix for a joint or link
 
         Parameters
@@ -355,6 +361,7 @@ class BaseConfig():
             variable (x, y, z), which results in significant speedups.
         """
 
+        x = self.x_zeros if x is None else x
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._Tx.get(funcname, None) is None:
@@ -362,7 +369,7 @@ class BaseConfig():
         parameters = tuple(q) + tuple(x)
         return self._Tx[funcname](*parameters)[:-1].flatten()
 
-    def T_inv(self, name, q, x=[0, 0, 0]):
+    def T_inv(self, name, q, x=None):
         """ Loads or calculates the inverse transform for a joint or link
 
         Parameters
@@ -377,6 +384,7 @@ class BaseConfig():
             variable (x, y, z), which results in significant speedups.
         """
 
+        x = self.x_zeros if x is None else x
         funcname = name + '[0,0,0]' if np.allclose(x, 0) else name
         # check for function in dictionary
         if self._T_inv.get(funcname, None) is None:
@@ -405,10 +413,10 @@ class BaseConfig():
             print('Generating gravity compensation function')
 
             # get the Jacobians for each link's COM
-            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
+            J_links = [self._calc_J('link%s' % ii, x=self.x_zeros,
                                     lambdify=False)
                        for ii in range(self.N_LINKS)]
-            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
+            J_joints = [self._calc_J('joint%s' % ii, x=self.x_zeros,
                                      lambdify=False)
                         for ii in range(self.N_JOINTS)]
 
@@ -591,10 +599,10 @@ class BaseConfig():
             print('Generating inertia matrix function')
 
             # get the Jacobians for each link's COM
-            J_links = [self._calc_J('link%s' % ii, x=[0, 0, 0],
+            J_links = [self._calc_J('link%s' % ii, x=self.x_zeros,
                                     lambdify=False)
                        for ii in range(self.N_LINKS)]
-            J_joints = [self._calc_J('joint%s' % ii, x=[0, 0, 0],
+            J_joints = [self._calc_J('joint%s' % ii, x=self.x_zeros,
                                      lambdify=False)
                         for ii in range(self.N_JOINTS)]
 

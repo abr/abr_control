@@ -15,8 +15,8 @@ if [[ "$COMMAND" == "install" ]]; then
     # astroid==2.2 causes an error when running pylint
     exe pip install codespell pylint gitlint "astroid<2.2.0"
 elif [[ "$COMMAND" == "script" ]]; then
-    exe pylint abr_control --rcfile=setup.cfg
-    exe codespell -q 3
+    exe pylint abr_control --rcfile=setup.cfg --ignore=arm_files,vrep_files
+    exe codespell -q 3 --skip=arm_files,vrep_files
     exe shellcheck -e SC2087 .ci/*.sh
     # undo single-branch cloning
     git config --replace-all remote.origin.fetch +refs/heads/*:refs/remotes/origin/*

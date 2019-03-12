@@ -30,7 +30,7 @@ class ArmSim():
         self.q = np.zeros(self.robot_config.N_JOINTS)
         self.dq = np.zeros(self.robot_config.N_JOINTS)
 
-        self.init_state= np.zeros(self.robot_config.N_JOINTS*2)
+        self.init_state = np.zeros(self.robot_config.N_JOINTS*2)
         if q_init is None:
             self.init_state[::2] = self.robot_config.REST_ANGLES
         else:
@@ -80,12 +80,10 @@ class ArmSim():
         dt = self.dt if dt is None else dt
         # clip the torque signal to prevent seg faults
         u = np.minimum(
-                np.maximum(
-                    -1 * np.array(u, dtype='float'),
-                    -self.torque_limit),
-                self.torque_limit)
+            np.maximum(-1 * np.array(u, dtype='float'), -self.torque_limit),
+            self.torque_limit)
 
-        for ii in range(int(np.ceil(dt/1e-5))):
+        for _ in range(int(np.ceil(dt/1e-5))):
             self.sim.step(self.state, u)
         self._update_state()
 

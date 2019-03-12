@@ -30,7 +30,7 @@ class Config(BaseConfig):
         offset to the center of mass of the hand [meters]
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 tranforms from joint 1 to link 1
+    ex: Tj1l1 transforms from joint 1 to link 1
 
     Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for
@@ -56,7 +56,7 @@ class Config(BaseConfig):
             self.SCALES = {  # expected variance of joint angles / velocities
                 'q': np.ones(self.N_JOINTS) * np.pi * np.sqrt(self.N_JOINTS),
                 'dq': (np.array([1.22826, 2.0, 1.42348,
-                                2.58221, 2.50768, 1.27004])
+                                 2.58221, 2.50768, 1.27004])
                        * np.sqrt(self.N_JOINTS))
                 }
 
@@ -208,7 +208,7 @@ class Config(BaseConfig):
         # account for axes and rotation and offsets
         self.Tj3l4b = sp.Matrix([
             [0.85536427, -0.51802699, 0, self.L[8, 0]],
-            [-0.45991232, -0.75940555,  0.46019982, self.L[8, 1]],
+            [-0.45991232, -0.75940555, 0.46019982, self.L[8, 1]],
             [-0.23839593, -0.39363848, -0.88781537, self.L[8, 2]],
             [0, 0, 0, 1]])
         self.Tj3l4 = self.Tj3l4a * self.Tj3l4b

@@ -20,7 +20,7 @@ class Config(BaseConfig):
         segment lengths of arm [meters]
 
     Transform Naming Convention: Tpoint1point2
-    ex: Tj1l1 tranforms from joint 1 to link 1
+    ex: Tj1l1 transforms from joint 1 to link 1
 
     Transforms are broken up into two matrices for simplification
     ex: Tj0l1a and Tj0l1b where the former transform accounts for

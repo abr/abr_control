@@ -1,17 +1,17 @@
 import numpy as np
 
 
-class TwoJoint():
+class TwoJoint():  # pylint: disable=too-many-public-methods
     """ A class with equationns analytically derived in (Spong et al, 2004),
     page 209, for testing the symbolic function generation config system. """
 
     def __init__(self):
         self.L = [0.0, 2.0, 1.2]
         self.M_LINKS = [np.diag(np.zeros(6))] # non-existant link0
-        self.M_LINKS.append(np.diag([1.98, 1.98, 1.98,
-                               2.56, 2.56, 2.56]))  # link1
-        self.M_LINKS.append(np.diag([1.32, 1.32, 1.32,
-                               0.6336, 0.6336, 0.6336]))  # link2
+        self.M_LINKS.append(np.diag(
+            [1.98, 1.98, 1.98, 2.56, 2.56, 2.56]))  # link1
+        self.M_LINKS.append(np.diag(
+            [1.32, 1.32, 1.32, 0.6336, 0.6336, 0.6336]))  # link2
         # joints don't weigh anything
         self.M_JOINTS = [np.zeros((6, 6)) for ii in range(2)]
 
@@ -114,9 +114,9 @@ class TwoJoint():
         s0 = np.sin(q[0])
         return np.array([
             [c0, s0, 0, -s0 * self.L[1] / 2.0 * s0 -
-                c0 * (self.L[0] + self.L[1] / 2.0 * c0)],
+             c0 * (self.L[0] + self.L[1] / 2.0 * c0)],
             [-s0, c0, 0, s0 * (self.L[0] + self.L[1] / 2.0 * c0) -
-                c0 * self.L[1] / 2.0 * s0],
+             c0 * self.L[1] / 2.0 * s0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
@@ -201,7 +201,7 @@ class TwoJoint():
         """ Returns the position of the COM of link 2 """
         return np.array([
             (self.L[0] + self.L[1] * np.cos(q[0]) +
-                self.L[2] / 2.0 * np.cos(q[0] + q[1])),
+             self.L[2] / 2.0 * np.cos(q[0] + q[1])),
             self.L[1] * np.sin(q[0]) + self.L[2] / 2.0 * np.sin(q[0] + q[1]),
             0])
 
@@ -230,23 +230,23 @@ class TwoJoint():
         """ Returns the Jacobian of the COM of link 2 """
         return np.array([
             [-self.L[1] * np.sin(q[0]) - self.L[2] / 2.0 * np.sin(q[0] + q[1]),
-                -self.L[2] / 2.0 * np.sin(q[0] + q[1])],
+             -self.L[2] / 2.0 * np.sin(q[0] + q[1])],
             [self.L[1] * np.cos(q[0]) + self.L[2] / 2.0 * np.cos(q[0] + q[1]),
-                self.L[2] / 2.0 * np.cos(q[0] + q[1])],
+             self.L[2] / 2.0 * np.cos(q[0] + q[1])],
             [0, 0],
             [0, 0],
             [0, 0],
             [1, 1]])
 
-    def dJ_link2(self, q):
+    def dJ_link2(self, q, dq):
         """ Returns the derivative of the Jacobian of link 2 """
         return np.array([
             [-self.L[1] * np.cos(q[0]) * dq[0] -
-                self.L[2] / 2.0 * np.cos(q[0] + q[1]) * dq[0],
-                -self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[1]],
+             self.L[2] / 2.0 * np.cos(q[0] + q[1]) * dq[0],
+             -self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[1]],
             [-self.L[1] * np.sin(q[0]) * dq[0] -
-                self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[0],
-                -self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[1]],
+             self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[0],
+             -self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[1]],
             [0, 0],
             [0, 0],
             [0, 0],
@@ -267,9 +267,9 @@ class TwoJoint():
         """ Returns the position of the end effector """
         return np.array([
             (self.L[0] + self.L[1] * np.cos(q[0]) +
-                self.L[2] * np.cos(q[0] + q[1])),
+             self.L[2] * np.cos(q[0] + q[1])),
             (self.L[0] + self.L[1] * np.sin(q[0]) +
-                self.L[2] * np.sin(q[0] + q[1])),
+             self.L[2] * np.sin(q[0] + q[1])),
             0])
 
     def T_inv_EE(self, q):
@@ -294,9 +294,9 @@ class TwoJoint():
         """ Returns the Jacobian of the end effector """
         return np.array([
             [-self.L[1] * np.sin(q[0]) - self.L[2] *
-                np.sin(q[0] + q[1]), -self.L[2] * np.sin(q[0] + q[1])],
+             np.sin(q[0] + q[1]), -self.L[2] * np.sin(q[0] + q[1])],
             [self.L[1] * np.cos(q[0]) + self.L[2] * np.cos(q[0] + q[1]),
-                self.L[2] * np.cos(q[0] + q[1])],
+             self.L[2] * np.cos(q[0] + q[1])],
             [0, 0],
             [0, 0],
             [0, 0],
@@ -306,11 +306,11 @@ class TwoJoint():
         """ Returns the derivative of the Jacobian of the end effector """
         return np.array([
             [-self.L[1] * np.cos(q[0]) * dq[0] -
-                self.L[2] / 2.0 * np.cos(q[0] + q[1]) * dq[0],
-                -self.L[2] * np.sin(q[0] + q[1]) * dq[1]],
+             self.L[2] / 2.0 * np.cos(q[0] + q[1]) * dq[0],
+             -self.L[2] * np.sin(q[0] + q[1]) * dq[1]],
             [-self.L[1] * np.sin(q[0]) * dq[0] -
-                self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[0],
-                -self.L[2] * np.sin(q[0] + q[1]) * dq[1]],
+             self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[0],
+             -self.L[2] * np.sin(q[0] + q[1]) * dq[1]],
             [0, 0],
             [0, 0],
             [0, 0],
@@ -330,7 +330,7 @@ class TwoJoint():
         # NOTE: (Spong et al, 2004) incorrectly has the term commented out
         # below included in their equations.
         m11 = (m1*lc1**2 + m2 * (L[1]**2 + lc2**2 + #2*L[1]*lc2**2 +
-               2*L[1]*lc2*np.cos(q[1])) + i1 + i2)
+                                 2*L[1]*lc2*np.cos(q[1])) + i1 + i2)
         m12 = m21 = m2 * (lc2**2 + L[1] * lc2 * np.cos(q[1])) + i2
         m22 = m2 * lc2**2 + i2
         return np.array([[m11, m12], [m21, m22]])

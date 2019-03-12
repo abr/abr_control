@@ -1,4 +1,4 @@
-class PathPlanner(object):
+class PathPlanner():
     """ Super class for any trajectory planners.
 
     Parameters
@@ -8,11 +8,7 @@ class PathPlanner(object):
         such as: number of joints, number of links, mass information etc.
     """
 
-    def __init__(self, robot_config):
-
-        self.robot_config = robot_config
-
-    def generate(self, state, target, n_timesteps):
+    def generate_path(self, state, target, n_timesteps):
         """ Generate the path for the system to follow
 
         Parameters
@@ -26,6 +22,6 @@ class PathPlanner(object):
         """
         raise NotImplementedError
 
-    def next(self):
+    def next_target(self):
         """ Return the next target point along the path """
         raise NotImplementedError

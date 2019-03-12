@@ -13,11 +13,13 @@ class Linear(PathPlanner):
         such as: number of joints, number of links, mass information etc.
     """
 
-    def __init__(self, robot_config):
-        super(Linear, self).__init__(robot_config)
+    def __init__(self):
+        self.n = 0
+        self.n_timesteps = None
+        self.trajectory = None
 
     def generate_path(self, state, target, n_timesteps=200,
-                 dt=0.001, plot=False):
+                      dt=0.001, plot=False):
         """ Generates a linear trajectory to the target
 
         Parameters
@@ -54,11 +56,11 @@ class Linear(PathPlanner):
             plt.figure()
             plt.subplot(2, 1, 1)
             plt.plot(np.ones((n_timesteps, n_states)) *
-                              np.arange(n_timesteps)[:, None],
+                     np.arange(n_timesteps)[:, None],
                      self.trajectory[:, :n_states])
             plt.gca().set_prop_cycle(None)
             plt.plot(np.ones((n_timesteps, n_states)) *
-                              np.arange(n_timesteps)[:, None],
+                     np.arange(n_timesteps)[:, None],
                      np.ones((n_timesteps, n_states)) * target, '--')
             plt.legend(['%i' % ii for ii in range(n_states)] +
                        ['%i_target' % ii for ii in range(n_states)])
@@ -66,7 +68,7 @@ class Linear(PathPlanner):
 
             plt.subplot(2, 1, 2)
             plt.plot(np.ones((n_timesteps, n_states)) *
-                              np.arange(n_timesteps)[:, None],
+                     np.arange(n_timesteps)[:, None],
                      self.trajectory[:, n_states:])
             plt.legend(['d%i' % ii for ii in range(n_states)])
             plt.title('Trajectory velocities')

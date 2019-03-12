@@ -67,9 +67,8 @@ class OSC(controller.Controller):
         self.nkp = self.kp * .1
         self.nkv = np.sqrt(self.nkp)
 
-    def generate(self, q, dq,
-                 target_pos, target_vel=0,
-                 ref_frame='EE', offset=[0, 0, 0]):
+    def generate(self, q, dq, target_pos, target_vel=0,
+                 ref_frame='EE', offset=None):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -84,9 +83,11 @@ class OSC(controller.Controller):
             desired joint velocities [radians/sec]
         ref_frame : string, optional (Default: 'EE')
             the point being controlled, default is the end-effector.
-        offset : list, optional (Default: [0, 0, 0])
+        offset : list, optional (Default: None)
             point of interest inside the frame of reference [meters]
         """
+
+        offset = self.offset_zeros if offset is None else offset
 
         # calculate the end-effector position information
         xyz = self.robot_config.Tx(ref_frame, q, x=offset)
