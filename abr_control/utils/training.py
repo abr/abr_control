@@ -22,7 +22,7 @@ class Training:
             run=None, offset=None, kp=20, kv=6, ki=0,
             integrated_error=np.array([0.0, 0.0, 0.0]),
             avoid_limits=True, db_name=None, vmax=1, SCALES=None, MEANS=None,
-            friction_gain=[0.0]):
+            friction_gain=[0.0], number_of_targets=1):
 
         """
         The test script used to collect data for training. The use of the
@@ -79,6 +79,9 @@ class Training:
             each joint. Only used for adaptation
         friction_gain: list of floats, Optional (Default:[0])
             list of gains used to scale friction signal to each joint
+        number_of_targets: int, Optional (Default:1)
+            the number of targets for the run, this sets how many path planners
+            we need to instantiate
 
         Attributes
         ----------
@@ -178,8 +181,9 @@ class Training:
         # self.path = path_planners.SecondOrder(robot_config=self.robot_config,
         #         n_timesteps=3000, w=1e4, zeta=3, threshold=0.0)
         self.dt = 0.004
-
-        self.path = path_planners.dmpFilter()
+        self.path = []
+        for pp in range(0, number_of_targets):
+            self.path.append(path_planners.dmpFilter())
 
         if self.avoid_limits:
             print('--Instantiate joint avoidance--')
@@ -207,7 +211,7 @@ class Training:
         # set up lists for tracking data
         self.data = {'q': [], 'dq': [], 'u_base': [], 'u_adapt': [],
                      'error':[], 'training_signal': [], 'target': [],
-                     'ee_xyz': [], 'input_signal': [], 'filter': [],
+                     'ee_xyz': [], 'input_signal': [], 'ideal_trajectory': [],
                      'time': [], 'weights': [], 'u_avoid': [], 'osc_dx': [],
                      'q_torque': [], 'M_inv_singular': [], 'u_kp': [],
                      'u_kv': [], 'u_friction': [], 'u_task': []}
@@ -286,16 +290,17 @@ class Training:
 
         if self.run == 0:
             # get our saved q and dq values
-            input_signal_file = 'cpu_53_input_signal.npz'
-            data = np.load(input_signal_file)
-            qs = data['qs']
-            dqs = data['dqs']
-            [qs, dqs] = self.net_utils.generate_scaled_inputs(q=qs, dq=dqs, in_index=self.in_index)
-            input_signal = np.hstack((dqs, qs))
-            input_signal = self.net_utils.convert_to_spherical(input_signal)
+            input_signal=None
+            # input_signal_file = 'cpu_53_input_signal.npz'
+            # data = np.load(input_signal_file)
+            # qs = data['qs']
+            # dqs = data['dqs']
+            # [qs, dqs] = self.net_utils.generate_scaled_inputs(q=qs, dq=dqs, in_index=self.in_index)
+            # input_signal = np.hstack((qs, dqs))
+            # input_signal = self.net_utils.convert_to_spherical(input_signal)
 
             encoders = self.net_utils.generate_encoders(input_signal=input_signal,
-                    n_neurons=n_neurons*n_ensembles)
+                    n_neurons=n_neurons*n_ensembles, thresh=0.08, n_dims=n_input)
             encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
         else:
             print('Loading encoders used for run 0...')
@@ -326,9 +331,9 @@ class Training:
                         test_name=self.test_name, create=True)
 
 
-        left_bound = -0.5
-        right_bound = -0.2
-        mode = -0.3
+        left_bound = -0.7
+        right_bound = -0.4
+        mode = -0.5
         intercepts = signals.AreaIntercepts(
             dimensions=n_input,
             base=signals.Triangular(left_bound, mode, right_bound))
@@ -350,7 +355,8 @@ class Training:
             probe_weights=probe_weights,
             seed=seed,
             neuron_type=neuron_type,
-            encoders=encoders)
+            encoders=encoders,
+            debug_print=True)
 
         self.adapt.params['intercept_bounds'] = [left_bound, right_bound]
         self.adapt.params['intercept_mode'] = mode
@@ -366,7 +372,7 @@ class Training:
             print('--Initialize force mode--')
             self.interface.init_force_mode()
 
-    def reach_to_target(self, target_xyz, reaching_time):
+    def reach_to_target(self, target_xyz, reaching_time, target_num=0):
         # TODO: ADD NOTE ABOUT USING BASH FOR MULTIPLE RUNS INSTEAD OF JUST
         # CALLING RUN, MENTION PERFORMANCE EFFECTS ETC
         """
@@ -427,7 +433,7 @@ class Training:
             ee_xyz = self.robot_config.Tx('EE', q=self.q, x= self.OFFSET)
 
             # step through our path planner based on the current runtime
-            self.target = self.path.next_timestep(t=loop_time)
+            self.target = self.path[target_num].next_timestep(t=loop_time)
 
             # Calculate the control signal and the adaptive signal
             u = self.generate_u()
@@ -449,7 +455,7 @@ class Training:
             #self.data['error'].append(np.copy(error))
             self.data['target'].append(np.copy(target_xyz))
             #self.data['ee_xyz'].append(np.copy(ee_xyz))
-            self.data['filter'].append(np.copy(self.target))
+            self.data['ideal_trajectory'].append(np.copy(self.target))
             # self.data['osc_dx'].append(np.copy(self.ctrlr.dx))
             # q_T = self.interface.get_torque_load()
             # self.data['q_torque'].append(np.copy(q_T))
@@ -486,7 +492,7 @@ class Training:
                 q=self.q,
                 dq=self.dq ,
                 target_pos=self.target[:3],
-                #target_vel=self.target[3:],
+                target_vel=self.target[3:],
                 ref_frame='EE',
                 offset = self.OFFSET)
 
@@ -511,7 +517,7 @@ class Training:
 
                 self.training_signal = np.array(training_signal)
 
-                self.adapt_input = np.hstack((adapt_input_dq, adapt_input_q))
+                self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
                 if self.use_spherical:
                     self.adapt_input = self.net_utils.convert_to_spherical(self.adapt_input)
 
@@ -598,8 +604,8 @@ class Training:
                 save_location=loc + self.robot_config.params['source'], overwrite=overwrite, create=create)
 
         # Save path planner parameters
-        self.data_handler.save(data=self.path.params,
-                save_location=loc + self.path.params['source'], overwrite=overwrite, create=create)
+        self.data_handler.save(data=self.path[0].params,
+                save_location=loc + self.path[0].params['source'], overwrite=overwrite, create=create)
 
         # Save training parameters
         self.data_handler.save(data=self.params,
@@ -633,10 +639,11 @@ class Training:
         self.data_handler.save(data=self.adapt.params,
                 save_location=loc + self.adapt.params['source'], overwrite=overwrite, create=create)
 
-    def generate_path(self, target_xyz, start_xyz, time_limit):
-        self.path.generate_path_function(
+    def generate_path(self, target_xyz, start_xyz, time_limit, target_vel, target_num=0):
+        self.path[target_num].generate_path_function(
                 target_xyz=target_xyz,
                 start_xyz=start_xyz,
-                time_limit=4)
+                time_limit=time_limit,
+                target_vel=target_vel)
 
 

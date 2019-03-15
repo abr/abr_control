@@ -25,7 +25,7 @@ class dmpFilter():
         x = np.linspace(0, np.pi*2, 100)
         a = 1
         b = np.pi
-        c = .75
+        c = 1
         g = a * np.exp(-(x-b)**2/(2*c)**2)
         g /= np.sum(g)
         y_des = np.cumsum(g)
@@ -47,22 +47,31 @@ class dmpFilter():
         plt.plot(y, 'x')
         plt.show()
 
-    def generate_path_function(self, target_xyz, start_xyz, time_limit):
+    def generate_path_function(self, target_xyz, start_xyz, time_limit, target_vel=False):
         self.start_xyz = start_xyz
         self.dmps.reset_state()
         self.dmps.goal = target_xyz - self.start_xyz
-        trajectory,_,_ = self.dmps.rollout()
+        trajectory,vel,_ = self.dmps.rollout()
         trajectory = np.array([traj + self.start_xyz for traj in trajectory])
         times = np.linspace(0, time_limit, len(trajectory))
         x = scipy.interpolate.interp1d(times, trajectory[:,0])
         y = scipy.interpolate.interp1d(times, trajectory[:,1])
         z = scipy.interpolate.interp1d(times, trajectory[:,2])
-        self.path_func = [x,y,z]
+        if target_vel:
+            dx = scipy.interpolate.interp1d(times, vel[:,0])
+            dy = scipy.interpolate.interp1d(times, vel[:,1])
+            dz = scipy.interpolate.interp1d(times, vel[:,2])
+            self.path_func = [x,y,z,dx,dy,dz]
+        else:
+            self.path_func = [x,y,z]
 
     def next_timestep(self,t):
-        target = [self.path_func[0](t),
-                  self.path_func[1](t),
-                  self.path_func[2](t)]
+        target = []
+        for dim in self.path_func:
+            target.append(dim(t))
+        # target = [self.path_func[0](t),
+        #           self.path_func[1](t),
+        #           self.path_func[2](t)]
         return target
 
     def reset(self, target_xyz, start_xyz):

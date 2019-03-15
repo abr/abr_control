@@ -53,7 +53,7 @@ class Friction(Signal):
             plt.title('Friction')
             plt.ylabel('Force [Nm]')
             plt.xlabel('Velocity [rad/sec]')
-            plt.plot(Ff)
+            plt.plot(dq, Ff)
             plt.legend()
             plt.show()
 
