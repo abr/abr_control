@@ -11,7 +11,8 @@ import scipy
 import redis
 
 from abr_control.controllers import OSC, signals, path_planners
-from abr_analyze.utils import DataHandler, NetworkUtils
+from abr_analyze import DataHandler
+from abr_analyze.nengo_utils import NetworkUtils
 import abr_jaco2
 import nengo
 
@@ -492,7 +493,7 @@ class Training:
                 q=self.q,
                 dq=self.dq ,
                 target_pos=self.target[:3],
-                target_vel=self.target[3:],
+                #target_vel=self.target[3:],
                 ref_frame='EE',
                 offset = self.OFFSET)
 

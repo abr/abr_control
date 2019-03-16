@@ -9,5 +9,3 @@ if sys.platform.startswith('win'):
     database_dir = os.path.joint(cache_dir, "abr_control_db.h5")
 else:
     control_cache = os.path.expanduser(os.path.join("~", "Dropbox", "Data", ".cache", "abr_control"))
-    # database_dir = os.path.expanduser(os.path.join("~", "Dropbox", "Data", ".cache", "abr_control", "databases"))
-    # figures_dir = os.path.expanduser(os.path.join("~", "Dropbox", "Data", ".cache", "abr_control", "figures"))
