@@ -9,7 +9,7 @@ import numpy as np
 from abr_control.arms import threejoint as arm
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
-from abr_control.controllers import OSC, path_planners
+from abr_control.controllers import OSC, Damping, path_planners
 
 
 # initialize our robot config for the ur5
@@ -17,8 +17,10 @@ robot_config = arm.Config(use_cython=True)
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=200, vmax=None)
+ctrlr = OSC(robot_config, kp=200, null_controllers=[damping])
 
 # create our path planner
 n_timesteps = 250

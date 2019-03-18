@@ -9,7 +9,7 @@ import traceback
 from abr_control.arms import ur5 as arm
 # from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onelink as arm
-from abr_control.controllers import OSC
+from abr_control.controllers import OSC, Damping
 from abr_control.interfaces import VREP
 
 # initialize our robot config
@@ -17,8 +17,10 @@ robot_config = arm.Config(use_cython=True)
 # if using the Jaco 2 arm with the hand attached, use the following instead:
 # robot_config = arm.Config(use_cython=True, hand_attached=True)
 
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
 # instantiate controller
-ctrlr = OSC(robot_config, kp=200, vmax=0.5)
+ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[damping])
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)

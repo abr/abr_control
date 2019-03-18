@@ -1,9 +1,9 @@
 import numpy as np
 
-from .signal import Signal
+from .controller import Controller
 
 
-class AvoidObstacles(Signal):
+class AvoidObstacles(Controller):
     """ Implements an obstacle avoidance algorithm from (Khatib, 1987).
 
     Parameters
@@ -20,7 +20,6 @@ class AvoidObstacles(Signal):
     """
 
     def __init__(self, robot_config, obstacles=None, threshold=.2):
-
         super(AvoidObstacles, self).__init__(robot_config)
 
         self.threshold = threshold
@@ -28,19 +27,22 @@ class AvoidObstacles(Signal):
         self.obstacles = np.array(obstacles)
 
 
-    def generate(self, q):  # noqa901
+    def generate(self, q, dq=None):
         """ Generates the control signal
 
         Parameters
         ----------
         q : np.array
             the current joint angles [radians]
+        dq : np.array
+          the current joint angle velocity [radians/second]
+          NOTE: Not used in this function
         """
 
         u_psp = np.zeros(self.robot_config.N_JOINTS, dtype='float32')
 
-        # calculate the inertia matrix in joint space
-        M = self.robot_config.M(q)
+        # calculate joint space inertia matrix
+        M = self.robot_config.M(q=q)
 
         # add in obstacle avoidance
         for obstacle in self.obstacles:
@@ -96,7 +98,8 @@ class AvoidObstacles(Signal):
 
                     # calculate the inertia matrix for the
                     # point subjected to the potential space
-                    Mxpsp_inv = np.dot(Jpsp, np.dot(np.linalg.inv(M), Jpsp.T))
+                    Mxpsp_inv = np.dot(
+                        Jpsp, np.dot(np.linalg.inv(M), Jpsp.T))
                     # using the rcond to set singular values < thresh to 0
                     # is slightly faster than doing it manually with svd
                     Mxpsp = np.linalg.pinv(Mxpsp_inv, rcond=.01)

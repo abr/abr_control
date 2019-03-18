@@ -5,10 +5,10 @@ clicking on the background.
 """
 import numpy as np
 
-# from abr_control.arms import threejoint as arm
-from abr_control.arms import twojoint as arm
+from abr_control.arms import threejoint as arm
+# from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
-from abr_control.controllers import OSC
+from abr_control.controllers import OSC, Damping, RestingConfig
 
 
 # initialize our robot config
@@ -16,9 +16,15 @@ robot_config = arm.Config(use_cython=True)
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
+# keep the arm near a default configuration
+resting_config = RestingConfig(
+    robot_config, kp=50, kv=np.sqrt(50),
+    rest_angles=[np.pi/4, np.pi/4, None])
+
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=20, vmax=None,
-            use_C=True, use_g=False)
+ctrlr = OSC(robot_config, kp=20, use_C=True, null_controllers=[damping])
 
 
 def on_click(self, mouse_x, mouse_y):
@@ -69,7 +75,7 @@ try:
 
         # apply the control signal, step the sim forward
         interface.send_forces(
-            u, update_display=True if count % 20 == 0 else False)
+            u, update_display=True if count % 50 == 0 else False)
 
         # track data
         ee_path.append(np.copy(hand_xyz))

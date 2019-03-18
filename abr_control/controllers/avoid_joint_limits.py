@@ -1,9 +1,9 @@
 import numpy as np
 
-from .signal import Signal
+from .controller import Controller
 
 
-class AvoidJointLimits(Signal):
+class AvoidJointLimits(Controller):
     """ Pushes  joints away from set limits
 
     Pass in a set of maximum and minimum joint angles, along with a maximum
@@ -49,8 +49,8 @@ class AvoidJointLimits(Signal):
             gradient = [False,] * robot_config.N_JOINTS
         self.gradient = np.array(gradient)
 
-        self.min_joint_angles = np.asarray(min_joint_angles, dtype='float32')
-        self.max_joint_angles = np.asarray(max_joint_angles, dtype='float32')
+        self.min_joint_angles = np.asarray(min_joint_angles)
+        self.max_joint_angles = np.asarray(max_joint_angles)
 
         # flip in this case so math matches normal case
         temp_min = np.copy(self.min_joint_angles)
@@ -69,11 +69,13 @@ class AvoidJointLimits(Signal):
                            if max_torque is None else np.asarray(max_torque))
 
 
-    def generate(self, q):
+    def generate(self, q, dq):
         """ Generates the control signal
 
         q : np.array
           the current joint angles [radians]
+        dq : np.array
+          the current joint angle velocity [radians/second]
         """
         q = q - (np.ones(len(q)) * np.pi)  # shift to -pi to pi range
 
@@ -124,6 +126,4 @@ class AvoidJointLimits(Signal):
         avoid_max[max_index] = -self.max_torque[max_index]
         avoid_max[self.no_limits_max] = 0.0
 
-        self.u_avoid = avoid_min + avoid_max
-
-        return self.u_avoid
+        return avoid_min + avoid_max
