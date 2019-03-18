@@ -1,9 +1,9 @@
 import numpy as np
 
-from . import controller
+from .controller import Controller
 
 
-class Floating(controller.Controller):
+class Floating(Controller):
     """Implements a controller to compensate for gravity
 
     Only compensates for the effects of gravity on the arm. The arm will

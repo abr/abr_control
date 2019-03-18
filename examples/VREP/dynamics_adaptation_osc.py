@@ -7,7 +7,7 @@ import numpy as np
 import traceback
 
 from abr_control.arms import jaco2 as arm
-from abr_control.controllers import OSC, signals
+from abr_control.controllers import OSC, Damping, signals
 from abr_control.interfaces import VREP
 
 # initialize our robot config for the jaco2
@@ -17,8 +17,10 @@ robot_config = arm.Config(use_cython=True, hand_attached=True)
 J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
            for ii in range(robot_config.N_LINKS)]
 
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
 # instantiate controller
-ctrlr = OSC(robot_config, kp=200, vmax=0.5)
+ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[damping])
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(

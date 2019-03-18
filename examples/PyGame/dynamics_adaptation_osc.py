@@ -10,7 +10,7 @@ import pygame
 from abr_control.arms import threejoint as arm
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
-from abr_control.controllers import OSC, signals
+from abr_control.controllers import OSC, Damping, signals
 
 
 # initialize our robot config
@@ -22,8 +22,10 @@ J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=50, vmax=10)
+ctrlr = OSC(robot_config, kp=50, null_controllers=[damping])
 
 # create our nonlinear adaptation controller
 adapt = signals.DynamicsAdaptation(

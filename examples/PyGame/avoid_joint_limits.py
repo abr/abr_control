@@ -8,7 +8,7 @@ import numpy as np
 from abr_control.arms import threejoint as arm
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
-from abr_control.controllers import OSC, signals
+from abr_control.controllers import OSC, AvoidJointLimits, Damping
 
 
 print('\nClick to move the target.\n')
@@ -30,12 +30,15 @@ interface = PyGame(robot_config, arm_sim,
                    q_init=[np.pi/4, np.pi/2, np.pi/2])
 interface.connect()
 
-ctrlr = OSC(robot_config, kp=100, vmax=10)
-avoid = signals.AvoidJointLimits(
+avoid = AvoidJointLimits(
     robot_config,
     min_joint_angles=[np.pi/5.0]*robot_config.N_JOINTS,
     max_joint_angles=[np.pi/2.0]*robot_config.N_JOINTS,
     max_torque=[100.0]*robot_config.N_JOINTS)
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
+# create an operational space controller
+ctrlr = OSC(robot_config, kp=100, null_controllers=[avoid, damping])
 
 # create a target
 target_xyz = [0, 2, 0]
@@ -63,9 +66,8 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target_pos=target_xyz)
-        # add in joint limit avoidance
-        u += avoid.generate(feedback['q'])
+            target_pos=target_xyz,
+            )
 
         new_target = interface.get_mousexy()
         if new_target is not None:
