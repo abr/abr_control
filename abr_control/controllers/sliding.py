@@ -1,9 +1,9 @@
 import numpy as np
 
-from . import controller
+from .controller import Controller
 
 
-class Sliding(controller.Controller):
+class Sliding(Controller):
     """ Implements sliding control based on the description
     in (Slotine, 1987), default parameters from paper.
 

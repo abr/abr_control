@@ -17,7 +17,7 @@ except ImportError:
 from abr_control.arms import threejoint as arm
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
-from abr_control.controllers import OSC
+from abr_control.controllers import OSC, Damping
 
 
 # create a dmp that traces a circle
@@ -32,8 +32,10 @@ robot_config = arm.Config(use_cython=True)
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=500, vmax=20)
+ctrlr = OSC(robot_config, kp=500, vmax=20, null_controllers=[damping])
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)

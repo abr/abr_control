@@ -8,7 +8,7 @@ import numpy as np
 from abr_control.arms import threejoint as arm
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
-from abr_control.controllers import OSC, signals
+from abr_control.controllers import OSC, AvoidObstacles, Damping
 
 
 # initialize our robot config
@@ -25,8 +25,11 @@ interface = PyGame(robot_config, arm_sim,
                    on_click=on_click)
 interface.connect()
 
-ctrlr = OSC(robot_config, kp=20, vmax=10)
-avoid = signals.AvoidObstacles(robot_config, threshold=1)
+avoid = AvoidObstacles(robot_config, threshold=1)
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
+# create an operational space controller
+ctrlr = OSC(robot_config, kp=20, vmax=10, null_controllers=[avoid, damping])
 
 # create an obstacle
 interface.add_circle(xyz=[0, 0, 0], radius=.2)

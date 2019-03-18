@@ -1,9 +1,9 @@
 import numpy as np
 
-from . import controller
+from .controller import Controller
 
 
-class Joint(controller.Controller):
+class Joint(Controller):
     """ Implements a joint space controller
 
     Moves the arm joints to a set of specified target angles
