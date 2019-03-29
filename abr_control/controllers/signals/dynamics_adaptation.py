@@ -127,20 +127,11 @@ class DynamicsAdaptation(Signal):
             self.weights_file = ''
 
         self.nengo_model = nengo.Network(seed=self.seed)
-        self.nengo_model.config[nengo.Connection].synapse = None
 
         # Set the nerual model to use
         # if not isinstance(self.neuron_type, list):
         #     self.neuron_type = self.neuron_type.tolist()
-        if self.neuron_type.lower() == 'lif':
-            self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
-
-        elif self.neuron_type.lower() == 'relu':
-            if backend == 'nengo_spinnaker':
-                print('Spinnaker can only use LIF neuron models')
-                self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
-            else:
-                self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.RectifiedLinear()
+        self.nengo_model.config[nengo.Ensemble].neuron_type = nengo.LIF()
 
         with self.nengo_model:
 
@@ -204,7 +195,11 @@ class DynamicsAdaptation(Signal):
                               'placement will be sub-optimal.')
 
                 # hook up input signal to adaptive population to provide context
-                nengo.Connection(input_signals, self.adapt_ens[ii])
+                nengo.Connection(
+                    input_signals,
+                    self.adapt_ens[ii],
+                    synapse=0.012,
+                    )
 
                 # load weights from file if they exist, otherwise use zeros
                 if self.weights_file == '~':
@@ -223,149 +218,57 @@ class DynamicsAdaptation(Signal):
                         self.zero_weights = True
 
                 # set up learning connections
-                if self.function is not None and (self.weights_file is None or
-                        self.weights_file is ''):
-                    if ii==0:
-                        print("Using provided function to bootstrap learning")
-                    eval_points = Concatenate([nengo.dists.Choice([0]), nengo.dists.Choice([0]),
-                        nengo.dists.Uniform(-1, 1), nengo.dists.Uniform(-1, 1)])
-                    self.conn_learn.append(nengo.Connection(
-                                           self.adapt_ens[ii], output,
-                                           learning_rule_type=nengo.PES(
-                                               self.pes_learning_rate),
-                                           function=self.function,
-                                           eval_points=eval_points))
-                else:
-                    if self.backend == 'nengo_spinnaker':
-                        if os.path.isfile('%s' % self.weights_file):
-                            if self.n_ensembles == 1:
-                                transform = np.squeeze(np.load(self.weights_file)['weights']).T
-                            else:
-                                transform = np.squeeze(np.load(self.weights_file)['weights'])[ii].T
-                            if ii == 0 and debug_print:
-                                print('Loading weights: \n', transform)
-                                print('Loaded weights all zeros: ', np.allclose(transform, 0))
+                if not self.zero_weights:
 
+                    # if passing an npz file
+                    if os.path.isfile('%s' % self.weights_file):
+                        loaded_weights = np.load(self.weights_file)['weights']
+                    # if passing the dictionary in directly
+                    elif isinstance(self.weights_file, dict):
+                        loaded_weights = self.weights_file['weights']
+                    else:
+                        loaded_weights = self.weights_file
+                    # select sub-weights if network broken up into multiple
+                    # ensembles
+                    if self.n_ensembles ==1:
+                        transform = loaded_weights
+                    else:
+                        transform = loaded_weights[ii]
+                    # remove third dimension if present
+                    if len(transform.shape) > 2:
+                        transform = np.squeeze(transform)
+                    if ii == 0 and debug_print:
+                        print('Loading weights: \n', transform)
+                        print('Loaded weights all zeros: ', np.allclose(transform, 0))
+                        print('Transform', transform)
 
+                self.conn_learn.append(
+                    nengo.Connection(
+                        self.adapt_ens[ii].neurons,
+                        output,
+                        learning_rule_type=(None if self.pes_learning_rate == 0
+                            else nengo.PES(self.pes_learning_rate)),
+                        transform=transform,
+                        synapse=0.2,
+                        )
+                    )
 
-                        if ii == 0 and debug_print:
-                            #print('Transform', transform.T.shape)
-                            print('Transform', transform)
-
-                        self.conn_learn.append(nengo.Connection(
-                                               self.adapt_ens[ii], output,
-                                               function=lambda x:
-                                                   np.zeros(self.n_output),
-                                               learning_rule_type=nengo.PES(
-                                                 self.pes_learning_rate),
-                                               solver=DummySolver(transform.T)))
-                    elif not self.zero_weights:
-
-                        # if passing an npz file
-                        if os.path.isfile('%s' % self.weights_file):
-                            loaded_weights = np.load(self.weights_file)['weights']
-                        # if passing the dictionary in directly
-                        elif isinstance(self.weights_file, dict):
-                            loaded_weights = self.weights_file['weights']
-                        else:
-                            loaded_weights = self.weights_file
-                        # select sub-weights if network broken up into multiple
-                        # ensembles
-                        if self.n_ensembles ==1:
-                            transform = loaded_weights
-                        else:
-                            transform = loaded_weights[ii]
-                        # remove third dimension if present
-                        if len(transform.shape) > 2:
-                            transform = np.squeeze(transform)
-                        if ii == 0 and debug_print:
-                            print('Loading weights: \n', transform)
-                            print('Loaded weights all zeros: ', np.allclose(transform, 0))
-                            print('Transform', transform)
-
-                    self.conn_learn.append(nengo.Connection(
-                                           self.adapt_ens[ii].neurons, output,
-                                           learning_rule_type=nengo.PES(
-                                             self.pes_learning_rate),
-                                           transform=transform))
-                    if ii==0 and debug_print:
-                        print('==========')
+                if ii==0 and debug_print:
+                    print('==========')
 
                 # hook up the training signal to the learning rule
-                nengo.Connection(
-                    training_signals, self.conn_learn[ii].learning_rule,
-                    synapse=None)
-
-
-
-
-            if self.backend != 'nengo_spinnaker' and self.send_redis_spikes:
-                # Send spikes via redis
-                def send_spikes(t, x):
-                    v = x
-                    v[v>1e-5]=1
-                    v[v<1e-5]=0
-                    v=v[:8]
-                    v = "%s"%v
-                    v = v[1:]
-                    v = v[:-1]
-                    #print(v)
-                    # v = np.where(x != 0)[0]
-                    # print(v)
-                    # if len(v) > 0:
-                    #     msg = struct.pack('%dI' % len(v), *v)
-                    # else:
-                    #     msg = ''
-                    r.set('arm_hidden_spikes_nengo', v)
-                    self.activity = x
-                source_node = nengo.Node(send_spikes, size_in=self.n_neurons)
-                nengo.Connection(
-                    self.adapt_ens[0].neurons[:self.n_neurons],
-                    source_node,
-                    synapse=None)
-            def save_x(t, x):
-                self.x = x
-            x_node = nengo.Node(save_x, size_in=self.n_input)
-            nengo.Connection(self.adapt_ens[0], x_node, synapse=None)
+                if self.pes_learning_rate != 0:
+                    nengo.Connection(
+                        training_signals,
+                        self.conn_learn[ii].learning_rule,
+                        synapse=0.012,
+                        )
 
             if self.backend == 'nengo' and self.probe_weights:
                 self.nengo_model.weights_probe = nengo.Probe(self.conn_learn[0], 'weights', synapse=None)
 
 
-
-
-
-        #nengo.cache.DecoderCache().invalidate()
-        if self.backend == 'nengo':
-            self.sim = nengo.Simulator(self.nengo_model, dt=.001)
-        elif self.backend == 'nengo_ocl':
-            try:
-                import nengo_ocl
-            except ImportError:
-                raise Exception('Nengo OCL not installed, ' +
-                                'cannot use this backend.')
-            import pyopencl as cl
-            # Here, the context would be to use all devices from platform [0]
-            ctx = cl.Context(cl.get_platforms()[1].get_devices())
-            print('Using nengo-ocl for parallel computing...')
-            print('Device: ', ctx)
-            self.sim = nengo_ocl.Simulator(self.nengo_model, context=ctx, dt=.001)
-        elif self.backend == 'nengo_spinnaker':
-            try:
-                import nengo_spinnaker
-            except ImportError:
-                raise Exception('Nengo SpiNNaker not installed, ' +
-                                'cannot use this backend.')
-            if debug_print:
-                # turn on debug printing
-                logging.basicConfig(level=logging.DEBUG)
-
-            self.sim = nengo_spinnaker.Simulator(self.nengo_model)
-            # start running the spinnaker model
-            self.sim.async_run_forever()
-
-        else:
-            raise Exception('Invalid backend specified: ', backend)
+        self.sim = nengo.Simulator(self.nengo_model, dt=.001)
 
     @property
     def params(self):

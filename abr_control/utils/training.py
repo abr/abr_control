@@ -185,6 +185,7 @@ class Training:
         self.path = []
         for pp in range(0, number_of_targets):
             self.path.append(path_planners.dmpFilter())
+            #self.path.append(path_planners.SShapedDmp())
 
         if self.avoid_limits:
             print('--Instantiate joint avoidance--')
@@ -301,7 +302,8 @@ class Training:
             # input_signal = self.net_utils.convert_to_spherical(input_signal)
 
             encoders = self.net_utils.generate_encoders(input_signal=input_signal,
-                    n_neurons=n_neurons*n_ensembles, thresh=0.08, n_dims=n_input)
+                    n_neurons=n_neurons*n_ensembles, thresh=0.08, n_dims=n_input,
+                    zeroed_dims=[0, 8])
             encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
         else:
             print('Loading encoders used for run 0...')
@@ -645,6 +647,38 @@ class Training:
                 target_xyz=target_xyz,
                 start_xyz=start_xyz,
                 time_limit=time_limit,
-                target_vel=target_vel)
-
-
+                target_vel=target_vel)#,
+                #rollout=100)
+        # print('target num: ', target_num)
+        # print('start: ', start_xyz)
+        # print('target: ', target_xyz)
+        #
+        # import matplotlib.pyplot as plt
+        # from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
+        # ts = np.linspace(0,time_limit,100)
+        # self.ideal = []
+        #
+        # for t in ts:
+        #     self.ideal.append(self.path[target_num].next_timestep(t))
+        # self.ideal = np.asarray(self.ideal)
+        #
+        # if target_num == 0:
+        #     self.ideals = []
+        #     self.starting = []
+        #     self.ending = []
+        # self.starting.append(start_xyz)
+        # self.ending.append(target_xyz)
+        # self.ideals.append(self.ideal)
+        #
+        # if target_num > 0:
+        #     fig = plt.figure()
+        #     ax = fig.add_subplot(111, projection='3d')
+        #     ax.set_title('Target %i'%target_num)
+        #     for ii, path in enumerate(self.ideals):
+        #         ax.plot(path[:, 0], path[:, 1], path[:, 2], label='reach %i'%ii)
+        #         ax.scatter(self.starting[ii][0], self.starting[ii][1],
+        #                    self.starting[ii][2], label='start %i'%ii)
+        #         ax.scatter(self.ending[ii][0], self.ending[ii][1],
+        #                    self.ending[ii][2], label='end %i'%ii)
+        #     ax.legend()
+        #     plt.show()

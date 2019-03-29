@@ -14,8 +14,6 @@ except ImportError:
     print('\npydmps library required, see ' +
           'https://github.com/studywolf/pydmps\n')
 
-from abr_control.interfaces import VREP
-from abr_control.controllers import OSC
 import scipy.interpolate
 
 
@@ -47,11 +45,12 @@ class dmpFilter():
         plt.plot(y, 'x')
         plt.show()
 
-    def generate_path_function(self, target_xyz, start_xyz, time_limit, target_vel=False):
+    def generate_path_function(self, target_xyz, start_xyz, time_limit,
+            target_vel=False, rollout=None):
         self.start_xyz = start_xyz
         self.dmps.reset_state()
         self.dmps.goal = target_xyz - self.start_xyz
-        trajectory,vel,_ = self.dmps.rollout()
+        trajectory,vel,_ = self.dmps.rollout(rollout)
         trajectory = np.array([traj + self.start_xyz for traj in trajectory])
         times = np.linspace(0, time_limit, len(trajectory))
         x = scipy.interpolate.interp1d(times, trajectory[:,0])
@@ -69,9 +68,6 @@ class dmpFilter():
         target = []
         for dim in self.path_func:
             target.append(dim(t))
-        # target = [self.path_func[0](t),
-        #           self.path_func[1](t),
-        #           self.path_func[2](t)]
         return target
 
     def reset(self, target_xyz, start_xyz):
@@ -84,3 +80,47 @@ class dmpFilter():
         target_xyz = np.copy(self.dmps.step(error=error*0.65e1)[0])
         target_xyz += self.start_xyz
         return target_xyz
+
+
+if __name__ == '__main__':
+
+    path = dmpFilter()
+
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+
+    def gauss(a, b, c):
+        return a * np.exp(-(x-b)**2/(2*c)**2)
+
+    x = np.linspace(0, np.pi*6, 100)
+    g = gauss(1, np.pi, 1)
+    h = gauss(2, 3*np.pi, 1)
+    i = gauss(1, 5*np.pi, 1)
+
+    y_des = np.vstack([
+        np.copy(x),
+        np.cumsum(g - h + i),
+        np.copy(x)])
+
+    path.dmps.imitate_path(y_des)
+
+    fig = plt.figure()
+    fig.add_subplot(111, projection='3d')
+
+    targets = np.array([
+        [1, 1, 1],
+        [3, 5, 3],
+        [-2, -3, 2],
+        ])
+
+    for target in targets:
+        path.generate_path_function(
+            target,
+            np.array([0, 0, 0]),
+            1)
+        y = np.zeros((100, 3))
+        for ii, t in enumerate(np.linspace(0, 1, 100)):
+            y[ii] = path.next_timestep(t)
+        plt.plot(y[:, 0], y[:, 1], y[:, 2])
+
+    plt.show()
