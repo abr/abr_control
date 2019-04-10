@@ -101,6 +101,9 @@ class DynamicsAdaptation(Signal):
             backend = 'nengo_ocl'
 
         """ Create adaptive population with the provided parameters"""
+        self.tau_output = 0.2
+        self.tau_training = 0.012
+        self.tau_input = 0.012
         self.n_input = n_input
         self.n_output = n_output
         self.n_neurons = n_neurons
@@ -198,7 +201,7 @@ class DynamicsAdaptation(Signal):
                 nengo.Connection(
                     input_signals,
                     self.adapt_ens[ii],
-                    synapse=0.012,
+                    synapse=self.tau_input,
                     )
 
                 # load weights from file if they exist, otherwise use zeros
@@ -239,7 +242,8 @@ class DynamicsAdaptation(Signal):
                         transform = np.squeeze(transform)
                     if ii == 0 and debug_print:
                         print('Loading weights: \n', transform)
-                        print('Loaded weights all zeros: ', np.allclose(transform, 0))
+                        print('Loaded weights all zeros: ',
+                              np.allclose(transform, 0))
                         print('Transform', transform)
 
                 self.conn_learn.append(
@@ -249,7 +253,7 @@ class DynamicsAdaptation(Signal):
                         learning_rule_type=(None if self.pes_learning_rate == 0
                             else nengo.PES(self.pes_learning_rate)),
                         transform=transform,
-                        synapse=0.2,
+                        synapse=self.tau_output,
                         )
                     )
 
@@ -261,14 +265,16 @@ class DynamicsAdaptation(Signal):
                     nengo.Connection(
                         training_signals,
                         self.conn_learn[ii].learning_rule,
-                        synapse=0.012,
+                        synapse=self.tau_training,
                         )
 
             if self.backend == 'nengo' and self.probe_weights:
-                self.nengo_model.weights_probe = nengo.Probe(self.conn_learn[0], 'weights', synapse=None)
+                self.nengo_model.weights_probe = nengo.Probe(self.conn_learn[0],
+                        'weights', synapse=None)
 
 
-        self.sim = nengo.Simulator(self.nengo_model, dt=.001)
+        self.sim = nengo.Simulator(self.nengo_model, dt=.001,
+                                   progress_bar=False)
 
     @property
     def params(self):
@@ -288,7 +294,10 @@ class DynamicsAdaptation(Signal):
                   'send_redis_spikes': self.send_redis_spikes,
                   'encoders': self.encoders,
                   'probe_weights': self.probe_weights,
-                  'zero_weights': self.zero_weights}
+                  'zero_weights': self.zero_weights,
+                  'tau_input': self.tau_input,
+                  'tau_output': self.tau_output,
+                  'tau_training': self.tau_training}
         return params
 
     def return_params(self):

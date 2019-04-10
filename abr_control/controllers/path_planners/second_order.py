@@ -54,7 +54,7 @@ class SecondOrder(PathPlanner):
                   'threshold': self.threshold}
         return params
 
-    def step(self, state, target_pos, dt=0.001):
+    def step(self, state, target_pos, dt=0.001, upper=None, lower=None):
         """ Calculates the next state given the current state and
         system dynamics' parameters.
 
@@ -76,8 +76,13 @@ class SecondOrder(PathPlanner):
 
         # uncomment for toolbot demo
         # TODO: incorporate this hack properly
-        # upper = 15
-        # lower = -3
+        # far from target
+        # if upper is None:
+        #     upper = 8
+        # # closer to target
+        # if lower is None:
+        #     lower = -1
+        # # alpha = 0.9
         # w = ((upper-lower)/-0.9) * dist + upper
 
         if dist < self.threshold:

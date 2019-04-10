@@ -12,9 +12,10 @@ import redis
 
 from abr_control.controllers import OSC, signals, path_planners
 from abr_analyze import DataHandler
-from abr_analyze.nengo_utils import NetworkUtils
+from abr_analyze.nengo_utils import network_utils
 import abr_jaco2
 import nengo
+from nengolib.stats import spherical_transform, ScatteredHypersphere
 
 class Training:
 
@@ -261,7 +262,7 @@ class Training:
             probe_weights: Boolean Optional (Default: False)
                 True to probe adaptive population for decoders
         """
-        self.net_utils = NetworkUtils()
+        self.net_utils = network_utils
         self.use_spherical = use_spherical
         self.use_adapt = True
 
@@ -301,10 +302,13 @@ class Training:
             # input_signal = np.hstack((qs, dqs))
             # input_signal = self.net_utils.convert_to_spherical(input_signal)
 
-            encoders = self.net_utils.generate_encoders(input_signal=input_signal,
-                    n_neurons=n_neurons*n_ensembles, thresh=0.08, n_dims=n_input,
-                    zeroed_dims=[0, 8])
+            hypersphere = ScatteredHypersphere(surface=True)
+            encoders = hypersphere.sample(n_neurons*n_ensembles, n_input)
+            # encoders = self.zero_encoder_dims(
+            #     encoders=encoders, zeroed_dims=[0, 8])
             encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
+            print('Encoders generated: ', encoders.shape)
+
         else:
             print('Loading encoders used for run 0...')
             encoders = self.data_handler.load(parameters=['encoders'],
@@ -334,9 +338,9 @@ class Training:
                         test_name=self.test_name, create=True)
 
 
-        left_bound = -0.7
-        right_bound = -0.4
-        mode = -0.5
+        left_bound = -0.2
+        right_bound = 0.2
+        mode = 0.1
         intercepts = signals.AreaIntercepts(
             dimensions=n_input,
             base=signals.Triangular(left_bound, mode, right_bound))
@@ -522,7 +526,9 @@ class Training:
 
                 self.adapt_input = np.hstack((adapt_input_q, adapt_input_dq))
                 if self.use_spherical:
-                    self.adapt_input = self.net_utils.convert_to_spherical(self.adapt_input)
+                    self.adapt_input = self.adapt_input.reshape(1, len(self.adapt_input))
+                    self.adapt_input = spherical_transform(self.adapt_input)
+                    #self.adapt_input = self.net_utils.convert_to_spherical(self.adapt_input)
 
                 u_adapt = self.adapt.generate(input_signal=self.adapt_input,
                                          training_signal=self.training_signal)
@@ -682,3 +688,32 @@ class Training:
         #                    self.ending[ii][2], label='end %i'%ii)
         #     ax.legend()
         #     plt.show()
+
+    def zero_encoder_dims(self, encoders, zeroed_dims):
+        zeroed_dims[1] += 1
+        print('zeroing out dimensions...')
+        n_dims = encoders.shape[1]
+        n_neurons = encoders.shape[0]
+        nums = []
+        indiceses = []
+        for ff, enc in enumerate(encoders):
+            #print('initial enc: ', enc)
+            num = np.random.randint(zeroed_dims[0], zeroed_dims[1])
+            nums.append(np.copy(num))
+            #print('removing %i dims'%num)
+            indices = np.arange(n_dims)
+            np.random.shuffle(indices)
+            indices = indices[:num]
+            if ff == 0:
+                indiceses = indices
+            else:
+                indiceses = np.hstack((indiceses, indices))
+            #print('indices removed: ', indices)
+            for ind in indices:
+                enc[ind] = 0
+            encoders[ff] = enc
+            #print('post enc: ', enc)
+        # re-normalize
+        encoders /= np.linalg.norm(encoders, axis=1).reshape(n_neurons,1)
+
+        return encoders
