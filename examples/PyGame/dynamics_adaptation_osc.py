@@ -31,7 +31,7 @@ ctrlr = OSC(robot_config, kp=50, null_controllers=[damping])
 adapt = signals.DynamicsAdaptation(
     n_input=robot_config.N_JOINTS,
     n_output=robot_config.N_JOINTS,
-    pes_learning_rate=1e-4, backend='nengo')
+    pes_learning_rate=1e-4)
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
