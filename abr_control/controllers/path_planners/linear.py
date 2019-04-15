@@ -1,21 +1,11 @@
 import numpy as np
 
-from abr_control.controllers.path_planners import PathPlanner
-
-
-class Linear(PathPlanner):
+class Linear():
     """ Creates a linear trajectory from current to target state
 
     Parameters
     ----------
-    robot_config : class instance
-        contains all relevant information about the arm
-        such as: number of joints, number of links, mass information etc.
     """
-    def __init__(self, robot_config):
-        super(Linear, self).__init__(robot_config)
-
-
     def generate_path(self, state, target, n_timesteps=None,
                       dx=None, dt=0.001, plot=False):
         """ Generates a linear trajectory to the target
@@ -51,10 +41,24 @@ class Linear(PathPlanner):
             self.trajectory = []
             step = (target - state)
             step = step / np.linalg.norm(step) * dx
+            zero_dims = []
             for ii in range(n_states):
-                # calculate target states
-                self.trajectory.append(np.arange(
-                    state[ii], target[ii], step[ii]))
+                if step[ii] == 0:
+                    zero_dims.append(ii)
+                else:
+                    # calculate target states
+                    self.trajectory.append(np.arange(
+                        state[ii], target[ii], step[ii]))
+            if len(zero_dims) > 0:
+                zero_row = np.squeeze(np.zeros(len(self.trajectory[0])))
+                tmp_trajectory = []
+                for index in range(n_states):
+                    if index in zero_dims:
+                        tmp_trajectory.append(zero_row)
+                    else:
+                        tmp_trajectory.append(self.trajectory[index])
+                self.trajectory = tmp_trajectory
+
             zeros = np.zeros(self.trajectory[ii].shape)
             for ii in range(6 - len(self.trajectory)):
                 self.trajectory.append(zeros)
@@ -75,11 +79,11 @@ class Linear(PathPlanner):
             plt.figure()
             plt.subplot(2, 1, 1)
             plt.plot(np.ones((n_timesteps, n_states)) *
-                              np.arange(n_timesteps)[:, None],
+                     np.arange(n_timesteps)[:, None],
                      self.trajectory[:, :n_states])
             plt.gca().set_prop_cycle(None)
             plt.plot(np.ones((n_timesteps, n_states)) *
-                              np.arange(n_timesteps)[:, None],
+                     np.arange(n_timesteps)[:, None],
                      np.ones((n_timesteps, n_states)) * target, '--')
             plt.legend(['%i' % ii for ii in range(n_states)] +
                        ['%i_target' % ii for ii in range(n_states)])
@@ -87,7 +91,7 @@ class Linear(PathPlanner):
 
             plt.subplot(2, 1, 2)
             plt.plot(np.ones((n_timesteps, n_states)) *
-                              np.arange(n_timesteps)[:, None],
+                     np.arange(n_timesteps)[:, None],
                      self.trajectory[:, n_states:])
             plt.legend(['d%i' % ii for ii in range(n_states)])
             plt.title('Trajectory velocities')
