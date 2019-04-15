@@ -22,8 +22,8 @@ arm_sim = arm.ArmSim(robot_config)
 ctrlr = OSC(robot_config, kp=100)
 
 # create our path planner
-n_timesteps = 250  # give 250 time steps to reach target
-path_planner = path_planners.Linear(robot_config)
+n_timesteps = 1000  # give 250 time steps to reach target
+path_planner = path_planners.Linear()
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)
@@ -62,9 +62,8 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=np.hstack([target[:3], np.zeros(3)]),
-            target_vel=np.hstack([target[3:], np.zeros(3)]),
-            ctrlr_dof=ctrlr_dof,
+            target_pos=target[:3],
+            target_vel=np.zeros(3)
             )
 
         # apply the control signal, step the sim forward

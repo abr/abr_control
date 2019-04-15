@@ -23,7 +23,7 @@ ctrlr = OSC(robot_config, kp=200, vmax=None)
 # create our path planner
 n_timesteps = 250
 path_planner = path_planners.SecondOrder(
-    robot_config, n_timesteps=n_timesteps, w=1e4, zeta=2)
+    n_timesteps=n_timesteps, w=1e4, zeta=2)
 dt = 0.001
 
 # create our interface
