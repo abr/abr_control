@@ -1,11 +1,7 @@
 import numpy as np
-import matplotlib
 
-from .path_planner import PathPlanner
 
-matplotlib.use("TKAgg")
-
-class SecondOrder(PathPlanner):
+class SecondOrder:
     """ Implement a trajectory controller on top of a controller
 
     Implements a second order filter for path generation.
@@ -17,15 +13,15 @@ class SecondOrder(PathPlanner):
 
     Parameters
     ----------
-    n_timesteps : int, optional (Default: 100)
+    n_timesteps: int, optional (Default: 100)
         the number of time steps to reach the target
-    dt : float, optional (Default: 0.001)
+    dt: float, optional (Default: 0.001)
         the loop speed [seconds]
-    zeta  float, optional (Default: 2.0)
+    zeta: float, optional (Default: 2.0)
         the damping ratio
-    w : float, optional (Default: 1e-4)
+    w: float, optional (Default: 1e-4)
         the natural frequency
-    threshold: float, Optional (Default: 0.02)
+    threshold: float, optional (Default: 0.02)
         within this threshold distance to target position reduce the
         filtering effects to improve convergence in practice
     """
@@ -38,6 +34,7 @@ class SecondOrder(PathPlanner):
         self.zeta = zeta
         self.w = w/n_timesteps # gain to converge in the desired time
         self.threshold = threshold
+
 
     def step(self, state, target_pos, dt=0.001):
         """ Calculates the next state given the current state and
@@ -68,6 +65,7 @@ class SecondOrder(PathPlanner):
         dy = dy + ddy * dt
         y = y + dy * dt
         return np.hstack((y, dy))
+
 
     def generate_path(self, state, target_pos, plot=False):
         """ Filter the target so that it doesn't jump, but moves smoothly
@@ -118,6 +116,7 @@ class SecondOrder(PathPlanner):
             plt.tight_layout()
 
             plt.show()
+
 
     def next_target(self):
         """ Return the next target point along the generated trajectory """

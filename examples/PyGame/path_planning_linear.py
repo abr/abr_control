@@ -51,9 +51,11 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
             path_planner.generate_path(
-                state=hand_xyz, target=target_xyz,
-                # n_timesteps=n_timesteps, plot=False)
-                dx=0.01, plot=False)
+                state=hand_xyz,
+                target=target_xyz,
+                # n_timesteps=n_timesteps,
+                dx=0.01,
+                plot=True)
 
         # returns desired [position, velocity]
         target = path_planner.next_target()
@@ -63,7 +65,7 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target_pos=target[:3],
-            target_vel=np.zeros(3)
+            target_vel=target[3:],
             )
 
         # apply the control signal, step the sim forward
