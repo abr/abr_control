@@ -24,13 +24,13 @@ ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[damping])
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
-    backend='nengo',
-    n_neurons=5000,
+    n_neurons=1000,
+    n_ensembles=5,
     n_input=2,  # we apply adaptation on the most heavily stressed joints
     n_output=2,
-    weights_file=None,
     pes_learning_rate=1e-2,
-    intercepts=(-.9, -.2))
+    intercepts_bounds=[-0.6, -0.2],
+    intercepts_mode=-0.2)
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)
