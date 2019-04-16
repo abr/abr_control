@@ -1,8 +1,5 @@
-import os
 import numpy as np
 import scipy.special
-
-from abr_control.utils.paths import cache_dir
 
 try:
     import nengo
@@ -21,76 +18,78 @@ class DynamicsAdaptation():
 
     Parameters
     ----------
-    n_input : int
+    n_input: int
         the number of inputs going into the adaptive population
-    n_output : int
+    n_output: int
         the number of outputs expected from the adaptive population
-    n_neurons : int, optional (Default: 1000)
+    n_neurons: int, optional (Default: 1000)
         number of neurons per adaptive population
-    n_ensembles : int, optional (Default: 1)
+    n_ensembles: int, optional (Default: 1)
         number of ensembles of n_neurons number of neurons
-    seed : int optional (Default: None)
+    seed: int, optional (Default: None)
         the seed used for random number generation
-    pes_learning_rate : float, optional (Default: 1e-6)
+    pes_learning_rate: float, optional (Default: 1e-6)
         controls the speed of neural adaptation
-    intercepts_bounds:
-
-    intercepts_mode:
-
-    weights_file : string, optional (Default: None)
-        path to file where learned weights are saved
-    encoders:
-
-    probe_weights: boolean, optional (Default: False)
-        True to get decoders
-    neuron_type: string: optional (Default: 'lif')
-        the neuron model to use
-    intercepts:
-
+    intercepts: np.array, optional (Default: None)
+        the neural intercepts to be used by the neural ensembles
+    intercepts_bounds: list, optional (Default: [-0.9, 0.0])
+        the upper and lower bounds of the AreaIntercepts distribution
+        for selecting intercepts
+    intercepts_mode: scalar, optional (Default: -0.5)
+        the desired mode of the AreaIntercepts distribution used for selecting
+        intercepts
+    encoders: np.array, optional (Default: None)
+        an (n_encoders, n_neurons, n_input) array of preferred directions
+        for all of the neurons in the adaptive ensembles
     """
 
     def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
-                 seed=None, pes_learning_rate=1e-6,
-                 intercepts_bounds=(-0.9, 0.0), intercepts_mode=-0.9,
-                 weights_file='~', encoders=None, probe_weights=False,
-                 neuron_type='lif', intercepts=None, **kwargs):
+                 seed=None, pes_learning_rate=1e-6, intercepts=None,
+                 intercepts_bounds=None, intercepts_mode=None,
+                 weights=None, encoders=None, **kwargs):
 
-        self.tau_input = 0.012
-        self.tau_training = 0.012
-        self.tau_output = 0.2
+        # synapse time constants
+        self.tau_input = 0.012  # on input connection
+        self.tau_training = 0.012  # on the training signal
+        self.tau_output = 0.2  # on the output from the adaptive ensemble
+        #NOTE: the time constant on the neural activity used in the learning
+        # connection is the default 0.005, and can be set by specifying the
+        # pre_synapse parameter inside the PES rule instantiation
 
-        self.encoders = encoders
         self.seed = seed
         self.pes_learning_rate = pes_learning_rate
 
-        # set up neuron intercepts
-        self.intercepts_bounds = intercepts_bounds
-        self.intercepts_mode = intercepts_mode
         if intercepts is None:
+            # set up neuron intercepts
+            if intercepts_bounds is None:
+                intercepts_bounds = [-0.9, 0.0]
+            self.intercepts_bounds = intercepts_bounds
+
+            if intercepts_mode is None:
+                intercepts_mode = -0.5
+            self.intercepts_mode = intercepts_mode
+
             intercepts = AreaIntercepts(dimensions=n_input, base=Triangular(
                 intercepts_bounds[0], intercepts_mode, intercepts_bounds[1]))
+
         self.intercepts = intercepts
 
-        # load weights from file if they exist, otherwise use zeros
-        weights_file = os.path.expanduser(weights_file)
-        if os.path.isfile(weights_file):
-            transform = np.load(weights_file)['weights']
-            print('Weights successfully loaded from %s' % weights_file)
-        else:
-            transform = np.zeros((n_ensembles, n_output, n_neurons))
-            print('No weights found, starting with zeros')
+        if weights is None:
+            weights = np.zeros((n_ensembles, n_output, n_neurons))
+            print('Initializing connection weights to all zeros')
 
-        if self.encoders is None:
+        if encoders is None:
             # if NengoLib is installed, use it to optimize encoder placement
             try:
                 import nengolib
-                self.encoders = [
+                encoders = [
                     nengolib.stats.ScatteredHypersphere(surface=True)
                     for ii in range(n_ensembles)]
             except ImportError:
-                self.encoders = [None for ii in range(n_ensembles)]
+                encoders = [None for ii in range(n_ensembles)]
                 print('NengoLib not installed, encoder placement will ' +
                       'be sub-optimal.')
+        self.encoders = encoders
 
         self.input_signal = np.zeros(n_input)
         self.training_signal = np.zeros(n_output)
@@ -139,7 +138,7 @@ class DynamicsAdaptation():
                         self.adapt_ens[ii].neurons,
                         output,
                         learning_rule_type=nengo.PES(pes_learning_rate),
-                        transform=transform[ii],
+                        transform=weights[ii],
                         synapse=self.tau_output,
                         )
                     )
@@ -148,10 +147,6 @@ class DynamicsAdaptation():
                 nengo.Connection(
                     training_signals, self.conn_learn[ii].learning_rule,
                     synapse=self.tau_training)
-
-            if probe_weights:
-                self.nengo_model.weights_probe = nengo.Probe(
-                    self.conn_learn[0], 'weights', synapse=None)
 
         nengo.cache.DecoderCache().invalidate()
         self.sim = nengo.Simulator(self.nengo_model, dt=.001)
@@ -222,6 +217,7 @@ class AreaIntercepts(nengo.dists.Distribution):
         for ii, ss in enumerate(s):
             s[ii] = self.transform(ss)
         return s
+
 
 class Triangular(nengo.dists.Distribution):
     """ Generate an optimally distributed set of intercepts in
