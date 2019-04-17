@@ -26,6 +26,7 @@ interface.connect()
 
 # set up arrays for tracking end-effector and target position
 ee_track = []
+q_track = []
 
 
 try:
@@ -52,6 +53,7 @@ try:
         hand_xyz = robot_config.Tx('EE', q=feedback['q'])
         # track end effector position
         ee_track.append(hand_xyz)
+        q_track.append(feedback['q'])
 
 except:
     print(traceback.format_exc())
@@ -65,7 +67,20 @@ finally:
     ee_track = np.array(ee_track)
 
     if ee_track.shape[0] > 0:
+        # plot distance from target and 3D trajectory
         import matplotlib.pyplot as plt
-        from abr_control.utils.plotting import plot_3D
-        plot_3D(ee_track)
+        from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
+
+        fig = plt.figure(figsize=(8,12))
+        ax1 = fig.add_subplot(211)
+        ax1.set_title('Joint Angles')
+        ax1.set_ylabel('Angle (rad)')
+        ax1.set_xlabel('Time (ms)')
+        ax1.plot(q_track)
+        ax1.legend()
+
+        ax2 = fig.add_subplot(212, projection='3d')
+        ax2.set_title('End-Effector Trajectory')
+        ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
+        ax2.legend()
         plt.show()

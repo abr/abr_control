@@ -57,7 +57,7 @@ try:
                 target=target_xyz,
                 # n_timesteps=n_timesteps,
                 dx=0.01,
-                plot=True)
+                plot=False)
 
         # returns desired [position, velocity]
         target = path_planner.next_target()
