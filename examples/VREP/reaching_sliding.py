@@ -79,14 +79,20 @@ finally:
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
         import matplotlib.pyplot as plt
-        from abr_control.utils.plotting import plot_3D
+        from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
-        plt.figure()
-        plt.plot(np.sqrt(np.sum((np.array(target_track) -
+        fig = plt.figure(figsize=(8,12))
+        ax1 = fig.add_subplot(211)
+        ax1.set_ylabel('Distance (m)')
+        ax1.set_xlabel('Time (ms)')
+        ax1.set_title('Distance to target')
+        ax1.plot(np.sqrt(np.sum((np.array(target_track) -
                                  np.array(ee_track))**2, axis=1)))
-        plt.ylabel('Distance (m)')
-        plt.xlabel('Time (ms)')
-        plt.title('Distance to target')
 
-        plot_3D(ee_track, target_track)
+        ax2 = fig.add_subplot(212, projection='3d')
+        ax2.set_title('End-Effector Trajectory')
+        ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
+        ax2.scatter(target_track[0, 0], target_track[0, 1], target_track[0, 2],
+                 label='target', c='r')
+        ax2.legend()
         plt.show()
