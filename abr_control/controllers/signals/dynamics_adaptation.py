@@ -52,6 +52,8 @@ class DynamicsAdaptation():
         self.tau_input = 0.012  # on input connection
         self.tau_training = 0.012  # on the training signal
         self.tau_output = 0.2  # on the output from the adaptive ensemble
+        self.n_neurons = n_neurons
+        self.n_ensembles = n_ensembles
         #NOTE: the time constant on the neural activity used in the learning
         # connection is the default 0.005, and can be set by specifying the
         # pre_synapse parameter inside the PES rule instantiation
@@ -75,7 +77,7 @@ class DynamicsAdaptation():
         self.intercepts = intercepts
 
         if weights is None:
-            weights = np.zeros((n_ensembles, n_output, n_neurons))
+            weights = np.zeros((self.n_ensembles, n_output, self.n_neurons))
             print('Initializing connection weights to all zeros')
 
         if encoders is None:
@@ -84,9 +86,9 @@ class DynamicsAdaptation():
                 import nengolib
                 encoders = [
                     nengolib.stats.ScatteredHypersphere(surface=True)
-                    for ii in range(n_ensembles)]
+                    for ii in range(self.n_ensembles)]
             except ImportError:
-                encoders = [None for ii in range(n_ensembles)]
+                encoders = [None for ii in range(self.n_ensembles)]
                 print('NengoLib not installed, encoder placement will ' +
                       'be sub-optimal.')
         self.encoders = encoders
@@ -116,10 +118,10 @@ class DynamicsAdaptation():
 
             self.adapt_ens = []
             self.conn_learn = []
-            for ii in range(n_ensembles):
+            for ii in range(self.n_ensembles):
                 self.adapt_ens.append(
                     nengo.Ensemble(
-                        n_neurons=n_neurons,
+                        n_neurons=self.n_neurons,
                         dimensions=n_input,
                         intercepts=intercepts,
                         radius=np.sqrt(n_input),
