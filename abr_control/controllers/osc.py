@@ -1,8 +1,8 @@
 import numpy as np
 
-from .controller import Controller
-
 from abr_control.utils import transformations
+
+from .controller import Controller
 
 class OSC(Controller):
     """ Implements an operational space controller (OSC)
@@ -203,9 +203,8 @@ class OSC(Controller):
         # add in integrated error term to task space forces -------------------
         if self.ki != 0:
             # add in the integrated error term
-            # TODO: should this be just x_tilde or kp * x_tilde okay?
             # TODO: should this be for orientation error too? probably
-            self.integrated_error += x_tilde
+            self.integrated_error += target[:3] - xyz
             u_task -= self.ki * self.integrated_error
 
         # transform task space control signal into joint space ----------------

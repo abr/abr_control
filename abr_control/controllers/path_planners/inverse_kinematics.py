@@ -1,11 +1,12 @@
+import matplotlib.pyplot as plt
 import numpy as np
 
 from abr_control.utils import transformations
 
-class InverseKinematics():
+class InverseKinematics:
 
     def __init__(self, robot_config, max_dx=0.2, max_dr=2*np.pi, max_dq=np.pi):
-        super(InverseKinematics, self).__init__(robot_config)
+        self.robot_config = robot_config
         self.max_dx = max_dx
         self.max_dr = max_dr
         self.max_dq = max_dq
@@ -47,8 +48,8 @@ class InverseKinematics():
         max_dr = self.max_dr * dt
 
         Qd = np.array(transformations.unit_vector(
-                transformations.quaternion_from_euler(
-                    target[3], target[4], target[5], axes='rzyx')))
+            transformations.quaternion_from_euler(
+                target[3], target[4], target[5], axes='rzyx')))
 
         q = np.copy(state)
         for ii in range(n_timesteps):
@@ -78,7 +79,7 @@ class InverseKinematics():
                 dr = dr / norm_dr * max_dr
 
             Jx = J[:3]
-            pinv_Jx = np.linalg.pinv(Jx)#, rcond=0.1)
+            pinv_Jx = np.linalg.pinv(Jx)
 
             # Different ways to compute inverse resolved motion
             if method == 1:
@@ -100,20 +101,12 @@ class InverseKinematics():
             if max(abs(dq)) > max_dq:
                 dq = dq / max(abs(dq)) * max_dq
 
-            # NOTE: should this be before or after q is updated?
-            # I think after because it's setting the desired state for
-            # the current time step, you want the velocity to be set to
-            # take you to the next time step.
             self.trajectory[ii] = np.hstack([q, dq])
-
             q = q + dq
 
-
         if plot:
-            import matplotlib.pyplot as plt
             ee_track = np.array(ee_track)
 
-            plt.figure()
             plt.subplot(2, 1, 1)
             plt.plot(ee_track)
             plt.gca().set_prop_cycle(None)
@@ -133,17 +126,13 @@ class InverseKinematics():
             plt.show()
             plt.savefig('IK_plot.png')
 
-            np.savez_compressed('config',
-                q=self.trajectory[:, :6],
-                time=np.arange(0, n_timesteps*dt, dt))
-
         # reset trajectory index
         self.n_timesteps = n_timesteps
         self.n = 0
 
         return (self.trajectory[:, :self.robot_config.N_JOINTS],
-                self.trajectory[:, :self.robot_config.N_JOINTS],
-                ee_err, ea_err)
+                self.trajectory[:, self.robot_config.N_JOINTS:],
+                ee_track)
 
     def next_target(self):
         """ Return the next target point along the generated trajectory """
@@ -154,55 +143,3 @@ class InverseKinematics():
         self.n += 1
 
         return self.target
-
-
-if __name__ == '__main__':
-
-    from abr_control.arms import ur5
-    config = Config(use_cython=True)
-
-    q = np.array([0, 45, -90, 45, 90, 115]) * np.pi / 180.0
-
-    R = config.R('EE', q=q)
-
-    targets = [
-        np.array([ 0.0684952 , -0.58422071,  0.42894482, 1.57, 0.11, -2.7]),  # object orientation
-        np.array([ 0.0684952 , -0.58422071,  0.22894482, 1.57, 0.11, -2.7]),  # object orientation
-        np.array([ 0.0684952 , -0.58422071,  0.42894482, 1.57, 0.11, -2.7]),  # object orientation
-        np.array([-0.62500012, -0.2249999 ,  0.30999999, 1.57, -1.22, -2.7]),  # deposit orientation
-        np.array([-0.62500012, -0.2249999 ,  0.25999999, 1.57, -1.22, -2.7]),  # deposit orientation
-        np.array([-0.62500012, -0.2249999 ,  0.40999999, 1.57, -1.22, -2.7]),  # deposit orientation
-        np.array([-0.108958  , -0.22669163,  0.56309975, 1.57, 0.0, -2.7]),  # hand orientation
-    ]
-
-    ik = InverseKinematics(config)
-    q_total = []
-    ee_err_total = []
-    ea_err_total = []
-    n_timesteps = 5000
-    dt = 0.001
-    for target in targets:
-        print('target: ', target)
-        qs, dqs, ee_errs, ea_errs = ik.generate_path(
-            state=q, target=target, method=1, dt=dt, n_timesteps=n_timesteps)
-        q_total.append(qs)
-        ee_err_total.append(ee_errs)
-        ea_err_total.append(ea_errs)
-        q = qs[-1]
-    q_total = np.vstack(q_total)
-    ee_err_total = np.hstack(ee_err_total)
-    ea_err_total = np.hstack(ea_err_total)
-
-    print(q_total.shape)
-
-    np.savez_compressed(
-        'config',
-        q=q_total,
-        time=np.arange(0, n_timesteps*dt*len(targets), dt),
-        ee_err=ee_err_total,
-        ea_err=ea_err_total)
-
-    import matplotlib.pyplot as plt
-    plt.plot(ee_err_total.T)
-    plt.plot(ea_err_total.T)
-    plt.show()
