@@ -48,8 +48,8 @@ def on_keypress(self, key):
         [np.sin(interface.theta), np.cos(interface.theta), 0],
         [0, 0, 1]])
     R_target = np.dot(R_theta, R)
-    self.target_angles = transformations.euler_from_matrix(R_target,
-                                                           axes='sxyz')
+    self.target_angles = transformations.euler_from_matrix(
+        R_target, axes='sxyz')
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001,
