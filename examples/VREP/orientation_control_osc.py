@@ -6,7 +6,7 @@ import numpy as np
 
 from abr_control.arms import ur5 as arm
 # from abr_control.arms import jaco2 as arm
-from abr_control.controllers import OSC
+from abr_control.controllers import OSC, Damping
 from abr_control.interfaces import VREP
 from abr_control.utils import transformations
 
@@ -19,7 +19,10 @@ robot_config = arm.Config(use_cython=True)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=200, ko=200, null_controllers=[damping])
+ctrlr = OSC(robot_config, kp=200, ko=200, null_controllers=[damping],
+            # control (alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [False, False, False, True, True, True])
+
 
 # create our interface
 interface = VREP(robot_config, dt=.005)
@@ -28,9 +31,6 @@ interface.connect()
 # set up lists for tracking data
 ee_angles_track = []
 target_angles_track = []
-
-# control (alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [False, False, False, True, True, True]
 
 
 try:
@@ -46,13 +46,11 @@ try:
 
         rc_matrix = robot_config.R('EE', feedback['q'])
         rc_angles = transformations.euler_from_matrix(rc_matrix, axes='rxyz')
-        interface.set_orientation('object', rc_angles)
 
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof,
             )
 
         # apply the control signal, step the sim forward

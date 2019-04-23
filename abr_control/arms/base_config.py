@@ -132,6 +132,7 @@ class BaseConfig():
 
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
+
     def _generate_and_save_function(self, filename, expression, parameters):
         """ Creates a folder, saves generated cython functions
 
@@ -153,6 +154,7 @@ class BaseConfig():
         function = sp.lambdify(parameters, expression, "numpy")
 
         return function
+
 
     def _load_from_file(self, filename, lambdify):
         """ Attempts to load in saved files
@@ -210,6 +212,7 @@ class BaseConfig():
 
         return expression, function
 
+
     def g(self, q):
         """ Loads or calculates the force of gravity in joint space
 
@@ -224,6 +227,7 @@ class BaseConfig():
             self._g = self._calc_g()
         parameters = tuple(q)
         return np.array(self._g(*parameters), dtype='float32').flatten()
+
 
     def dJ(self, name, q, dq, x=None):
         """ Loads or calculates the derivative of the Jacobian wrt time
@@ -249,6 +253,7 @@ class BaseConfig():
         parameters = tuple(q) + tuple(dq) + tuple(x)
         return np.array(self._dJ[funcname](*parameters), dtype='float32')
 
+
     def J(self, name, q, x=None):
         """ Loads or calculates the Jacobian for a joint or link
 
@@ -272,6 +277,7 @@ class BaseConfig():
         parameters = tuple(q) + tuple(x)
         return np.array(self._J[funcname](*parameters), dtype='float32')
 
+
     def M(self, q):
         """ Loads or calculates the joint space inertia matrix
 
@@ -287,6 +293,7 @@ class BaseConfig():
         parameters = tuple(q)
         return np.array(self._M(*parameters), dtype='float32')
 
+
     def R(self, name, q):
         """ Loads or calculates the rotation matrix
 
@@ -300,6 +307,7 @@ class BaseConfig():
             self._R[name] = self._calc_R(name)
         parameters = tuple(q)
         return np.array(self._R[name](*parameters), dtype='float32')
+
 
     def C(self, q, dq):
         """ Loads or calculates the centrifugal and Coriolis forces matrix
@@ -319,6 +327,7 @@ class BaseConfig():
         parameters = tuple(q) + tuple(dq)
         return np.array(self._C(*parameters), dtype='float32')
 
+
     def scaledown(self, name, x):
         """ Scales down the input to the -1 to 1 range, based on the
         mean and max, min values recorded from some stereotyped movements.
@@ -334,6 +343,7 @@ class BaseConfig():
         if self.MEANS is None or self.SCALES is None:
             raise Exception('Mean and/or scaling not defined')
         return (x - self.MEANS[name]) / self.SCALES[name]
+
 
     def scaleup(self, name, x):
         """ Undoes the scaledown transformation.
@@ -382,7 +392,7 @@ class BaseConfig():
         return self._T_func[name](*parameters)
 
 
-    def Tx(self, name, q, x=[0, 0, 0]):
+    def Tx(self, name, q, x=None):
         """ Loads or calculates the (x, y, z) position for a joint or link
 
         Parameters
@@ -404,6 +414,7 @@ class BaseConfig():
             self._Tx[funcname] = self._calc_Tx(name, x=x)
         parameters = tuple(q) + tuple(x)
         return self._Tx[funcname](*parameters)[:-1].flatten()
+
 
     def T_inv(self, name, q, x=None):
         """ Loads or calculates the inverse transform for a joint or link
@@ -427,6 +438,7 @@ class BaseConfig():
             self._T_inv[funcname] = self._calc_T_inv(name=name, x=x)
         parameters = tuple(q) + tuple(x)
         return self._T_inv[funcname](*parameters)
+
 
     def _calc_g(self, lambdify=True):
         """ Generate the force of gravity in joint space
@@ -482,6 +494,7 @@ class BaseConfig():
                 filename='g', expression=g,
                 parameters=self.q)
         return g_func
+
 
     def _calc_dJ(self, name, x, lambdify=True):
         """ Generate the derivative of the Jacobian
@@ -616,6 +629,7 @@ class BaseConfig():
                 parameters=self.q+self.x)
         return J_func
 
+
     def _calc_M(self, lambdify=True):
         """ Uses Sympy to generate the inertia matrix in joint space
 
@@ -671,6 +685,7 @@ class BaseConfig():
                 parameters=self.q)
         return M_func
 
+
     def _calc_R(self, name, lambdify=True):
         """ Uses Sympy to generate the rotation matrix for a joint or link
 
@@ -706,6 +721,7 @@ class BaseConfig():
                 filename=filename, expression=R,
                 parameters=self.q)
         return R_func
+
 
     def _calc_C(self, lambdify=True):
         """ Uses Sympy to generate the centrifugal and Coriolis forces
@@ -762,6 +778,7 @@ class BaseConfig():
                 parameters=self.q+self.dq)
         return C_func
 
+
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
 
@@ -771,6 +788,7 @@ class BaseConfig():
             name of the joint, link, or end-effector
         """
         raise NotImplementedError("_calc_T function not implemented")
+
 
     def _calc_Tx(self, name, x=None, lambdify=True):
         """Return transform from x in reference frame of 'name' to the origin
@@ -828,6 +846,7 @@ class BaseConfig():
                 filename=filename, expression=Tx,
                 parameters=self.q+self.x)
         return Tx_func
+
 
     def _calc_T_inv(self, name, x, lambdify=True):
         """ Return the inverse transform matrix

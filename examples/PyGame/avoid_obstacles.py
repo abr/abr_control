@@ -16,22 +16,22 @@ robot_config = arm.Config(use_cython=True)
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
+avoid = AvoidObstacles(robot_config, threshold=1)
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
+# create an operational space controller
+ctrlr = OSC(robot_config, kp=20, vmax=10, null_controllers=[avoid, damping],
+            # control (x, y) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof=[True, True, False, False, False, False])
+
 
 def on_click(self, mouse_x, mouse_y):
     self.circles[0][0] = mouse_x
     self.circles[0][1] = mouse_y
 
-
 # create our interface
-interface = PyGame(robot_config, arm_sim,
-                   on_click=on_click)
+interface = PyGame(robot_config, arm_sim, on_click=on_click)
 interface.connect()
-
-avoid = AvoidObstacles(robot_config, threshold=1)
-# damp the movements of the arm
-damping = Damping(robot_config, kv=10)
-# create an operational space controller
-ctrlr = OSC(robot_config, kp=20, vmax=10, null_controllers=[avoid, damping])
 
 # create an obstacle
 interface.add_circle(xyz=[0, 0, 0], radius=.2)
@@ -41,9 +41,6 @@ target_xyz = [0, 2, 0]
 # create a target orientation [alpha, beta, gamma]
 target_angles = [0, 0, 0]
 interface.set_target(target_xyz)
-
-# control (x, y) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, False, False, False, False]
 
 
 try:
@@ -62,7 +59,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof,
             )
 
         # add in obstacle avoidance

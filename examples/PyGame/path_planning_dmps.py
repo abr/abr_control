@@ -28,17 +28,15 @@ dmps.imitate_path(dmps_traj)
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
-
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=500, vmax=20, null_controllers=[damping])
-
-# create our arm simulation
-arm_sim = arm.ArmSim(robot_config)
+ctrlr = OSC(robot_config, kp=500, vmax=20, null_controllers=[damping],
+            # control (x, y) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [True, True, False, False, False, False])
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)
@@ -49,9 +47,6 @@ feedback = interface.get_feedback()
 target_xyz = robot_config.Tx('EE', feedback['q'])
 target_angles = np.zeros(3)
 interface.set_target(target_xyz)
-
-# control (x, y) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, False, False, False, False]
 
 
 try:
@@ -70,7 +65,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof
             )
 
         # get the next point in the target trajectory from the dmp

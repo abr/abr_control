@@ -12,14 +12,21 @@ from abr_control.arms import threejoint as arm
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
 from abr_control.utils import transformations
-from abr_control.controllers import OSC
+from abr_control.controllers import OSC, Damping
 
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
-ctrlr = OSC(robot_config, kp=50)
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
+
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
+# create operational space controller
+ctrlr = OSC(robot_config, kp=50, null_controllers=[damping],
+            # control (gamma) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [False, False, False, False, False, True])
+
 
 def on_keypress(self, key):
     if key == pygame.K_LEFT:
@@ -38,7 +45,6 @@ def on_keypress(self, key):
     self.target_angles = transformations.euler_from_matrix(
         R_target, axes='sxyz')
 
-
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001,
                    on_keypress=on_keypress)
@@ -47,9 +53,6 @@ interface.theta = -3 * np.pi / 4
 feedback = interface.get_feedback()
 R = robot_config.R('EE', feedback['q'])
 interface.on_keypress(interface, None)
-
-# control (gamma) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [False, False, False, False, False, True]
 
 
 try:
@@ -67,7 +70,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof,
             )
 
         # apply the control signal, step the sim forward

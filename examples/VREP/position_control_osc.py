@@ -21,7 +21,10 @@ robot_config = arm.Config(use_cython=True)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # instantiate controller
-ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[damping])
+ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[damping],
+            # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [True, True, True, False, False, False])
+
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)
@@ -30,9 +33,6 @@ interface.connect()
 # set up lists for tracking data
 ee_track = []
 target_track = []
-
-# control (x, y, z) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, True, False, False, False]
 
 
 try:
@@ -58,9 +58,6 @@ try:
         vrep_angles = interface.get_orientation('UR5_%s' % name)
         rc_matrix = robot_config.R(name, feedback['q'])
         rc_angles = transformations.euler_from_matrix(rc_matrix, axes='sxyz')
-
-        interface.set_xyz('object', robot_config.Tx(name, q=feedback['q']))
-        interface.set_orientation('object', rc_angles)
 
         # calculate the control signal
         u = ctrlr.generate(
