@@ -5,7 +5,7 @@ move the end-effector to the target object's position and orientation.
 import numpy as np
 
 from abr_control.arms import ur5 as arm
-from abr_control.controllers import OSC
+from abr_control.controllers import OSC, Damping
 from abr_control.interfaces import VREP
 from abr_control.utils import transformations
 
@@ -16,7 +16,10 @@ robot_config = arm.Config(use_cython=True)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=200, vmax=10.0, null_controllers=[damping])
+ctrlr = OSC(robot_config, kp=200, vmax=10.0, null_controllers=[damping],
+            # control (x, y, beta, gamma) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [True, True, False, False, True, True])
+
 
 # create our interface
 interface = VREP(robot_config, dt=.005)
@@ -27,9 +30,6 @@ ee_track = []
 ee_angles_track = []
 target_track = []
 target_angles_track = []
-
-# control (x, y, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, False, False, True, True]
 
 
 try:
@@ -48,7 +48,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof,
             )
 
         # apply the control signal, step the sim forward
@@ -76,7 +75,6 @@ finally:
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
         import matplotlib.pyplot as plt
-        from abr_control.utils.plotting import plot_3D
 
         plt.figure()
         plt.subplot(2, 1, 1)

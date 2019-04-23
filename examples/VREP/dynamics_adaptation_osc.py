@@ -13,14 +13,12 @@ from abr_control.interfaces import VREP
 # initialize our robot config for the jaco2
 robot_config = arm.Config(use_cython=True, hand_attached=True)
 
-# get Jacobians to each link for calculating perturbation
-J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
-           for ii in range(robot_config.N_LINKS)]
-
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # instantiate controller
-ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[damping])
+ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[damping],
+            # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [True, True, True, False, False, False])
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
@@ -40,8 +38,9 @@ interface.connect()
 ee_track = []
 target_track = []
 
-# control (x, y, z) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, True, False, False, False]
+# get Jacobians to each link for calculating perturbation
+J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
+           for ii in range(robot_config.N_LINKS)]
 
 
 try:
@@ -67,7 +66,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof,
             )
 
         scaled = robot_config.scaledown('q', feedback['q'])

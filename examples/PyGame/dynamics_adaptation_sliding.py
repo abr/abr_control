@@ -18,10 +18,6 @@ from abr_control.controllers import Sliding, signals
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
-# get Jacobians to each link for calculating perturbation
-J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
-           for ii in range(robot_config.N_LINKS)]
-
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
@@ -46,7 +42,6 @@ def on_keypress(self, key):
         self.adaptation = not self.adaptation
         print('adaptation: ', self.adaptation)
 
-
 # create our interface
 interface = PyGame(robot_config, arm_sim,
                    on_click=on_click,
@@ -58,6 +53,10 @@ interface.adaptation = False  # set adaptation False to start
 feedback = interface.get_feedback()
 target_xyz = robot_config.Tx('EE', feedback['q'])
 interface.set_target(target_xyz)
+
+# get Jacobians to each link for calculating perturbation
+J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
+           for ii in range(robot_config.N_LINKS)]
 
 
 try:

@@ -18,17 +18,15 @@ from abr_control.controllers import OSC, Damping, signals
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
-# get Jacobians to each link for calculating perturbation
-J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
-           for ii in range(robot_config.N_LINKS)]
-
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=50, null_controllers=[damping])
+ctrlr = OSC(robot_config, kp=50, null_controllers=[damping],
+            # control (x, y) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof=[True, True, False, False, False, False])
 
 # create our nonlinear adaptation controller
 adapt = signals.DynamicsAdaptation(
@@ -48,7 +46,6 @@ def on_keypress(self, key):
         self.adaptation = not self.adaptation
         print('adaptation: ', self.adaptation)
 
-
 # create our interface
 interface = PyGame(robot_config, arm_sim,
                    on_click=on_click,
@@ -62,8 +59,9 @@ target_xyz = robot_config.Tx('EE', feedback['q'])
 target_angles = np.zeros(3)
 interface.set_target(target_xyz)
 
-# control (x, y) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, False, False, False, False]
+# get Jacobians to each link for calculating perturbation
+J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
+           for ii in range(robot_config.N_LINKS)]
 
 
 try:
@@ -83,7 +81,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof
             )
 
         # if adaptation is on (toggled with space bar)
