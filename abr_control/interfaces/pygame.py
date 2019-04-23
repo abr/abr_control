@@ -1,8 +1,8 @@
 import numpy as np
-from os import environ
+from os import environ  # pylint: disable=C0411
 environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-import pygame
-import pygame.locals
+import pygame  # pylint: disable=C0413
+import pygame.locals  # pylint: disable=C0413
 
 
 class PyGame():
@@ -82,6 +82,7 @@ class PyGame():
         self.fps = 20  # frames per second
         self.fpsClock = pygame.time.Clock()
 
+
     def connect(self):
         """ Create the PyGame display, instantiate the arm simulation.
         """
@@ -96,6 +97,7 @@ class PyGame():
 
         print('Connected to PyGame display')
 
+
     def disconnect(self):
         """ Close the PyGame display.
         """
@@ -104,10 +106,12 @@ class PyGame():
         self.arm_sim.disconnect()
         print('PyGame connection closed...')
 
+
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller. """
 
         return self.arm_sim.get_feedback()
+
 
     def send_forces(self, u, dt=None, update_display=True):
         """ Apply the specified torque to the robot
@@ -122,12 +126,22 @@ class PyGame():
         dt : float, optional (Default: None)
             time step [seconds]
         """
-
-        # update the arm sim
         self.arm_sim.send_forces(u, dt=dt)
         if update_display:
-            # update the display
             self._update(self.arm_sim.q)
+
+
+    def send_target_angles(self, q, update_display=True):
+        """ Move the robot to the specified configuration.
+         Parameters
+        ----------
+        q: np.array
+            configuration to to [radians)
+        """
+        self.arm_sim.q = np.copy(q)
+        if update_display:
+            self._update(self.arm_sim.q)
+
 
     def set_target(self, xyz):
         """ Set the position of the target object.
@@ -140,6 +154,7 @@ class PyGame():
 
         self.target = (xyz[:2] * np.array([1, -1]) *
                        self.scaling_term + self.base_offset)
+
 
     def add_circle(self, xyz, radius, color=None):
         """ Add an obstacle to the list.
@@ -162,6 +177,7 @@ class PyGame():
         circle += color
         self.circles.append(circle)
 
+
     def get_mousexy(self):
         """ Returns the (x,y) position of the mouse over the display.
         """
@@ -172,11 +188,13 @@ class PyGame():
             return x, y
         return None
 
+
     def get_xyz(self, name):
         """ Not available in the pygame interface"""
 
         raise NotImplementedError(
             "Not an available method in the PyGame interface")
+
 
     def _update(self, q):
         """ Update the arm using the provided joint angles.

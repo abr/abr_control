@@ -28,7 +28,7 @@ ctrlr = OSC(robot_config, kp=50, null_controllers=[damping],
             # control (x, y) out of [x, y, z, alpha, beta, gamma]
             ctrlr_dof=[True, True, False, False, False, False])
 
-# create our nonlinear adaptation controller
+# create our nonlinear adaptive controller
 adapt = signals.DynamicsAdaptation(
     n_input=robot_config.N_JOINTS,
     n_output=robot_config.N_JOINTS,
