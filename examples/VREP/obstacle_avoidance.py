@@ -19,7 +19,10 @@ avoid = AvoidObstacles(robot_config)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # instantiate the REACH controller with obstacle avoidance
-ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[avoid, damping])
+ctrlr = OSC(robot_config, kp=200, vmax=0.5, null_controllers=[avoid, damping],
+            # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [True, True, True, False, False, False])
+
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)
@@ -32,9 +35,6 @@ obstacle_track = []
 
 moving_obstacle = True
 obstacle_xyz = np.array([0.09596, -0.2661, 0.64204])
-
-# control (x, y, z) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, True, False, False, False]
 
 
 try:
@@ -63,7 +63,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof,
             )
 
         # get obstacle position from VREP

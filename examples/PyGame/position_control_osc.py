@@ -24,13 +24,15 @@ resting_config = RestingConfig(
     rest_angles=[np.pi/4, np.pi/4, None])
 
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=20, use_C=True, null_controllers=[damping])
+ctrlr = OSC(robot_config, kp=20, use_C=True, null_controllers=[damping],
+            # control (x, y) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [True, True, False, False, False, False])
+
 
 
 def on_click(self, mouse_x, mouse_y):
     self.target[0] = self.mouse_x
     self.target[1] = self.mouse_y
-
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001, on_click=on_click)
@@ -40,9 +42,6 @@ interface.connect()
 feedback = interface.get_feedback()
 target_xyz = robot_config.Tx('EE', feedback['q'])
 interface.set_target(target_xyz)
-
-# control (x, y) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, False, False, False, False]
 
 
 try:
@@ -61,7 +60,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            ctrlr_dof=ctrlr_dof,
             )
 
         new_target = interface.get_mousexy()

@@ -21,7 +21,9 @@ arm_sim = arm.ArmSim(robot_config)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=100, null_controllers=[damping])
+ctrlr = OSC(robot_config, kp=100, null_controllers=[damping],
+            # control (gamma) out of [x, y, z, alpha, beta, gamma]
+            ctrlr_dof = [True, True, False, False, False, False])
 
 # create our path planner
 n_timesteps = 250  # give 250 time steps to reach target
@@ -30,9 +32,6 @@ path_planner = path_planners.Linear()
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)
 interface.connect()
-
-# control (x, y) out of [x, y, z, alpha, beta, gamma]
-ctrlr_dof = [True, True, False, False, False, False]
 
 
 try:
@@ -68,7 +67,6 @@ try:
             dq=feedback['dq'],
             target=np.hstack([target[:3], np.zeros(3)]),
             target_vel=np.hstack([target[3:], np.zeros(3)]),
-            ctrlr_dof=ctrlr_dof
             )
 
         # apply the control signal, step the sim forward
