@@ -5,6 +5,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
     """ A class with equationns analytically derived in (Spong et al, 2004),
     page 209, for testing the symbolic function generation config system. """
 
+
     def __init__(self):
         self.L = [0.0, 2.0, 1.2]
         self.M_LINKS = [np.diag(np.zeros(6))] # non-existant link0
@@ -15,10 +16,14 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
         # joints don't weigh anything
         self.M_JOINTS = [np.zeros((6, 6)) for ii in range(2)]
 
+        self.MEANS = {'q':np.ones(2), 'dq':np.ones(2)*3}
+        self.SCALES = {'q':np.ones(2) * 2, 'dq':np.ones(2)*.5}
+
 
     def R_link0(self, q):
         """ Returns the rotation matrix for the COM of link 0 """
         return np.eye(3)
+
 
     def Tx_link0(self, q):
         """ Returns the position of COM of link 0 """
@@ -27,6 +32,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             0,
             0])
 
+
     def T_inv_link0(self, q):
         """ Returns the inverse transform matrix for the COM of link 0 """
         return np.array([
@@ -34,6 +40,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 1, 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
+
 
     def J_link0(self, q):
         """ Returns the Jacobian of the COM of link 0 """
@@ -45,6 +52,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0]])
 
+
     def dJ_link0(self, q, dq):
         """ Returns the derivative of the Jacobian of link 0 """
         return np.array([
@@ -55,9 +63,11 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0]])
 
+
     def R_joint0(self, q):
         """ Returns rotation matrix for joint 0 """
         return np.eye(3)
+
 
     def Tx_joint0(self, q):
         """ Returns the position of joint 0 """
@@ -74,6 +84,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
+
     def J_joint0(self, q):
         """ Returns the Jacobian of joint 0 """
         return np.array([
@@ -83,6 +94,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0],
             [0, 0]])
+
 
     def dJ_joint0(self, q, dq):
         """ Returns the derivative of the Jacobian of joint 0 """
@@ -94,6 +106,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0]])
 
+
     def R_link1(self, q):
         """ Returns rotation matrix for the COM of link 1 """
         return np.array([
@@ -101,12 +114,14 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [np.sin(q[0]), np.cos(q[0]), 0],
             [0, 0, 1]])
 
+
     def Tx_link1(self, q):
         """ Returns the position of COM of link 1 """
         return np.array([
             self.L[0] + self.L[1] / 2.0 * np.cos(q[0]),
             self.L[1] / 2.0 * np.sin(q[0]),
             0])
+
 
     def T_inv_link1(self, q):
         """ Returns the inverse transform matrix for the COM of link 0 """
@@ -120,6 +135,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
+
     def J_link1(self, q):
         """ Returns the Jacobian of the COM of link 1 """
         return np.array([
@@ -129,6 +145,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0],
             [1, 0]])
+
 
     def dJ_link1(self, q, dq):
         """ Returns the derivative of the Jacobian of link 1 """
@@ -140,6 +157,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0]])
 
+
     def R_joint1(self, q):
         """ Returns rotation matrix for joint 1 """
         return np.array([
@@ -147,12 +165,14 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [np.sin(q[0]), np.cos(q[0]), 0],
             [0, 0, 1]])
 
+
     def Tx_joint1(self, q):
         """ Returns the position of joint 1 """
         return np.array([
             self.L[0] + self.L[1] * np.cos(q[0]),
             self.L[1] * np.sin(q[0]),
             0])
+
 
     def T_inv_joint1(self, q):
         """ Returns the inverse transform matrix for the COM of link 0 """
@@ -166,6 +186,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
+
     def J_joint1(self, q):
         """ Returns the Jacobian of joint 1 """
         return np.array([
@@ -176,6 +197,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [1, 0]])
 
+
     def dJ_joint1(self, q, dq):
         """ Returns the derivative of the Jacobian of joint 1 """
         return np.array([
@@ -185,6 +207,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0],
             [0, 0]])
+
 
     def R_link2(self, q):
         """ Returns rotation matrix for the COM of link 2 """
@@ -197,6 +220,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [s0 * c1 + c0 * s1, -s0 * s1 + c0 * c1, 0],
             [0, 0, 1]])
 
+
     def Tx_link2(self, q):
         """ Returns the position of the COM of link 2 """
         return np.array([
@@ -204,6 +228,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
              self.L[2] / 2.0 * np.cos(q[0] + q[1])),
             self.L[1] * np.sin(q[0]) + self.L[2] / 2.0 * np.sin(q[0] + q[1]),
             0])
+
 
     def T_inv_link2(self, q):
         """ Returns the inverse transform matrix for the COM of link 0 """
@@ -238,6 +263,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [1, 1]])
 
+
     def dJ_link2(self, q, dq):
         """ Returns the derivative of the Jacobian of link 2 """
         return np.array([
@@ -252,6 +278,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0]])
 
+
     def R_EE(self, q):
         """ Returns rotation matrix of the end effector """
         c0 = np.cos(q[0])
@@ -263,6 +290,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [s0 * c1 + c0 * s1, -s0 * s1 + c0 * c1, 0],
             [0, 0, 1]])
 
+
     def Tx_EE(self, q):
         """ Returns the position of the end effector """
         return np.array([
@@ -271,6 +299,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             (self.L[0] + self.L[1] * np.sin(q[0]) +
              self.L[2] * np.sin(q[0] + q[1])),
             0])
+
 
     def T_inv_EE(self, q):
         """ Returns the inverse transform matrix for the COM of link 0 """
@@ -290,6 +319,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
 
+
     def J_EE(self, q):
         """ Returns the Jacobian of the end effector """
         return np.array([
@@ -301,6 +331,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
             [0, 0],
             [0, 0],
             [1, 1]])
+
 
     def dJ_EE(self, q, dq):
         """ Returns the derivative of the Jacobian of the end effector """

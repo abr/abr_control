@@ -1,8 +1,53 @@
+import shutil
+import os
+
 import numpy as np
 
 from abr_control.arms import twojoint as arm
 
 from .dummy_arm import TwoJoint
+
+
+def test_generate_and_save_function():
+    robot_config = arm.Config(use_cython=True)
+
+    # remove any saved functions from cache folder
+    if os.path.isfile(robot_config.config_folder + '/EE_T/setup.py'):
+        shutil.rmtree(robot_config.config_folder + '/EE_T')
+    # generate a function
+    robot_config.T('EE', q=np.zeros(robot_config.N_JOINTS))
+    # confirm file has been generated
+    assert os.path.isfile(robot_config.config_folder + '/EE_T/setup.py')
+
+
+def test_load_from_file():
+    robot_config = arm.Config(use_cython=True)
+
+    # generate a function
+    robot_config.T('EE', q=np.zeros(robot_config.N_JOINTS))
+
+    # if returning expression, function should be None
+    expression, function = robot_config._load_from_file('EE_T', lambdify=False)
+    assert expression is not None
+    assert function is None
+
+    # if returning function, expression should be None
+    expression, function = robot_config._load_from_file('EE_T', lambdify=True)
+    assert expression is None
+    assert function is not None
+
+
+def test_scaling():
+    robot_config = arm.Config()
+
+    unscaled = np.random.random(robot_config.N_JOINTS)
+    scaled = robot_config.scaledown('q', x=unscaled)
+    assert np.all(abs(unscaled - robot_config.scaleup('q', scaled)) < 1e-5)
+
+    unscaled = np.random.random(robot_config.N_JOINTS)
+    scaled = robot_config.scaledown('dq', x=unscaled)
+    assert np.all(abs(unscaled - robot_config.scaleup('dq', scaled)) < 1e-5)
+
 
 def test_R():
     test_arm = TwoJoint()
