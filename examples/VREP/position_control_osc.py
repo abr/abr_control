@@ -56,8 +56,6 @@ try:
 
         name = 'joint1'
         vrep_angles = interface.get_orientation('UR5_%s' % name)
-        rc_matrix = robot_config.R(name, feedback['q'])
-        rc_angles = transformations.euler_from_matrix(rc_matrix, axes='sxyz')
 
         # calculate the control signal
         u = ctrlr.generate(

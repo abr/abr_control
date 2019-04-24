@@ -75,22 +75,24 @@ finally:
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
         import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
-        plt.figure()
-        plt.subplot(2, 1, 1)
-        plt.plot(ee_track)
-        plt.gca().set_prop_cycle(None)
-        plt.plot(target_track, '--')
-        plt.ylabel('3D position (m)')
+        fig = plt.figure(figsize=(8,12))
+        ax1 = fig.add_subplot(311)
+        ax1.set_ylabel('3D position (m)')
+        ax1.plot(ee_track)
+        ax1.plot(target_track, '--')
 
-        plt.subplot(2, 1, 2)
-        plt.plot(ee_angles_track)
-        plt.gca().set_prop_cycle(None)
-        plt.plot(target_angles_track, '--')
-        plt.ylabel('3D orientation (rad)')
-        plt.xlabel('Time (s)')
+        ax2 = fig.add_subplot(312)
+        ax2.plot(ee_angles_track)
+        ax2.plot(target_angles_track, '--')
+        ax2.set_ylabel('3D orientation (rad)')
+        ax2.set_xlabel('Time (s)')
 
-        plt.tight_layout()
-
-        plot_3D(ee_track, target_track)
+        ax3 = fig.add_subplot(313, projection='3d')
+        ax3.set_title('End-Effector Trajectory')
+        ax3.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
+        ax3.scatter(target_track[0, 0], target_track[0, 1], target_track[0, 2],
+                    label='target', c='g')
+        ax3.legend()
         plt.show()
