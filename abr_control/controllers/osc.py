@@ -74,6 +74,11 @@ class OSC(Controller):
         self.ctrlr_dof = np.copy(ctrlr_dof)
         self.n_ctrlr_dof = np.sum(self.ctrlr_dof)
 
+        if self.n_ctrlr_dof > robot_config.N_JOINTS:
+            print('\nRobot has fewer DOF (%i) than the specified number of ' %
+                  robot_config.N_JOINTS + 'space dimensions to control (%i). ' %
+                  self.n_ctrlr_dof + 'Poor performance may result.\n')
+
 
     def generate(self, q, dq, target, target_vel=None,
                  ref_frame='EE', xyz_offset=None):
