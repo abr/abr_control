@@ -1,12 +1,8 @@
-import numpy as np
+import nengo
+
 import scipy.special
 
-try:
-    import nengo
-    nengo.rc.set("decoder_cache", "enabled", "False")
-except ImportError:
-    raise Exception('Nengo module needs to be installed to ' +
-                    'use adaptive dynamics.')
+import numpy as np
 
 
 class DynamicsAdaptation():
@@ -150,7 +146,7 @@ class DynamicsAdaptation():
                     training_signals, self.conn_learn[ii].learning_rule,
                     synapse=self.tau_training)
 
-        nengo.cache.DecoderCache().invalidate()
+        nengo.rc.set("decoder_cache", "enabled", "False")
         self.sim = nengo.Simulator(self.nengo_model, dt=.001)
 
 
