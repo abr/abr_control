@@ -169,8 +169,8 @@ class BaseConfig():
         filename : string
             the desired function to load in
         lambdify : boolean
-            if True returns a function to calculate the matrix.
-            If False returns the Sympy matrix
+            if True returns (None, function to calculate the matrix)
+            if False returns (the Sympy matrix, None)
         """
 
         expression = None
@@ -187,7 +187,6 @@ class BaseConfig():
                                   if sf.endswith('.so')]
                     if len(saved_file) > 0:
                         # if found, load in function from file
-                        print('Loading cython function from %s ...' % filename)
                         if self.config_folder not in sys.path:
                             sys.path.append(self.config_folder)
                         saved_file = saved_file[0].split('.')[0]
@@ -195,8 +194,8 @@ class BaseConfig():
                             filename + '.' + saved_file)
                         function = getattr(function_binary, 'autofunc_c')
                         # NOTE: This is a hack, but the above import command
-                        # imports both 'filename.saved_file' and 'saved_file'
-                        # having 'saved_file' in modules cause problems if
+                        # imports both 'filename.saved_file' and 'saved_file'.
+                        # Having 'saved_file' in modules cause problems if
                         # the cython autofunc wrapper is used after this.
                         if saved_file in sys.modules.keys():
                             del sys.modules[saved_file]
@@ -360,7 +359,7 @@ class BaseConfig():
         return x * self.SCALES[name] + self.MEANS[name]
 
 
-    def T(self, name, q, lambdify=True):
+    def T(self, name, q):
         """ Loads or calculates the transformation Matrix for a joint or link
 
         Parameters
@@ -376,20 +375,25 @@ class BaseConfig():
 
         # check for function in dictionary
         if self._T_func.get(name, None) is None:
-
-            T, T_func = self._load_from_file('T', lambdify)
+            filename = name + '_T'
+            T, T_func = self._load_from_file(filename, lambdify=True)
 
             if T is None and T_func is None:
                 T = self._calc_T(name)
 
-            if lambdify is False:
-                return T
+                # save to file
+                abr_control.utils.os_utils.makedirs(
+                    '%s/%s' % (self.config_folder, filename))
+                cloudpickle.dump(T, open(
+                    '%s/%s/%s' % (self.config_folder, filename, filename),
+                    'wb'))
 
             if T_func is None:
-                # self._T_func[name] = sp.lambdify(self.q, T, "numpy")
-                self._T_func[name] = self._generate_and_save_function(
-                    filename='T', expression=T,
+                T_func = self._generate_and_save_function(
+                    filename=filename, expression=T,
                     parameters=self.q)
+
+            self._T_func[name] = T_func
 
         parameters = tuple(q)
         return self._T_func[name](*parameters)
@@ -837,7 +841,7 @@ class BaseConfig():
             abr_control.utils.os_utils.makedirs(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(sp.Matrix(Tx), open(
-                '%s/%s/%s.Tx' % (self.config_folder, filename, filename),
+                '%s/%s/%s' % (self.config_folder, filename, filename),
                 'wb'))
 
         if lambdify is False:
@@ -890,7 +894,7 @@ class BaseConfig():
             abr_control.utils.os_utils.makedirs(
                 '%s/%s' % (self.config_folder, filename))
             cloudpickle.dump(T_inv, open(
-                '%s/%s.T_inv' % (self.config_folder, filename), 'wb'))
+                '%s/%s/%s' % (self.config_folder, filename, filename), 'wb'))
 
         if lambdify is False:
             # if should return expression not function
