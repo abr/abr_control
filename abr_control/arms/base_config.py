@@ -369,6 +369,9 @@ class BaseConfig():
             name of the joint, link, or end-effector
         q : numpy.array
             joint angles [radians]
+        lambdify : boolean, optional (Default: True)
+            if True returns a function to calculate the matrix.
+            If False returns the Sympy matrix
         """
 
         # check for function in dictionary

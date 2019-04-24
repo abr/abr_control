@@ -125,6 +125,8 @@ class PyGame():
             an array of the torques to apply to the robot [Nm]
         dt : float, optional (Default: None)
             time step [seconds]
+        update_display: boolean, optional (Default: True)
+            updates the sim visualization
         """
         self.arm_sim.send_forces(u, dt=dt)
         if update_display:
@@ -137,6 +139,8 @@ class PyGame():
         ----------
         q: np.array
             configuration to to [radians)
+        update_display: boolean, optional (Default: True)
+            updates the sim visualization
         """
         self.arm_sim.q = np.copy(q)
         if update_display:
