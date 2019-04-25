@@ -34,9 +34,10 @@ arm_sim = arm.ArmSim(robot_config)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=500, vmax=20, null_controllers=[damping],
+ctrlr = OSC(robot_config, kp=500, null_controllers=[damping],
+            vmax=[20, 0],  # [m/s, rad/s]
             # control (x, y) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [True, True, False, False, False, False])
+            ctrlr_dof=[True, True, False, False, False, False])
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)

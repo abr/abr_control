@@ -16,9 +16,10 @@ robot_config = arm.Config(use_cython=True)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=200, vmax=10.0, null_controllers=[damping],
+ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
+            vmax=[10, 10],  # [m/s, rad/s]
             # control (x, y, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [True, True, False, False, True, True])
+            ctrlr_dof = [True, False, False, True, True, True])
 
 
 # create our interface
