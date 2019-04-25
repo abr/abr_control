@@ -16,11 +16,12 @@ robot_config = arm.Config(use_cython=True)
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
-avoid = AvoidObstacles(robot_config, threshold=1)
+avoid = AvoidObstacles(robot_config, threshold=1, gain=30)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=20, vmax=10, null_controllers=[avoid, damping],
+ctrlr = OSC(robot_config, kp=10, null_controllers=[avoid, damping],
+            vmax=[10, 0],  # [m/s, rad/s]
             # control (x, y) out of [x, y, z, alpha, beta, gamma]
             ctrlr_dof=[True, True, False, False, False, False])
 
