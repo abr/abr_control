@@ -8,21 +8,29 @@ class AvoidObstacles(Controller):
 
     Parameters
     ----------
-    robot_config : class instance
+    robot_config: class instance
         contains all relevant information about the arm
-        such as: number of joints, number of links, mass information etc.
-    obstacles : list of list of floats
+        such as number of joints, number of links, mass information etc.
+    obstacles: list of list of floats
         a list of obstacles, where the obstacles are a list of the
         corresponding Cartesian coordinates and obstacle radius [metres]
         ex: obstacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius]
-    threshold : float, optional (Default: 0.2)
+    threshold: float, optional (Default: 0.2)
         how close is the system allowed to get to obstacles
+    gain: scalar, optional (Default: 1)
+        a scaling term on the strength of the avoidance signal
+    maximum: scalar, optional (Default: 100)
+        a maximum value at which to clip the output
     """
 
-    def __init__(self, robot_config, obstacles=None, threshold=.2):
+    def __init__(self, robot_config, obstacles=None, threshold=.2,
+                 gain=1, maximum=500):
         super(AvoidObstacles, self).__init__(robot_config)
 
         self.threshold = threshold
+        self.gain = gain
+        self.maximum = maximum
+
         obstacles = [] if obstacles is None else obstacles
         self.obstacles = np.array(obstacles)
 
@@ -32,14 +40,14 @@ class AvoidObstacles(Controller):
 
         Parameters
         ----------
-        q : np.array
+        q: np.array
             the current joint angles [radians]
-        dq : np.array
+        dq: np.array
           the current joint angle velocity [radians/second]
           NOTE: Not used in this function
         """
 
-        u_psp = np.zeros(self.robot_config.N_JOINTS, dtype='float32')
+        u_psp = np.zeros(self.robot_config.N_JOINTS)
 
         # calculate joint space inertia matrix
         M = self.robot_config.M(q=q)
@@ -47,7 +55,7 @@ class AvoidObstacles(Controller):
         # add in obstacle avoidance
         for obstacle in self.obstacles:
             # our vertex of interest is the center point of the obstacle
-            v = np.array(obstacle[:3], dtype='float32')
+            v = np.array(obstacle[:3])
 
             # find the closest point of each link to the obstacle
             for ii in range(self.robot_config.N_JOINTS):
@@ -106,17 +114,18 @@ class AvoidObstacles(Controller):
 
                     u_psp += -np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
 
-        return u_psp
+        return np.clip(u_psp * self.gain, -self.maximum, self.maximum)
+
 
     def set_obstacles(self, obstacles):
         """ Specify the locations of the obstacles to avoid
 
         Parameters
         ----------
-        obstacles : list of list of floats
+        obstacles: list of list of floats
             a list of obstacles, where the obstacles are a list of the
             corresponding Cartesian coordinates and obstacle radius [metres]
-            ex: ostacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius]
+            ex: obstacles = [obs1, obs2, obs3] where obs1 = [x1, y1, z1, radius]
         """
 
         self.obstacles = np.copy(obstacles)
