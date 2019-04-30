@@ -100,6 +100,7 @@ class Config(BaseConfig):
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
             [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
+
         if self.hand_attached:  # add in hand offset
             self.L.append([4.925e-3, 2.024e-3, -1.059e-1])  # com of the hand
             self.L.append([0.0, 0.0, 0.09])  # offset to end of fingers
