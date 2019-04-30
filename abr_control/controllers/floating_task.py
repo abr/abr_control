@@ -13,13 +13,10 @@ class FloatingTask(controller.Controller):
     robot_config : class instance
         contains all relevant information about the arm
         such as: number of joints, number of links, mass information etc.
-    dynamic : boolean, optional (Default: False)
-        accounts for joint velocity / inertia in controller if True
     """
 
-    def __init__(self, robot_config, dynamic=False):
+    def __init__(self, robot_config):
         super(FloatingTask, self).__init__(robot_config)
-        self.dynamic = dynamic
 
     def generate(self, q, dq=None):
         """ Generates the control signal to compensate for gravity
@@ -54,9 +51,10 @@ class FloatingTask(controller.Controller):
         Jbar = np.dot(M_inv, np.dot(J.T, Mx))
         u_task = -np.dot(Jbar.T, g)
         u = np.dot(J.T, u_task)
-        # if self.dynamic:
-        #     # compensate for current velocity
-        #     M = self.robot_config.M(q)
-        #     u -= np.dot(M, dq)
+
+        if dq is not None:
+            # compensate for current velocity
+            M = self.robot_config.M(q)
+            u -= np.dot(M, dq)
 
         return u

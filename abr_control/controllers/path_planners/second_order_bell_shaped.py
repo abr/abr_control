@@ -16,7 +16,7 @@ except ImportError:
 import scipy.interpolate
 
 
-class dmpFilter():
+class BellShaped():
     def __init__(self):
         # create a dmp for a straight reach with a bell shaped velocity profile
         x = np.linspace(0, np.pi*2, 100)
@@ -37,56 +37,56 @@ class dmpFilter():
 
     def plot_trajectory(self):
         self.dmps.reset_state()
-        y,_,_ = self.dmps.rollout()
+        y, _, _ = self.dmps.rollout()
         self.dmps.reset_state()
 
         import matplotlib.pyplot as plt
         plt.plot(y, 'x')
         plt.show()
 
-    def generate_path_function(self, target_xyz, start_xyz, time_limit,
-            target_vel=False, rollout=None):
-        self.start_xyz = start_xyz
+    def generate_path_function(self, target, state, time_limit,
+                               target_vel=False, rollout=None):
+        self.state = state
         self.dmps.reset_state()
-        self.dmps.goal = target_xyz - self.start_xyz
-        trajectory,vel,_ = self.dmps.rollout(rollout)
-        trajectory = np.array([traj + self.start_xyz for traj in trajectory])
+        self.dmps.goal = target - self.state
+        trajectory, vel, _ = self.dmps.rollout(rollout)
+        trajectory = np.array([traj + self.state[:3] for traj in trajectory])
         times = np.linspace(0, time_limit, len(trajectory))
-        x = scipy.interpolate.interp1d(times, trajectory[:,0])
-        y = scipy.interpolate.interp1d(times, trajectory[:,1])
-        z = scipy.interpolate.interp1d(times, trajectory[:,2])
+        x = scipy.interpolate.interp1d(times, trajectory[:, 0])
+        y = scipy.interpolate.interp1d(times, trajectory[:, 1])
+        z = scipy.interpolate.interp1d(times, trajectory[:, 2])
         if target_vel:
-            dx = scipy.interpolate.interp1d(times, vel[:,0])
-            dy = scipy.interpolate.interp1d(times, vel[:,1])
-            dz = scipy.interpolate.interp1d(times, vel[:,2])
-            self.path_func = [x,y,z,dx,dy,dz]
+            dx = scipy.interpolate.interp1d(times, vel[:, 0])
+            dy = scipy.interpolate.interp1d(times, vel[:, 1])
+            dz = scipy.interpolate.interp1d(times, vel[:, 2])
+            self.path_func = [x, y, z, dx, dy, dz]
         else:
-            self.path_func = [x,y,z]
+            self.path_func = [x, y, z]
 
-    def next_timestep(self,t):
+    def next_timestep(self, t):
         target = []
         for dim in self.path_func:
             target.append(dim(t))
         return target
 
-    def reset(self, target_xyz, start_xyz):
-        self.start_xyz = start_xyz
+    def reset(self, target, state):
+        self.state = state
         self.dmps.reset_state()
-        self.dmps.goal = target_xyz - self.start_xyz
+        self.dmps.goal = target - self.state
 
     def step(self, error):
         # get the next point in the target trajectory from the dmp
-        target_xyz = np.copy(self.dmps.step(error=error*0.65e1)[0])
-        target_xyz += self.start_xyz
-        return target_xyz
+        target = np.copy(self.dmps.step(error=error*0.65e1)[0])
+        target += self.state
+        return target
 
 
 if __name__ == '__main__':
 
-    path = dmpFilter()
+    path = BellShaped()
 
     import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
+    from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
     def gauss(a, b, c):
         return a * np.exp(-(x-b)**2/(2*c)**2)
