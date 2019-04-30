@@ -127,3 +127,27 @@ class SecondOrder:
         self.n += 1
 
         return self.target
+
+    def generate_path_function(self, state, target_pos, runtime):
+        self.n_timesteps = 3000
+        self.generate_path(state=state, target_pos=target_pos)
+        dist = np.sqrt(np.sum((target_pos[:3] - self.trajectory[-1][:3])**2))
+        print('Checking that path reaches target within %.2f seconds'%runtime)
+        while dist > 0.01:
+            self.n_timesteps += 10
+            self.generate_path(state=state, target_pos=target_pos)
+            dist = np.sqrt(np.sum((target_pos[:3] - self.trajectory[-1][:3])**2))
+            print(self.n_timesteps)
+        import scipy.interpolate
+        times = np.linspace(0, runtime, self.n_timesteps)
+        x = scipy.interpolate.interp1d(times, self.trajectory[:,0])
+        y = scipy.interpolate.interp1d(times, self.trajectory[:,1])
+        z = scipy.interpolate.interp1d(times, self.trajectory[:,2])
+        print('Path generated with %i steps'%self.n_timesteps)
+        self.path_func = [x,y,z]
+
+    def next_timestep(self,t):
+        target = [self.path_func[0](t),
+                  self.path_func[1](t),
+                  self.path_func[2](t)]
+        return target
