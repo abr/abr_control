@@ -84,7 +84,7 @@ class DynamicsAdaptation():
                     nengolib.stats.ScatteredHypersphere(surface=True)
                     for ii in range(self.n_ensembles)]
             except ImportError:
-                encoders = [None for ii in range(self.n_ensembles)]
+                encoders = [nengo.Default for ii in range(self.n_ensembles)]
                 print('NengoLib not installed, encoder placement will ' +
                       'be sub-optimal.')
         self.encoders = encoders
