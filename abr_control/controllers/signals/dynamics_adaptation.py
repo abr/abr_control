@@ -240,3 +240,66 @@ class Triangular(nengo.dists.Distribution):
         else:
             return rng.triangular(
                 self.left, self.mode, self.right, size=(n, d))
+
+
+def generate_scaled_inputs(q, dq, in_index=None, MEANS=None, SCALES=None):
+    '''
+    Currently set to accept joint position and velocities as time
+    x dimension arrays, and returns them scaled from 0 to 1
+
+    PARAMETERS
+    ----------
+    q: array of shape time_steps x dimension
+        the joint positions to scale
+    dq: array of shape time_steps x dimension
+        the joint velocities to scale
+    in_index: list of integers
+        a list corresponding what joints to return scaled inputs for.
+        The function is currently set up to accept the raw feedback from an
+        arm (all joint position and velocities) and only returns the values
+        specified by the indices in in_index
+
+        EX: in_index = [0, 1, 3, 6]
+        will return the scaled joint position and velocities for joints 0,
+        1, 3 and 6
+    MEANS: dict of floats
+        MEANS['q'] == the mean expected values of the joint positions [rad]
+        MEANS['dq'] == the mean expected values of the joint velocities [rad/s]
+    SCALES: dict of floats
+        SCALES['q'] == 2* the max expected values of the joint positions [rad]
+        SCALES['dq'] == 2 *the max expected values of the joint velocities
+        [rad/s]
+        *NOTE scales max values should be multiplied by 2 because we want a
+        range from 0 to 1, so we have to shift the negative velocities up.
+        Assuming a symmetrical velocity profile (positive max == negative max)
+        the shift to the positive scale effectively doubles this value
+    '''
+    qs = q.T
+    dqs = dq.T
+    n_joints = len(q)
+
+    if in_index is None:
+        in_index = np.range(n_joints)
+
+    # expected mean of joint angles / velocities
+    if MEANS is None:
+        MEANS ={}
+        MEANS['q'] = np.zeros(n_joints)
+        MEANS['dq'] = np.ones(n_joints) * 1.25
+
+    # expected variance of joint angles / velocities
+    if SCALES is None:
+        SCALES = {}
+        SCALES['q'] = np.ones(n_joints) * 6.28
+        SCALES['dq'] = np.ones(n_joints) * 2.5
+
+    for pp in range(0, n_joints):
+        qs[pp] = (qs[pp] - MEANS['q'][pp]) / SCALES['q'][pp]
+        dqs[pp] = (dqs[pp] + MEANS['dq'][pp]) / SCALES['dq'][pp]
+    qs = np.clip(qs, 0, 1)
+    dqs = np.clip(dqs, 0, 1)
+
+    scaled_q = np.array([qs[ii] for ii in in_index]).T
+    scaled_dq = np.array([dqs[ii] for ii in in_index]).T
+
+    return [scaled_q, scaled_dq]
