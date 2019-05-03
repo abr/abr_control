@@ -72,7 +72,7 @@ class Config(BaseConfig):
 
         # inertia values in VREP are divided by mass, account for that here
         self._M_LINKS = [
-            sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link0
+            sp.diag(0.0, 0.0, 0.0, 0.00, 0.00, 0.00),  # link0
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link1
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link2
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
