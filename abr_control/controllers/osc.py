@@ -261,7 +261,8 @@ class OSC(Controller):
                 u = -self.kv * np.dot(M, dq)
             else:
                 dx = np.dot(J, dq)
-                u_task -= self.kv * (dx - target_vel)
+                dx[self.ctrlr_dof] = np.dot(J, dq)
+                u_task -= self.kv * (dx - target_vel[self.ctrlr_dof])
 
         # isolate task space forces corresponding to controlled DOF
         u_task = u_task[self.ctrlr_dof]
