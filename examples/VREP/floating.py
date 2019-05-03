@@ -2,23 +2,21 @@
 A basic script for connecting to the arm and putting it in floating
 mode, which only compensates for gravity. The end-effector position
 is recorded and plotted when the script is exited (with ctrl-c).
+
+In this example, the floating controller is applied in the joint space
 """
 import numpy as np
 import traceback
 
-# from abr_control.arms import ur5 as arm
 from abr_control.arms import jaco2 as arm
-# from abr_control.arms import onelink as arm
 from abr_control.controllers import Floating
 from abr_control.interfaces import VREP
 
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
-# if using the Jaco 2 arm with the hand attached, use the following instead:
-# robot_config = arm.Config(use_cython=True, hand_attached=True)
 
 # instantiate the controller
-ctrlr = Floating(robot_config, dynamic=True)
+ctrlr = Floating(robot_config, task_space=True)
 
 # create the VREP interface and connect up
 interface = VREP(robot_config, dt=.005)
@@ -51,8 +49,8 @@ try:
         # calculate the position of the hand
         hand_xyz = robot_config.Tx('EE', q=feedback['q'])
         # track end effector position
-        ee_track.append(hand_xyz)
-        q_track.append(feedback['q'])
+        ee_track.append(np.copy(hand_xyz))
+        q_track.append(np.copy(feedback['q']))
 
 except:
     print(traceback.format_exc())
