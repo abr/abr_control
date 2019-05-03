@@ -1,9 +1,8 @@
+import numpy as np
+
 import nengo
 
 import scipy.special
-
-import numpy as np
-
 
 class DynamicsAdaptation():
     """ An implementation of nonlinear dynamics adaptation using Nengo,

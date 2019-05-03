@@ -7,9 +7,9 @@ class RestingConfig(Controller):
 
     Parameters
     ----------
-    robot_config : class instance
+    robot_config: class instance
         contains all relevant information about the arm
-        such as: number of joints, number of links, mass information etc.
+        such as number of joints, number of links, mass information etc.
     """
 
     def __init__(self, robot_config, kp, kv, rest_angles):
@@ -23,16 +23,15 @@ class RestingConfig(Controller):
     def generate(self, q, dq):
         """ Generates the control signal
 
-        q : np.array
+        q: np.array
           the current joint angles [radians]
-        dq : np.array
+        dq: np.array
           the current joint angle velocity [radians/second]
         """
 
         # account for going across 2*pi line when calculating
         # distance / direction
-        q_des = ((self.robot_config.REST_ANGLES - q + np.pi) %
-                 (np.pi * 2) - np.pi)
+        q_des = ((self.rest_angles - q + np.pi) % (np.pi * 2) - np.pi)
         q_des[~self.null_indices] = 0.0
         self.dq_des[self.null_indices] = dq[self.null_indices]
 
