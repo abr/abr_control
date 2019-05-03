@@ -3,8 +3,10 @@ import importlib
 import os
 import sys
 
-import cloudpickle
 import numpy as np
+
+import cloudpickle
+
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
 

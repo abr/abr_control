@@ -158,7 +158,7 @@ class OSC(Controller):
             q_ed = transformations.unit_vector(
                 transformations.quaternion_from_matrix(R_ed))
             # divide by kp to compensate for upcoming multiply by kp
-            u_task_orientation = -np.dot(R_e, q_ed[1:])  # eq 34
+            u_task_orientation = -1 * np.dot(R_e, q_ed[1:])  # eq 34
 
         else:
             raise Exception('Invalid algorithm number %i for calculating ' %
@@ -254,7 +254,7 @@ class OSC(Controller):
             u_task = self._velocity_limiting(
                 u_task=u_task, target_vel=target_vel, J=J, dq=dq)
         else:
-            u_task *= -self.task_space_gains
+            u_task *= -1 * self.task_space_gains
             if np.all(target_vel == 0):
                 # if there's no target velocity in task space,
                 # compensate for velocity in joint space (more accurate)
