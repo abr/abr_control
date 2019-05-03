@@ -24,6 +24,7 @@ if [[ "$COMMAND" == "install" ]]; then
     exe conda info -a
     exe source activate test
     exe pip install pip
+    exe pip install "git+https://github.com/nengo/pytest-plt.git"
 elif [[ "$COMMAND" == "before_cache" ]]; then
     conda clean --all
 elif [[ -z "$COMMAND" ]]; then

@@ -112,7 +112,7 @@ class AvoidObstacles(Controller):
                     # is slightly faster than doing it manually with svd
                     Mxpsp = np.linalg.pinv(Mxpsp_inv, rcond=.01)
 
-                    u_psp += -np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
+                    u_psp += -1 * np.dot(Jpsp.T, np.dot(Mxpsp, Fpsp))
 
         return np.clip(u_psp * self.gain, -self.maximum, self.maximum)
 
