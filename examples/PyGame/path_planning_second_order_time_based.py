@@ -26,9 +26,7 @@ ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
             ctrlr_dof = [True, True, False, False, False, False])
 
 # create our path planner
-n_timesteps = 250
-path_planner = path_planners.SecondOrder(
-    n_timesteps=n_timesteps, w=1e4, zeta=2)
+path_planner = path_planners.SecondOrder(n_timesteps=250, w=1e4, zeta=2)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=0.001)
@@ -61,8 +59,7 @@ try:
                 np.dot(robot_config.J('EE', feedback['q']),
                         feedback['dq'])[:3]])
             path_planner.generate_path_function(
-                state=state, target=target_xyz, time_limit=time_limit,
-                target_vel=True)
+                state=state, target=target_xyz, time_limit=time_limit)
 
         # returns desired [position, velocity]
         target = path_planner.next_timestep(t=elapsed_time)

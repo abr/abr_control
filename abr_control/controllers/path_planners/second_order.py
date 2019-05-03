@@ -1,5 +1,6 @@
 import numpy as np
 
+import scipy.interpolate
 
 class SecondOrder:
     """ Implement a trajectory controller on top of a controller
@@ -128,36 +129,48 @@ class SecondOrder:
 
         return self.target
 
-    def generate_path_function(self, state, target, time_limit,
-                               target_vel=False):
+    def generate_path_function(self, state, target, time_limit):
+        """
+
+        """
+
         self.n_timesteps = 3000
         self.generate_path(state=state, target_pos=target)
         dist = np.sqrt(np.sum((target[:3] - self.trajectory[-1][:3])**2))
+
         print('Checking that path reaches target within %.2f seconds'
               % time_limit)
+
         while dist > 0.01:
             self.n_timesteps += 10
             self.generate_path(state=state, target_pos=target)
             dist = np.sqrt(np.sum((target[:3] - self.trajectory[-1][:3])**2))
-            print(self.n_timesteps)
-        import scipy.interpolate
+
         times = np.linspace(0, time_limit, self.n_timesteps)
         x = scipy.interpolate.interp1d(times, self.trajectory[:, 0])
         y = scipy.interpolate.interp1d(times, self.trajectory[:, 1])
         z = scipy.interpolate.interp1d(times, self.trajectory[:, 2])
-        if target_vel:
-            dx = scipy.interpolate.interp1d(
-                times, np.gradient(self.trajectory[:, 0]))
-            dy = scipy.interpolate.interp1d(
-                times, np.gradient(self.trajectory[:, 1]))
-            dz = scipy.interpolate.interp1d(
-                times, np.gradient(self.trajectory[:, 2]))
-            self.path_func = [x, y, z, dx, dy, dz]
-        else:
-            self.path_func = [x, y, z]
+
+        dx = scipy.interpolate.interp1d(
+            times, np.gradient(self.trajectory[:, 0]))
+        dy = scipy.interpolate.interp1d(
+            times, np.gradient(self.trajectory[:, 1]))
+        dz = scipy.interpolate.interp1d(
+            times, np.gradient(self.trajectory[:, 2]))
+
+        self.path_func = [x, y, z, dx, dy, dz]
+
 
     def next_timestep(self, t):
-        target = []
-        for dim in self.path_func:
-            target.append(dim(t))
+        """
+
+        Parameters
+        ----------
+        t: float
+            the time step inside the function to retrieve the value of
+        """
+        target = np.zeros(len(self.path_func))
+
+        for ii, interp_function in enumerate(self.path_func):
+            target[ii] = interp_function(t)
         return target

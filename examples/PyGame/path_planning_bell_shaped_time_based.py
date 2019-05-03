@@ -26,7 +26,6 @@ ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
             ctrlr_dof = [True, True, False, False, False, False])
 
 # create our path planner
-n_timesteps = 250
 path_planner = path_planners.BellShaped()
 
 # create our interface
@@ -50,21 +49,20 @@ try:
             elapsed_time = 0
             target_xyz = (
                 np.hstack((
-                           np.array([
-                                     np.random.random() * 2 - 1,
-                                     np.random.random() * 2 + 1,
-                                     0]),
-                           np.zeros(3))))
+                    np.array([
+                        np.random.random() * 2 - 1,
+                        np.random.random() * 2 + 1,
+                        0]),
+                    np.zeros(3))))
             # update the position of the target
             interface.set_target(target_xyz)
 
             state = np.hstack([
                 hand_xyz,
                 np.dot(robot_config.J('EE', feedback['q']),
-                        feedback['dq'])[:3]])
+                       feedback['dq'])[:3]])
             path_planner.generate_path_function(
-                state=state, target=target_xyz, time_limit=time_limit,
-                target_vel=True)
+                state=state, target=target_xyz, time_limit=time_limit)
 
         # returns desired [position, velocity]
         target = path_planner.next_timestep(t=elapsed_time)
