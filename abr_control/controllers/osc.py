@@ -167,7 +167,7 @@ class OSC(Controller):
         return u_task_orientation
 
 
-    def _velocity_limiting(self, u_task, target_vel, J, dq):
+    def _velocity_limiting(self, u_task):
         """ Scale the control signal such that the arm isn't driven to move
         faster in position or orientation than the specified vmax values
 
@@ -175,12 +175,6 @@ class OSC(Controller):
         ----------
         u_task: np.array
             the task space control signal
-        target_vel: np.array
-            the target task space velocities
-        J: np.array
-            the task space Jacobian
-        dq: np.array
-            the joint velocities of the arm
         """
         norm_xyz = np.linalg.norm(u_task[:3])
         norm_abg = np.linalg.norm(u_task[3:])
@@ -190,10 +184,7 @@ class OSC(Controller):
         if norm_abg > self.sat_gain_abg:
             scale[3:] *= self.scale_abg / norm_abg
 
-        dx = np.zeros(6)
-        dx[self.ctrlr_dof] = np.dot(J, dq)
-
-        return -self.kv * ((dx - target_vel) + scale * self.lamb * u_task)
+        return self.kv * scale * self.lamb * u_task
 
 
     def generate(self, q, dq, target, target_vel=None,
@@ -250,25 +241,27 @@ class OSC(Controller):
 
         u = np.zeros(self.robot_config.N_JOINTS)
         if self.vmax is not None:
-            # apply velocity limiting
-            u_task = self._velocity_limiting(
-                u_task=u_task, target_vel=target_vel, J=J, dq=dq)
+            # if max task space velocities specified, apply velocity limiting
+            u_task = self._velocity_limiting(u_task)
         else:
-            u_task *= -1 * self.task_space_gains
-            if np.all(target_vel == 0):
-                # if there's no target velocity in task space,
-                # compensate for velocity in joint space (more accurate)
-                u = -self.kv * np.dot(M, dq)
-            else:
-                dx = np.dot(J, dq)
-                dx[self.ctrlr_dof] = np.dot(J, dq)
-                u_task -= self.kv * (dx - target_vel[self.ctrlr_dof])
+            # otherwise apply specified gains
+            u_task *= self.task_space_gains
+
+        # compensate for velocity
+        if np.all(target_vel == 0):
+            # if there's no target velocity in task space,
+            # compensate for velocity in joint space (more accurate)
+            u = -self.kv * np.dot(M, dq)
+        else:
+            dx = np.dot(J, dq)
+            dx[self.ctrlr_dof] = np.dot(J, dq)
+            u_task += self.kv * (dx - target_vel[self.ctrlr_dof])
 
         # isolate task space forces corresponding to controlled DOF
         u_task = u_task[self.ctrlr_dof]
 
         # transform task space control signal into joint space ----------------
-        u += np.dot(J.T, np.dot(Mx, u_task))
+        u -= np.dot(J.T, np.dot(Mx, u_task))
 
         # add in estimation of full centrifugal and Coriolis effects ----------
         if self.use_C:

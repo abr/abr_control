@@ -39,3 +39,49 @@ def test_timing(arm, config_params, osc_params, use_cython, plt):
     plt.title('Average time: %.5f' % average_time)
     plt.xlabel('Loop number')
     plt.ylabel('Time (s)')
+
+
+@pytest.mark.parametrize('arm, ctrlr_dof', (
+    (ur5, [True, True, True, True, True, True]),
+    (jaco2, [True, True, True, True, True, False]),
+    ))
+def test_velocity_limiting(arm, ctrlr_dof):
+    # Derivation worked through at studywolf.wordpress.com/2016/11/07/ +
+    # velocity-limiting-in-operational-space-control/
+    robot_config = arm.Config()
+
+    kp = 10
+    ko = 8
+    kv = 4
+    vmax = 1
+    ctrlr = OSC(robot_config, kp=kp, ko=ko, kv=kv,
+                ctrlr_dof=ctrlr_dof, vmax=[vmax, vmax])
+
+    answer = np.zeros(6)
+    # xyz < vmax, abg < vmax
+    u_task_unscaled = np.array([0.05, 0.05, 0.05, 0.05, 0.05, 0.05])
+    answer[:3] = kp * u_task_unscaled[:3]
+    answer[3:] = ko * u_task_unscaled[3:]
+    output = ctrlr._velocity_limiting(u_task_unscaled)
+    assert np.allclose(output, answer, atol=1e-5)
+
+    # xyz > vmax, abg < vmax
+    u_task_unscaled = np.array([100.0, 100.0, 100.0, 0.05, 0.05, 0.05])
+    answer[:3] = kv * np.sqrt(vmax / 3.0)
+    answer[3:] = ko * u_task_unscaled[3:]
+    output = ctrlr._velocity_limiting(u_task_unscaled)
+    assert np.allclose(output, answer, atol=1e-5)
+
+    # xyz < vmax, abg > vmax
+    u_task_unscaled = np.array([0.05, 0.05, 0.05, 100.0, 100.0, 100.0])
+    answer[:3] = kp * u_task_unscaled[:3]
+    answer[3:] = kv * np.sqrt(vmax / 3.0)
+    output = ctrlr._velocity_limiting(u_task_unscaled)
+    assert np.allclose(output, answer, atol=1e-5)
+
+    # xyz > vmax, abg > vmax
+    u_task_unscaled = np.array([100.0, 100.0, 100.0, 100.0, 100.0, 100.0])
+    answer[:3] = kv * np.sqrt(vmax / 3.0)
+    answer[3:] = kv * np.sqrt(vmax / 3.0)
+    output = ctrlr._velocity_limiting(u_task_unscaled)
+    assert np.allclose(output, answer, atol=1e-5)
