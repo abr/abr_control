@@ -61,7 +61,12 @@ parameter to `True`::
     robot_config = ur5.Config(use_cython=True)
 
 Setting `use_cython=True` will also cause the generated functions to be cached,
-minimizing startup time on future runs.
+minimizing startup time on future runs. Below are results from running the
+operational space controller with different controllers using the Python and
+Cython config functions.
+
+.. image:: examples/timing.png
+
 
 2) The controllers make use of the robot configuration files to generate
 control signals that drive the robot to a target. The ABR_Control library
