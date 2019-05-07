@@ -85,3 +85,28 @@ def test_velocity_limiting(arm, ctrlr_dof):
     answer[3:] = kv * np.sqrt(vmax / 3.0)
     output = ctrlr._velocity_limiting(u_task_unscaled)
     assert np.allclose(output, answer, atol=1e-5)
+
+
+@pytest.mark.parametrize('arm, ctrlr_dof', (
+    (ur5, [True, True, True, True, True, True]),
+    (jaco2, [True, True, True, True, True, False]),
+    ))
+def test_Mx(arm, ctrlr_dof):
+    robot_config = arm.Config(use_cython=True)
+    ctrlr = OSC(robot_config, ctrlr_dof=ctrlr_dof)
+    np.set_printoptions(suppress=True)
+
+    for ii in range(10):
+        q = np.random.random(robot_config.N_JOINTS) * 2 * np.pi
+
+        # test Mx is non-singular case
+        J = np.eye(robot_config.N_JOINTS)
+        M = robot_config.M(q=q)
+        Mx, M_inv = ctrlr._Mx(M=M, J=J, threshold=1e-5)
+        assert np.allclose(M, Mx, atol=1e-5)
+
+        # test Mx in the singular case
+        J = np.ones((6, robot_config.N_JOINTS))
+        Mx, M_inv = ctrlr._Mx(M=M, J=J)
+        U2, S2, Vh2 = np.linalg.svd(Mx)
+        assert np.all(np.abs(S2[1:]) < 1e-10)
