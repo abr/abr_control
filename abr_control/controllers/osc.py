@@ -36,6 +36,9 @@ class OSC(Controller):
     use_C: boolean, optional (Default: False)
         calculate and compensate for the Coriolis and
         centripetal effects of the arm
+    orientation_algorithm: int, optional (Default: 0)
+        specify which orientation algorithm to use to calculate the task-space
+        orientation forces to apply
 
     Attributes
     ----------
@@ -236,8 +239,8 @@ class OSC(Controller):
 
         # task space integrated error term
         if self.ki != 0:
-            self.integrated_error -= u_task
-            u_task -= self.ki * self.integrated_error
+            self.integrated_error += u_task
+            u_task += self.ki * self.integrated_error
 
         u = np.zeros(self.robot_config.N_JOINTS)
         if self.vmax is not None:
