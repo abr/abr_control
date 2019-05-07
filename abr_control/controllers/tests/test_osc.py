@@ -4,8 +4,9 @@ import timeit
 import matplotlib.pyplot as plt
 import numpy as np
 
-from abr_control.arms import twojoint, ur5, jaco2
+from abr_control.arms import twojoint, threejoint, ur5, jaco2
 from abr_control.controllers import OSC
+from abr_control.utils import transformations
 
 
 @pytest.mark.parametrize('arm, ctrlr_dof', (
@@ -62,7 +63,7 @@ def test_Mx(arm, ctrlr_dof):
     robot_config = arm.Config(use_cython=True)
     ctrlr = OSC(robot_config, ctrlr_dof=ctrlr_dof)
 
-    for ii in range(10):
+    for ii in range(100):
         q = np.random.random(robot_config.N_JOINTS) * 2 * np.pi
 
         # test Mx is non-singular case
@@ -76,3 +77,52 @@ def test_Mx(arm, ctrlr_dof):
         Mx, M_inv = ctrlr._Mx(M=M, J=J)
         U2, S2, Vh2 = np.linalg.svd(Mx)
         assert np.all(np.abs(S2[1:]) < 1e-10)
+
+
+def calc_distance(Qe, Qd):
+    dr = (Qe[0] * Qd[1:] - Qd[0] * Qe[1:] - np.cross(Qd[1:], Qe[1:]))
+    return np.linalg.norm(dr, 2)
+
+@pytest.mark.parametrize('arm, orientation_algorithm', (
+    (threejoint, 0),
+    (threejoint, 1),
+    (ur5, 0),
+    (ur5, 1),
+    (jaco2, 0),
+    (jaco2, 1),
+    ))
+def test_calc_orientation_forces(arm, orientation_algorithm):
+    robot_config = arm.Config(use_cython=False)
+    ctrlr = OSC(robot_config, orientation_algorithm=orientation_algorithm)
+
+    for ii in range(100):
+        q = np.random.random(robot_config.N_JOINTS) * 2 * np.pi
+
+        # create a target orientation
+        target_abg = np.random.random(3) * np.pi - np.pi / 2.0
+
+        # calculate current position quaternion
+        R = robot_config.R('EE', q=q)
+        quat_1 = transformations.unit_vector(
+            transformations.quaternion_from_matrix(R))
+
+        # calculate current position quaternion with u_task added
+        u_task = ctrlr._calc_orientation_forces(target_abg, q=q)
+
+        dq = np.dot(
+            np.linalg.pinv(robot_config.J('EE', q)),
+            np.hstack([np.zeros(3), u_task]))
+        q_2 = q - dq * 0.001  # where 0.001 represents the time step
+        R_2 = robot_config.R('EE', q=q_2)
+        quat_2 = transformations.unit_vector(
+            transformations.quaternion_from_matrix(R_2))
+
+        # calculate the quaternion of the target
+        quat_target = transformations.unit_vector(
+            transformations.quaternion_from_euler(
+                target_abg[0], target_abg[1], target_abg[2], axes='rxyz'))
+
+        dist1 = calc_distance(quat_1, np.copy(quat_target))
+        dist2 = calc_distance(quat_2, np.copy(quat_target))
+
+        assert np.abs(dist2) < np.abs(dist1)
