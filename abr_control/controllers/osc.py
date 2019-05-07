@@ -138,15 +138,13 @@ class OSC(Controller):
             # transform the orientation target into a quaternion
             q_d = transformations.unit_vector(
                 transformations.quaternion_from_euler(
-                    target_abg[0], target_abg[1], target_abg[2],
-                    axes='rxyz'))
+                    target_abg[0], target_abg[1], target_abg[2], axes='rxyz'))
             # get the quaternion for the end effector
             q_e = transformations.unit_vector(
                 transformations.quaternion_from_matrix(
                     self.robot_config.R('EE', q)))
             q_r = transformations.quaternion_multiply(
                 q_d, transformations.quaternion_conjugate(q_e))
-            # divide by kp to compensate for upcoming multiply by kp
             u_task_orientation = -q_r[1:] * np.sign(q_r[0])
 
         elif self.orientation_algorithm == 1:
@@ -160,7 +158,6 @@ class OSC(Controller):
             R_ed = np.dot(R_e.T, R_d)  # eq 24
             q_ed = transformations.unit_vector(
                 transformations.quaternion_from_matrix(R_ed))
-            # divide by kp to compensate for upcoming multiply by kp
             u_task_orientation = -1 * np.dot(R_e, q_ed[1:])  # eq 34
 
         else:
