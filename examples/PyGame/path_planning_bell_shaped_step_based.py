@@ -5,6 +5,7 @@ a trajectory for the controller to follow, moving the end-effector
 smoothly to the target, which changes every n time steps.
 """
 import numpy as np
+import timeit
 
 from abr_control.arms import threejoint as arm
 # from abr_control.arms import twojoint as arm
@@ -25,61 +26,52 @@ ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
             ctrlr_dof = [True, True, False, False, False, False])
 
 # create our path planner
-n_timesteps = 250
-path_planner = path_planners.SecondOrder(
-    n_timesteps=n_timesteps, w=1e4, zeta=2)
-dt = 0.001
+path_planner = path_planners.BellShaped(error_scale=50)
 
 # create our interface
-interface = PyGame(robot_config, arm_sim, dt=dt)
+interface = PyGame(robot_config, arm_sim, dt=0.001)
 interface.connect()
 
-pregenerate_path = False
-print('\nPregenerating path to follow: ', pregenerate_path, '\n')
 try:
     print('\nSimulation starting...')
     print('Click to move the target.\n')
 
-    count = 0
+    step_limit = 1000
+    count = 1000
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
-        if count % n_timesteps == 0:
-            target_xyz = np.array([
-                np.random.random() * 2 - 1,
-                np.random.random() * 2 + 1,
-                0])
+        if count >= step_limit:
+            count = 0
+            target_xyz = (
+                    np.array([
+                        np.random.random() * 2 - 1,
+                        np.random.random() * 2 + 1,
+                        0]))
             # update the position of the target
             interface.set_target(target_xyz)
 
-            pos = hand_xyz
-            vel = np.dot(robot_config.J('EE', feedback['q']),
-                         feedback['dq'])[:3]
-            if pregenerate_path:
-                path_planner.generate_path(
-                    pos=hand_xyz, vel=vel, target_pos=target_xyz, plot=True)
+            path_planner.reset(target_pos=target_xyz, pos=hand_xyz)
+            error = 0
 
         # returns desired [position, velocity]
-        if pregenerate_path:
-            pos, vel = path_planner.next_target()
-        else:
-            pos, vel = path_planner.step(
-                    pos=pos, vel=vel, target_pos=target_xyz, dt=dt)
+        target, target_vel = path_planner.step(error=error)
 
         # generate an operational space control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=np.hstack((pos, np.zeros(3))),
-            target_vel=np.hstack((vel, np.zeros(3))),
+            target=np.hstack((target, np.zeros(3))),
+            target_vel=np.hstack((target_vel, np.zeros(3))),
             )
 
         # apply the control signal, step the sim forward
         interface.send_forces(
             u, update_display=True if count % 20 == 0 else False)
 
+        error = np.sqrt(np.sum((hand_xyz - target)**2))
         count += 1
 
 finally:

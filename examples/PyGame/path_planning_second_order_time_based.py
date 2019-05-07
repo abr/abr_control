@@ -2,7 +2,7 @@
 Running the operational space control with a second order path planner
 using the PyGame display. The path planning system will generate
 a trajectory for the controller to follow, moving the end-effector
-smoothly to the target, which changes every n time steps.
+smoothly to the target within the given time limit
 """
 import numpy as np
 import timeit
@@ -26,7 +26,7 @@ ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
             ctrlr_dof = [True, True, False, False, False, False])
 
 # create our path planner
-path_planner = path_planners.SecondOrder(n_timesteps=250, w=1e4, zeta=2)
+path_planner = path_planners.SecondOrder(n_timesteps=3000, w=1e4, zeta=2)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=0.001)
@@ -54,22 +54,21 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
-            state = np.hstack([
-                hand_xyz,
-                np.dot(robot_config.J('EE', feedback['q']),
-                        feedback['dq'])[:3]])
+            vel = np.dot(robot_config.J('EE', feedback['q']),
+                        feedback['dq'])[:3]
             path_planner.generate_path_function(
-                state=state, target=target_xyz, time_limit=time_limit)
+                pos=hand_xyz, vel=vel, target_pos=target_xyz,
+                time_limit=time_limit)
 
         # returns desired [position, velocity]
-        target = path_planner.next_timestep(t=elapsed_time)
+        pos, vel = path_planner.next_timestep(t=elapsed_time)
 
         # generate an operational space control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=np.hstack([target[:3], np.zeros(3)]),
-            target_vel=np.hstack([target[3:], np.zeros(3)]),
+            target=np.hstack((pos, np.zeros(3))),
+            target_vel=np.hstack((vel, np.zeros(3))),
             )
 
         # apply the control signal, step the sim forward

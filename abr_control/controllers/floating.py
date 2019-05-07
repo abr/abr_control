@@ -57,7 +57,7 @@ class Floating(Controller):
 
             # calculate the effect of gravity in joint space
             Jbar = np.dot(M_inv, np.dot(J.T, Mx))
-            u_task = -np.dot(Jbar.T, g)
+            u_task = -1 * np.dot(Jbar.T, g)
             u = np.dot(J.T, u_task)
         else:
             # generate the control signal in joint space
