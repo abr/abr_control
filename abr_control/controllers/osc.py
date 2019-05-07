@@ -253,9 +253,9 @@ class OSC(Controller):
             # compensate for velocity in joint space (more accurate)
             u = -self.kv * np.dot(M, dq)
         else:
-            dx = np.dot(J, dq)
+            dx = np.zeros(6)
             dx[self.ctrlr_dof] = np.dot(J, dq)
-            u_task += self.kv * (dx - target_vel[self.ctrlr_dof])
+            u_task += self.kv * (dx - target_vel)
 
         # isolate task space forces corresponding to controlled DOF
         u_task = u_task[self.ctrlr_dof]
