@@ -13,7 +13,7 @@ class InverseKinematics:
 
 
     def generate_path(self, position, target_pos, n_timesteps=200,
-                      dt=0.001, plot=False, method=3):
+                      dt=0.001, plot=False, method=3, axes='rxyz'):
         """
 
         Parameters
@@ -21,18 +21,21 @@ class InverseKinematics:
         position: numpy.array
             the current position of the system
         target_pos: numpy.array
-            the target position and orientation
+            the task space target position and orientation
         n_timesteps: int, optional (Default: 200)
             the number of time steps to reach the target_pos
         dt: float, optional (Default: 0.001)
             the time step for calculating desired velocities [seconds]
         plot: boolean, optional (Default: False)
             plot the path after generating if True
-        method: int
+        method: int, optional (Default: 3)
             Different ways to compute inverse resolved motion
             1. Standard resolved motion
             2. Dampened least squares method
             3. Nullspace with priority for position, orientation in null space
+        axes: string, optional (Default: 'rxyz')
+            the format of the Euler angles passed in target[3:6]
+            First letter r or s represents 'relative' or 'static'
         """
 
         self.trajectory = np.zeros((n_timesteps, position.shape[0]*2))
