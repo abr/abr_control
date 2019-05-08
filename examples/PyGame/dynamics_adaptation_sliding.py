@@ -28,7 +28,9 @@ ctrlr = Sliding(robot_config, kd=20)
 adapt = signals.DynamicsAdaptation(
     n_input=robot_config.N_JOINTS,
     n_output=robot_config.N_JOINTS,
-    pes_learning_rate=1e-2,
+    pes_learning_rate=5e-4,
+    MEANS=[3.14, 3.14, 3.14],
+    VARIANCES=[1.57, 1.57, 1.57]
     )
 
 
@@ -79,7 +81,7 @@ try:
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
             sig = adapt.generate(
-                input_signal=robot_config.scaledown('q', feedback['q']),
+                input_signal= feedback['q'],
                 training_signal=-ctrlr.s)
             u += sig
 
