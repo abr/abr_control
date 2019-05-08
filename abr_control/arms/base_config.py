@@ -42,12 +42,6 @@ class BaseConfig():
         if True, a more efficient function is generated
         useful when execution time is more important than
         generation time
-    MEANS : list of floats, Optional (Default: None)
-        expected mean of joint angles and velocities in [rad] and [rad/sec]
-        respectively. Expected value for each joint. Only used for adaptation
-    SCALES : list of floats, Optional (Default: None)
-        expected variance of joint angles and velocities. Expected value for
-        each joint. Only used for adaptation
 
     Attributes
     ----------
@@ -83,16 +77,12 @@ class BaseConfig():
     """
 
     def __init__(self, N_JOINTS, N_LINKS, ROBOT_NAME="robot",
-                 use_cython=False, MEANS=None, SCALES=None):
+                 use_cython=False):
 
         self.N_JOINTS = N_JOINTS
         self.N_LINKS = N_LINKS
         self.ROBOT_NAME = ROBOT_NAME
         self.use_cython = use_cython
-        # dictionaries set by the sub-config, used for scaling input into
-        # neural systems. Calculate by recording data from movement of interest
-        self.MEANS = MEANS  # expected mean of joints angles / velocities
-        self.SCALES = SCALES  # expected variance of joint angles / velocities
 
         # create function placeholders and dictionaries
         self._C = None
