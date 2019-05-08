@@ -35,18 +35,6 @@ class Config(BaseConfig):
         super(Config, self).__init__(
             N_JOINTS=6, N_LINKS=7, ROBOT_NAME='ur5', **kwargs)
 
-        if self.MEANS is None:
-            self.MEANS = {  # expected mean of joints angles / velocities
-                'q':  np.array([3.06, .968, -.946, .2, 1.1, -.434]),
-                'dq':  np.array([1.21, .177, .54, -.64, -0.112, -1.898])
-                }
-
-        if self.SCALES is None:
-            self.SCALES = {  # expected variance of joint angles / velocities
-                'q':  np.array([2.0, 0.30, 0.9, 1.0, 0.97, 3.0]),
-                'dq': np.array([12.47, 2.5, 1.986, 3.374, 10.557, 6.223])
-                }
-
         self._T = {}  # dictionary for storing calculated transforms
 
         self.JOINT_NAMES = ['UR5_joint%i' % ii
