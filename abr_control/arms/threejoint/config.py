@@ -35,18 +35,6 @@ class Config(BaseConfig):
         super(Config, self).__init__(
             N_JOINTS=3, N_LINKS=4, ROBOT_NAME='threejoint', **kwargs)
 
-        if self.MEANS is None:
-            self.MEANS = {  # expected mean of joints angles / velocities
-                'q':  np.array([.88, 1.95, .19]),
-                'dq':  np.array([.645, 2.76, -1.422])
-                }
-
-        if self.SCALES is None:
-            self.SCALES = {  # expected variance of joint angles / velocities
-                'q':  np.array([.52, 1.3, .71]),
-                'dq': np.array([6.7, 12.37, 6.18])
-                }
-
         self._T = {}  # dictionary for storing calculated transforms
 
         # for the null space controller, keep arm near these angles
