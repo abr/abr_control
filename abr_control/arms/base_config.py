@@ -329,38 +329,6 @@ class BaseConfig():
         return np.array(self._C(*parameters), dtype='float32')
 
 
-    def scaledown(self, name, x):
-        """ Scales down the input to the -1 to 1 range, based on the
-        mean and max, min values recorded from some stereotyped movements.
-        Used for projecting into neural systems.
-
-        Parameters
-        ----------
-        name : string
-            name of MEANS and SCALES element to access
-        x : numpy.array
-            signal to scale down
-        """
-        if self.MEANS is None or self.SCALES is None:
-            raise Exception('Mean and/or scaling not defined')
-        return (x - self.MEANS[name]) / self.SCALES[name]
-
-
-    def scaleup(self, name, x):
-        """ Undoes the scaledown transformation.
-
-        Parameters
-        ----------
-        name : string
-            name of MEANS and SCALES element to access
-        x : numpy.array
-            signal to scale up
-        """
-        if self.MEANS is None or self.SCALES is None:
-            raise Exception('Mean and/or scaling not defined')
-        return x * self.SCALES[name] + self.MEANS[name]
-
-
     def T(self, name, q):
         """ Loads or calculates the transformation Matrix for a joint or link
 

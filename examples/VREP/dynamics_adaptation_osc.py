@@ -27,9 +27,11 @@ adapt = signals.DynamicsAdaptation(
     n_ensembles=5,
     n_input=2,  # we apply adaptation on the most heavily stressed joints
     n_output=2,
-    pes_learning_rate=1e-2,
+    pes_learning_rate=5e-5,
     intercepts_bounds=[-0.6, -0.2],
-    intercepts_mode=-0.2)
+    intercepts_mode=-0.2,
+    MEANS=[3.14, 3.14],
+    VARIANCES=[1.57, 1.57])
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)
@@ -69,9 +71,8 @@ try:
             target=target,
             )
 
-        scaled = robot_config.scaledown('q', feedback['q'])
         u_adapt = adapt.generate(
-            input_signal=np.array([scaled[1], scaled[2]]),
+            input_signal=np.array(feedback['q'][1], feedback['q'][2]),
             training_signal=np.array(
                 [ctrlr.training_signal[1], ctrlr.training_signal[2]]))
         u_adapt = np.array([0, u_adapt[0], u_adapt[1], 0, 0, 0])

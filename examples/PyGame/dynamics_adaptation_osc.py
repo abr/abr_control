@@ -33,6 +33,8 @@ adapt = signals.DynamicsAdaptation(
     n_input=robot_config.N_JOINTS,
     n_output=robot_config.N_JOINTS,
     pes_learning_rate=1e-4,
+    MEANS=[3.14, 3.14, 3.14],
+    VARIANCES=[1.57, 1.57, 1.57]
     )
 
 
@@ -86,7 +88,7 @@ try:
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
             u += adapt.generate(
-                input_signal=robot_config.scaledown('q', feedback['q']),
+                input_signal=feedback['q'],
                 training_signal=ctrlr.training_signal)
 
         fake_gravity = np.array([[0, -9.81, 0, 0, 0, 0]]).T * 10.0
