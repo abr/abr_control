@@ -37,18 +37,6 @@ def test_load_from_file():
     assert function is not None
 
 
-def test_scaling():
-    robot_config = arm.Config()
-
-    unscaled = np.random.random(robot_config.N_JOINTS)
-    scaled = robot_config.scaledown('q', x=unscaled)
-    assert np.all(abs(unscaled - robot_config.scaleup('q', scaled)) < 1e-5)
-
-    unscaled = np.random.random(robot_config.N_JOINTS)
-    scaled = robot_config.scaledown('dq', x=unscaled)
-    assert np.all(abs(unscaled - robot_config.scaleup('dq', scaled)) < 1e-5)
-
-
 def test_R():
     test_arm = TwoJoint()
     robot_config = arm.Config()

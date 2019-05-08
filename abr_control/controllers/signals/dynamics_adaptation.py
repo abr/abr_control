@@ -1,6 +1,7 @@
 import numpy as np
 
 import nengo
+from nengolib.stats import spherical_transform
 
 import scipy.special
 
@@ -36,19 +37,38 @@ class DynamicsAdaptation():
     encoders: np.array, optional (Default: None)
         an (n_encoders, n_neurons, n_input) array of preferred directions
         for all of the neurons in the adaptive ensembles
+    spherical: boolean, Optional (Default: False)
+        True to convert inputs to the surface of the hypersphere
+        False to scale from 0 to 1
+    MEANS: dict of floats
+        MEANS['q'] == the mean expected values of the joint positions [rad]
+        MEANS['dq'] == the mean expected values of the joint velocities [rad/s]
+    VARIANCES: dict of floats
+        VARIANCES['q'] == the abs(max) variance from the MEANS['q'] [rad]
+        VARIANCES['dq'] == the abs(max) variance from the MEANS['dq'] [rad/s]
+
+        ***NOTE*** The VARIANCES do not have to encompass the actual abs(max)
+        joint positions or velocities. Outliers can be left outside the scaling
+        range to get a better scaling of the majority of your expected inputs.
+        The outliers will still be scaled, but they will be outside the 0-1
+        range for non-spherical, or 0-1 range for spherical
     """
 
     def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
                  seed=None, pes_learning_rate=1e-6, intercepts=None,
                  intercepts_bounds=None, intercepts_mode=None,
-                 weights=None, encoders=None, **kwargs):
+                 weights=None, encoders=None, spherical=False, MEANS=None,
+                 VARIANCES=None, **kwargs):
 
+        self.n_neurons = n_neurons
+        self.n_ensembles = n_ensembles
+        self.spherical = spherical
+        self.MEANS = MEANS
+        self.VARIANCES = VARIANCES
         # synapse time constants
         self.tau_input = 0.012  # on input connection
         self.tau_training = 0.012  # on the training signal
         self.tau_output = 0.2  # on the output from the adaptive ensemble
-        self.n_neurons = n_neurons
-        self.n_ensembles = n_ensembles
         #NOTE: the time constant on the neural activity used in the learning
         # connection is the default 0.005, and can be set by specifying the
         # pre_synapse parameter inside the PES rule instantiation
@@ -161,6 +181,9 @@ class DynamicsAdaptation():
             the learning signal to drive adaptation
         """
 
+        if self.MEANS is not None and self.VARIANCES is not None:
+            input_signal = self.scale_inputs(input_signal)
+
         # store local copies to feed in to the adaptive population
         self.input_signal = input_signal
         self.training_signal = training_signal
@@ -183,6 +206,31 @@ class DynamicsAdaptation():
 
         return [self.sim.signals[self.sim.model.sig[conn]['weights']]
                 for conn in self.conn_learn]
+
+
+    def scale_inputs(self, input_signal):
+        '''
+        Currently set to accept joint position and velocities as time
+        x dimension arrays, and returns them scaled based on the MEANS and
+        VARIANCES set on instantiation
+
+        PARAMETERS
+        ----------
+        input_signal : numpy.array
+            the current desired input signal, typical joint positions and
+            velocities in [rad] and [rad/sec] respectively
+
+        The reason we do a shift by the MEANS is to try and center the majority
+        of our expected input values in our scaling range, so when we stretch
+        them by VARIANCES they encompass more of our input range.
+        '''
+        scaled_input = (input_signal - self.MEANS) / self.VARIANCES
+
+        if self.spherical:
+            scaled_input = spherical_transform(
+                scaled_input.reshape(1, len(scaled_input)))
+
+        return scaled_input
 
 
 class AreaIntercepts(nengo.dists.Distribution):
@@ -240,66 +288,3 @@ class Triangular(nengo.dists.Distribution):
         else:
             return rng.triangular(
                 self.left, self.mode, self.right, size=(n, d))
-
-
-def generate_scaled_inputs(q, dq, in_index=None, MEANS=None, SCALES=None):
-    '''
-    Currently set to accept joint position and velocities as time
-    x dimension arrays, and returns them scaled from 0 to 1
-
-    PARAMETERS
-    ----------
-    q: array of shape time_steps x dimension
-        the joint positions to scale
-    dq: array of shape time_steps x dimension
-        the joint velocities to scale
-    in_index: list of integers
-        a list corresponding what joints to return scaled inputs for.
-        The function is currently set up to accept the raw feedback from an
-        arm (all joint position and velocities) and only returns the values
-        specified by the indices in in_index
-
-        EX: in_index = [0, 1, 3, 6]
-        will return the scaled joint position and velocities for joints 0,
-        1, 3 and 6
-    MEANS: dict of floats
-        MEANS['q'] == the mean expected values of the joint positions [rad]
-        MEANS['dq'] == the mean expected values of the joint velocities [rad/s]
-    SCALES: dict of floats
-        SCALES['q'] == 2* the max expected values of the joint positions [rad]
-        SCALES['dq'] == 2 *the max expected values of the joint velocities
-        [rad/s]
-        *NOTE scales max values should be multiplied by 2 because we want a
-        range from 0 to 1, so we have to shift the negative velocities up.
-        Assuming a symmetrical velocity profile (positive max == negative max)
-        the shift to the positive scale effectively doubles this value
-    '''
-    qs = q.T
-    dqs = dq.T
-    n_joints = len(q)
-
-    if in_index is None:
-        in_index = np.range(n_joints)
-
-    # expected mean of joint angles / velocities
-    if MEANS is None:
-        MEANS ={}
-        MEANS['q'] = np.zeros(n_joints)
-        MEANS['dq'] = np.ones(n_joints) * 1.25
-
-    # expected variance of joint angles / velocities
-    if SCALES is None:
-        SCALES = {}
-        SCALES['q'] = np.ones(n_joints) * 6.28
-        SCALES['dq'] = np.ones(n_joints) * 2.5
-
-    for pp in range(0, n_joints):
-        qs[pp] = (qs[pp] - MEANS['q'][pp]) / SCALES['q'][pp]
-        dqs[pp] = (dqs[pp] + MEANS['dq'][pp]) / SCALES['dq'][pp]
-    qs = np.clip(qs, 0, 1)
-    dqs = np.clip(dqs, 0, 1)
-
-    scaled_q = np.array([qs[ii] for ii in in_index]).T
-    scaled_dq = np.array([dqs[ii] for ii in in_index]).T
-
-    return [scaled_q, scaled_dq]
