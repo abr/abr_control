@@ -12,30 +12,30 @@ class InverseKinematics:
         self.max_dq = max_dq
 
 
-    def generate_path(self, state, target, n_timesteps=200,
+    def generate_path(self, position, target_pos, n_timesteps=200,
                       dt=0.001, plot=False, method=3):
         """
 
         Parameters
         ----------
-        state : numpy.array
+        position: numpy.array
             the current position of the system
-        target : numpy.array
+        target_pos: numpy.array
             the target position and orientation
-        n_timesteps : int, optional (Default: 200)
-            the number of time steps to reach the target
-        dt : float, optional (Default: 0.001)
+        n_timesteps: int, optional (Default: 200)
+            the number of time steps to reach the target_pos
+        dt: float, optional (Default: 0.001)
             the time step for calculating desired velocities [seconds]
-        plot : boolean, optional (Default: False)
+        plot: boolean, optional (Default: False)
             plot the path after generating if True
-        method : int
+        method: int
             Different ways to compute inverse resolved motion
             1. Standard resolved motion
             2. Dampened least squares method
             3. Nullspace with priority for position, orientation in null space
         """
 
-        self.trajectory = np.zeros((n_timesteps, state.shape[0]*2))
+        self.trajectory = np.zeros((n_timesteps, position.shape[0]*2))
         ee_track = []
         ee_err = []
         ea_err = []
@@ -49,15 +49,15 @@ class InverseKinematics:
 
         Qd = np.array(transformations.unit_vector(
             transformations.quaternion_from_euler(
-                target[3], target[4], target[5], axes='rzyx')))
+                target_pos[3], target_pos[4], target_pos[5], axes='sxyz')))
 
-        q = np.copy(state)
+        q = np.copy(position)
         for ii in range(n_timesteps):
             J = self.robot_config.J('EE', q=q)
             T = self.robot_config.T('EE', q=q)
             ee_track.append(T[:3, 3])
 
-            dx = target[:3] - T[:3, 3]
+            dx = target_pos[:3] - T[:3, 3]
 
             Re = T[:3, :3]
             Qe = transformations.unit_vector(
@@ -110,7 +110,7 @@ class InverseKinematics:
             plt.subplot(2, 1, 1)
             plt.plot(ee_track)
             plt.gca().set_prop_cycle(None)
-            plt.plot(np.ones((n_timesteps, 3)) * target[:3], '--')
+            plt.plot(np.ones((n_timesteps, 3)) * target_pos[:3], '--')
             plt.legend(['%i' % ii for ii in range(3)] +
                        ['%i_target' % ii for ii in range(3)])
             plt.title('Trajectory positions')

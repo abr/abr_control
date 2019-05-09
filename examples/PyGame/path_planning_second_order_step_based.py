@@ -51,29 +51,33 @@ try:
                 np.random.random() * 2 - 1,
                 np.random.random() * 2 + 1,
                 0])
+            target_vel = np.dot(robot_config.J('EE', feedback['q']),
+                            feedback['dq'])[:3]
             # update the position of the target
             interface.set_target(target_xyz)
 
-            pos = hand_xyz
-            vel = np.dot(robot_config.J('EE', feedback['q']),
-                         feedback['dq'])[:3]
+            position = hand_xyz
+            velocity = np.dot(
+                robot_config.J('EE', feedback['q']), feedback['dq'])[:3]
             if pregenerate_path:
                 path_planner.generate_path(
-                    pos=hand_xyz, vel=vel, target_pos=target_xyz, plot=True)
+                    position=hand_xyz, velocity=velocity,
+                    target_pos=target_xyz, plot=True)
 
         # returns desired [position, velocity]
         if pregenerate_path:
-            pos, vel = path_planner.next_target()
+            position, velocity = path_planner.next_target()
         else:
-            pos, vel = path_planner.step(
-                    pos=pos, vel=vel, target_pos=target_xyz, dt=dt)
+            position, velocity = path_planner.step(
+                position=position, velocity=velocity,
+                target_pos=target_xyz, dt=dt)
 
         # generate an operational space control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=np.hstack((pos, np.zeros(3))),
-            target_vel=np.hstack((vel, np.zeros(3))),
+            target=np.hstack((position, np.zeros(3))),
+            target_vel=np.hstack((velocity, np.zeros(3))),
             )
 
         # apply the control signal, step the sim forward

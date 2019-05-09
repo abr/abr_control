@@ -53,7 +53,7 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
-            path_planner.reset(target_pos=target_xyz, pos=hand_xyz)
+            path_planner.reset(target_pos=target_xyz, position=hand_xyz)
             error = 0
 
         # returns desired [position, velocity]
