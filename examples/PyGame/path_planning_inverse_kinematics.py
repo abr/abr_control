@@ -61,8 +61,8 @@ try:
             # can use 3 different methods to calculate inverse kinematics
             # see inverse_kinematics.py file for details
             path_planner.generate_path(
-                state=feedback['q'],
-                target=np.hstack([target_xyz, target_orientation]),
+                position=feedback['q'],
+                target_pos=np.hstack([target_xyz, target_orientation]),
                 method=1,
                 dt=0.005,
                 n_timesteps=n_timesteps,

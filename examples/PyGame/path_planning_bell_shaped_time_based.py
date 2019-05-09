@@ -56,7 +56,7 @@ try:
             interface.set_target(target_xyz)
 
             path_planner.generate_path_function(
-                pos=hand_xyz, target_pos=target_xyz, time_limit=time_limit)
+                position=hand_xyz, target_pos=target_xyz, time_limit=time_limit)
 
         # returns desired [position, velocity]
         target, target_vel = path_planner.next_timestep(t=elapsed_time)
