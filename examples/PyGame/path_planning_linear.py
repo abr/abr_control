@@ -52,8 +52,8 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
             path_planner.generate_path(
-                state=hand_xyz,
-                target=target_xyz,
+                pos=hand_xyz,
+                target_pos=target_xyz,
                 # n_timesteps=n_timesteps,
                 dx=0.01,
                 plot=False)

@@ -4,15 +4,15 @@ class Linear():
     """ Creates a linear trajectory from current to target state
     """
 
-    def generate_path(self, state, target, n_timesteps=None,
+    def generate_path(self, pos, target_pos, n_timesteps=None,
                       dx=None, dt=0.001, plot=False):
         """ Generates a linear trajectory to the target
 
         Parameters
         ----------
-        state: numpy.array
+        pos : numpy.array
             the current position of the system
-        target: numpy.array
+        target_pos : numpy.array
             the target position
         n_timesteps: int, optional (Default: 200)
             the number of time steps to reach the target
@@ -27,16 +27,16 @@ class Linear():
         """
         assert n_timesteps is None or dx is None
 
-        n_states = len(state)
+        n_states = len(pos)
 
         if n_timesteps is not None:
             self.trajectory = np.zeros((n_timesteps, n_states*2))
             for ii in range(n_states):
                 # calculate target states
                 self.trajectory[:, ii] = np.linspace(
-                    state[ii], target[ii], n_timesteps)
+                    pos[ii], target_pos[ii], n_timesteps)
         else:
-            distance = (target - state)
+            distance = (target_pos - pos)
             norm_distance = np.linalg.norm(distance)
             step = distance / norm_distance * dx
             n_timesteps = int(np.ceil(norm_distance / dx))
@@ -46,7 +46,7 @@ class Linear():
                 # calculate target states
                 if abs(step[ii]) > 1e-5:
                     self.trajectory[:, ii] = np.arange(
-                        state[ii], target[ii], step[ii])
+                        pos[ii], target_pos[ii], step[ii])
                     # calculate target velocities
                     self.trajectory[:-1, ii+n_states] = (
                         np.diff(self.trajectory[:, ii]) / dt)
@@ -66,7 +66,7 @@ class Linear():
             plt.gca().set_prop_cycle(None)
             plt.plot(np.ones((n_timesteps, n_states)) *
                      np.arange(n_timesteps)[:, None],
-                     np.ones((n_timesteps, n_states)) * target, '--')
+                     np.ones((n_timesteps, n_states)) * target_pos, '--')
             plt.legend(['%i' % ii for ii in range(n_states)] +
                        ['%i_target' % ii for ii in range(n_states)])
             plt.title('Trajectory positions')
