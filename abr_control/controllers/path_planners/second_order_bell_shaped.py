@@ -61,7 +61,7 @@ class BellShaped():
         plt.show()
 
 
-    def generate_path_function(self, target_pos, pos, time_limit,
+    def generate_path_function(self, target_pos, position, time_limit,
                                timesteps=None):
         """
         Generates a path function from state to target_pos and interpolates it
@@ -72,7 +72,7 @@ class BellShaped():
         ----------
         target_pos: list of 3 floats
             the target end-effector position in cartesian coordinates [meters]
-        pos : numpy.array
+        position: numpy.array
             the current position of the system
         time_limit: float
             the desired time to go from state to target_pos [seconds]
@@ -81,21 +81,21 @@ class BellShaped():
             information. Increasing the length will extend the tail of the path
             that is planned.
         """
-        self.reset(target_pos=target_pos, pos=pos)
+        self.reset(target_pos=target_pos, position=position)
 
-        trajectory, vel, _ = self.dmps.rollout(timesteps=timesteps)
-        trajectory = np.array([traj + self.pos for traj in trajectory])
+        trajectory, velocity, _ = self.dmps.rollout(timesteps=timesteps)
+        trajectory = np.array([traj + self.position for traj in trajectory])
 
         times = np.linspace(0, time_limit, len(trajectory))
-        pos_path = []
-        vel_path = []
+        position_path = []
+        velocity_path = []
         for dim in range(3):
-            pos_path.append(scipy.interpolate.interp1d(
+            position_path.append(scipy.interpolate.interp1d(
                 times, trajectory[:, dim]))
-            vel_path.append(scipy.interpolate.interp1d(\
-                times, vel[:, dim]))
+            velocity_path.append(scipy.interpolate.interp1d(\
+                times, velocity[:, dim]))
 
-        self.path_func = np.hstack((pos_path, vel_path))
+        self.path_func = np.hstack((position_path, velocity_path))
 
     def next_timestep(self, t):
         """
@@ -120,7 +120,7 @@ class BellShaped():
         return target, target_vel
 
 
-    def reset(self, target_pos, pos):
+    def reset(self, target_pos, position):
         """
         Resets the dmp path planner to a new state and target_pos
 
@@ -128,12 +128,12 @@ class BellShaped():
         ----------
         target_pos: list of 3 floats
             the target_pos end-effector position in cartesian coordinates [meters]
-        pos: list of 3 floats
+        position: list of 3 floats
             the current end-effector cartesian position [meters]
         """
-        self.pos = pos
+        self.position = position
         self.dmps.reset_state()
-        self.dmps.goal = target_pos - self.pos
+        self.dmps.goal = target_pos - self.position
 
 
     def step(self, error=None):
@@ -146,5 +146,5 @@ class BellShaped():
         # get the next point in the target trajectory from the dmp
         target, target_vel, _ = self.dmps.step(error=error * self.error_scale)
         # add the start position offset since the dmp starts from the origin
-        target = target + self.pos
+        target = target + self.position
         return target, target_vel
