@@ -22,15 +22,15 @@ robot_config = arm.Config(use_cython=True)
 arm_sim = arm.ArmSim(robot_config)
 
 # create an operational space controller
-ctrlr = Sliding(robot_config, kd=20)
+ctrlr = Sliding(robot_config, kd=30)
 
 # create our nonlinear adaptation controller
 adapt = signals.DynamicsAdaptation(
     n_input=robot_config.N_JOINTS,
     n_output=robot_config.N_JOINTS,
-    pes_learning_rate=5e-4,
-    MEANS=[3.14, 3.14, 3.14],
-    VARIANCES=[1.57, 1.57, 1.57]
+    pes_learning_rate=1e-1,
+    means=[0, 0, 0],
+    variances=[2*np.pi, 2*np.pi, 2*np.pi],
     )
 
 
@@ -81,7 +81,7 @@ try:
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
             sig = adapt.generate(
-                input_signal= feedback['q'],
+                input_signal = feedback['q'],
                 training_signal=-ctrlr.s)
             u += sig
 
