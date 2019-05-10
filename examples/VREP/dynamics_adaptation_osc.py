@@ -11,7 +11,7 @@ from abr_control.controllers import OSC, Damping, signals
 from abr_control.interfaces import VREP
 
 # initialize our robot config for the jaco2
-robot_config = arm.Config(use_cython=True, hand_attached=True)
+robot_config = arm.Config(use_cython=True, hand_attached=False)
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
@@ -30,8 +30,8 @@ adapt = signals.DynamicsAdaptation(
     pes_learning_rate=5e-5,
     intercepts_bounds=[-0.6, -0.2],
     intercepts_mode=-0.2,
-    MEANS=[3.14, 3.14],
-    VARIANCES=[1.57, 1.57])
+    means=[3.14, 3.14],
+    variances=[1.57, 1.57])
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)
@@ -71,13 +71,12 @@ try:
             target=target,
             )
 
-        u_adapt = adapt.generate(
+        u_adapt = np.zeros(robot_config.N_JOINTS)
+        u_adapt[1:3] = adapt.generate(
             input_signal=np.array(feedback['q'][1], feedback['q'][2]),
             training_signal=np.array(
                 [ctrlr.training_signal[1], ctrlr.training_signal[2]]))
-        u_adapt = np.array([0, u_adapt[0], u_adapt[1], 0, 0, 0])
         u += u_adapt
-        print('u_adapt: ', [float('%.3f' % val) for val in u_adapt])
 
         # add an additional force for the controller to adapt to
         extra_gravity = robot_config.g(feedback['q']) * 2

@@ -5,6 +5,7 @@ from nengolib.stats import spherical_transform
 
 import scipy.special
 
+
 class DynamicsAdaptation():
     """ An implementation of nonlinear dynamics adaptation using Nengo,
     as described in (DeWolf, Stewart, Slotine, and Eliasmith, 2016)
@@ -40,31 +41,42 @@ class DynamicsAdaptation():
     spherical: boolean, Optional (Default: False)
         True to convert inputs to the surface of the hypersphere
         False to scale from 0 to 1
-    MEANS: dict of floats
-        MEANS['q'] == the mean expected values of the joint positions [rad]
-        MEANS['dq'] == the mean expected values of the joint velocities [rad/s]
-    VARIANCES: dict of floats
-        VARIANCES['q'] == the abs(max) variance from the MEANS['q'] [rad]
-        VARIANCES['dq'] == the abs(max) variance from the MEANS['dq'] [rad/s]
+    means: np.array, optional (Default: None)
+        Subtracted from the input to the neural ensemble to center the data
+        for each dimension around zero
+    variances: np.array, optional (Default: None)
+        The input signal to the neural ensemble is divided by these values
+        after mean subtraction to put the data for each dimensions in the
+        range -1 to 1, or 0 to 1 if spherical=True
 
-        ***NOTE*** The VARIANCES do not have to encompass the actual abs(max)
+        ***NOTE*** The variances do not have to encompass the full range of
         joint positions or velocities. Outliers can be left outside the scaling
         range to get a better scaling of the majority of your expected inputs.
-        The outliers will still be scaled, but they will be outside the 0-1
-        range for non-spherical, or 0-1 range for spherical
+        The outliers will still be scaled, but they will be outside the -1 to 1
+        range for non-spherical, or 0 to 1 range for spherical
     """
 
     def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
                  seed=None, pes_learning_rate=1e-6, intercepts=None,
                  intercepts_bounds=None, intercepts_mode=None,
-                 weights=None, encoders=None, spherical=False, MEANS=None,
-                 VARIANCES=None, **kwargs):
+                 weights=None, encoders=None, spherical=False,
+                 means=None, variances=None, **kwargs):
 
         self.n_neurons = n_neurons
         self.n_ensembles = n_ensembles
+        if spherical:
+            n_input += 1
         self.spherical = spherical
-        self.MEANS = MEANS
-        self.VARIANCES = VARIANCES
+
+        # if only one of means or variances is defined
+        # define the other to have no effect on the data
+        if means is not None and variances is None:
+            variances = np.ones(means.shape)
+        elif means is None and variances is not None:
+            means = np.zeros(variances.shape)
+        self.means = np.asarray(means)
+        self.variances = np.asarray(variances)
+
         # synapse time constants
         self.tau_input = 0.012  # on input connection
         self.tau_training = 0.012  # on the training signal
@@ -181,7 +193,8 @@ class DynamicsAdaptation():
             the learning signal to drive adaptation
         """
 
-        if self.MEANS is not None and self.VARIANCES is not None:
+        # if means or variances was defined, self.means is not None
+        if self.means is not None:
             input_signal = self.scale_inputs(input_signal)
 
         # store local copies to feed in to the adaptive population
@@ -192,6 +205,34 @@ class DynamicsAdaptation():
         self.sim.run(time_in_seconds=.001, progress_bar=False)
 
         return self.output
+
+
+    def scale_inputs(self, input_signal):
+        '''
+        Currently set to accept joint position and velocities as time
+        x dimension arrays, and returns them scaled based on the means and
+        variances set on instantiation
+
+        PARAMETERS
+        ----------
+        input_signal : numpy.array
+            the current desired input signal, typical joint positions and
+            velocities in [rad] and [rad/sec] respectively
+
+        The reason we do a shift by the means is to try and center the majority
+        of our expected input values in our scaling range, so when we stretch
+        them by variances they encompass more of our input range.
+        '''
+        scaled_input = (input_signal - self.means) / self.variances
+
+        if self.spherical:
+            # put into the 0-1 range
+            scaled_input = scaled_input / 2 + .5
+            # project onto unit hypersphere in larger state space
+            scaled_input = spherical_transform(
+                scaled_input.reshape(1, len(scaled_input)))
+
+        return scaled_input
 
 
     def get_weights(self):
@@ -206,31 +247,6 @@ class DynamicsAdaptation():
 
         return [self.sim.signals[self.sim.model.sig[conn]['weights']]
                 for conn in self.conn_learn]
-
-
-    def scale_inputs(self, input_signal):
-        '''
-        Currently set to accept joint position and velocities as time
-        x dimension arrays, and returns them scaled based on the MEANS and
-        VARIANCES set on instantiation
-
-        PARAMETERS
-        ----------
-        input_signal : numpy.array
-            the current desired input signal, typical joint positions and
-            velocities in [rad] and [rad/sec] respectively
-
-        The reason we do a shift by the MEANS is to try and center the majority
-        of our expected input values in our scaling range, so when we stretch
-        them by VARIANCES they encompass more of our input range.
-        '''
-        scaled_input = (input_signal - self.MEANS) / self.VARIANCES
-
-        if self.spherical:
-            scaled_input = spherical_transform(
-                scaled_input.reshape(1, len(scaled_input)))
-
-        return scaled_input
 
 
 class AreaIntercepts(nengo.dists.Distribution):
