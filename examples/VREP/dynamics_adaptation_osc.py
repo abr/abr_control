@@ -73,7 +73,8 @@ try:
 
         u_adapt = np.zeros(robot_config.N_JOINTS)
         u_adapt[1:3] = adapt.generate(
-            input_signal=np.array(feedback['q'][1], feedback['q'][2]),
+            input_signal=np.array(
+                [feedback['q'][1], feedback['q'][2]]),
             training_signal=np.array(
                 [ctrlr.training_signal[1], ctrlr.training_signal[2]]))
         u += u_adapt
