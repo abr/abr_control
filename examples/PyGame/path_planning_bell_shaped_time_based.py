@@ -55,11 +55,16 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
-            path_planner.generate_path_function(
-                position=hand_xyz, target_pos=target_xyz, time_limit=time_limit)
+            pos_path, vel_path = path_planner.generate_path(
+                position=hand_xyz, target_pos=target_xyz)
+            pos_path = path_planner.convert_to_time(
+                pregenerated_path=pos_path, time_limit=time_limit)
+            vel_path = path_planner.convert_to_time(
+                pregenerated_path=vel_path, time_limit=time_limit)
 
         # returns desired [position, velocity]
-        target, target_vel = path_planner.next_timestep(t=elapsed_time)
+        target = [function(elapsed_time) for function in pos_path]
+        target_vel = [function(elapsed_time) for function in vel_path]
 
         # generate an operational space control signal
         u = ctrlr.generate(

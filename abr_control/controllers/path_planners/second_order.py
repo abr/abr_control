@@ -44,8 +44,9 @@ threshold: float, optional (Default: 0.02)
 import numpy as np
 
 import scipy.interpolate
+from .path_planner import PathPlanner
 
-class SecondOrder:
+class SecondOrder(PathPlanner):
     def __init__(self, n_timesteps=3000, dt=0.001,
                  zeta=2.0, w=1e4, threshold=0.02):
 
@@ -56,7 +57,8 @@ class SecondOrder:
         self.threshold = threshold
 
 
-    def generate_path(self, position, velocity, target_pos, plot=False):
+    def generate_path(self, position, velocity, target_pos, plot=False,
+                         **kwargs):
         """
         Calls the step function self.n_timestep times to pregenerate
         the entire path planner
@@ -73,15 +75,15 @@ class SecondOrder:
             plot the path after generating if True
         """
 
-        n_states = len(position)
-
         position_path = []
         velocity_path = []
+
         for _ in range(self.n_timesteps):
             position_path.append(position)
             velocity_path.append(velocity)
-            position, velocity = self.step(
-                position, velocity, target_pos, dt=self.dt)
+            position, velocity = self._step(
+                position, velocity, target_pos)
+
         self.position = np.array(position_path)
         self.velocity = np.array(velocity_path)
 
@@ -90,11 +92,13 @@ class SecondOrder:
 
         if plot:
             import matplotlib.pyplot as plt
+            n_states = len(self.position[0])
+
             plt.figure()
             plt.subplot(2, 1, 1)
             plt.plot(np.ones((self.n_timesteps, n_states)) *
-                     np.arange(self.n_timesteps)[:, None],
-                     self.position)
+                        np.arange(self.n_timesteps)[:, None],
+                        self.position)
             plt.gca().set_prop_cycle(None)
             plt.plot(
                 np.ones((self.n_timesteps, n_states))
@@ -102,21 +106,23 @@ class SecondOrder:
                 np.ones((self.n_timesteps, n_states)) * target_pos,
                 '--')
             plt.legend(['%i' % ii for ii in range(n_states)] +
-                       ['%i_target' % ii for ii in range(n_states)])
+                        ['%i_target' % ii for ii in range(n_states)])
             plt.title('Trajectory positions')
 
             plt.subplot(2, 1, 2)
             plt.plot(np.ones((self.n_timesteps, n_states)) *
-                     np.arange(self.n_timesteps)[:, None],
-                     self.velocity)
+                        np.arange(self.n_timesteps)[:, None],
+                        self.velocity)
             plt.legend(['d%i' % ii for ii in range(n_states)])
             plt.title('Trajectory velocities')
             plt.tight_layout()
 
             plt.show()
 
+        return self.position, self.velocity
 
-    def step(self, position, velocity, target_pos, dt=0.001):
+
+    def _step(self, position, velocity, target_pos):
         """ Calculates the next state given the current state and
         system dynamics' parameters.
 
@@ -128,8 +134,6 @@ class SecondOrder:
             the current velocity of the system
         target_pos: numpy.array
             the target position of the system
-        dt: float
-            the time step to move forward
         """
 
         w = self.w
@@ -140,89 +144,21 @@ class SecondOrder:
             w *= 3
 
         accel = (w**2 * target_pos
-                 - velocity * self.zeta * w
-                 - position * w**2)
-        velocity = velocity + accel * dt
-        position = position + velocity * dt
+                - velocity * self.zeta * w
+                - position * w**2)
+        velocity = velocity + accel * self.dt
+        position = position + velocity * self.dt
+
         return position, velocity
 
 
-    def next_target(self):
-        """ Return the next target point along the generated trajectory """
-
-        # get the next target state if we're not at the end of the trajectory
-        position = None
-        velocity = None
+    def next(self):
+        """
+        """
         position = (
             self.position[self.n] if self.n < self.n_timesteps else position)
         velocity = (
             self.velocity[self.n] if self.n < self.n_timesteps else velocity)
         self.n += 1
-
-        return position, velocity
-
-
-    def generate_path_function(self, position, velocity,
-                               target_pos, time_limit):
-        """
-        Generates a path function from current state to target and
-        interpolates with respect to the time_limit. The function can
-        then be stepped through to reach a target within the specified time.
-
-        PARAMETERS
-        ----------
-        position: numpy.array
-            the current position of the system
-        velocity: numpy.array
-            the current velocity of the system
-        target_post of 3 floats
-            the target end-effector position in cartesian coordinates [meters]
-        time_limit: float
-            the desired time to go from state to target [seconds]
-        """
-
-        n_states = len(position)
-        self.generate_path(position, velocity, target_pos)
-        dist = np.sqrt(np.sum((target_pos - self.position[-1])**2))
-
-        while dist > 0.001:
-            self.n_timesteps += 10
-            self.generate_path(position, velocity, target_pos)
-            dist = np.sqrt(np.sum((target_pos - self.position[-1])**2))
-
-        times = np.linspace(0, time_limit, self.n_timesteps)
-        self.position_path = []
-        self.velocity_path = []
-        for dim in range(n_states):
-            self.position_path.append(scipy.interpolate.interp1d(
-                times, self.position[:, dim]))
-            #TODO: why do we get better performance with the gradient?
-            # velocity_path.append(scipy.interpolate.interp1d(
-            #     times, self.velocity[:, dim]))
-            self.velocity_path.append(scipy.interpolate.interp1d(
-                times, np.gradient(self.position[:, dim])))
-
-
-    def next_timestep(self, t):
-        """
-        Called after `generate_path_function()` has been run to create the path
-        planner function. The interpolated function is called and the path at
-        time t is returned
-
-        PARAMETERS
-        ----------
-        t: float
-            time in seconds along the planned path
-            ex: if generate_path_function is called with a 10 second limit,
-            passing 5 in to next_timestep will return the position of the EE
-            half-way (wrt time) through the generated path
-        """
-        position = []
-        velocity = []
-
-        for interp_function in self.position_path:
-            position.append(np.copy(interp_function(t)))
-        for interp_function in self.velocity_path:
-            velocity.append(np.copy(interp_function(t)))
 
         return position, velocity

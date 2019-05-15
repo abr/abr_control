@@ -34,8 +34,6 @@ dt = 0.001
 interface = PyGame(robot_config, arm_sim, dt=dt)
 interface.connect()
 
-pregenerate_path = False
-print('\nPregenerating path to follow: ', pregenerate_path, '\n')
 try:
     print('\nSimulation starting...')
     print('Click to move the target.\n')
@@ -56,28 +54,22 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
-            position = hand_xyz
-            velocity = np.dot(
+            target = hand_xyz
+            target_vel = np.dot(
                 robot_config.J('EE', feedback['q']), feedback['dq'])[:3]
-            if pregenerate_path:
-                path_planner.generate_path(
-                    position=hand_xyz, velocity=velocity,
-                    target_pos=target_xyz, plot=True)
+            path_planner.generate_path(
+                position=hand_xyz, velocity=target_vel,
+                target_pos=target_xyz, plot=False)
 
         # returns desired [position, velocity]
-        if pregenerate_path:
-            position, velocity = path_planner.next_target()
-        else:
-            position, velocity = path_planner.step(
-                position=position, velocity=velocity,
-                target_pos=target_xyz, dt=dt)
+        target, target_vel = path_planner.next()
 
         # generate an operational space control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=np.hstack((position, np.zeros(3))),
-            target_vel=np.hstack((velocity, np.zeros(3))),
+            target=np.hstack((target, np.zeros(3))),
+            target_vel=np.hstack((target_vel, np.zeros(3))),
             )
 
         # apply the control signal, step the sim forward
