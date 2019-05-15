@@ -26,11 +26,14 @@ except ImportError:
     print('\npydmps library required, see github.com/studywolf/pydmps\n')
 
 import scipy.interpolate
+from .path_planner import PathPlanner
 
 
-class BellShaped():
-    def __init__(self, error_scale=1):
+class BellShaped(PathPlanner):
+    def __init__(self, n_timesteps=3000, error_scale=1):
+        self.n_timesteps = n_timesteps
         self.error_scale = error_scale
+
         # create a dmp for a straight reach with a bell shaped velocity profile
         x = np.linspace(0, np.pi*2, 100)
         a = 1  # amplitude
@@ -47,77 +50,23 @@ class BellShaped():
         self.dmps.imitate_path(y_des)
 
 
-    def plot_trajectory(self):
-        """
-        Once the dmp function has been generated, calling this function will
-        plot the profile of the path planner
-        """
-        self.dmps.reset_state()
-        y, _, _ = self.dmps.rollout()
-        self.dmps.reset_state()
-
-        import matplotlib.pyplot as plt
-        plt.plot(y, 'x')
-        plt.show()
-
-
-    def generate_path_function(self, target_pos, position, time_limit,
-                               timesteps=None):
-        """
-        Generates a path function from state to target_pos and interpolates it
-        with respect to the time_limit. The function can then be stepped through
-        to reach a target_pos within the specified time.
-
-        PARAMETERS
-        ----------
-        target_pos: list of 3 floats
-            the target end-effector position in cartesian coordinates [meters]
-        position: numpy.array
-            the current position of the system
-        time_limit: float
-            the desired time to go from state to target_pos [seconds]
-        timesteps: int, Optional (Default: None)
-            how many steps to run the dmp, which returns position and velocity
-            information. Increasing the length will extend the tail of the path
-            that is planned.
-        """
+    def generate_path(self, position, target_pos, plot=False, **kwargs):
         self.reset(target_pos=target_pos, position=position)
 
-        trajectory, velocity, _ = self.dmps.rollout(timesteps=timesteps)
-        trajectory = np.array([traj + self.position for traj in trajectory])
+        self.position, self.velocity, _ = self.dmps.rollout(
+            timesteps=self.n_timesteps)
+        self.position = np.array([traj + self.origin for traj in self.position])
 
-        times = np.linspace(0, time_limit, len(trajectory))
-        position_path = []
-        velocity_path = []
-        for dim in range(3):
-            position_path.append(scipy.interpolate.interp1d(
-                times, trajectory[:, dim]))
-            velocity_path.append(scipy.interpolate.interp1d(\
-                times, velocity[:, dim]))
+        # reset trajectory index
+        self.n = 0
 
-        self.path_func = np.hstack((position_path, velocity_path))
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.plot(self.position)
+            plt.legend(['X', 'Y', 'Z'])
+            plt.show()
 
-    def next_timestep(self, t):
-        """
-        Called after `generate_path_function()` has been run to create the path
-        planner function. The interpolated function is called and the path at
-        time t is returned
-
-        PARAMETERS
-        ----------
-        t: float
-            time in seconds along the planned path
-            ex: if generate_path_function is called with a 10 second limit,
-            passing 5 in to next_timestep will return the position of the EE
-            half-way (wrt time) through the generated path
-        """
-        target = []
-        target_vel = []
-        for ii in range(3):
-            target.append(self.path_func[ii](t))
-        for ii in range(3, 6):
-            target_vel.append(self.path_func[ii](t))
-        return target, target_vel
+        return self.position, self.velocity
 
 
     def reset(self, target_pos, position):
@@ -131,12 +80,12 @@ class BellShaped():
         position: list of 3 floats
             the current end-effector cartesian position [meters]
         """
-        self.position = position
+        self.origin = position
         self.dmps.reset_state()
-        self.dmps.goal = target_pos - self.position
+        self.dmps.goal = target_pos - self.origin
 
 
-    def step(self, error=None):
+    def _step(self, error=None):
         """
         Steps through the dmp, returning the next position and velocity along
         the path planner.
@@ -144,7 +93,17 @@ class BellShaped():
         if error is None:
             error = 0
         # get the next point in the target trajectory from the dmp
-        target, target_vel, _ = self.dmps.step(error=error * self.error_scale)
+        position, velocity, _ = self.dmps.step(error=error * self.error_scale)
         # add the start position offset since the dmp starts from the origin
-        target = target + self.position
-        return target, target_vel
+        position = position + self.origin
+
+        return position, velocity
+
+    def next(self):
+        position = (
+            self.position[self.n] if self.n < self.n_timesteps else position)
+        velocity = (
+            self.velocity[self.n] if self.n < self.n_timesteps else velocity)
+        self.n += 1
+
+        return position, velocity

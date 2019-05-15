@@ -8,7 +8,6 @@ import numpy as np
 import timeit
 
 from abr_control.arms import threejoint as arm
-# from abr_control.arms import twojoint as arm
 from abr_control.interfaces import PyGame
 from abr_control.controllers import OSC, Damping, path_planners
 
@@ -26,7 +25,8 @@ ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
             ctrlr_dof = [True, True, False, False, False, False])
 
 # create our path planner
-path_planner = path_planners.BellShaped(error_scale=50)
+n_timesteps = 1000
+path_planner = path_planners.BellShaped(error_scale=50, n_timesteps=n_timesteps)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=0.001)
@@ -36,14 +36,13 @@ try:
     print('\nSimulation starting...')
     print('Click to move the target.\n')
 
-    step_limit = 1000
-    count = 1000
+    count = n_timesteps
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
-        if count >= step_limit:
+        if count >= n_timesteps:
             count = 0
             target_xyz = (
                     np.array([
@@ -53,11 +52,11 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
-            path_planner.reset(target_pos=target_xyz, position=hand_xyz)
-            error = 0
+            path_planner.generate_path(
+                position=hand_xyz, target_pos=target_xyz, plot=False)
 
         # returns desired [position, velocity]
-        target, target_vel = path_planner.step(error=error)
+        target, target_vel = path_planner.next()
 
         # generate an operational space control signal
         u = ctrlr.generate(

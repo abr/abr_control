@@ -54,12 +54,12 @@ try:
             path_planner.generate_path(
                 position=hand_xyz,
                 target_pos=target_xyz,
-                # n_timesteps=n_timesteps,
-                dx=0.01,
+                n_timesteps=n_timesteps,
+                dt=0.0035,
                 plot=False)
 
         # returns desired [position, velocity]
-        target = path_planner.next_target()
+        target = path_planner.next()
 
         # generate an operational space control signal
         u = ctrlr.generate(
