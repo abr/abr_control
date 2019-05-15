@@ -8,7 +8,7 @@ from abr_analyze.paths import cache_dir, figures_dir
 from abr_control.utils import transformations
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
-from random import gauss
+from abr_control.controllers import path_planners
 
 def make_rand_vector(dims):
     vec = np.random.random(3)
@@ -17,6 +17,8 @@ def make_rand_vector(dims):
 
 gif = MakeGif()
 fig_cache = gif.prep_fig_cache()
+steps = 100
+path = path_planners.LinearOrientation(steps)
 
 target_quat =  [0] + make_rand_vector(3)
 vector = [0] + make_rand_vector(3)
@@ -26,7 +28,6 @@ def rotate_vector(vector, q):
     q_conj = [q[0], -1*q[1], -1*q[2], -1*q[3]]
     ans = transformations.quaternion_multiply(
         transformations.quaternion_multiply(q, vector), q_conj)
-    print(ans)
     return ans
 
 try:
@@ -36,13 +37,17 @@ try:
         ax.append(fig.add_subplot(2, 2, ii+1, projection='3d'))
 
     fraction = np.linspace(0, 1, 100)
-    elev = [None, 90, 0, 90]
-    azim = [None, 0, 90, 90]
+    elev = [None, 90, 0, 0]
+    azim = [None, 0, 90, 0]
     dr_err = []
 
-    for ii in range(len(fraction)):
-        q = transformations.quaternion_slerp(
-            quat0=start_quat, quat1=target_quat, fraction=fraction[ii])
+    path.pregenerate_path(start_quat, target_quat)
+    for ii in range(steps):
+        print('%.2f %% Complete' % (100*ii/steps), end='\r')
+        # q = transformations.quaternion_slerp(
+        #     quat0=start_quat, quat1=target_quat, fraction=fraction[ii])
+        #q = path.step(start_quat, target_quat)
+        q = path.next()
 
         v1 = rotate_vector(vector, q)
         # v2 = rotate_vector(vector, start_quat)
@@ -98,6 +103,7 @@ try:
             a.clear()
 
 finally:
+    plt.close()
     # stop and reset the simulation
     print('Simulation terminated...')
     plt.figure()

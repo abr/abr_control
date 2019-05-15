@@ -66,11 +66,11 @@ try:
                 method=1,
                 dt=0.005,
                 n_timesteps=n_timesteps,
-                plot=True,
+                plot=False,
                 )
 
         # returns desired [position, velocity]
-        target = path_planner.next_target()
+        target = path_planner.next()
 
         if use_force_control:
             # generate an operational space control signal

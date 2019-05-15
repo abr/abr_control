@@ -137,7 +137,7 @@ class InverseKinematics:
                 self.trajectory[:, self.robot_config.N_JOINTS:],
                 ee_track)
 
-    def next_target(self):
+    def next(self):
         """ Return the next target point along the generated trajectory """
 
         # get the next target state if we're not at the end of the trajectory
