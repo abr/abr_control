@@ -291,6 +291,8 @@ class BaseConfig():
 
         Parameters
         ----------
+        name : string
+            name of the joint, link, or end-effector
         q : numpy.array
             joint angles [radians]
         """
@@ -302,7 +304,14 @@ class BaseConfig():
 
     #TODO: optimize this function
     def euler_angles(self, name, q):
-        """
+        """ Gets orientation matrix and converts to euler angles
+
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        q : numpy.array
+            joint angles [radians]
         """
         R = self.R(name=name, q=q)
         euler = transformations.euler_from_matrix(matrix=R)
@@ -310,7 +319,14 @@ class BaseConfig():
 
     #TODO: optimize this function
     def quaternion(self, name, q):
-        """
+        """ Gets orientation matrix and converts to a quaternion
+
+        Parameters
+        ----------
+        name : string
+            name of the joint, link, or end-effector
+        q : numpy.array
+            joint angles [radians]
         """
         R = self.R(name=name, q=q)
         quat = transformations.quaternion_from_matrix(matrix=R)
