@@ -1,6 +1,7 @@
 import numpy as np
+from .path_planner import PathPlanner
 
-class Linear():
+class Linear(PathPlanner):
     """ Creates a linear trajectory from current to target state
     """
 
@@ -90,6 +91,6 @@ class Linear():
         # get the next target state if we're not at the end of the trajectory
         self.target = (self.position[self.n]
                        if self.n < self.n_timesteps else self.target)
-        self.n += 1
+        self.n = min(self.n+1, self.n_timesteps)
 
         return self.target

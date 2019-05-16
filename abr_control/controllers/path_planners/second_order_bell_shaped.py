@@ -25,11 +25,19 @@ try:
 except ImportError:
     print('\npydmps library required, see github.com/studywolf/pydmps\n')
 
-import scipy.interpolate
 from .path_planner import PathPlanner
 
 
 class BellShaped(PathPlanner):
+    """
+    PARAMETERS
+    ----------
+    n_timesteps: int, Optional (Default: 3000)
+        the number of steps to break the path into
+    error_scale: int, Optional (Default: 1)
+        the scaling factor to apply to the error term, increasing error passed
+        1 will increase the speed of motion
+    """
     def __init__(self, n_timesteps=3000, error_scale=1):
         self.n_timesteps = n_timesteps
         self.error_scale = error_scale
@@ -51,6 +59,19 @@ class BellShaped(PathPlanner):
 
 
     def generate_path(self, position, target_pos, plot=False, **kwargs):
+        """
+        Calls the step function self.n_timestep times to pregenerate
+        the entire path planner
+
+        PARAMETERS
+        ----------
+        position: numpy.array
+            the current position of the system
+        target_pos: numpy.array
+            the target position
+        plot: boolean, optional (Default: False)
+            plot the path after generating if True
+        """
         self.reset(target_pos=target_pos, position=position)
 
         self.position, self.velocity, _ = self.dmps.rollout(
@@ -100,10 +121,14 @@ class BellShaped(PathPlanner):
         return position, velocity
 
     def next(self):
+        """ Returns the next target along the generated trajectory
+        """
         position = (
-            self.position[self.n] if self.n < self.n_timesteps else position)
+            self.position[self.n] if self.n < self.n_timesteps
+            else self.position[-1])
         velocity = (
-            self.velocity[self.n] if self.n < self.n_timesteps else velocity)
-        self.n += 1
+            self.velocity[self.n] if self.n < self.n_timesteps
+            else self.velocity[-1])
+        self.n = min(self.n+1, self.n_timesteps)
 
         return position, velocity
