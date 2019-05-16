@@ -12,6 +12,7 @@ from sympy.utilities.autowrap import autowrap
 
 import abr_control.utils.os_utils
 from abr_control.utils.paths import cache_dir
+from abr_control.utils import transformations
 
 
 # TODO : store lambdified functions, currently running into pickling errors
@@ -299,6 +300,21 @@ class BaseConfig():
         parameters = tuple(q)
         return np.array(self._R[name](*parameters), dtype='float32')
 
+    #TODO: optimize this function
+    def euler_angles(self, name, q):
+        """
+        """
+        R = self.R(name=name, q=q)
+        euler = transformations.euler_from_matrix(matrix=R)
+        return euler
+
+    #TODO: optimize this function
+    def quaternion(self, name, q):
+        """
+        """
+        R = self.R(name=name, q=q)
+        quat = transformations.quaternion_from_matrix(matrix=R)
+        return quat
 
     def C(self, q, dq):
         """ Loads or calculates the centrifugal and Coriolis forces matrix
