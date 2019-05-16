@@ -4,6 +4,19 @@ import numpy as np
 from abr_control.utils import transformations
 
 class InverseKinematics:
+    """
+    PARAMETERS
+    ----------
+    robot_config: class instance
+        contains all relevant information about the arm
+        such as: number of joints, number of links, mass information etc.
+    max_dx: float, Optional (Default: 0.2)
+        the step size [meters] to take each step
+    max_dr: float, Optional (Default: 2Pi)
+        the step size [radians] to take each step
+    max_dq: float, Optional (Default: Pi)
+        the speed [rad/sec] to maintain each step
+    """
 
     def __init__(self, robot_config, max_dx=0.2, max_dr=2*np.pi, max_dq=np.pi):
         self.robot_config = robot_config
@@ -143,6 +156,6 @@ class InverseKinematics:
         # get the next target state if we're not at the end of the trajectory
         self.target = (self.trajectory[self.n]
                        if self.n < self.n_timesteps else self.target)
-        self.n += 1
+        self.n = min(self.n+1, self.n_timesteps)
 
         return self.target

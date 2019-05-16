@@ -103,3 +103,5 @@ ENV/
 
 *.swo
 
+# ignore any generated pngs
+*.png

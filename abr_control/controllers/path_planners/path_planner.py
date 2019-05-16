@@ -1,12 +1,15 @@
-import scipy
 import numpy as np
+import scipy
+
 class PathPlanner:
 
     def generate_path(self):
-        NotImplementedError
+        NotImplementedError # pylint: disable=W0104
+
 
     def _step(self):
-        NotImplementedError
+        NotImplementedError # pylint: disable=W0104
+
 
     def convert_to_time(self, pregenerated_path, time_limit):
         """
@@ -33,8 +36,47 @@ class PathPlanner:
 
         return self.path
 
+
+    def generate_orientation_path(self, orientation, target_orientation,
+                                  plot=False):
+        """ Generates orientation trajectory with the same profile as the path
+        generated for position
+
+        Ex: if a second order filter is applied to the trajectory, the same will
+        be applied to the orientation trajectory
+
+        PARAMETERS
+        ----------
+        orientation: list of 4 floats
+            the starting orientation as a quaternion
+        target_orientation: list of 4 floats
+            the target orientation as a quaternion
+        plot: boolean, Optional (Default: False)
+            True to plot the profile of the steps taken from start to target
+            orientation
+        """
+        from .orientation import Orientation
+        error = []
+        dist = np.sqrt(np.sum((self.position[-1] - self.position[0])**2))
+        for ee in self.position:
+            error.append(np.sqrt(np.sum((self.position[-1] - ee)**2)))
+        error /= dist
+        error = 1 - error
+
+        self.orientation = Orientation(timesteps=error)
+        self.orientation.generate_path(
+            orientation=orientation, target_orientation=target_orientation)
+
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(error)
+            plt.xlabel('time steps')
+            plt.ylabel('trajectory step')
+            plt.show()
+
+    #NOTE: do we need this check? should it be in the generate_path func?
     # def check_convergence(self, target_pos, position):
-    #     #NOTE: do we need this check? should it be in the generate_path func?
     #     # check if we are within 1cm of our target by the end of our path
     #     dist = np.sqrt(np.sum((target_pos - position[-1])**2))
     #     if dist > 0.001:

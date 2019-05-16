@@ -25,28 +25,29 @@ planner. This ensures that the path will reach the desired target within the
 time_limit specified in `generate_path_function()`
 
 
-Parameters
-----------
-n_timesteps: int, optional (Default: 3000 ~3sec given a 3ms comm. loop)
-    the number of time steps to reach the target
-dt: float, optional (Default: 0.001)
-    the loop speed [seconds]
-zeta: float, optional (Default: 2.0)
-    the damping ratio
-w: float, optional (Default: 1e-4)
-    the natural frequency
-threshold: float, optional (Default: 0.02)
-    within this threshold distance to target position reduce the
-    filtering effects to improve convergence in practice
 """
 
 
 import numpy as np
 
-import scipy.interpolate
 from .path_planner import PathPlanner
 
 class SecondOrder(PathPlanner):
+    """
+    Parameters
+    ----------
+    n_timesteps: int, optional (Default: 3000 ~3sec given a 3ms comm. loop)
+        the number of time steps to reach the target
+    dt: float, optional (Default: 0.001)
+        the loop speed [seconds]
+    zeta: float, optional (Default: 2.0)
+        the damping ratio
+    w: float, optional (Default: 1e-4)
+        the natural frequency
+    threshold: float, optional (Default: 0.02)
+        within this threshold distance to target position reduce the
+        filtering effects to improve convergence in practice
+    """
     def __init__(self, n_timesteps=3000, dt=0.001,
                  zeta=2.0, w=1e4, threshold=0.02):
 
@@ -58,7 +59,7 @@ class SecondOrder(PathPlanner):
 
 
     def generate_path(self, position, velocity, target_pos, plot=False,
-                         **kwargs):
+                      **kwargs):
         """
         Calls the step function self.n_timestep times to pregenerate
         the entire path planner
@@ -96,23 +97,22 @@ class SecondOrder(PathPlanner):
 
             plt.figure()
             plt.subplot(2, 1, 1)
-            plt.plot(np.ones((self.n_timesteps, n_states)) *
-                        np.arange(self.n_timesteps)[:, None],
-                        self.position)
+            plt.plot(np.ones((self.n_timesteps, n_states))
+                     * np.arange(self.n_timesteps)[:, None],
+                     self.position)
             plt.gca().set_prop_cycle(None)
             plt.plot(
                 np.ones((self.n_timesteps, n_states))
                 * np.arange(self.n_timesteps)[:, None],
                 np.ones((self.n_timesteps, n_states)) * target_pos,
                 '--')
-            plt.legend(['%i' % ii for ii in range(n_states)] +
-                        ['%i_target' % ii for ii in range(n_states)])
+            plt.legend(['%i' % ii for ii in range(n_states)]
+                       + ['%i_target' % ii for ii in range(n_states)])
             plt.title('Trajectory positions')
 
             plt.subplot(2, 1, 2)
-            plt.plot(np.ones((self.n_timesteps, n_states)) *
-                        np.arange(self.n_timesteps)[:, None],
-                        self.velocity)
+            plt.plot(np.ones((self.n_timesteps, n_states))
+                     * np.arange(self.n_timesteps)[:, None], self.velocity)
             plt.legend(['d%i' % ii for ii in range(n_states)])
             plt.title('Trajectory velocities')
             plt.tight_layout()
@@ -144,8 +144,8 @@ class SecondOrder(PathPlanner):
             w *= 3
 
         accel = (w**2 * target_pos
-                - velocity * self.zeta * w
-                - position * w**2)
+                 - velocity * self.zeta * w
+                 - position * w**2)
         velocity = velocity + accel * self.dt
         position = position + velocity * self.dt
 
@@ -153,12 +153,14 @@ class SecondOrder(PathPlanner):
 
 
     def next(self):
-        """
+        """ Returns the next target from the generated path
         """
         position = (
-            self.position[self.n] if self.n < self.n_timesteps else position)
+            self.position[self.n] if self.n < self.n_timesteps
+            else self.position[-1])
         velocity = (
-            self.velocity[self.n] if self.n < self.n_timesteps else velocity)
-        self.n += 1
+            self.velocity[self.n] if self.n < self.n_timesteps
+            else self.velocity[-1])
+        self.n = min(self.n+1, self.n_timesteps)
 
         return position, velocity

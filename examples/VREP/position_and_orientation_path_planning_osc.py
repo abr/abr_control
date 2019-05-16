@@ -1,6 +1,11 @@
 """
 Running operational space control using VREP. The controller will
 move the end-effector to the target object's position and orientation.
+
+This example controls all 6 degrees of freedom (position and orientation),
+and applies a second order path planner to both position and orientation targets
+
+After termination the script will plot results
 """
 import numpy as np
 
@@ -16,8 +21,8 @@ robot_config = arm.Config(use_cython=True)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
-            vmax=[10, 10],  # [m/s, rad/s]
+ctrlr = OSC(robot_config, kp=100, ko=250, null_controllers=[damping],
+            vmax=None, #vmax=[10, 10],  # [m/s, rad/s]
             # control (x, y, beta, gamma) out of [x, y, z, alpha, beta, gamma]
             ctrlr_dof = [True, True, True, True, True, True])
 
@@ -30,7 +35,7 @@ interface.connect()
 n_timesteps = 1000
 traj_planner = path_planners.BellShaped(
     error_scale=50, n_timesteps=n_timesteps)
-orientation_planner = path_planners.LinearOrientation(n_timesteps)
+#traj_planner = path_planners.Linear()
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx('EE', feedback['q'])
@@ -40,10 +45,11 @@ target_orientation = np.random.random(3)
 target_orientation /= np.linalg.norm(target_orientation)
 # convert our orientation to a quaternion
 target_orientation = [0] + list(target_orientation)
-target_position = [0.5, 0.5, 0.5] #np.random.random(3)
+target_position = [-0.4, -0.3, 0.5] #np.random.random(3)
 
-traj_planner.generate_path(position=hand_xyz, target_pos=target_position)
-orientation_planner.generate_path(
+traj_planner.generate_path(position=hand_xyz, target_pos=target_position,
+                           n_timesteps=n_timesteps)
+traj_planner.generate_orientation_path(
     orientation=starting_orientation, target_orientation=target_orientation)
 
 # set up lists for tracking data
@@ -55,24 +61,26 @@ target_angles_track = []
 
 try:
     count = 0
-    interface.set_xyz('target', target_position)
+    interface.set_xyz('target_orientation', target_position)
     interface.set_orientation(
-        'target', transformations.euler_from_quaternion(target_orientation))
+        'target_orientation', transformations.euler_from_quaternion(target_orientation))
+    interface.set_xyz('target', target_position)
+
     print('\nSimulation starting...\n')
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
-        pos, vel = traj_planner.next()
-        orient = orientation_planner.next()
+        pos, vel = traj_planner.next()[:3]
+        orient = traj_planner.orientation.next()
         target = np.hstack([pos, orient])
 
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            target_vel=np.hstack([vel, np.zeros(3)])
+            #target_vel=np.hstack([vel, np.zeros(3)])
             )
 
         # apply the control signal, step the sim forward
@@ -83,7 +91,7 @@ try:
         ee_angles_track.append(transformations.euler_from_matrix(
             robot_config.R('EE', feedback['q'])))
         target_track.append(np.copy(target[:3]))
-        target_angles_track.append(interface.get_orientation('target'))
+        target_angles_track.append(np.copy(target[3:]))
         count += 1
 
 finally:
@@ -92,27 +100,36 @@ finally:
 
     print('Simulation terminated...')
 
-    ee_track = np.array(ee_track)
-    ee_angles_track = np.array(ee_angles_track)
-    target_track = np.array(target_track)
-    target_angles_track = np.array(target_angles_track)
+    ee_track = np.array(ee_track).T
+    ee_angles_track = np.array(ee_angles_track).T
+    target_track = np.array(target_track).T
+    target_angles_track = np.array(target_angles_track).T
 
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
+        label_pos = ['x', 'y', 'z']
+        label_or = ['a', 'b', 'g']
+        c = ['r', 'g', 'b']
 
         fig = plt.figure(figsize=(8,12))
         ax1 = fig.add_subplot(311)
         ax1.set_ylabel('3D position (m)')
-        ax1.plot(ee_track)
-        ax1.plot(target_track, '--')
+        for ii, ee in enumerate(ee_track):
+            ax1.plot(ee, label='EE: %s' % label_pos[ii], c=c[ii])
+            ax1.plot(target_track[ii], label='Target: %s' % label_pos[ii],
+                     c=c[ii], linestyle='--')
+        ax1.legend()
 
         ax2 = fig.add_subplot(312)
-        ax2.plot(ee_angles_track)
-        ax2.plot(target_angles_track, '--')
+        for ii, ee in enumerate(ee_angles_track):
+            ax2.plot(ee, label='EE: %s' % label_or[ii], c=c[ii])
+            ax2.plot(target_angles_track[ii], label='Target: %s'%label_or[ii],
+                     c=c[ii], linestyle='--')
         ax2.set_ylabel('3D orientation (rad)')
         ax2.set_xlabel('Time (s)')
+        ax2.legend()
 
         ax3 = fig.add_subplot(313, projection='3d')
         ax3.set_title('End-Effector Trajectory')

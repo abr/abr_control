@@ -45,6 +45,7 @@ try:
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
         if count % n_timesteps == 0:
+            print(count)
             target_xyz = np.array([
                 np.random.random() * 2 - 1,
                 np.random.random() * 2 + 1,
@@ -54,8 +55,9 @@ try:
             path_planner.generate_path(
                 position=hand_xyz,
                 target_pos=target_xyz,
-                n_timesteps=n_timesteps,
-                dt=0.0035,
+                #n_timesteps=n_timesteps,
+                dx=0.01,
+                dt=0.001,
                 plot=False)
 
         # returns desired [position, velocity]
