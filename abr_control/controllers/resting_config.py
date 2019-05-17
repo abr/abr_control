@@ -12,13 +12,15 @@ class RestingConfig(Controller):
         such as number of joints, number of links, mass information etc.
     """
 
-    def __init__(self, robot_config, kp, kv, rest_angles):
+    def __init__(self, robot_config, rest_angles, kp, kv=None):
         super(RestingConfig, self).__init__(robot_config)
 
         self.rest_angles = np.asarray(rest_angles)
         self.null_indices = [val is None for val in rest_angles]
         self.kp = kp
-        self.kv = kv
+        self.kv = np.sqrt(kp) if kv is None else kv
+
+        self.dq_des = np.zeros(robot_config.N_JOINTS)
 
     def generate(self, q, dq):
         """ Generates the control signal
@@ -32,7 +34,7 @@ class RestingConfig(Controller):
         # account for going across 2*pi line when calculating
         # distance / direction
         q_des = ((self.rest_angles - q + np.pi) % (np.pi * 2) - np.pi)
-        q_des[~self.null_indices] = 0.0
+        q_des[not self.null_indices] = 0.0
         self.dq_des[self.null_indices] = dq[self.null_indices]
 
         # calculate joint space inertia matrix
