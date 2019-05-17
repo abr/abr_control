@@ -67,7 +67,7 @@ class Orientation():
             quat0=orientation, quat1=target_orientation,
             fraction=self.timesteps[self.n])
 
-        self.n = min(self.n+1, self.n_timesteps)
+        self.n = min(self.n+1, self.n_timesteps-1)
         return orientation
 
 
@@ -75,6 +75,6 @@ class Orientation():
         """ Returns the next step along the planned trajectory
         """
         orientation = self.orientation_path[self.n]
-        self.n = min(self.n+1, self.n_timesteps)
+        self.n = min(self.n+1, self.n_timesteps-1)
 
         return orientation
