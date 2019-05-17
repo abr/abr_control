@@ -131,10 +131,14 @@ finally:
         ax2.set_xlabel('Time (s)')
         ax2.legend()
 
+        ee_track = ee_track.T
+        target_track = target_track.T
         ax3 = fig.add_subplot(313, projection='3d')
         ax3.set_title('End-Effector Trajectory')
         ax3.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
-        ax3.scatter(target_track[0, 0], target_track[0, 1], target_track[0, 2],
-                    label='target', c='g')
+        ax3.plot(target_track[:, 0], target_track[:, 1], target_track[:, 2],
+                 label='ee_xyz', c='g', linestyle='--')
+        ax3.scatter(target_track[-1, 0], target_track[-1, 1],
+                    target_track[-1, 2], label='target', c='g')
         ax3.legend()
         plt.show()
