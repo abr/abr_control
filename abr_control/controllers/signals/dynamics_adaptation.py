@@ -61,7 +61,9 @@ class DynamicsAdaptation():
                  seed=None, pes_learning_rate=1e-6, intercepts=None,
                  intercepts_bounds=None, intercepts_mode=None,
                  weights=None, encoders=None, spherical=False,
-                 means=None, variances=None, **kwargs):
+                 means=None, variances=None,
+                 tau_input=0.012, tau_training=0.012, tau_output=0.2,
+                 **kwargs):
 
         self.n_neurons = n_neurons
         self.n_ensembles = n_ensembles

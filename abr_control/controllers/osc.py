@@ -86,7 +86,6 @@ class OSC(Controller):
             self.scale_xyz = vmax[0] / self.kp * self.kv
             self.scale_abg = vmax[1] / self.ko * self.kv
 
-        self.ZEROS_THREE = np.zeros(3)
         self.ZEROS_SIX = np.zeros(6)
         self.IDENTITY_N_JOINTS = np.eye(self.robot_config.N_JOINTS)
 
@@ -211,9 +210,6 @@ class OSC(Controller):
             target_vel = self.ZEROS_SIX
         assert np.array(target_vel).shape[0] == 6
 
-        if xyz_offset is None:
-            xyz_offset = self.ZEROS_THREE
-
         J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
         # isolate rows of Jacobian corresponding to controlled task space DOF
         J = J[self.ctrlr_dof]
@@ -273,7 +269,7 @@ class OSC(Controller):
 
         # add in gravity term in joint space ----------------------------------
         if self.use_g:
-            u -= self.robot_config.g(q=q)
+            u += self.robot_config.g(q=q)
 
             # add in gravity term in task space
             # Jbar = np.dot(M_inv, np.dot(J.T, Mx))

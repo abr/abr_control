@@ -540,6 +540,7 @@ class BaseConfig():
                 parameters=self.q+self.dq+self.x)
         return dJ_func
 
+
     def _calc_J(self, name, x, lambdify=True):
         """ Uses Sympy to generate the Jacobian for a joint or link
 
