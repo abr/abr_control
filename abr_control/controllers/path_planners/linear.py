@@ -91,6 +91,6 @@ class Linear(PathPlanner):
         # get the next target state if we're not at the end of the trajectory
         self.target = (self.position[self.n]
                        if self.n < self.n_timesteps else self.target)
-        self.n = min(self.n+1, self.n_timesteps)
+        self.n = min(self.n+1, self.n_timesteps - 1)
 
         return self.target

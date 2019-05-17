@@ -161,6 +161,6 @@ class SecondOrder(PathPlanner):
         velocity = (
             self.velocity[self.n] if self.n < self.n_timesteps
             else self.velocity[-1])
-        self.n = min(self.n+1, self.n_timesteps)
+        self.n = min(self.n+1, self.n_timesteps - 1)
 
         return position, velocity
