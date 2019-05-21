@@ -64,7 +64,7 @@ class PathPlanner:
         error = 1 - error
 
         self.orientation = Orientation(timesteps=error)
-        self.orientation.generate_path(
+        orientation_path = self.orientation.generate_path(
             orientation=orientation, target_orientation=target_orientation)
 
         if plot:
@@ -74,6 +74,8 @@ class PathPlanner:
             plt.xlabel('time steps')
             plt.ylabel('trajectory step')
             plt.show()
+
+        return orientation_path
 
     #NOTE: do we need this check? should it be in the generate_path func?
     # def check_convergence(self, target_pos, position):
