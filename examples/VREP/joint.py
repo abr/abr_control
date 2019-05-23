@@ -12,6 +12,7 @@ from abr_control.arms import jaco2 as arm
 from abr_control.controllers import Joint
 from abr_control.interfaces import VREP
 
+
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
 # if using the Jaco 2 arm with the hand attached, use the following instead:

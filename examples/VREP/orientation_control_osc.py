@@ -19,10 +19,13 @@ robot_config = arm.Config(use_cython=True)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=200, ko=200, null_controllers=[damping],
-            # control (alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [False, False, False, True, True, True])
-
+ctrlr = OSC(
+    robot_config,
+    kp=200,  # position gain
+    ko=200,  # orientation gain
+    null_controllers=[damping],
+    # control (alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
+    ctrlr_dof = [False, False, False, True, True, True])
 
 # create our interface
 interface = VREP(robot_config, dt=.005)
@@ -58,7 +61,7 @@ try:
 
         # track data
         ee_angles_track.append(transformations.euler_from_matrix(
-            robot_config.R('EE', feedback['q'])))
+            robot_config.R('EE', feedback['q']), axes='rxyz'))
         target_angles_track.append(interface.get_orientation('target'))
 
 finally:

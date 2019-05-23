@@ -103,7 +103,7 @@ class OSC(Controller):
         threshold: scalar, optional (Default: 1e-3)
             singular value threshold, if the detminant of Mx_inv is less than
             this value then Mx is calculated using the pseudo-inverse function
-            and all singlular values < threshold * .1 are set = 0
+            and all singular values < threshold * .1 are set = 0
         """
 
         # calculate the inertia matrix in task space
@@ -140,9 +140,7 @@ class OSC(Controller):
                 transformations.quaternion_from_euler(
                     target_abg[0], target_abg[1], target_abg[2], axes='rxyz'))
             # get the quaternion for the end effector
-            q_e = transformations.unit_vector(
-                transformations.quaternion_from_matrix(
-                    self.robot_config.R('EE', q)))
+            q_e = self.robot_config.quaternion('EE', q=q)
             q_r = transformations.quaternion_multiply(
                 q_d, transformations.quaternion_conjugate(q_e))
             u_task_orientation = -q_r[1:] * np.sign(q_r[0])
@@ -199,6 +197,7 @@ class OSC(Controller):
             current joint velocities [radians/second]
         target: 6 dimensional float numpy.array
             desired task space position and orientation [meters, radians]
+            orientation component is alpha, beta, gamma in relative xyz axes
         target_vel: float 6D numpy.array, optional (Default: None)
             desired task space velocities [meters/sec, radians/sec]
         ref_frame: string, optional (Default: 'EE')
