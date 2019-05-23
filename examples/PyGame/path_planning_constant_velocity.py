@@ -1,11 +1,12 @@
 """
-Running the operational space control with a second order path planner
-using the PyGame display. The path planning system will generate
-a trajectory for the controller to follow, moving the end-effector
-smoothly to the target within the given time limit
+Running the operational space control with a first order path planner
+using the PyGame display. The path planner system will generate a
+trajectory for the controller to follow, moving the end-effector in a
+straight line to the target, which changes every n time steps.
 """
 import numpy as np
-import timeit
+
+import matplotlib.pyplot as plt
 
 from abr_control.arms import threejoint as arm
 # from abr_control.arms import twojoint as arm
@@ -13,8 +14,9 @@ from abr_control.interfaces import PyGame
 from abr_control.controllers import OSC, Damping, path_planners
 
 
-# initialize our robot config for the ur5
+# initialize our robot config
 robot_config = arm.Config(use_cython=True)
+
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 
@@ -26,65 +28,67 @@ ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
             ctrlr_dof = [True, True, False, False, False, False])
 
 # create our path planner
-path_planner = path_planners.SecondOrder(n_timesteps=3000, w=1e4, zeta=2)
+target_dx = 0.001
+path_planner = path_planners.Linear(dx=target_dx)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=0.001)
 interface.connect()
 
+
 try:
     print('\nSimulation starting...')
     print('Click to move the target.\n')
 
-    time_limit = 1
-    elapsed_time = time_limit
     count = 0
+    dx_track = []
     while 1:
         # get arm feedback
-        start = timeit.default_timer()
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
+        dx_track.append(np.linalg.norm(
+            np.dot(robot_config.J('EE', feedback['q']), feedback['dq'])))
 
-        if elapsed_time >= time_limit:
-            elapsed_time = 0
+        if count % 1000 == 0:
             target_xyz = np.array([
                 np.random.random() * 2 - 1,
                 np.random.random() * 2 + 1,
                 0])
             # update the position of the target
             interface.set_target(target_xyz)
-
-            target_vel = np.dot(robot_config.J('EE', feedback['q']),
-                        feedback['dq'])[:3]
-            pos_path, vel_path = path_planner.generate_path(
-                position=hand_xyz, velocity=target_vel,
-                target_pos=target_xyz)
-            pos_path = path_planner.convert_to_time(
-                pregenerated_path=pos_path, time_limit=time_limit)
-            vel_path = path_planner.convert_to_time(
-                pregenerated_path=vel_path, time_limit=time_limit)
+            path_planner.generate_path(
+                position=hand_xyz,
+                target_pos=target_xyz,
+                plot=False)
 
         # returns desired [position, velocity]
-        target = [function(elapsed_time) for function in pos_path]
-        target_vel = [function(elapsed_time) for function in vel_path]
+        target, _ = path_planner.next()
 
         # generate an operational space control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=np.hstack((target, np.zeros(3))),
-            target_vel=np.hstack((target_vel, np.zeros(3))),
+            target=np.hstack([target, np.zeros(3)]),
             )
 
         # apply the control signal, step the sim forward
         interface.send_forces(
             u, update_display=True if count % 20 == 0 else False)
 
-        elapsed_time += timeit.default_timer() - start
         count += 1
 
 finally:
     # stop and reset the simulation
     interface.disconnect()
+
+    dx_track = np.array(dx_track) * path_planner.dt
+    plt.plot(dx_track, lw=2, label='End-effector velocity')
+    plt.plot(np.ones(dx_track.shape) * target_dx, 'r--', lw=2,
+             label='Target velocity')
+    plt.ylabel('Velocity (m/s)')
+    plt.xlabel('Time (s)')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
     print('Simulation terminated...')

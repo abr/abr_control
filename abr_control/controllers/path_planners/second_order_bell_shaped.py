@@ -119,16 +119,3 @@ class BellShaped(PathPlanner):
         position = position + self.origin
 
         return position, velocity
-
-    def next(self):
-        """ Returns the next target along the generated trajectory
-        """
-        position = (
-            self.position[self.n] if self.n < self.n_timesteps
-            else self.position[-1])
-        velocity = (
-            self.velocity[self.n] if self.n < self.n_timesteps
-            else self.velocity[-1])
-        self.n = min(self.n+1, self.n_timesteps - 1)
-
-        return position, velocity

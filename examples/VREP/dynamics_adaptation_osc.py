@@ -10,16 +10,20 @@ from abr_control.arms import jaco2 as arm
 from abr_control.controllers import OSC, Damping, signals
 from abr_control.interfaces import VREP
 
+
 # initialize our robot config for the jaco2
 robot_config = arm.Config(use_cython=True, hand_attached=False)
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # instantiate controller
-ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
-            vmax=[0.5, 0],  # [m/s, rad/s]
-            # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [True, True, True, False, False, False])
+ctrlr = OSC(
+    robot_config,
+    kp=200,
+    null_controllers=[damping],
+    vmax=[0.5, 0],  # [m/s, rad/s]
+    # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
+    ctrlr_dof = [True, True, True, False, False, False])
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(

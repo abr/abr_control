@@ -21,11 +21,14 @@ robot_config = arm.Config(use_cython=True)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr = OSC(robot_config, kp=100, ko=250, null_controllers=[damping],
-            vmax=None, #vmax=[10, 10],  # [m/s, rad/s]
-            # control (x, y, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [True, True, True, True, True, True])
-
+ctrlr = OSC(
+    robot_config,
+    kp=100,  # position gain
+    ko=250,  # orientation gain
+    null_controllers=[damping],
+    vmax=None,  # [m/s, rad/s]
+    # control all DOF [x, y, z, alpha, beta, gamma]
+    ctrlr_dof = [True, True, True, True, True, True])
 
 # create our interface
 interface = VREP(robot_config, dt=.005)
@@ -35,7 +38,6 @@ interface.connect()
 n_timesteps = 1000
 traj_planner = path_planners.BellShaped(
     error_scale=50, n_timesteps=n_timesteps)
-#traj_planner = path_planners.Linear()
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx('EE', feedback['q'])
@@ -45,11 +47,11 @@ target_orientation = np.random.random(3)
 target_orientation /= np.linalg.norm(target_orientation)
 # convert our orientation to a quaternion
 target_orientation = [0] + list(target_orientation)
-target_position = [-0.4, -0.3, 0.5] #np.random.random(3)
+target_position = [-0.4, -0.3, 0.6]
 
-traj_planner.generate_path(position=hand_xyz, target_pos=target_position,
-                           n_timesteps=n_timesteps)
-traj_planner.generate_orientation_path(
+traj_planner.generate_path(
+    position=hand_xyz, target_pos=target_position, n_timesteps=n_timesteps)
+orientation_planner = traj_planner.generate_orientation_path(
     orientation=starting_orientation, target_orientation=target_orientation)
 
 # set up lists for tracking data
@@ -61,10 +63,10 @@ target_angles_track = []
 
 try:
     count = 0
-    interface.set_xyz('target_orientation', target_position)
-    interface.set_orientation(
-        'target_orientation', transformations.euler_from_quaternion(target_orientation))
     interface.set_xyz('target', target_position)
+    interface.set_orientation(
+        'target', transformations.euler_from_quaternion(
+            target_orientation, axes='rxyz'))
 
     print('\nSimulation starting...\n')
     while 1:
@@ -73,7 +75,7 @@ try:
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
         pos, vel = traj_planner.next()[:3]
-        orient = traj_planner.orientation.next()
+        orient = orientation_planner.next()
         target = np.hstack([pos, orient])
 
         u = ctrlr.generate(
@@ -89,7 +91,7 @@ try:
         # track data
         ee_track.append(np.copy(hand_xyz))
         ee_angles_track.append(transformations.euler_from_matrix(
-            robot_config.R('EE', feedback['q'])))
+            robot_config.R('EE', feedback['q']), axes='rxyz'))
         target_track.append(np.copy(target[:3]))
         target_angles_track.append(np.copy(target[3:]))
         count += 1

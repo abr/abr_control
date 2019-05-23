@@ -302,20 +302,6 @@ class BaseConfig():
         parameters = tuple(q)
         return np.array(self._R[name](*parameters), dtype='float32')
 
-    #TODO: optimize this function
-    def euler_angles(self, name, q):
-        """ Gets orientation matrix and converts to euler angles
-
-        Parameters
-        ----------
-        name : string
-            name of the joint, link, or end-effector
-        q : numpy.array
-            joint angles [radians]
-        """
-        R = self.R(name=name, q=q)
-        euler = transformations.euler_from_matrix(matrix=R)
-        return euler
 
     #TODO: optimize this function
     def quaternion(self, name, q):
@@ -329,8 +315,10 @@ class BaseConfig():
             joint angles [radians]
         """
         R = self.R(name=name, q=q)
-        quat = transformations.quaternion_from_matrix(matrix=R)
+        quat = transformations.unit_vector(
+            transformations.quaternion_from_matrix(matrix=R))
         return quat
+
 
     def C(self, q, dq):
         """ Loads or calculates the centrifugal and Coriolis forces matrix

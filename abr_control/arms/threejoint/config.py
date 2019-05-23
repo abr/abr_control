@@ -58,7 +58,7 @@ class Config(BaseConfig):
         # [x, y, z],  Ignoring lengths < 1e-04
 
         self.L = np.array(
-            [[0, 0, 0],  # from origin to l0 (non-existant)
+            [[0, 0, 0],  # from origin to l0 (non-existent)
              [0, 0, 0],  # from l0 to j0
              [1.0, 0, 0],  # from j0 to l1 COM
              [1.0, 0, 0],  # from l1 COM to j1

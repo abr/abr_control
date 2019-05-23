@@ -10,6 +10,7 @@ from abr_control.arms import ur5 as arm
 from abr_control.controllers import OSC, AvoidObstacles, Damping
 from abr_control.interfaces import VREP
 
+
 # initialize our robot config
 robot_config = arm.Config(use_cython=True)
 # if using the Jaco 2 arm with the hand attached, use the following instead:
@@ -19,11 +20,13 @@ avoid = AvoidObstacles(robot_config)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # instantiate the REACH controller with obstacle avoidance
-ctrlr = OSC(robot_config, kp=200, null_controllers=[avoid, damping],
-            vmax=[0.5, 0],  # [m/s, rad/s]
-            # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [True, True, True, False, False, False])
-
+ctrlr = OSC(
+    robot_config,
+    kp=200,
+    null_controllers=[avoid, damping],
+    vmax=[0.5, 0],  # [m/s, rad/s]
+    # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
+    ctrlr_dof = [True, True, True, False, False, False])
 
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)
