@@ -23,14 +23,11 @@ to the specified time limit. Calling the `next_timestep(t)` function at a
 specified time will return the end-effector state at that point along the path
 planner. This ensures that the path will reach the desired target within the
 time_limit specified in `generate_path_function()`
-
-
 """
-
-
 import numpy as np
 
 from .path_planner import PathPlanner
+
 
 class SecondOrder(PathPlanner):
     """
@@ -82,8 +79,7 @@ class SecondOrder(PathPlanner):
         for _ in range(self.n_timesteps):
             position_path.append(position)
             velocity_path.append(velocity)
-            position, velocity = self._step(
-                position, velocity, target_pos)
+            position, velocity = self._step(position, velocity, target_pos)
 
         self.position = np.array(position_path)
         self.velocity = np.array(velocity_path)
@@ -92,32 +88,7 @@ class SecondOrder(PathPlanner):
         self.n = 0
 
         if plot:
-            import matplotlib.pyplot as plt
-            n_states = len(self.position[0])
-
-            plt.figure()
-            plt.subplot(2, 1, 1)
-            plt.plot(np.ones((self.n_timesteps, n_states))
-                     * np.arange(self.n_timesteps)[:, None],
-                     self.position)
-            plt.gca().set_prop_cycle(None)
-            plt.plot(
-                np.ones((self.n_timesteps, n_states))
-                * np.arange(self.n_timesteps)[:, None],
-                np.ones((self.n_timesteps, n_states)) * target_pos,
-                '--')
-            plt.legend(['%i' % ii for ii in range(n_states)]
-                       + ['%i_target' % ii for ii in range(n_states)])
-            plt.title('Trajectory positions')
-
-            plt.subplot(2, 1, 2)
-            plt.plot(np.ones((self.n_timesteps, n_states))
-                     * np.arange(self.n_timesteps)[:, None], self.velocity)
-            plt.legend(['d%i' % ii for ii in range(n_states)])
-            plt.title('Trajectory velocities')
-            plt.tight_layout()
-
-            plt.show()
+            self.plot(target_pos)
 
         return self.position, self.velocity
 
@@ -148,19 +119,5 @@ class SecondOrder(PathPlanner):
                  - position * w**2)
         velocity = velocity + accel * self.dt
         position = position + velocity * self.dt
-
-        return position, velocity
-
-
-    def next(self):
-        """ Returns the next target from the generated path
-        """
-        position = (
-            self.position[self.n] if self.n < self.n_timesteps
-            else self.position[-1])
-        velocity = (
-            self.velocity[self.n] if self.n < self.n_timesteps
-            else self.velocity[-1])
-        self.n = min(self.n+1, self.n_timesteps - 1)
 
         return position, velocity

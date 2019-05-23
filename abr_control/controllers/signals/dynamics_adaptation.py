@@ -1,9 +1,10 @@
 import numpy as np
 
+import scipy.special
+
 import nengo
 from nengolib.stats import spherical_transform
 
-import scipy.special
 
 
 class DynamicsAdaptation():

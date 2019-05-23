@@ -1,19 +1,25 @@
 import numpy as np
-import scipy
+
+import matplotlib.pyplot as plt
+
+import scipy.interpolate
+
+from .orientation import Orientation
+
 
 class PathPlanner:
+    """ Base class for path planners.
+    """
 
     def generate_path(self):
-        NotImplementedError # pylint: disable=W0104
-
-
-    def _step(self):
-        NotImplementedError # pylint: disable=W0104
+        """ This function generates the trajectory to follow, storing the
+        results and returning self.position and self.velocity
+        """
+        raise NotImplementedError
 
 
     def convert_to_time(self, pregenerated_path, time_limit):
-        """
-        Accepts a pregenerated path from current state to target and
+        """ Accepts a pregenerated path from current state to target and
         interpolates with respect to the time_limit. The function can
         then be stepped through to reach a target within the specified time.
 
@@ -55,7 +61,7 @@ class PathPlanner:
             True to plot the profile of the steps taken from start to target
             orientation
         """
-        from .orientation import Orientation
+
         error = []
         dist = np.sqrt(np.sum((self.position[-1] - self.position[0])**2))
         for ee in self.position:
@@ -63,19 +69,13 @@ class PathPlanner:
         error /= dist
         error = 1 - error
 
-        self.orientation = Orientation(timesteps=error)
-        orientation_path = self.orientation.generate_path(
-            orientation=orientation, target_orientation=target_orientation)
+        orientation_path_planner = Orientation(timesteps=error)
+        orientation_path_planner.generate_path(
+            orientation=orientation, target_orientation=target_orientation,
+            plot=plot)
 
-        if plot:
-            import matplotlib.pyplot as plt
-            plt.figure()
-            plt.plot(error)
-            plt.xlabel('time steps')
-            plt.ylabel('trajectory step')
-            plt.show()
+        return orientation_path_planner
 
-        return orientation_path
 
     #NOTE: do we need this check? should it be in the generate_path func?
     # def check_convergence(self, target_pos, position):
@@ -86,3 +86,48 @@ class PathPlanner:
     #         return False
     #     else:
     #         return True
+
+
+    def next(self):
+        """ Returns the next target from the generated path
+        """
+        position = self.position[self.n]  # pylint: disable=E0203
+        velocity = self.velocity[self.n]  # pylint: disable=E0203
+        self.n = min(self.n+1, self.n_timesteps - 1)
+
+        return position, velocity
+
+
+    def _plot(self, target_pos):
+        """ Plot the generated trajectory
+
+        PARAMETERS
+        ----------
+        target_pos: np.array
+            the final target position the trajectory is moving to
+        """
+        n_states = len(self.position[0])
+
+        plt.figure()
+        plt.subplot(2, 1, 1)
+        plt.plot(np.ones((self.n_timesteps, n_states))
+                 * np.arange(self.n_timesteps)[:, None],
+                 self.position)
+        plt.gca().set_prop_cycle(None)
+        plt.plot(
+            np.ones((self.n_timesteps, n_states))
+            * np.arange(self.n_timesteps)[:, None],
+            np.ones((self.n_timesteps, n_states)) * target_pos,
+            '--')
+        plt.legend(['%i' % ii for ii in range(n_states)]
+                   + ['%i_target' % ii for ii in range(n_states)])
+        plt.title('Trajectory positions')
+
+        plt.subplot(2, 1, 2)
+        plt.plot(np.ones((self.n_timesteps, n_states))
+                 * np.arange(self.n_timesteps)[:, None], self.velocity)
+        plt.legend(['d%i' % ii for ii in range(n_states)])
+        plt.title('Trajectory velocities')
+        plt.tight_layout()
+
+        plt.show()

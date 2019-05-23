@@ -75,9 +75,7 @@ class InverseKinematics:
 
             dx = target_pos[:3] - T[:3, 3]
 
-            Re = T[:3, :3]
-            Qe = transformations.unit_vector(
-                transformations.quaternion_from_matrix(Re))
+            Qe = self.robot_config.quaternion('EE', q=q)
             # Method 4
             dr = (Qe[0] * Qd[1:] -
                   Qd[0] * Qe[1:] -

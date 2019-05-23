@@ -8,7 +8,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
 
     def __init__(self):
         self.L = [0.0, 2.0, 1.2]
-        self.M_LINKS = [np.diag(np.zeros(6))] # non-existant link0
+        self.M_LINKS = [np.diag(np.zeros(6))] # non-existent link0
         self.M_LINKS.append(np.diag(
             [1.98, 1.98, 1.98, 2.56, 2.56, 2.56]))  # link1
         self.M_LINKS.append(np.diag(
