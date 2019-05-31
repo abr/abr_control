@@ -70,11 +70,11 @@ class PathPlanner:
         error = 1 - error
 
         orientation_path_planner = Orientation(timesteps=error)
-        orientation_path_planner.generate_path(
+        orientation_path = orientation_path_planner.generate_path(
             orientation=orientation, target_orientation=target_orientation,
             plot=plot)
 
-        return orientation_path_planner
+        return orientation_path, orientation_path_planner
 
 
     #NOTE: do we need this check? should it be in the generate_path func?

@@ -63,6 +63,9 @@ class Orientation():
                 quat, axes='rxyz')
 
         self.n = 0
+        if plot:
+            self._plot()
+
         return self.orientation
 
 
@@ -95,7 +98,7 @@ class Orientation():
         return orientation
 
 
-    def plot(self):
+    def _plot(self):
         """ Plot the generated trajectory
         """
         plt.figure()

@@ -90,6 +90,7 @@ class DynamicsAdaptation():
         self.pes_learning_rate = pes_learning_rate
 
         if intercepts is None:
+            np.random.seed = self.seed
             # set up neuron intercepts
             if intercepts_bounds is None:
                 intercepts_bounds = [-0.9, 0.0]
@@ -99,27 +100,29 @@ class DynamicsAdaptation():
                 intercepts_mode = -0.5
             self.intercepts_mode = intercepts_mode
 
-            intercepts = AreaIntercepts(dimensions=n_input, base=Triangular(
-                intercepts_bounds[0], intercepts_mode, intercepts_bounds[1]))
-
-        self.intercepts = intercepts
+            intercepts_dist = AreaIntercepts(
+                dimensions=n_input, base=Triangular(
+                    intercepts_bounds[0], intercepts_mode, intercepts_bounds[1])
+                )
+            intercepts = intercepts_dist.sample(n=n_neurons*n_ensembles)
+            intercepts = intercepts.reshape(n_ensembles, n_neurons)
 
         if weights is None:
             weights = np.zeros((self.n_ensembles, n_output, self.n_neurons))
             print('Initializing connection weights to all zeros')
 
         if encoders is None:
+            np.random.seed = self.seed
             # if NengoLib is installed, use it to optimize encoder placement
             try:
                 import nengolib
-                encoders = [
-                    nengolib.stats.ScatteredHypersphere(surface=True)
-                    for ii in range(self.n_ensembles)]
+                encoders_dist = nengolib.stats.ScatteredHypersphere(surface=True)
             except ImportError:
-                encoders = [nengo.Default for ii in range(self.n_ensembles)]
+                encoders_dist = nengo.Default
                 print('NengoLib not installed, encoder placement will ' +
                       'be sub-optimal.')
-        self.encoders = encoders
+            encoders = encoders_dist.sample(n_neurons*n_ensembles, n_input)
+            encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
 
         self.input_signal = np.zeros(n_input)
         self.training_signal = np.zeros(n_output)
@@ -151,9 +154,9 @@ class DynamicsAdaptation():
                     nengo.Ensemble(
                         n_neurons=self.n_neurons,
                         dimensions=n_input,
-                        intercepts=intercepts,
+                        intercepts=intercepts[ii],
                         radius=np.sqrt(n_input),
-                        encoders=self.encoders[ii],
+                        encoders=encoders[ii],
                         **kwargs))
 
                 # hook up input signal to adaptive population to provide context
