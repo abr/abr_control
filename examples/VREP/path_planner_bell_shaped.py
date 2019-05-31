@@ -51,7 +51,7 @@ target_position = [-0.4, -0.3, 0.6]
 
 traj_planner.generate_path(
     position=hand_xyz, target_pos=target_position, n_timesteps=n_timesteps)
-orientation_planner = traj_planner.generate_orientation_path(
+_, orientation_planner = traj_planner.generate_orientation_path(
     orientation=starting_orientation, target_orientation=target_orientation)
 
 # set up lists for tracking data
