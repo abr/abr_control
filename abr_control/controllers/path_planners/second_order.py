@@ -55,8 +55,7 @@ class SecondOrder(PathPlanner):
         self.threshold = threshold
 
 
-    def generate_path(self, position, velocity, target_pos, plot=False,
-                      **kwargs):
+    def generate_path(self, position, velocity, target_pos, plot=False):
         """
         Calls the step function self.n_timestep times to pregenerate
         the entire path planner

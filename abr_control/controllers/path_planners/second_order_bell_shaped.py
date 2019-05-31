@@ -58,7 +58,7 @@ class BellShaped(PathPlanner):
         self.dmps.imitate_path(y_des)
 
 
-    def generate_path(self, position, target_pos, plot=False, **kwargs):
+    def generate_path(self, position, target_pos, plot=False):
         """
         Calls the step function self.n_timestep times to pregenerate
         the entire path planner
