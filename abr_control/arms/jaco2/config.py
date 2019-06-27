@@ -55,6 +55,10 @@ class Config(BaseConfig):
 
         self.REST_ANGLES = np.array([None, 2.42, 2.42, 0.0, 0.0, 0.0])
 
+        # position to move to before switching to torque mode
+        self.START_ANGLES = np.array(
+            [0.0, 2.79, 2.62, 4.71, 0.0, 3.04], dtype="float32")
+
         # inertia values in VREP are divided by mass, account for that here
         self._M_LINKS = [
             sp.diag(0.0, 0.0, 0.0, 0.00, 0.00, 0.00),  # link0

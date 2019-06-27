@@ -199,7 +199,7 @@ class MujocoConfig():
 
 if __name__ == '__main__':
 
-    from abr_control.interfaces import Mujoco
+    from abr_control.interfaces.mujoco import Mujoco
 
     filename = '/home/tdewolf/src/abr_control/examples/Mujoco/ur5.xml'
     robot_config = MujocoConfig(filename)
