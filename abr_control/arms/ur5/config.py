@@ -48,6 +48,13 @@ class Config(BaseConfig):
                                      np.pi/2.0,
                                      np.pi/2.0], dtype='float32')
 
+        self.START_ANGLES = np.array([0,
+                                      np.pi/4.0,
+                                      -np.pi/2.0,
+                                      np.pi/4.0,
+                                      np.pi/2.0,
+                                      np.pi/2.0], dtype='float32')
+
         # TODO: automate getting all this information from VREP
 
         # create the inertia matrices for each link of the ur5

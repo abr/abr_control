@@ -2,9 +2,9 @@ import os
 import numpy as np
 
 import mujoco_py as mjp
-import xml.etree.ElementTree as ET
 
-class MujocoConfig():
+
+class MockMujocoConfig():
     """ Replicates the interface API of base_config, but using the Mujoco
     simulator to perform all the kinematics and dynamics calculations.
     """
@@ -31,22 +31,19 @@ class MujocoConfig():
             myArm_with_gripper.xml, respectively
         """
 
-        current_dir = os.path.dirname(__file__)
-        self.mjcf_file = os.path.join(
-            current_dir, mjcf_file.split('_')[0], '%s.xml' % mjcf_file)
-        self.model = mjp.load_model_from_path(self.mjcf_file)
-
-        # get access to some of our custom arm parameters from the xml definition
-        tree = ET.parse(self.mjcf_file)
-        root = tree.getroot()
-        for custom in root.findall('custom/numeric'):
-            name = custom.get('name')
-            if name == 'N_JOINTS':
-                self.N_JOINTS = int(custom.get('data'))
-            elif name == 'START_ANGLES':
-                START_ANGLES = custom.get('data').split(' ')
-                self.START_ANGLES = np.array(
-                    [float(angle) for angle in START_ANGLES])
+        #TODO: need to pull this from xml
+        self.N_JOINTS = 12
+        # a place to store data returned from Mujoco
+        self._g = np.ones(self.N_JOINTS)
+        self._J3N = np.ones(3 * self.N_JOINTS)
+        self._J6N = np.ones((6, self.N_JOINTS))
+        self._MNN_vector = np.ones(self.N_JOINTS**2)
+        self._MNN = np.ones((self.N_JOINTS, self.N_JOINTS))
+        self._R9 = np.ones(9)
+        self._R = np.ones((3, 3))
+        self._x = np.ones(4)
+        self.M = lambda q: np.diag(np.ones(self.N_JOINTS))
+        self.g = lambda q: np.ones(self.N_JOINTS)
 
 
     def _connect(self, sim):
@@ -59,39 +56,19 @@ class MujocoConfig():
         sim: MjSim
             The Mujoco Simulator object created by the Mujoco Interface class
         """
-        # get access to the Mujoco simulation
-        self.sim = sim
+        pass
 
-        self.JOINT_NAMES = self.sim.model.joint_names
-        self.N_JOINTS = len(self.JOINT_NAMES)
-
-        # NOTE: Assuming that in the mjcf file every body defined _after_
-        # the base_link body is part of the robot
-        self.base_link_index = self.sim.model.body_name2id('base_link')
-        self.N_LINKS = len(self.sim.model.body_parentid) - self.base_link_index
-
-        # a place to store data returned from Mujoco
-        self._g = np.zeros(self.N_JOINTS)
-        self._J3N = np.zeros(3 * self.N_JOINTS)
-        self._J6N = np.zeros((6, self.N_JOINTS))
-        self._MNN_vector = np.zeros(self.N_JOINTS**2)
-        self._MNN = np.zeros((self.N_JOINTS, self.N_JOINTS))
-        self._R9 = np.zeros(9)
-        self._R = np.zeros((3, 3))
-        self._x = np.ones(4)
-
-
-    def g(self, q=None):
-        """ Returns qfrc_bias variable, which stores the effects of Coriolis,
-        centrifugal, and gravitational forces
-
-        Parameters
-        ----------
-        q: float numpy.array, optional (Default: None)
-            The joint angles of the robot. If None the current state is
-            retrieved from the Mujoco simulator
-        """
-        return self.sim.data.qfrc_bias
+    # def g(self, q=None):
+    #     """ Returns qfrc_bias variable, which stores the effects of Coriolis,
+    #     centrifugal, and gravitational forces
+    #
+    #     Parameters
+    #     ----------
+    #     q: float numpy.array, optional (Default: None)
+    #         The joint angles of the robot. If None the current state is
+    #         retrieved from the Mujoco simulator
+    #     """
+    #     return self.sim.data.qfrc_bias
 
 
     def dJ(self, name, q=None, dq=None, x=None):
@@ -126,15 +103,15 @@ class MujocoConfig():
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
         """
-        if x is not None and not np.allclose(x, 0):
-            raise Exception('x offset currently not supported: ', x)
-
-        # get the position Jacobian
-        self._J3N[:] = self.sim.data.get_body_jacp(name)
-        self._J6N[:3] = self._J3N.reshape((3, self.N_JOINTS))
-        # get the rotation Jacobian
-        self._J3N[:] = self.sim.data.get_body_jacr(name)
-        self._J6N[3:] = self._J3N.reshape((3, self.N_JOINTS))
+        # if x is not None and not np.allclose(x, 0):
+        #     raise Exception('x offset currently not supported: ', x)
+        #
+        # # get the position Jacobian
+        # self._J3N[:] = self.sim.data.get_body_jacp(name)
+        # self._J6N[:3] = self._J3N.reshape((3, self.N_JOINTS))
+        # # get the rotation Jacobian
+        # self._J3N[:] = self.sim.data.get_body_jacr(name)
+        # self._J6N[3:] = self._J3N.reshape((3, self.N_JOINTS))
 
         return self._J6N
 
@@ -148,27 +125,27 @@ class MujocoConfig():
             The joint angles of the robot. If None the current state is
             retrieved from the Mujoco simulator
         """
-        # stored in mjData.qM, stored in custom sparse format,
-        # convert qM to a dense matrix with mj_fullM
-        mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
-        # TODO: there's a shape like _MNN function or some such, right?
-        self._MNN = self._MNN_vector.reshape((self.N_JOINTS, self.N_JOINTS))
+        # # stored in mjData.qM, stored in custom sparse format,
+        # # convert qM to a dense matrix with mj_fullM
+        # mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
+        # # TODO: there's a shape like _MNN function or some such, right?
+        # self._MNN = self._MNN_vector.reshape((self.N_JOINTS, self.N_JOINTS))
         return self._MNN
 
 
     def R(self, name, q=None):
         """ Returns the rotation matrix of the specified body
         """
-        mjp.cymj._mju_quat2Mat(
-            self._R9, self.sim.data.get_body_xquat(name))
-        self._R = self._R9.reshape((3, 3))
+        # mjp.cymj._mju_quat2Mat(
+        #     self._R9, self.sim.data.get_body_xquat(name))
+        # self._R = self._R9.reshape((3, 3))
         return self._R
 
 
     def quaternion(self, name, q=None):
         """ Returns the quaternion of the specified body
         """
-        return self.sim.data.get_body_xquat(name)
+        return [1, 0, 0, 0]
 
 
     def C(self, q=None):
@@ -214,7 +191,7 @@ class MujocoConfig():
         """
         if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
-        return self.sim.data.get_body_xpos(name)
+        return [1, 2, 3]
 
 
     def T_inv(self, name, q=None, x=None):
@@ -230,17 +207,3 @@ class MujocoConfig():
         x: float numpy.array, optional (Default: None)
         """
         raise NotImplementedError
-
-
-if __name__ == '__main__':
-
-    from abr_control.interfaces.mujoco import Mujoco
-
-    filename = '/home/tdewolf/src/abr_control/examples/Mujoco/ur5.xml'
-    robot_config = MujocoConfig(filename)
-    interface = Mujoco(robot_config)
-    interface.connect()
-
-    # print(robot_config.M())
-    print(robot_config.J('wrist3_link'))
-    # print(robot_config.g())

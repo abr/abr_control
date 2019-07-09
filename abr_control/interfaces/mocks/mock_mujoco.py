@@ -1,11 +1,7 @@
+from abr_control.interfaces.interface import Interface
 import numpy as np
 
-import mujoco_py as mjp
-
-from .interface import Interface
-
-
-class Mujoco(Interface):
+class MockMujoco(Interface):
     """ An interface for MuJoCo using the mujoco-py package.
 
     Parameters
@@ -17,47 +13,18 @@ class Mujoco(Interface):
         simulation time step in seconds
     """
 
-    def __init__(self, robot_config, dt=.001, visualize=True):
-
-        super(Mujoco, self).__init__(robot_config)
+    def __init__(self, robot_config, dt=.001):
 
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times send forces is called
 
         self.robot_config = robot_config
-        # set the time step for simulation
-        self.robot_config.model.opt.timestep = self.dt
-
-        # turns the visualization on or off
-        self.visualize = visualize
-
 
     def connect(self):
         """
         NOTE: currently it is assumed that all joints are on the robot
         i.e. there are no bodies with freejoints elsewhere in the XML
         """
-        self.sim = mjp.MjSim(self.robot_config.model)
-        self.sim.forward()  # run forward to fill in sim.data
-
-        # give the robot config access to the sim for wrapping the
-        # forward kinematics / dynamics functions
-        self.robot_config._connect(self.sim)
-
-        self.joint_pos_addrs = [self.sim.model.get_joint_qpos_addr(name)
-                                for name in self.robot_config.JOINT_NAMES]
-
-        self.joint_vel_addrs = [self.sim.model.get_joint_qvel_addr(name)
-                                for name in self.robot_config.JOINT_NAMES]
-
-        # create the visualizer
-        if self.visualize:
-            self.viewer = mjp.MjViewer(self.sim)
-
-
-        # TODO: automate adding the target and hand bodies and excluding
-        # them from collision dynamics calculations with all other bodies
-
         print('MuJoCo session created')
 
 
@@ -76,7 +43,7 @@ class Mujoco(Interface):
         name: string
             the name of the object of interest
         """
-        return self.sim.data.get_mocap_quat(name)
+        return np.array([1, 0, 0, 0])
 
 
     def set_mocap_orientation(self, name, quat):
@@ -92,7 +59,7 @@ class Mujoco(Interface):
         quat: np.array
             the [w x y z] quaternion [radians] for the object.
         """
-        self.sim.data.set_mocap_quat(name, quat)
+        assert len(quat) == 4
 
 
     def send_forces(self, u):
@@ -106,28 +73,7 @@ class Mujoco(Interface):
         u: np.array
             the torques to apply to the robot
         """
-
-        # NOTE: the qpos_addr's are unrelated to the order of the motors
-        # NOTE: assuming that the robot arm motors are the first len(u) values
-        for ii in range(len(self.sim.data.ctrl)):
-            self.sim.data.ctrl[ii] = u[ii]
-
-        # Update position of hand object
-        # NOTE: contact exclude tags must be included in the XML file
-        # for the hand and target with all robot bodies to prevent collisions
-        hand_xyz = self.robot_config.Tx(name='EE')
-        self.set_mocap_xyz('hand', hand_xyz)
-
-        # Update orientation of hand object
-        hand_quat = self.robot_config.quaternion(name='EE')
-        self.set_mocap_orientation('hand', hand_quat)
-
-        # move simulation ahead one time step
-        self.sim.step()
-        if self.visualize:
-            self.viewer.render()
-        self.count += self.dt
-
+        assert len(u) == self.robot_config.N_JOINTS
 
     def send_target_angles(self, q, joint_addrs=None):
         """ Move the robot to the specified configuration.
@@ -140,12 +86,7 @@ class Mujoco(Interface):
             ID numbers for the joint, used when trying to get information
             out of the VREP remote API
         """
-
-        joint_addrs = (self.joint_pos_addrs if joint_addrs is None
-                       else joint_addrs)
-
-        self.sim.data.qpos[joint_addrs] = np.copy(q)
-        self.sim.forward()
+        assert len(q) == self.robot_config.N_JOINTS
 
 
     def get_feedback(self):
@@ -154,12 +95,8 @@ class Mujoco(Interface):
         Returns the joint angles and joint velocities in [rad] and [rad/sec],
         respectively
         """
-
-        self.q = np.copy(self.sim.data.qpos[self.joint_pos_addrs])
-        self.dq = np.copy(self.sim.data.qvel[self.joint_pos_addrs])
-
-        return {'q': self.q,
-                'dq': self.dq}
+        return {'q': np.ones(self.robot_config.N_JOINTS),
+                'dq': np.ones(self.robot_config.N_JOINTS)}
 
 
     def get_mocap_xyz(self, name):
@@ -168,7 +105,7 @@ class Mujoco(Interface):
         name: string
             name of the object you want the xyz position of
         """
-        return self.sim.data.get_mocap_pos(name)
+        return np.array([1, 2, 3])
 
 
     def set_mocap_xyz(self, name, xyz):
@@ -179,4 +116,4 @@ class Mujoco(Interface):
         xyz: np.array
             the [x,y,z] location of the target [meters]
         """
-        self.sim.data.set_mocap_pos(name, xyz)
+        assert len(xyz) == 3
