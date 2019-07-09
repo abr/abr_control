@@ -1,14 +1,22 @@
-<mujoco model="twolink">
+<mujoco model="threejoint">
     <contact>
         <exclude body1="hand" body2="EE"/>
         <exclude body1="hand" body2="base_link"/>
         <exclude body1="hand" body2="link1"/>
         <exclude body1="hand" body2="link2"/>
+        <exclude body1="hand" body2="link3"/>
 
         <exclude body1="target" body2="EE"/>
         <exclude body1="target" body2="base_link"/>
         <exclude body1="target" body2="link1"/>
         <exclude body1="target" body2="link2"/>
+        <exclude body1="target" body2="link3"/>
+
+        <exclude body1="path_planner" body2="EE"/>
+        <exclude body1="path_planner" body2="base_link"/>
+        <exclude body1="path_planner" body2="link1"/>
+        <exclude body1="path_planner" body2="link2"/>
+        <exclude body1="path_planner" body2="link3"/>
     </contact>
 
     <worldbody>
@@ -18,7 +26,9 @@
         <body name="target" pos="0 0 0" mocap="true">
             <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
         </body>
-
+        <body name="path_planner" pos="0 0 0" mocap="true">
+            <geom type="sphere" size="0.05" rgba="0 0 1 0.5"/>
+        </body>
         <body name="floor" pos="0 0 0" mocap="true">
             <geom type="box" size="1 1 0.001" rgba="0.99 0.99 0.99 1" contype="2"/>
         </body>
@@ -39,8 +49,14 @@
                     <inertial pos="0 0 0.1" mass="2" diaginertia="0.226891 0.226891 0.0151074" />
                     <geom name="link2" type="cylinder" pos="0 0 0.1" size="0.025 0.1" rgba="1 1 0 0.9"/>
 
-                    <body name="EE" pos="0 0 .2">
-                        <inertial pos="0 0 0" mass="4" diaginertia="0.3 0.1 0.2" />
+                    <body name="link3" pos="0 0 0.2">
+                        <joint name='joint2' pos="0 0 0" axis="0 1 0"/>
+                        <inertial pos="0 0 0.1" mass="2" diaginertia="0.226891 0.226891 0.0151074" />
+                        <geom name="link3" type="cylinder" pos="0 0 0.1" size="0.025 0.1" rgba="1 0 1 0.9"/>
+
+                        <body name="EE" pos="0 0 .2">
+                            <inertial pos="0 0 0" mass="4" diaginertia="0.3 0.1 0.2" />
+                        </body>
                     </body>
                 </body>
             </body>
@@ -50,6 +66,7 @@
     <actuator>
         <motor name="joint0_motor" joint="joint0"/>
         <motor name="joint1_motor" joint="joint1"/>
+        <motor name="joint2_motor" joint="joint2"/>
     </actuator>
 
 </mujoco>
