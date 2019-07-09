@@ -1,7 +1,8 @@
+import os
 import numpy as np
 
 import mujoco_py as mjp
-
+import xml.etree.ElementTree as ET
 
 class MujocoConfig():
     """ Replicates the interface API of base_config, but using the Mujoco
@@ -9,9 +10,43 @@ class MujocoConfig():
     """
 
     def __init__(self, mjcf_file):
+        """
+        Imports the xml file to use as the arm model and config
 
-        self.mjcf_file = mjcf_file
+        Parameters
+        ----------
+        mjcf_file: string
+            the name of the arm model to load
+            The naming convention is create a folder in this directory
+            with your armName and place an armName.xml in it. If any
+            stl files are needed, place them in the armName folder in
+            a meshes folder. If alternate arm models are available,
+            name them as armName_alternate1. The string passed in is
+            parsed such that everything up to the first underscore is
+            used for the arm directory, and the full string is used to
+            load the xml within that folder.
+
+            EX: 'myArm' and 'myArm_with_gripper' will both look in the
+            'myArm' directory, however they will load myArm.xml and
+            myArm_with_gripper.xml, respectively
+        """
+
+        current_dir = os.path.dirname(__file__)
+        self.mjcf_file = os.path.join(
+            current_dir, mjcf_file.split('_')[0], '%s.xml' % mjcf_file)
         self.model = mjp.load_model_from_path(self.mjcf_file)
+
+        # get access to some of our custom arm parameters from the xml definition
+        tree = ET.parse(self.mjcf_file)
+        root = tree.getroot()
+        for custom in root.findall('custom/numeric'):
+            name = custom.get('name')
+            if name == 'N_JOINTS':
+                self.N_JOINTS = int(custom.get('data'))
+            elif name == 'START_ANGLES':
+                START_ANGLES = custom.get('data').split(' ')
+                self.START_ANGLES = np.array(
+                    [float(angle) for angle in START_ANGLES])
 
 
     def _connect(self, sim):
@@ -91,7 +126,7 @@ class MujocoConfig():
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
         """
-        if x is not None:
+        if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
 
         # get the position Jacobian
@@ -177,7 +212,7 @@ class MujocoConfig():
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
         """
-        if x is not None:
+        if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
         return self.sim.data.get_body_xpos(name)
 

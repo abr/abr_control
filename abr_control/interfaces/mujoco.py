@@ -17,7 +17,7 @@ class Mujoco(Interface):
         simulation time step in seconds
     """
 
-    def __init__(self, robot_config, dt=.001):
+    def __init__(self, robot_config, dt=.001, visualize=True):
 
         super(Mujoco, self).__init__(robot_config)
 
@@ -27,6 +27,9 @@ class Mujoco(Interface):
         self.robot_config = robot_config
         # set the time step for simulation
         self.robot_config.model.opt.timestep = self.dt
+
+        # turns the visualization on or off
+        self.visualize = visualize
 
 
     def connect(self):
@@ -48,7 +51,8 @@ class Mujoco(Interface):
                                 for name in self.robot_config.JOINT_NAMES]
 
         # create the visualizer
-        self.viewer = mjp.MjViewer(self.sim)
+        if self.visualize:
+            self.viewer = mjp.MjViewer(self.sim)
 
 
         # TODO: automate adding the target and hand bodies and excluding
@@ -120,7 +124,8 @@ class Mujoco(Interface):
 
         # move simulation ahead one time step
         self.sim.step()
-        self.viewer.render()
+        if self.visualize:
+            self.viewer.render()
         self.count += self.dt
 
 
