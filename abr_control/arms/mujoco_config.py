@@ -91,7 +91,7 @@ class MujocoConfig():
             The joint angles of the robot. If None the current state is
             retrieved from the Mujoco simulator
         """
-        return self.sim.data.qfrc_bias
+        return -self.sim.data.qfrc_bias
 
 
     def dJ(self, name, q=None, dq=None, x=None):

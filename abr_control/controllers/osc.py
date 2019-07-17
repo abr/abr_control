@@ -269,7 +269,7 @@ class OSC(Controller):
 
         # add in gravity term in joint space ----------------------------------
         if self.use_g:
-            u += self.robot_config.g(q=q)
+            u -= self.robot_config.g(q=q)
 
             # add in gravity term in task space
             # Jbar = np.dot(M_inv, np.dot(J.T, Mx))
