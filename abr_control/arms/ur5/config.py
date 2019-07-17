@@ -41,19 +41,13 @@ class Config(BaseConfig):
                             for ii in range(self.N_JOINTS)]
 
         # for the null space controller, keep arm near these angles
-        self.REST_ANGLES = np.array([None,
-                                     np.pi/4.0,
-                                     -np.pi/2.0,
-                                     np.pi/4.0,
-                                     np.pi/2.0,
-                                     np.pi/2.0], dtype='float32')
+        self.REST_ANGLES = np.array(
+            [None, np.pi/4.0, -np.pi/2.0, np.pi/4.0, np.pi/2.0, np.pi/2.0],
+            dtype='float32')
 
-        self.START_ANGLES = np.array([0,
-                                      np.pi/4.0,
-                                      -np.pi/2.0,
-                                      np.pi/4.0,
-                                      np.pi/2.0,
-                                      np.pi/2.0], dtype='float32')
+        self.START_ANGLES = np.array(
+            [0, np.pi/4.0, -np.pi/2.0, np.pi/4.0, np.pi/2.0, np.pi/2.0],
+            dtype='float32')
 
         # TODO: automate getting all this information from VREP
 
