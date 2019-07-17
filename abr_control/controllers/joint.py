@@ -53,6 +53,6 @@ class Joint(Controller):
         M = self.robot_config.M(q)
         u = np.dot(M, (self.kp * self.q_tilde + self.kv * (target_vel - dq)))
         # account for gravity
-        u += self.robot_config.g(q)
+        u -= self.robot_config.g(q)
 
         return u
