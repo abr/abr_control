@@ -11,6 +11,7 @@ NAME=$0
 COMMAND=$1
 
 if [[ "$COMMAND" == "install" ]]; then
+    exe pip install numpy
     exe pip install -e ".[tests]"
     exe pip install scipy==1.1.0
 elif [[ "$COMMAND" == "script" ]]; then
