@@ -1,14 +1,6 @@
 <!-- Download stl files from -->
-<!-- https://github.com/Kinovarobotics/kinova&#45;ros/tree/master/kinova_description/meshes -->
-<!-- and place them in a meshes folder in this directory and change their respective -->
-<!-- names as follows -->
-<!-- &#45; base.STL &#45;> base.STL (no change) -->
-<!-- &#45; shoulder.STL &#45;> shoulder.STL (no change) -->
-<!-- &#45; forearm.STL &#45;> upperarm.STL -->
-<!-- &#45; upperarm.STL &#45;> forearm.STL -->
-<!-- &#45; wrist.STL &#45;> wrist.STL (no change) -->
-<!-- &#45; hand_3finger.STL &#45;> hand3finger.STL (no change) -->
-
+<!-- https://github.com/Kinovarobotics/kinova-ros/kinova_description/meshes -->
+<!-- and place them in a meshes folder in this directory -->
 <mujoco model="jaco2_twolink">
     <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
 
@@ -21,7 +13,7 @@
     <asset>
         <mesh file="base.STL" />
         <mesh file="shoulder.STL"/>
-        <mesh file="upperarm.STL"/>
+        <mesh file="arm.STL"/>
         <mesh file="forearm.STL"/>
         <mesh file="wrist.STL"/>
         <mesh file="hand_3finger.STL"/>
@@ -47,36 +39,32 @@
             <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
         </body>
 
-        <geom name="floor" pos="0 0 0" size="0.5 0.5 0.05" type="plane"
-            rgba="1 0.83 0.61 0.5"/>
+        <geom name="floor" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 0.5"/>
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
         <body name="base_link" pos="0 0 0">
             <geom name="link0" type="mesh" mesh="base" pos="0 0 0"/>
-            <inertial pos="0.000000 0.000000 0.125500" mass="0.467840"
-                fullinertia="0.000951 0.000951 0.000374 0.000000 0.000000 0.000000"/>
+            <inertial pos="0.000000 0.000000 0.125500" mass="0.467840" fullinertia="0.000951 0.000951 0.000374 0.000000 0.000000 0.000000"/>
 
             <body name="link1" pos="0 0 0.157">
                 <joint name="joint0" axis="0 0 1" pos="0 0 0"/>
-                <inertial pos="0.000000 -0.002000 -0.060500" mass="0.747700"
-                        fullinertia="0.001520 0.001520 0.000598 0.000000 0.000000 0.000000"/>
-                <geom name="link1" type="mesh" mesh="shoulder"
-                    pos="0 0 0" euler="0 3.14 0"/>
+                <inertial pos="0.000000 -0.002000 -0.060500" mass="0.747700" fullinertia="0.001520 0.001520 0.000598 0.000000 0.000000 0.000000"/>
+                <geom name="link1" type="mesh" mesh="shoulder" pos="0 0 0" euler="0 3.14 0"/>
 
                 <body name="link2" pos="0 0.002 0.118378">
-                    <inertial pos="0.000000 -0.206500 -0.010000" mass="0.990000"
-                            fullinertia="0.010502 0.000792 0.010502 0.000000 0.000000 0.000000"/>
-                    <geom name="link2" type="mesh" mesh="upperarm"
-                        pos="0 0 0" euler="1.57 0 3.14"/>
+                    <inertial pos="0.000000 -0.206500 -0.010000" mass="0.990000" fullinertia="0.010502 0.000792 0.010502 0.000000 0.000000 0.000000"/>
+                    <geom name="link2" type="mesh" mesh="arm" pos="0 0 0" euler="1.57 0 3.14"/>
                     <joint name="joint1" pos="0 0 0" axis="0 1 0" />
 
                     <body name="EE" pos="0 0 0.41047328710">
-                        <inertial pos="0 0 0" mass="0.01"
-                            diaginertia="0.01 0.01 0.01" />
+                        <inertial pos="0 0 0" mass="0.01" diaginertia="0.01 0.01 0.01" />
                     </body>
+
                 </body>
+
             </body>
+
         </body>
 
     </worldbody>

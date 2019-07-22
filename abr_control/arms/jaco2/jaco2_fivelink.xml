@@ -1,14 +1,7 @@
 <!-- Download stl files from -->
-<!-- https://github.com/Kinovarobotics/kinova&#45;ros/tree/master/kinova_description/meshes -->
-<!-- and place them in a meshes folder in this directory and change their respective -->
-<!-- names as follows -->
-<!-- &#45; base.STL &#45;> base.STL (no change) -->
-<!-- &#45; shoulder.STL &#45;> shoulder.STL (no change) -->
-<!-- &#45; forearm.STL &#45;> upperarm.STL -->
-<!-- &#45; upperarm.STL &#45;> forearm.STL -->
-<!-- &#45; wrist.STL &#45;> wrist.STL (no change) -->
-<!-- &#45; hand_3finger.STL &#45;> hand3finger.STL (no change) -->
-<mujoco model="jaco2_fivelink">
+<!-- https://github.com/Kinovarobotics/kinova-ros/kinova_description/meshes -->
+<!-- and place them in a meshes folder in this directory -->
+<mujoco model='jaco2_fivelink'>
     <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
 
     <default>
@@ -20,12 +13,10 @@
     <asset>
         <mesh file="base.STL" />
         <mesh file="shoulder.STL"/>
-        <mesh file="upperarm.STL"/>
+        <mesh file="arm.STL"/>
         <mesh file="forearm.STL"/>
         <mesh file="wrist.STL"/>
         <mesh file="hand_3finger.STL"/>
-        <material name="carbon" specular="1" shininess="1" reflectance="1"
-            rgba="0 0 0 1" emission="1" />
     </asset>
 
     <contact>
@@ -54,61 +45,53 @@
             <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
         </body>
 
-        <geom name="floor" pos="0 0 0" size="2 2 0.05" type="plane"
-            rgba="1 0.83 0.61 0.5"/>
+        <geom name="floor" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 0.5"/>
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
         <body name="base_link" pos="0 0 0">
-            <geom name="link0" type="mesh" mesh="base" pos="0 0 0" material="carbon"/>
-            <inertial pos="0.000000 0.000000 0.125500" mass="0.467840"
-                fullinertia="0.000951 0.000951 0.000374 0.000000 0.000000 0.000000"/>
+            <geom name="link0" type="mesh" mesh="base" pos="0 0 0"/>
+            <inertial pos="0.000000 0.000000 0.125500" mass="0.467840" fullinertia="0.000951 0.000951 0.000374 0.000000 0.000000 0.000000"/>
 
             <body name="link1" pos="0 0 0.157">
                 <joint name="joint0" axis="0 0 1" pos="0 0 0"/>
-                <inertial pos="0.000000 -0.002000 -0.060500" mass="0.747700"
-                        fullinertia="0.001520 0.001520 0.000598 0.000000 0.000000 0.000000"/>
-                <geom name="link1" type="mesh" mesh="shoulder"
-                    pos="0 0 0" euler="0 3.14 0" material="carbon"/>
+                <inertial pos="0.000000 -0.002000 -0.060500" mass="0.747700" fullinertia="0.001520 0.001520 0.000598 0.000000 0.000000 0.000000"/>
+                <geom name="link1" type="mesh" mesh="shoulder" pos="0 0 0" euler="0 3.14 0"/>
 
                 <body name="link2" pos="0 0.0016 0.1186">
-                    <inertial pos="0.000000 -0.206500 -0.010000" mass="0.990000"
-                            fullinertia="0.010502 0.000792 0.010502 0.000000 0.000000 0.000000"/>
-                    <geom name="link2" type="mesh" mesh="upperarm"
-                        pos="0 0 0" euler="1.57 0 3.14" material="carbon"/>
+                    <inertial pos="0.000000 -0.206500 -0.010000" mass="0.990000" fullinertia="0.010502 0.000792 0.010502 0.000000 0.000000 0.000000"/>
+                    <geom name="link2" type="mesh" mesh="arm" pos="0 0 0" euler="1.57 0 3.14"/>
                     <joint name="joint1" pos="0 0 0" axis="0 1 0" />
 
                     <body name="link3" pos="0 0 0.410">
-                        <inertial pos="0.000000 0.081000 -0.008600" mass="0.676300"
-                                fullinertia="0.001420 0.000304 0.001420 0.000000 0.000000 0.000000"/>
-                        <geom name="forearm_mesh" type="mesh" mesh="forearm"
-                            pos="0 0 0" euler="1.57 3.14 0" material="carbon"/>
+                        <inertial pos="0.000000 0.081000 -0.008600" mass="0.676300" fullinertia="0.001420 0.000304 0.001420 0.000000 0.000000 0.000000"/>
+                        <geom name="forearm_mesh" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 3.14 0"/>
                         <joint name="joint2" pos="0 0 0" axis="0 -1 0" />
 
                         <body name="link4" pos="0 -0.0115 0.2072">
-                            <inertial pos="0.000000 -0.037000 -0.064200" mass="0.178500"
-                                    fullinertia="0.000077 0.000077 0.000143 0.000000 0.000000 0.000000"/>
-                                <geom name="link4" type="mesh" mesh="wrist" euler="3.14 0 0"
-                                    material="carbon"/>
+                            <inertial pos="0.000000 -0.037000 -0.064200" mass="0.178500" fullinertia="0.000077 0.000077 0.000143 0.000000 0.000000 0.000000"/>
+                            <geom name="link4" type="mesh" mesh="wrist" euler="3.14 0 0"/>
                             <joint name="joint3" pos="0 0 0" axis="0 0 1"/>
 
                             <body name="link5" pos="0 0.037 0.0641">
-                                <inertial pos="0.000000 -0.037000 -0.064200" mass="0.178500"
-                                        fullinertia="0.000077 0.000077 0.000143 0.000000 0.000000 0.000000"/>
-                                    <geom name="link5" type="mesh" mesh="wrist" euler="-1.0472 3.14 0"
-                                        material="carbon"/>
+                                <inertial pos="0.000000 -0.037000 -0.064200" mass="0.178500" fullinertia="0.000077 0.000077 0.000143 0.000000 0.000000 0.000000"/>
+                                <geom name="link5" type="mesh" mesh="wrist" euler="-1.0472 3.14 0"/>
                                 <joint name="joint4" pos="0 0 0" axis="0 1.9 1.1"/>
+
                                 <body name="EE" pos="0 0.037 0.0641" euler="0 0 0">
-                                    <inertial pos="0 0 0" mass="0.01"
-                                        diaginertia="0.01 0.01 0.01" />
+                                    <inertial pos="0 0 0" mass="0.01" diaginertia="0.01 0.01 0.01" />
                                 </body>
+
                             </body>
 
                         </body>
+
                     </body>
+
                 </body>
 
             </body>
+
         </body>
 
     </worldbody>
