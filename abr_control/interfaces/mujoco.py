@@ -147,6 +147,26 @@ class Mujoco(Interface):
         self.sim.data.qpos[joint_addrs] = np.copy(q)
         self.sim.forward()
 
+    def set_joint_state(self, q, dq, joint_addrs=None):
+        """ Move the robot to the specified configuration.
+
+        Parameters
+        ----------
+        q: np.array
+            configuration to move to [radians]
+        joint_addrs: list, optional (Default: None)
+            ID numbers for the joint, used when trying to get information
+            out of the VREP remote API
+        """
+
+        joint_addrs = (self.joint_pos_addrs if joint_addrs is None
+                       else joint_addrs)
+
+        self.sim.data.qpos[joint_addrs] = np.copy(q)
+        self.sim.data.qvel[joint_addrs] = np.copy(dq)
+        self.sim.forward()
+
+
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller.

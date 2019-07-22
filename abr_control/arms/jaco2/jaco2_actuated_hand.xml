@@ -10,15 +10,15 @@
     </default>
 
     <custom>
-        <numeric name="START_ANGLES" data="0.0 2.79 2.62 4.71 0.0 3.04"/>
-        <numeric name="N_JOINTS" data="6"/>
+        <numeric name="START_ANGLES" data="0.0 2.79 2.62 4.71 0.0 3.04 0.0 0.0 0.0 0.0 0.0 0.0"/>
+        <numeric name="N_JOINTS" data="12"/>
     </custom>
 
     <asset>
         <mesh file="base.STL" />
         <mesh file="shoulder.STL"/>
+        <mesh file="arm.STL"/>
         <mesh file="forearm.STL"/>
-        <mesh file="upperarm.STL"/>
         <mesh file="wrist.STL"/>
         <mesh file="hand_3finger.STL"/>
         <mesh file="ring_big.STL"/>
@@ -217,8 +217,8 @@
 
                 <body name="link2" pos="0 0.0016 0.1186">
                     <inertial pos="0.000014 0.009353 0.329006" mass="1.010000" diaginertia="0.3 0.3 0.3"/>
-                    <geom name="link2" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 0 3.14" material="carbon"/>
-                    <joint name="joint1" pos="0 0 0" axis="0 -1 0"  ref="3.14" limited="true" range="0.872665 5.41052"/>
+                    <geom name="link2" type="mesh" mesh="arm" pos="0 0 0" euler="1.57 0 3.14" material="carbon"/>
+                    <joint name="joint1" pos="0 0 0" axis="0 -1 0" ref="3.14" limited="true" range="0.872665 5.41052"/>
 
                     <body name="ring1">
                         <geom name="ring1" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
@@ -233,7 +233,7 @@
 
                     <body name="link3" pos="0 0 0.410">
                         <inertial pos="-0.000039 -0.018069 0.153270" mass="0.559000" diaginertia="0.275 0.275 0.275"/>
-                        <geom name="link3" type="mesh" mesh="upperarm" pos="0 0 0" euler="1.57 3.14 0" material="carbon"/>
+                        <geom name="link3" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 3.14 0" material="carbon"/>
                         <joint name="joint2" pos="0 0 0" axis="0 1 0" ref="3.14" limited="true" range="0.331613 5.95157"/>
                         <body name="joint_logo3">
                             <geom type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.038 0" euler="1.54 0 0"/>
@@ -270,31 +270,38 @@
                                         <geom name="ring5" type="mesh" mesh="ring_small" material="grey_plastic"/>
                                     </body>
 
-                                    <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726  0.262085    0.02762996 -0.10213274">
+                                    <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726 0.262085 0.02762996 -0.10213274">
                                         <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0"/>
+                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.169928" limited="true" range="0 1.59626" stiffness="0.1" springref="0" damping="0.5"/>
 
                                         <body name="thumb_distal" pos="0 -0.003 0.044">
                                             <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0"/>
+                                            <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="0.4" limited="true" range="0 0.4" stiffness="0.1" springref="0" damping="0.1"/>
                                         </body>
                                     </body>
 
                                     <body name="index_proximal" pos="0.022256 0.027073 0.114668" quat="0.96181018 -0.25771638 0.0238668 -0.08907205">
                                         <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1659928" limited="true" range="0 1.59626" stiffness="0.1" springref="0" damping="0.5"/>
 
                                         <body name="index_distal" pos="0 0.003 0.044">
                                             <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                            <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="0.4" limited="true" range="0 0.4" stiffness="0.1" springref="0" damping="0.1"/>
                                         </body>
                                     </body>
 
                                     <body name="middle_proximal" pos="-0.022256 0.027073 0.114816" quat="0.96181018 -0.25771638 -0.0238668 0.08907205">
                                         <geom name="middle_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                        <joint name="joint_middle" pos="0 0 0" axis="-1 0 0" ref="1.169928" limited="true" range="0 1.59626" stiffness="0.1" springref="0" damping="0.5"/>
 
                                         <body name="middle_distal" pos="0 0.003 0.044">
                                             <geom name="middle_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                            <joint name="joint_middle_distal" pos="0 0 0" axis="1 0 0" ref="0.4" limited="true" range="0 0.4" stiffness="0.1" springref="0" damping="0.1"/>
                                         </body>
                                     </body>
 
                                     <body name="EE" pos="0 0 0.20222" euler="0 0 0">
+                                        <inertial pos="0 0 0" mass="0.01" diaginertia="0.01 0.01 0.01" />
                                     </body>
 
                                 </body>
@@ -320,6 +327,9 @@
         <motor name="joint3_motor" joint="joint3"/>
         <motor name="joint4_motor" joint="joint4"/>
         <motor name="joint5_motor" joint="joint5"/>
+        <motor name="joint_thumb_motor" joint="joint_thumb"/>
+        <motor name="joint_index_motor" joint="joint_index"/>
+        <motor name="joint_middle_motor" joint="joint_middle"/>
     </actuator>
 
 </mujoco>
