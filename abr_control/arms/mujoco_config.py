@@ -2,29 +2,23 @@ import os
 import numpy as np
 
 import mujoco_py as mjp
-import xml.etree.ElementTree as ET
+from xml.etree import ElementTree
 
 class MujocoConfig():
-    """ Replicates the interface API of base_config, but using the Mujoco
-    simulator to perform all the kinematics and dynamics calculations.
+    """ A wrapper on the Mujoco simulator to generate all the kinematics and
+    dynamics calculations necessary for controllers.
     """
 
-    def __init__(self, mjcf_file):
-        """
-        Imports the xml file to use as the arm model and config
+    def __init__(self, xml_file):
+        """ Loads the Mujoco model from the specified xml file
 
         Parameters
         ----------
-        mjcf_file: string
+        xml_file: string
             the name of the arm model to load
-            The naming convention is create a folder in this directory
-            with your armName and place an armName.xml in it. If any
-            stl files are needed, place them in the armName folder in
-            a meshes folder. If alternate arm models are available,
-            name them as armName_alternate1. The string passed in is
-            parsed such that everything up to the first underscore is
-            used for the arm directory, and the full string is used to
-            load the xml within that folder.
+            The string passed in is parsed such that everything up to the first
+            underscore is used for the arm directory, and the full string is
+            used to load the xml within that folder.
 
             EX: 'myArm' and 'myArm_with_gripper' will both look in the
             'myArm' directory, however they will load myArm.xml and
@@ -32,12 +26,12 @@ class MujocoConfig():
         """
 
         current_dir = os.path.dirname(__file__)
-        self.mjcf_file = os.path.join(
-            current_dir, mjcf_file.split('_')[0], '%s.xml' % mjcf_file)
-        self.model = mjp.load_model_from_path(self.mjcf_file)
+        self.xml_file = os.path.join(
+            current_dir, xml_file.split('_')[0], '%s.xml' % xml_file)
+        self.model = mjp.load_model_from_path(self.xml_file)
 
         # get access to some of our custom arm parameters from the xml definition
-        tree = ET.parse(self.mjcf_file)
+        tree = ElementTree.parse(self.xml_file)
         root = tree.getroot()
         for custom in root.findall('custom/numeric'):
             name = custom.get('name')
@@ -65,8 +59,8 @@ class MujocoConfig():
         self.JOINT_NAMES = self.sim.model.joint_names
         self.N_JOINTS = len(self.JOINT_NAMES)
 
-        # NOTE: Assuming that in the mjcf file every body defined _after_
-        # the base_link body is part of the robot
+        # NOTE: We assume that every body defined in the xml _after_
+        # 'base_link' is part of the robot
         self.base_link_index = self.sim.model.body_name2id('base_link')
         self.N_LINKS = len(self.sim.model.body_parentid) - self.base_link_index
 
@@ -109,8 +103,10 @@ class MujocoConfig():
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
         """
-        # Emo: You would have to use a finate-difference approximation
-        # in the general case, check differences.cpp
+        # TODO if ever required
+        # Note from Emo in Mujoco forums:
+        # 'You would have to use a finate-difference approximation in the
+        # general case, check differences.cpp'
         raise NotImplementedError
 
 
@@ -194,14 +190,12 @@ class MujocoConfig():
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
         """
+        # TODO if ever required
         raise NotImplementedError
 
 
     def Tx(self, name, q=None, x=None):
         """ Returns the Cartesian coordinates of the specified Mujoco body
-
-        Based off of http://www.mujoco.org/forum/index.php?threads/
-        get-orientation-of-body.3543/
 
         Parameters
         ----------
@@ -229,18 +223,5 @@ class MujocoConfig():
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
         """
+        # TODO if ever required
         raise NotImplementedError
-
-
-if __name__ == '__main__':
-
-    from abr_control.interfaces.mujoco import Mujoco
-
-    filename = '/home/tdewolf/src/abr_control/examples/Mujoco/ur5.xml'
-    robot_config = MujocoConfig(filename)
-    interface = Mujoco(robot_config)
-    interface.connect()
-
-    # print(robot_config.M())
-    print(robot_config.J('wrist3_link'))
-    # print(robot_config.g())
