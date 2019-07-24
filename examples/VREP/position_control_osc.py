@@ -8,7 +8,7 @@ import traceback
 
 from abr_control.arms import ur5 as arm
 # from abr_control.arms import jaco2 as arm
-# from abr_control.arms import onelink as arm
+# from abr_control.arms import onejoint as arm
 from abr_control.controllers import OSC, Damping
 from abr_control.interfaces import VREP
 from abr_control.utils import transformations

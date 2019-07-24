@@ -125,10 +125,10 @@ class MujocoConfig():
         if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
 
-        # get the position Jacobian
+        # get the position Jacobian hstacked (1 x N_JOINTS*3)
         self._J3N[:] = self.sim.data.get_body_jacp(name)
         self._J6N[:3] = self._J3N.reshape((3, self.N_JOINTS))
-        # get the rotation Jacobian
+        # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
         self._J3N[:] = self.sim.data.get_body_jacr(name)
         self._J6N[3:] = self._J3N.reshape((3, self.N_JOINTS))
 

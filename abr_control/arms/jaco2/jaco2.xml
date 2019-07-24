@@ -17,8 +17,8 @@
     <asset>
         <mesh file="base.STL" />
         <mesh file="shoulder.STL"/>
+        <mesh file="arm.STL"/>
         <mesh file="forearm.STL"/>
-        <mesh file="upperarm.STL"/>
         <mesh file="wrist.STL"/>
         <mesh file="hand_3finger.STL"/>
         <mesh file="ring_big.STL"/>
@@ -217,7 +217,7 @@
 
                 <body name="link2" pos="0 0.0016 0.1186">
                     <inertial pos="0.000014 0.009353 0.329006" mass="1.010000" diaginertia="0.3 0.3 0.3"/>
-                    <geom name="link2" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 0 3.14" material="carbon"/>
+                    <geom name="link2" type="mesh" mesh="arm" pos="0 0 0" euler="1.57 0 3.14" material="carbon"/>
                     <joint name="joint1" pos="0 0 0" axis="0 -1 0"  ref="3.14" limited="true" range="0.872665 5.41052"/>
 
                     <body name="ring1">
@@ -233,7 +233,7 @@
 
                     <body name="link3" pos="0 0 0.410">
                         <inertial pos="-0.000039 -0.018069 0.153270" mass="0.559000" diaginertia="0.275 0.275 0.275"/>
-                        <geom name="link3" type="mesh" mesh="upperarm" pos="0 0 0" euler="1.57 3.14 0" material="carbon"/>
+                        <geom name="link3" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 3.14 0" material="carbon"/>
                         <joint name="joint2" pos="0 0 0" axis="0 1 0" ref="3.14" limited="true" range="0.331613 5.95157"/>
                         <body name="joint_logo3">
                             <geom type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.038 0" euler="1.54 0 0"/>
