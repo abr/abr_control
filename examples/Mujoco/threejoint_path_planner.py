@@ -29,7 +29,6 @@ if len(sys.argv) > 1:
 else:
     show_plot = False
 model_filename = 'threejoint'
-q_init = np.array([0, 0, 0])
 
 robot_config = MujocoConfig(model_filename)
 
@@ -40,7 +39,7 @@ interface.connect()
 ctrlr = OSC(robot_config, kp=10, kv=5,
             ctrlr_dof=[True, True, True, False, False, False])
 
-interface.send_target_angles(q_init)
+interface.send_target_angles(np.ones(3))
 
 target_xyz = np.array([0.1, 0.1, 0.3])
 interface.set_mocap_xyz('target', target_xyz)
@@ -68,6 +67,10 @@ count = 0
 link_name = 'EE'
 try:
     while True:
+        if interface.viewer.exit:
+            glfw.destroy_window(interface.viewer.window)
+            break
+
         start = timeit.default_timer()
         # get arm feedback
         feedback = interface.get_feedback()
@@ -84,8 +87,10 @@ try:
             print('TIMES UP')
             count = 0
             time_elapsed = 0.0
-            target_xyz[0] = np.random.uniform(0.2, 0.3) * np.sign(np.random.uniform(-1, 1))
-            target_xyz[1] = np.random.uniform(0.2, 0.25) * np.sign(np.random.uniform(-1, 1))
+            target_xyz[0] = (np.random.uniform(0.2, 0.3)
+                             * np.sign(np.random.uniform(-1, 1)))
+            target_xyz[1] = (np.random.uniform(0.2, 0.25)
+                             * np.sign(np.random.uniform(-1, 1)))
             target_xyz[2] = np.random.uniform(0.3, 0.4)
             # update the position of the target
             interface.set_mocap_xyz('target', target_xyz)
@@ -139,7 +144,8 @@ finally:
 
         plt.subplot(1, 2, 1, projection='3d')
         plt.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2])
-        plt.plot(target_track[:, 0], target_track[:, 1], target_track[:, 2], 'rx', mew=3, lw=2)
+        plt.plot(target_track[:, 0], target_track[:, 1], target_track[:, 2],
+                 'rx', mew=3, lw=2)
         plt.gca().set_xlim([-1, 1])
         plt.gca().set_ylim([-1, 1])
         plt.gca().set_zlim([0, 1])
