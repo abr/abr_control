@@ -33,7 +33,6 @@ model_filename = 'jaco2'
 # we need to send target angles for the 6 gripper joints as well
 # NOTE that only three of the finger joints are actuated
 robot_config = MujocoConfig(model_filename)
-q_init = robot_config.START_ANGLES
 
 dt = 0.005
 interface = Mujoco(robot_config, dt=dt)
@@ -42,7 +41,7 @@ interface.connect()
 ctrlr = OSC(robot_config, kp=64, kv=15,
             ctrlr_dof=[True, True, True, False, False, False])
 
-interface.send_target_angles(q_init)
+interface.send_target_angles(robot_config.START_ANGLES)
 
 target_xyz = np.array([-0.2, 0.2, 0.4])
 interface.set_mocap_xyz('target', target_xyz)

@@ -54,10 +54,6 @@ class Mujoco(Interface):
         if self.visualize:
             self.viewer = mjp.MjViewer(self.sim)
 
-
-        # TODO: automate adding the target and hand bodies and excluding
-        # them from collision dynamics calculations with all other bodies
-
         print('MuJoCo session created')
 
 
@@ -109,8 +105,7 @@ class Mujoco(Interface):
 
         # NOTE: the qpos_addr's are unrelated to the order of the motors
         # NOTE: assuming that the robot arm motors are the first len(u) values
-        for ii in range(len(self.sim.data.ctrl)):
-            self.sim.data.ctrl[ii] = u[ii]
+        self.sim.data.ctrl[:] = u[:]
 
         # Update position of hand object
         # NOTE: contact exclude tags must be included in the XML file
@@ -147,6 +142,7 @@ class Mujoco(Interface):
         self.sim.data.qpos[joint_addrs] = np.copy(q)
         self.sim.forward()
 
+
     def set_joint_state(self, q, dq, joint_addrs=None):
         """ Move the robot to the specified configuration.
 
@@ -164,8 +160,7 @@ class Mujoco(Interface):
 
         self.sim.data.qpos[joint_addrs] = np.copy(q)
         self.sim.data.qvel[joint_addrs] = np.copy(dq)
-        self.sim.forward()
-
+        mjp.cymj._mj_step1(self.robot_config.model, self.sim.data)
 
 
     def get_feedback(self):
