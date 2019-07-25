@@ -1,8 +1,9 @@
+from xml.etree import ElementTree
+
 import os
 import numpy as np
 
 import mujoco_py as mjp
-from xml.etree import ElementTree
 
 class MujocoConfig():
     """ A wrapper on the Mujoco simulator to generate all the kinematics and
