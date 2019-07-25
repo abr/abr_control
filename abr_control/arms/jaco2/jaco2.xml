@@ -164,6 +164,21 @@
         <exclude body1="target" body2="link1"/>
         <exclude body1="target" body2="base_link"/>
 
+        <exclude body1="target_orientation" body2="EE"/>
+        <exclude body1="target_orientation" body2="thumb_distal"/>
+        <exclude body1="target_orientation" body2="thumb_proximal"/>
+        <exclude body1="target_orientation" body2="index_distal"/>
+        <exclude body1="target_orientation" body2="index_proximal"/>
+        <exclude body1="target_orientation" body2="middle_distal"/>
+        <exclude body1="target_orientation" body2="middle_proximal"/>
+        <exclude body1="target_orientation" body2="link6"/>
+        <exclude body1="target_orientation" body2="link5"/>
+        <exclude body1="target_orientation" body2="link4"/>
+        <exclude body1="target_orientation" body2="link3"/>
+        <exclude body1="target_orientation" body2="link2"/>
+        <exclude body1="target_orientation" body2="link1"/>
+        <exclude body1="target_orientation" body2="base_link"/>
+
         <exclude body1="path_planner" body2="EE"/>
         <exclude body1="path_planner" body2="thumb_distal"/>
         <exclude body1="path_planner" body2="thumb_proximal"/>
@@ -178,22 +193,50 @@
         <exclude body1="path_planner" body2="link2"/>
         <exclude body1="path_planner" body2="link1"/>
         <exclude body1="path_planner" body2="base_link"/>
+
+        <exclude body1="path_planner_orientation" body2="EE"/>
+        <exclude body1="path_planner_orientation" body2="thumb_distal"/>
+        <exclude body1="path_planner_orientation" body2="thumb_proximal"/>
+        <exclude body1="path_planner_orientation" body2="index_distal"/>
+        <exclude body1="path_planner_orientation" body2="index_proximal"/>
+        <exclude body1="path_planner_orientation" body2="middle_distal"/>
+        <exclude body1="path_planner_orientation" body2="middle_proximal"/>
+        <exclude body1="path_planner_orientation" body2="link6"/>
+        <exclude body1="path_planner_orientation" body2="link5"/>
+        <exclude body1="path_planner_orientation" body2="link4"/>
+        <exclude body1="path_planner_orientation" body2="link3"/>
+        <exclude body1="path_planner_orientation" body2="link2"/>
+        <exclude body1="path_planner_orientation" body2="link1"/>
+        <exclude body1="path_planner_orientation" body2="base_link"/>
     </contact>
 
     <worldbody>
-        <body name="hand" pos="0 0 0" mocap="true">
+        <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
+
+        <geom name="floor_grey_tile" pos="0 0 -0.001" size="1 1 0.05" type="plane" material="tile"/>
+
+        <body name="hand" pos="0 0 -0.5" mocap="true">
             <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="2"/>
         </body>
 
-        <body name="target" pos="0 0 0" mocap="true">
+        <body name="target" pos="0 0 -0.5" mocap="true">
             <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
         </body>
 
-        <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
-        <geom name="floor_grey_tile" pos="0 0 -0.001" size="1 1 0.05" type="plane" material="tile"/>
+        <body name="target_orientation" pos="0 0 -0.5" mocap="true">
+            <geom type="box" size=".02 .04 .06" rgba=".9 0 0 .5" contype="2"/>
+        </body>
 
-        <body name="path_planner" pos="0 0 0" mocap="true">
+        <body name="path_planner" pos="0 0 -0.5" mocap="true">
             <geom type="sphere" size="0.05" rgba="0 1 1 0.5"/>
+        </body>
+
+        <body name="path_planner_orientation" pos="0 0 -0.5" mocap="true">
+            <geom type="box" size=".02 .04 .06" rgba="0 1 1 .5" contype="2"/>
+        </body>
+
+        <body name="obstacle" pos="0 0 -0.5" mocap="true">
+            <geom type="sphere" size="0.05" rgba="0 0 1 1"/>
         </body>
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
