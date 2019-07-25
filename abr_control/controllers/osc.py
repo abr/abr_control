@@ -204,7 +204,9 @@ class OSC(Controller):
         xyz_offset: list, optional (Default: None)
             point of interest inside the frame of reference [meters]
         """
-        assert np.array(target).shape[0] == 6
+        assert np.array(target).shape[0] == 6, (
+            "Expect a shape of 6, but received shape %i" % (target.shape[0])
+            + " from target: ", target)
 
         if target_vel is None:
             target_vel = self.ZEROS_SIX
