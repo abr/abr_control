@@ -1,4 +1,10 @@
 <mujoco model="twojoint">
+
+    <custom>
+        <numeric name="START_ANGLES" data="0.0 0.0"/>
+        <numeric name="N_JOINTS" data="2"/>
+    </custom>
+
     <contact>
         <exclude body1="hand" body2="EE"/>
         <exclude body1="hand" body2="base_link"/>
