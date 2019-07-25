@@ -19,11 +19,12 @@ from abr_control.utils import transformations
 robot_config = arm('jaco2')
 
 # instantiate the controller
-ctrlr = Floating(robot_config, task_space=True)
+ctrlr = Floating(robot_config, task_space=True, dynamic=True)
 
 # create the Mujoco interface and connect up
-interface = Mujoco(robot_config, dt=.005)
+interface = Mujoco(robot_config, dt=.001)
 interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
 
 # set up arrays for tracking end-effector and target position
 ee_track = []
