@@ -33,28 +33,36 @@ ctrlr = OSC(
     ctrlr_dof = [True, True, True, True, True, True])
 
 # create our interface
-interface = Mujoco(robot_config, dt=.005)
+interface = Mujoco(robot_config, dt=.001)
 interface.connect()
-
-# pregenerate our path and orientation planners
-n_timesteps = 3000
-traj_planner = path_planners.BellShaped(
-    error_scale=0.1, n_timesteps=n_timesteps)
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx('EE', feedback['q'])
-starting_orientation = robot_config.quaternion('EE', feedback['q'])
 
-target_orientation = np.random.random(3)
-target_orientation /= np.linalg.norm(target_orientation)
-# convert our orientation to a quaternion
-target_orientation = [0] + list(target_orientation)
-target_position = [0.4, -0.3, 0.5]
+def get_target(robot_config):
+    # pregenerate our path and orientation planners
+    n_timesteps = 2000
+    traj_planner = path_planners.BellShaped(
+        error_scale=0.01, n_timesteps=n_timesteps)
 
-traj_planner.generate_path(
-    position=hand_xyz, target_pos=target_position)
-_, orientation_planner = traj_planner.generate_orientation_path(
-    orientation=starting_orientation, target_orientation=target_orientation)
+    starting_orientation = robot_config.quaternion('EE', feedback['q'])
+
+    target_orientation = np.random.random(3)
+    target_orientation /= np.linalg.norm(target_orientation)
+    # convert our orientation to a quaternion
+    target_orientation = [0] + list(target_orientation)
+
+    #target_position = [0.4, -0.3, 0.5]
+    mag = 0.6
+    target_position = np.random.random(3)*0.5
+    target_position = target_position / np.linalg.norm(target_position) * mag
+
+    traj_planner.generate_path(
+        position=hand_xyz, target_pos=target_position)
+    _, orientation_planner = traj_planner.generate_orientation_path(
+        orientation=starting_orientation, target_orientation=target_orientation)
+
+    return traj_planner, orientation_planner, target_position, target_orientation
 
 # set up lists for tracking data
 ee_track = []
@@ -65,8 +73,6 @@ target_angles_track = []
 
 try:
     count = 0
-    interface.set_mocap_xyz('target_orientation', target_position)
-    interface.set_mocap_orientation('target_orientation', target_orientation)
 
     print('\nSimulation starting...\n')
     while 1:
@@ -76,8 +82,12 @@ try:
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
+        if count % 3000 == 0:
+            traj_planner, orientation_planner, target_position, target_orientation = get_target(robot_config)
+            interface.set_mocap_xyz('target_orientation', target_position)
+            interface.set_mocap_orientation('target_orientation', target_orientation)
 
-        pos, vel = traj_planner.next()[:3]
+        pos, vel = traj_planner.next()
         orient = orientation_planner.next()
         target = np.hstack([pos, orient])
 

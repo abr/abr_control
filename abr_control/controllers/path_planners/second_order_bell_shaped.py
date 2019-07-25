@@ -54,7 +54,10 @@ class BellShaped(PathPlanner):
         # want to follow the same trajectory in (x, y, z)
         y_des = np.vstack([y_des, y_des, y_des])
 
-        self.dmps = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=.01)
+        # we can control the DMP rollout speed with the time step size
+        # the DMP will reach the target in 1s of sim time
+        dt = 1 / n_timesteps
+        self.dmps = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=dt)
         self.dmps.imitate_path(y_des)
 
 

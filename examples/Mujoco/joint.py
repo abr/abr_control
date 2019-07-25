@@ -16,15 +16,16 @@ from abr_control.controllers import Joint
 robot_config = arm('jaco2')
 
 # instantiate the REACH controller for the jaco2 robot
-ctrlr = Joint(robot_config, kp=50)
+ctrlr = Joint(robot_config, kp=20, kv=10)
 
 # create interface and connect
-interface = Mujoco(robot_config=robot_config, dt=.005)
+interface = Mujoco(robot_config=robot_config, dt=.001)
 interface.connect()
+# interface.send_target_angles(robot_config.START_ANGLES)
 
 # make the target an offset of the current configuration
 feedback = interface.get_feedback()
-target = feedback['q'] + np.ones(robot_config.N_JOINTS) * .3
+target = feedback['q'] + np.random.random(robot_config.N_JOINTS) * 2 - 1
 
 # set up arrays for tracking end-effector and target position
 q_track = []

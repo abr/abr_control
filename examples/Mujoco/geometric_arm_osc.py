@@ -48,7 +48,7 @@ else:
 
 robot_config = MujocoConfig(model_filename)
 
-dt = 0.005
+dt = 0.001
 interface = Mujoco(robot_config, dt=dt)
 interface.connect()
 

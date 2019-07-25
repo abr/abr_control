@@ -13,23 +13,29 @@ from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
 from abr_control.controllers import OSC, Damping
 
-
+print('******************************')
+print('* DOF Controlled: x, a, b ,g *')
+print('******************************')
 # initialize our robot config
 robot_config = arm('jaco2')
+ctrlr_dof = [False, True, False, True, True, True]
+dof_labels = ['x', 'y', 'z', 'a', 'b', 'g']
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
 ctrlr = OSC(
     robot_config,
-    kp=200,
+    kp=30,
+    kv=20,
+    ko=180,
     null_controllers=[damping],
     vmax=[10, 10],  # [m/s, rad/s]
     # control (x, alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-    ctrlr_dof=[True, False, False, True, True, True])
+    ctrlr_dof=ctrlr_dof)
 
 # create our interface
-interface = Mujoco(robot_config, dt=.005)
+interface = Mujoco(robot_config, dt=.001)
 interface.connect()
 
 target_orientation = np.random.random(4)
@@ -75,7 +81,7 @@ try:
         ee_angles_track.append(transformations.euler_from_matrix(
             robot_config.R('EE', feedback['q']), axes='rxyz'))
         target_track.append(np.copy(target[:3]))
-        target_angles_track.append(interface.get_mocap_orientation('target'))
+        target_angles_track.append(np.copy(target[3:]))
         count += 1
 
 finally:
@@ -97,14 +103,20 @@ finally:
         fig = plt.figure(figsize=(8,12))
         ax1 = fig.add_subplot(311)
         ax1.set_ylabel('3D position (m)')
-        ax1.plot(ee_track)
-        ax1.plot(target_track, '--')
+        for ii, controlled_dof in enumerate(ctrlr_dof[:3]):
+            if controlled_dof:
+                ax1.plot(ee_track[:, ii], label=dof_labels[ii])
+                ax1.plot(target_track[:, ii], '--')
+        ax1.legend()
 
         ax2 = fig.add_subplot(312)
-        ax2.plot(ee_angles_track)
-        ax2.plot(target_angles_track, '--')
+        for ii, controlled_dof in enumerate(ctrlr_dof[3:]):
+            if controlled_dof:
+                ax2.plot(ee_angles_track[:, ii], label=dof_labels[ii+3])
+                ax2.plot(target_angles_track[:, ii], '--')
         ax2.set_ylabel('3D orientation (rad)')
         ax2.set_xlabel('Time (s)')
+        ax2.legend()
 
         ax3 = fig.add_subplot(313, projection='3d')
         ax3.set_title('End-Effector Trajectory')

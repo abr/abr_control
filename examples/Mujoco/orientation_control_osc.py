@@ -26,8 +26,9 @@ ctrlr = OSC(
     ctrlr_dof = [False, False, False, True, True, True])
 
 # create our interface
-interface = Mujoco(robot_config, dt=.005)
+interface = Mujoco(robot_config, dt=.001)
 interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
 
 # set up lists for tracking data
 ee_angles_track = []

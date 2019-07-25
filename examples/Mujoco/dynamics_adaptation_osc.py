@@ -28,24 +28,29 @@ ctrlr = OSC(
 
 # create our adaptive controller
 adapt = signals.DynamicsAdaptation(
-    n_neurons=1000,
+    n_neurons=5000,
     n_ensembles=5,
-    n_input=2,  # we apply adaptation on the most heavily stressed joints
-    n_output=2,
+    n_input=10,  # we apply adaptation on the most heavily stressed joints
+    n_output=5,
     pes_learning_rate=5e-5,
-    intercepts_bounds=[-0.6, -0.2],
-    intercepts_mode=-0.2,
-    means=[3.14, 3.14],
-    variances=[1.57, 1.57])
+    intercepts_bounds=[-0.3, 0.1],
+    intercepts_mode=-0.1,
+    means=[0.12, 2.14, 1.87, 4.32, 0.59,
+        0.12, -0.38, -0.42, -0.29, 0.36],
+    variances=[0.08, 0.6, 0.7, 0.3, 0.6,
+        0.08, 1.4, 1.6, 0.7, 1.2],
+    spherical=True)
 
 # create our Mujoco interface
-interface = Mujoco(robot_config, dt=.005)
+interface = Mujoco(robot_config, dt=.001)
 interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
 
 # set up lists for tracking data
 ee_track = []
 target_track = []
-
+q_track = []
+dq_track = []
 
 try:
     # get the end-effector's initial position
@@ -78,11 +83,11 @@ try:
             )
 
         u_adapt = np.zeros(robot_config.N_JOINTS)
-        u_adapt[1:3] = adapt.generate(
-            input_signal=np.array(
-                [feedback['q'][1], feedback['q'][2]]),
+        u_adapt[:5] = adapt.generate(
+            input_signal=np.hstack(
+                (feedback['q'][:5], feedback['dq'][:5])),
             training_signal=np.array(
-                [ctrlr.training_signal[1], ctrlr.training_signal[2]]))
+                ctrlr.training_signal[:5]))
         u += u_adapt
 
         # add an additional force for the controller to adapt to
@@ -97,6 +102,8 @@ try:
         # track data
         ee_track.append(np.copy(ee_xyz))
         target_track.append(np.copy(target[:3]))
+        q_track.append(np.copy(feedback['q']))
+        dq_track.append(np.copy(feedback['dq']))
 
         count += 1
 
@@ -109,6 +116,8 @@ finally:
 
     ee_track = np.array(ee_track)
     target_track = np.array(target_track)
+    q_track = np.asarray(q_track)
+    dq_track = np.asarray(dq_track)
 
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
@@ -116,6 +125,18 @@ finally:
         from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
         fig = plt.figure(figsize=(8,12))
+
+        # for ii in range(6):
+        #     a = fig.add_subplot(6,2,ii*2+1)
+        #     a.plot(q_track[:, ii], label=np.mean(q_track[:, ii]))
+        #     a.set_title('q%i'%ii)
+        #     a.legend()
+        #     a2 = fig.add_subplot(6,2,ii*2+2)
+        #     a2.plot(dq_track[:, ii], label=np.mean(dq_track[:, ii]))
+        #     a2.set_title('dq%i'%ii)
+        #     a2.legend()
+        # plt.show()
+
         ax1 = fig.add_subplot(211)
         ax1.set_ylabel('Distance (m)')
         ax1.set_xlabel('Time (ms)')
