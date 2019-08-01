@@ -12,7 +12,7 @@ from abr_control.interfaces import VREP
 
 
 # initialize our robot config for the jaco2
-robot_config = arm.Config(use_cython=True, hand_attached=False)
+robot_config = arm.Config(use_cython=True, hand_attached=True)
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
@@ -97,6 +97,9 @@ try:
         target_track.append(np.copy(target[:3]))
 
         count += 1
+
+        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
+        interface.set_xyz(name='hand', xyz=ee_xyz)
 
 except:
     print(traceback.format_exc())

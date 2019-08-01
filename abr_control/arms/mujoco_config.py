@@ -86,11 +86,10 @@ class MujocoConfig():
         q: np.array
             The set of joint angles to move the arm to
         """
-
         # save current state
         old_q = np.copy(self.sim.data.qpos[self.joint_pos_addrs])
         # update positions to specified state
-        self.sim.data.qpos[self.joint_pos_addrs] = q
+        self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
         # move simulation forward to calculate new kinamtic information
         self.sim.forward()
 
@@ -112,7 +111,7 @@ class MujocoConfig():
         if q is not None:
             old_q = self._load_state(q)
 
-        g = -self.sim.data.qfrc_bias
+        g = -1 * np.copy(self.sim.data.qfrc_bias)
 
         if q is not None:
             self._load_state(old_q)
@@ -142,7 +141,7 @@ class MujocoConfig():
         raise NotImplementedError
 
 
-    def J(self, name, q=None, x=None):
+    def J(self, name, q=None, x=None, object_type='body'):
         """ Returns the Jacobian for the specified Mujoco body
 
         Parameters
@@ -159,11 +158,24 @@ class MujocoConfig():
         if q is not None:
             old_q = self._load_state(q)
 
+        if object_type == 'body':
+            jacp = self.sim.data.get_body_jacp
+            jacr = self.sim.data.get_body_jacr
+        elif object_type == 'geom':
+            jacp = self.sim.data.get_geom_jacp
+            jacr = self.sim.data.get_geom_jacr
+        elif object_type == 'site':
+            jacp = self.sim.data.get_site_jacp
+            jacr = self.sim.data.get_site_jacr
+        else:
+            raise Exception('Invalid object type specified: ', object_type)
+
+
         # get the position Jacobian hstacked (1 x N_JOINTS*3)
-        self._J3N[:] = self.sim.data.get_body_jacp(name)
+        self._J3N[:] = jacp(name)
         self._J6N[:3] = self._J3N.reshape((3, self.N_JOINTS))
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
-        self._J3N[:] = self.sim.data.get_body_jacr(name)
+        self._J3N[:] = jacr(name)
         self._J6N[3:] = self._J3N.reshape((3, self.N_JOINTS))
 
         if q is not None:
@@ -218,7 +230,7 @@ class MujocoConfig():
         if q is not None:
             old_q = self._load_state(q)
 
-        quaternion = self.sim.data.get_body_xquat(name)
+        quaternion = np.copy(self.sim.data.get_body_xquat(name))
 
         if q is not None:
             self._load_state(old_q)
@@ -252,7 +264,7 @@ class MujocoConfig():
         raise NotImplementedError
 
 
-    def Tx(self, name, q=None, x=None):
+    def Tx(self, name, q=None, x=None, object_type='body'):
         """ Returns the Cartesian coordinates of the specified Mujoco body
 
         Parameters
@@ -270,10 +282,27 @@ class MujocoConfig():
         if q is not None:
             old_q = self._load_state(q)
 
-        Tx = self.sim.data.get_body_xpos(name)
+        if object_type == 'body':
+            Tx = np.copy(self.sim.data.get_body_xpos(name))
+        elif object_type == 'geom':
+            Tx = np.copy(self.sim.data.get_geom_xpos(name))
+        elif object_type == 'joint':
+            Tx = np.copy(self.sim.data.get_joint_xanchor(name))
+        elif object_type == 'site':
+            Tx = np.copy(self.sim.data.get_site_xpos(name))
+        elif object_type == 'camera':
+            Tx = np.copy(self.sim.data.get_cam_xpos(name))
+        elif object_type == 'light':
+            Tx = np.copy(self.sim.data.get_light_xpos(name))
+        elif object_type == 'mocap':
+            Tx = np.copy(self.sim.data.get_mocap_pos(name))
+        else:
+            raise Exception('Invalid object type specified: ', object_type)
+
 
         if q is not None:
             self._load_state(old_q)
+
         return Tx
 
 
