@@ -88,11 +88,11 @@ try:
             print('target', target)
 
         if np.linalg.norm(hand_xyz[:N_JOINTS] - target[:N_JOINTS]) < 0.01:
-            target[0] = (np.random.uniform(0.2, 0.3)
+            target[0] = (np.random.uniform(0.2, 0.25)
                          * np.sign(np.random.uniform(-1, 1)))
             target[1] = (np.random.uniform(0.2, 0.25)
                          * np.sign(np.random.uniform(-1, 1)))
-            target[2] = np.random.uniform(0.3, 0.4)
+            target[2] = np.random.uniform(0.4, 0.5)
             interface.set_mocap_xyz('target', target[:3])
 
         q_track.append(feedback['q'])
