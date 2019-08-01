@@ -40,15 +40,17 @@ class Mujoco(Interface):
         self.sim = mjp.MjSim(self.robot_config.model)
         self.sim.forward()  # run forward to fill in sim.data
 
-        # give the robot config access to the sim for wrapping the
-        # forward kinematics / dynamics functions
-        self.robot_config._connect(self.sim)
-
         self.joint_pos_addrs = [self.sim.model.get_joint_qpos_addr(name)
-                                for name in self.robot_config.JOINT_NAMES]
+                                for name in self.sim.model.joint_names]
 
         self.joint_vel_addrs = [self.sim.model.get_joint_qvel_addr(name)
-                                for name in self.robot_config.JOINT_NAMES]
+                                for name in self.sim.model.joint_names]
+
+        # give the robot config access to the sim for wrapping the
+        # forward kinematics / dynamics functions
+        self.robot_config._connect(self.sim,
+                                   self.joint_pos_addrs,
+                                   self.joint_vel_addrs)
 
         # create the visualizer
         if self.visualize:
