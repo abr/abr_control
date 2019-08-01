@@ -44,7 +44,7 @@ class MujocoConfig():
                     [float(angle) for angle in START_ANGLES])
 
 
-    def _connect(self, sim):
+    def _connect(self, sim, joint_pos_addrs, joint_vel_addrs):
         """ Called by the interface once the Mujoco simulation is created,
         this connects the config to the simulator so it can access the
         kinematics and dynamics information calculated by Mujoco.
@@ -56,6 +56,8 @@ class MujocoConfig():
         """
         # get access to the Mujoco simulation
         self.sim = sim
+        self.joint_pos_addrs = joint_pos_addrs
+        self.joint_vel_addrs = joint_vel_addrs
 
         self.JOINT_NAMES = self.sim.model.joint_names
         self.N_JOINTS = len(self.JOINT_NAMES)
@@ -76,6 +78,25 @@ class MujocoConfig():
         self._x = np.ones(4)
 
 
+    def _load_state(self, q):
+        """ Change the current joint angles
+
+        Parameters
+        ----------
+        q: np.array
+            The set of joint angles to move the arm to
+        """
+
+        # save current state
+        old_q = np.copy(self.sim.data.qpos[self.joint_pos_addrs])
+        # update positions to specified state
+        self.sim.data.qpos[self.joint_pos_addrs] = q
+        # move simulation forward to calculate new kinamtic information
+        self.sim.forward()
+
+        return old_q
+
+
     def g(self, q=None):
         """ Returns qfrc_bias variable, which stores the effects of Coriolis,
         centrifugal, and gravitational forces
@@ -86,7 +107,17 @@ class MujocoConfig():
             The joint angles of the robot. If None the current state is
             retrieved from the Mujoco simulator
         """
-        return -self.sim.data.qfrc_bias
+        # TODO: For the Coriolis and centrifugal functions, setting the
+        # velocity before calculation is important, how best to do this?
+        if q is not None:
+            old_q = self._load_state(q)
+
+        g = -self.sim.data.qfrc_bias
+
+        if q is not None:
+            self._load_state(old_q)
+
+        return g
 
 
     def dJ(self, name, q=None, dq=None, x=None):
@@ -125,6 +156,8 @@ class MujocoConfig():
         """
         if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
+        if q is not None:
+            old_q = self._load_state(q)
 
         # get the position Jacobian hstacked (1 x N_JOINTS*3)
         self._J3N[:] = self.sim.data.get_body_jacp(name)
@@ -132,6 +165,9 @@ class MujocoConfig():
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
         self._J3N[:] = self.sim.data.get_body_jacr(name)
         self._J6N[3:] = self._J3N.reshape((3, self.N_JOINTS))
+
+        if q is not None:
+            self._load_state(old_q)
 
         return self._J6N
 
@@ -145,27 +181,48 @@ class MujocoConfig():
             The joint angles of the robot. If None the current state is
             retrieved from the Mujoco simulator
         """
+        if q is not None:
+            old_q = self._load_state(q)
+
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM
         mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
         # TODO: there's a shape like _MNN function or some such, right?
         self._MNN = self._MNN_vector.reshape((self.N_JOINTS, self.N_JOINTS))
+
+        if q is not None:
+            self._load_state(old_q)
+
         return self._MNN
 
 
     def R(self, name, q=None):
         """ Returns the rotation matrix of the specified body
         """
+        if q is not None:
+            old_q = self._load_state(q)
+
         mjp.cymj._mju_quat2Mat(
             self._R9, self.sim.data.get_body_xquat(name))
         self._R = self._R9.reshape((3, 3))
+
+        if q is not None:
+            self._load_state(old_q)
+
         return self._R
 
 
     def quaternion(self, name, q=None):
         """ Returns the quaternion of the specified body
         """
-        return self.sim.data.get_body_xquat(name)
+        if q is not None:
+            old_q = self._load_state(q)
+
+        quaternion = self.sim.data.get_body_xquat(name)
+
+        if q is not None:
+            self._load_state(old_q)
+        return quaternion
 
 
     def C(self, q=None):
@@ -209,7 +266,15 @@ class MujocoConfig():
         """
         if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
-        return self.sim.data.get_body_xpos(name)
+
+        if q is not None:
+            old_q = self._load_state(q)
+
+        Tx = self.sim.data.get_body_xpos(name)
+
+        if q is not None:
+            self._load_state(old_q)
+        return Tx
 
 
     def T_inv(self, name, q=None, x=None):
