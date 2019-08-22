@@ -10,7 +10,7 @@ class MujocoConfig():
     dynamics calculations necessary for controllers.
     """
 
-    def __init__(self, xml_file):
+    def __init__(self, xml_file, use_sim_state=False):
         """ Loads the Mujoco model from the specified xml file
 
         Parameters
@@ -24,12 +24,19 @@ class MujocoConfig():
             EX: 'myArm' and 'myArm_with_gripper' will both look in the
             'myArm' directory, however they will load myArm.xml and
             myArm_with_gripper.xml, respectively
+        use_sim_state: Boolean, optional (Default: False)
+            If set true, the q and dq values passed in to the functions are
+            ignored, and the current state of the simulator is used to
+            calculate all functions. Can speed up simulation by not resetting
+            the state on every call.
         """
 
         current_dir = os.path.dirname(__file__)
         self.xml_file = os.path.join(
             current_dir, xml_file.split('_')[0], '%s.xml' % xml_file)
         self.model = mjp.load_model_from_path(self.xml_file)
+
+        self.use_sim_state = use_sim_state
 
         # get access to some of our custom arm parameters from the xml definition
         tree = ElementTree.parse(self.xml_file)
@@ -78,7 +85,7 @@ class MujocoConfig():
         self._x = np.ones(4)
 
 
-    def _load_state(self, q):
+    def _load_state(self, q, dq=None, u=None):
         """ Change the current joint angles
 
         Parameters
@@ -88,12 +95,20 @@ class MujocoConfig():
         """
         # save current state
         old_q = np.copy(self.sim.data.qpos[self.joint_pos_addrs])
+        old_dq = np.copy(self.sim.data.qvel[self.joint_vel_addrs])
+        old_u = np.copy(self.sim.data.ctrl)
+
         # update positions to specified state
         self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
+        if dq is not None:
+            self.sim.data.qvel[self.joint_vel_addrs] = np.copy(dq)
+        if u is not None:
+            self.sim.data.ctrl[:] = np.copy(u)
+
         # move simulation forward to calculate new kinamtic information
         self.sim.forward()
 
-        return old_q
+        return old_q, old_dq, old_u
 
 
     def g(self, q=None):
@@ -108,13 +123,13 @@ class MujocoConfig():
         """
         # TODO: For the Coriolis and centrifugal functions, setting the
         # velocity before calculation is important, how best to do this?
-        if q is not None:
-            old_q = self._load_state(q)
+        if not self.use_sim_state and q is not None:
+            old_q, old_dq, old_u = self._load_state(q)
 
         g = -1 * np.copy(self.sim.data.qfrc_bias)
 
-        if q is not None:
-            self._load_state(old_q)
+        if not self.use_sim_state and q is not None:
+            self._load_state(old_q, old_dq, old_u)
 
         return g
 
@@ -155,8 +170,9 @@ class MujocoConfig():
         """
         if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
-        if q is not None:
-            old_q = self._load_state(q)
+
+        if not self.use_sim_state and q is not None:
+            old_q, old_dq, old_u = self._load_state(q)
 
         if object_type == 'body':
             jacp = self.sim.data.get_body_jacp
@@ -170,7 +186,6 @@ class MujocoConfig():
         else:
             raise Exception('Invalid object type specified: ', object_type)
 
-
         # get the position Jacobian hstacked (1 x N_JOINTS*3)
         self._J3N[:] = jacp(name)
         self._J6N[:3] = self._J3N.reshape((3, self.N_JOINTS))
@@ -178,8 +193,8 @@ class MujocoConfig():
         self._J3N[:] = jacr(name)
         self._J6N[3:] = self._J3N.reshape((3, self.N_JOINTS))
 
-        if q is not None:
-            self._load_state(old_q)
+        if not self.use_sim_state and q is not None:
+            self._load_state(old_q, old_dq, old_u)
 
         return self._J6N
 
@@ -193,8 +208,8 @@ class MujocoConfig():
             The joint angles of the robot. If None the current state is
             retrieved from the Mujoco simulator
         """
-        if q is not None:
-            old_q = self._load_state(q)
+        if not self.use_sim_state and q is not None:
+            old_q, old_dq, old_u = self._load_state(q)
 
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM
@@ -202,8 +217,8 @@ class MujocoConfig():
         # TODO: there's a shape like _MNN function or some such, right?
         self._MNN = self._MNN_vector.reshape((self.N_JOINTS, self.N_JOINTS))
 
-        if q is not None:
-            self._load_state(old_q)
+        if not self.use_sim_state and q is not None:
+            self._load_state(old_q, old_dq, old_u)
 
         return self._MNN
 
@@ -211,15 +226,15 @@ class MujocoConfig():
     def R(self, name, q=None):
         """ Returns the rotation matrix of the specified body
         """
-        if q is not None:
-            old_q = self._load_state(q)
+        if not self.use_sim_state and q is not None:
+            old_q, old_dq, old_u = self._load_state(q)
 
         mjp.cymj._mju_quat2Mat(
             self._R9, self.sim.data.get_body_xquat(name))
         self._R = self._R9.reshape((3, 3))
 
-        if q is not None:
-            self._load_state(old_q)
+        if not self.use_sim_state and q is not None:
+            self._load_state(old_q, old_dq, old_u)
 
         return self._R
 
@@ -227,13 +242,14 @@ class MujocoConfig():
     def quaternion(self, name, q=None):
         """ Returns the quaternion of the specified body
         """
-        if q is not None:
-            old_q = self._load_state(q)
+        if not self.use_sim_state and q is not None:
+            old_q, old_dq, old_u = self._load_state(q)
 
         quaternion = np.copy(self.sim.data.get_body_xquat(name))
 
-        if q is not None:
-            self._load_state(old_q)
+        if not self.use_sim_state and q is not None:
+            self._load_state(old_q, old_dq, old_u)
+
         return quaternion
 
 
@@ -279,8 +295,8 @@ class MujocoConfig():
         if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
 
-        if q is not None:
-            old_q = self._load_state(q)
+        if not self.use_sim_state and q is not None:
+            old_q, old_dq, old_u = self._load_state(q)
 
         if object_type == 'body':
             Tx = np.copy(self.sim.data.get_body_xpos(name))
@@ -299,9 +315,8 @@ class MujocoConfig():
         else:
             raise Exception('Invalid object type specified: ', object_type)
 
-
-        if q is not None:
-            self._load_state(old_q)
+        if not self.use_sim_state and q is not None:
+            self._load_state(old_q, old_dq, old_u)
 
         return Tx
 

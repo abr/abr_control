@@ -14,7 +14,7 @@ from abr_control.utils import transformations
 
 
 # initialize our robot config
-robot_config = arm('jaco2')
+robot_config = arm('jaco2', use_sim_state=False)
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)

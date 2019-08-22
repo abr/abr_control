@@ -21,7 +21,7 @@ ctrlr = Joint(robot_config, kp=20, kv=10)
 # create interface and connect
 interface = Mujoco(robot_config=robot_config, dt=.001)
 interface.connect()
-# interface.send_target_angles(robot_config.START_ANGLES)
+interface.send_target_angles(robot_config.START_ANGLES)
 
 # make the target an offset of the current configuration
 feedback = interface.get_feedback()
@@ -34,7 +34,7 @@ q_track = []
 try:
     count = 0
     print('\nSimulation starting...\n')
-    while count < 1500:
+    while count < 15000:
         if interface.viewer.exit:
             glfw.destroy_window(interface.viewer.window)
             break
@@ -49,6 +49,8 @@ try:
             )
 
         # send forces into Mujoco, step the sim forward
+        u[-1] = .1
+        print(interface.sim.data.ctrl)
         interface.send_forces(u)
 
         # track joint angles
