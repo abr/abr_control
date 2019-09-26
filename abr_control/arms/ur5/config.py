@@ -9,9 +9,8 @@ class Config(BaseConfig):
 
     Attributes
     ----------
-    REST_ANGLES : numpy.array
-        the joint angles the arm tries to push towards with the
-        null controller
+    START_ANGLES : numpy.array
+        The joint angles for a safe home or rest position
     _M_LINKS : sympy.diag
         inertia matrix of the links
     _M_JOINTS : sympy.diag
@@ -39,11 +38,6 @@ class Config(BaseConfig):
 
         self.JOINT_NAMES = ['UR5_joint%i' % ii
                             for ii in range(self.N_JOINTS)]
-
-        # for the null space controller, keep arm near these angles
-        self.REST_ANGLES = np.array(
-            [None, np.pi/4.0, -np.pi/2.0, np.pi/4.0, np.pi/2.0, np.pi/2.0],
-            dtype='float32')
 
         self.START_ANGLES = np.array(
             [0, np.pi/4.0, -np.pi/2.0, np.pi/4.0, np.pi/2.0, np.pi/2.0],

@@ -204,13 +204,9 @@ class OSC(Controller):
         xyz_offset: list, optional (Default: None)
             point of interest inside the frame of reference [meters]
         """
-        assert np.array(target).shape[0] == 6, (
-            "Expect a shape of 6, but received shape %i" % (target.shape[0])
-            + " from target: ", target)
 
         if target_vel is None:
             target_vel = self.ZEROS_SIX
-        assert np.array(target_vel).shape[0] == 6
 
         J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
         # isolate rows of Jacobian corresponding to controlled task space DOF
@@ -248,7 +244,7 @@ class OSC(Controller):
         if np.all(target_vel == 0):
             # if there's no target velocity in task space,
             # compensate for velocity in joint space (more accurate)
-            u = -self.kv * np.dot(M, dq)
+            u = -1 * self.kv * np.dot(M, dq)
         else:
             dx = np.zeros(6)
             dx[self.ctrlr_dof] = np.dot(J, dq)

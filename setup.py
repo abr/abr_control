@@ -44,7 +44,7 @@ tests_require = [
     "pytest-xdist>=1.26.0",
     "pytest-cov>=2.6.0",
     "coverage>=4.5.0",
-    "nengolib>=0.5.0",]
+    "nengolib>=0.5.2",]
 
 setup(
     name="abr_control",
@@ -60,7 +60,6 @@ setup(
     long_description=read('README.rst'),
     install_requires=setup_requires + install_requires,
     setup_requires=setup_requires,
-    python_requires="<3.7",
     extras_require={"tests": tests_require},
     cmdclass={'build_ext': build_ext},
     ext_modules=[
