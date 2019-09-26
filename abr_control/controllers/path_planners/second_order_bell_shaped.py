@@ -19,6 +19,7 @@ time_limit specified in `generate_path_function()`
 
 """
 import numpy as np
+import matplotlib.pyplot as plt
 
 try:
     import pydmps
@@ -85,7 +86,6 @@ class BellShaped(PathPlanner):
         self.n = 0
 
         if plot:
-            import matplotlib.pyplot as plt
             plt.plot(self.position)
             plt.legend(['X', 'Y', 'Z'])
             plt.show()

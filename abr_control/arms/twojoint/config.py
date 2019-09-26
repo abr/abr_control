@@ -9,9 +9,8 @@ class Config(BaseConfig):
 
     Attributes
     ----------
-    REST_ANGLES : numpy.array
-        the joint angles the arm tries to push towards with the
-        null controller
+    START_ANGLES : numpy.array
+        The joint angles for a safe home or rest position
     _M_LINKS : sympy.diag
         inertia matrix of the links
     _M_JOINTS : sympy.diag
@@ -36,7 +35,7 @@ class Config(BaseConfig):
         self._T = {}  # dictionary for storing calculated transforms
 
         # for the null space controller, keep arm near these angles
-        self.REST_ANGLES = np.array([np.pi/4.0, np.pi/4.0])
+        self.START_ANGLES = np.array([np.pi/4.0, np.pi/4.0])
 
         # create the inertia matrices for each link of the twojoint
         self._M_LINKS.append(np.diag(np.zeros(6)))  # non-existent link0

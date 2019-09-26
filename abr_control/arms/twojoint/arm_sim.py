@@ -13,7 +13,7 @@ class ArmSim():
         such as: number of joints, number of links, mass information etc.
     dt: float, optional (Default: 0.001)
         simulation time step [seconds]
-    q_init : numpy.array, optional (Default: robot_config.REST_ANGLES)
+    q_init : numpy.array, optional (Default: robot_config.START_ANGLES)
         start joint angles [radians]
     """
 
@@ -22,7 +22,7 @@ class ArmSim():
         self.robot_config = robot_config
 
         self.q_init = (q_init if q_init is not None else
-                       self.robot_config.REST_ANGLES)
+                       self.robot_config.START_ANGLES)
         self.reset()
 
         M = self.robot_config._M_LINKS
