@@ -3,9 +3,12 @@ import numpy as np
 import scipy.special
 
 import nengo
-from nengolib.stats import spherical_transform
-
-
+try:
+    import nengolib
+    from nengolib.stats import spherical_transform
+except ImportError:
+    print('\nnengolib library required for scattered hypersphere encoders'
+          + ' and spherical transform, pip install nengolib for these features\n')
 
 class DynamicsAdaptation():
     """ An implementation of nonlinear dynamics adaptation using Nengo,
@@ -117,7 +120,6 @@ class DynamicsAdaptation():
             np.random.seed = self.seed
             # if NengoLib is installed, use it to optimize encoder placement
             try:
-                import nengolib
                 encoders_dist = nengolib.stats.ScatteredHypersphere(surface=True)
             except ImportError:
                 encoders_dist = nengo.Default

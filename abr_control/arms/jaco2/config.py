@@ -17,9 +17,8 @@ class Config(BaseConfig):
 
     Attributes
     ----------
-    REST_ANGLES : numpy.array
-        the joint angles the arm tries to push towards with the
-        null controller
+    START_ANGLES : numpy.array
+        The joint angles for a safe home or rest position
     _M_LINKS : sympy.diag
         inertia matrix of the links
     _M_JOINTS : sympy.diag
@@ -52,8 +51,6 @@ class Config(BaseConfig):
         abr_control.utils.os_utils.makedirs(self.config_folder)
 
         self.JOINT_NAMES = ['joint%i' % ii for ii in range(self.N_JOINTS)]
-
-        self.REST_ANGLES = np.array([None, 2.42, 2.42, 0.0, 0.0, 0.0])
 
         # position to move to before switching to torque mode
         self.START_ANGLES = np.array(
