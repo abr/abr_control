@@ -69,14 +69,14 @@ def test_dJ():
                         robot_config.dJ('link1', q, dq),
                         test_arm.dJ_link1(q, dq))
                     assert np.allclose(
-                        robot_config.J('joint1', q),
-                        test_arm.J_joint1(q))
+                        robot_config.dJ('joint1', q, dq),
+                        test_arm.dJ_joint1(q, dq))
                     assert np.allclose(
-                        robot_config.J('link2', q),
-                        test_arm.J_link2(q))
+                        robot_config.dJ('link2', q, dq),
+                        test_arm.dJ_link2(q, dq))
                     assert np.allclose(
-                        robot_config.J('EE', q),
-                        test_arm.J_EE(q))
+                        robot_config.dJ('EE', q, dq),
+                        test_arm.dJ_EE(q, dq))
 
 
 def test_J():
