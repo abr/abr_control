@@ -12,8 +12,7 @@ NAME=$0
 COMMAND=$1
 
 if [[ "$COMMAND" == "install" ]]; then
-    # astroid==2.2 causes an error when running pylint
-    exe pip install codespell pylint gitlint "astroid"
+    exe pip install codespell pylint gitlint
 elif [[ "$COMMAND" == "script" ]]; then
     exe pylint abr_control --rcfile=setup.cfg --ignore=arm_files,vrep_files
     exe codespell -q 3 --skip=arm_files,vrep_files --ignore-words-list="DOF,dof"
