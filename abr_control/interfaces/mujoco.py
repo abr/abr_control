@@ -2,6 +2,8 @@ import numpy as np
 
 import mujoco_py as mjp
 
+from mujoco_py.generated import const
+
 from .interface import Interface
 
 
@@ -32,7 +34,7 @@ class Mujoco(Interface):
         self.visualize = visualize
 
 
-    def connect(self):
+    def connect(self, camera_id=-1):
         """
         NOTE: currently it is assumed that all joints are on the robot
         i.e. there are no bodies with freejoints elsewhere in the XML
@@ -55,6 +57,10 @@ class Mujoco(Interface):
         # create the visualizer
         if self.visualize:
             self.viewer = mjp.MjViewer(self.sim)
+            # if specified, set the camera
+            if camera_id > -1:
+                self.viewer.cam.type = const.CAMERA_FIXED
+                self.viewer.cam.fixedcamid = camera_id
 
         print('MuJoCo session created')
 
