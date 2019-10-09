@@ -15,7 +15,7 @@ if [[ "$COMMAND" == "install" ]]; then
     exe pip install -e ".[tests]"
     exe pip install scipy==1.1.0
 elif [[ "$COMMAND" == "script" ]]; then
-    exe pytest -v -n 2 --color=yes --durations 20 --cov=abr_control abr_control
+    exe pytest -v -n 2 --color=yes --durations 20 --cov=abr_control abr_control --ignore-glob="*/test_mujoco_config.py"
 elif [[ "$COMMAND" == "after_script" ]]; then
     exe eval "bash <(curl -s https://codecov.io/bash)"
 elif [[ -z "$COMMAND" ]]; then
