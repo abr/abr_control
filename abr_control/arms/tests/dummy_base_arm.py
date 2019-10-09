@@ -267,12 +267,12 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
     def dJ_link2(self, q, dq):
         """ Returns the derivative of the Jacobian of link 2 """
         return np.array([
-            [-self.L[1] * np.cos(q[0]) * dq[0] -
-             self.L[2] / 2.0 * np.cos(q[0] + q[1]) * dq[0],
-             -self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[1]],
-            [-self.L[1] * np.sin(q[0]) * dq[0] -
-             self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[0],
-             -self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[1]],
+            [- self.L[1] * np.cos(q[0]) * dq[0]
+             - self.L[2] / 2.0 * np.cos(q[0] + q[1]) * (dq[0] + dq[1]),
+             -self.L[2] / 2.0 * np.cos(q[0] + q[1]) * (dq[0] + dq[1])],
+            [-self.L[1] * np.sin(q[0]) * dq[0]
+             - self.L[2] / 2.0 * np.sin(q[0] + q[1]) * (dq[0] + dq[1]),
+             -self.L[2] / 2.0 * np.sin(q[0] + q[1]) * (dq[0] + dq[1])],
             [0, 0],
             [0, 0],
             [0, 0],
@@ -323,8 +323,8 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
     def J_EE(self, q):
         """ Returns the Jacobian of the end effector """
         return np.array([
-            [-self.L[1] * np.sin(q[0]) - self.L[2] *
-             np.sin(q[0] + q[1]), -self.L[2] * np.sin(q[0] + q[1])],
+            [-self.L[1] * np.sin(q[0]) - self.L[2] * np.sin(q[0] + q[1]),
+             -self.L[2] * np.sin(q[0] + q[1])],
             [self.L[1] * np.cos(q[0]) + self.L[2] * np.cos(q[0] + q[1]),
              self.L[2] * np.cos(q[0] + q[1])],
             [0, 0],
@@ -336,12 +336,12 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
     def dJ_EE(self, q, dq):
         """ Returns the derivative of the Jacobian of the end effector """
         return np.array([
-            [-self.L[1] * np.cos(q[0]) * dq[0] -
-             self.L[2] / 2.0 * np.cos(q[0] + q[1]) * dq[0],
-             -self.L[2] * np.sin(q[0] + q[1]) * dq[1]],
-            [-self.L[1] * np.sin(q[0]) * dq[0] -
-             self.L[2] / 2.0 * np.sin(q[0] + q[1]) * dq[0],
-             -self.L[2] * np.sin(q[0] + q[1]) * dq[1]],
+            [-self.L[1] * np.cos(q[0]) * dq[0]
+             - self.L[2] * np.cos(q[0] + q[1]) * (dq[0] + dq[1]),
+             -self.L[2] * np.cos(q[0] + q[1]) * (dq[0] + dq[1])],
+            [-self.L[1] * np.sin(q[0]) * dq[0]
+             - self.L[2] * np.sin(q[0] + q[1]) * (dq[0] + dq[1]),
+             -self.L[2] * np.sin(q[0] + q[1]) * (dq[0] + dq[1])],
             [0, 0],
             [0, 0],
             [0, 0],
