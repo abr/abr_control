@@ -49,8 +49,6 @@ try:
             )
 
         # send forces into Mujoco, step the sim forward
-        u[-1] = .1
-        print(interface.sim.data.ctrl)
         interface.send_forces(u)
 
         # track joint angles
