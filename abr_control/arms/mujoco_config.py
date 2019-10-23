@@ -91,7 +91,11 @@ class MujocoConfig():
         Parameters
         ----------
         q: np.array
-            The set of joint angles to move the arm to
+            The set of joint angles to move the arm to [rad]
+        dq: np.array
+            The set of joint velocities to move the arm to [rad/sec]
+        u: np.array
+            The set of joint forces to apply to the arm joints [Nm]
         """
         # save current state
         old_q = np.copy(self.sim.data.qpos[self.joint_pos_addrs])
@@ -167,6 +171,8 @@ class MujocoConfig():
             The joint angles of the robot. If None the current state is
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
+        object_type: string, the Mujoco object type, optional (Default: body)
+            options: body, geom, site
         """
         if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
@@ -253,14 +259,14 @@ class MujocoConfig():
         return quaternion
 
 
-    def C(self, q=None):
+    def C(self, q=None, dq=None):
         """ NOTE: The Coriolis and centrifugal effects (and gravity) are
         already accounted for by Mujoco in the qfrc_bias variable. There's
         no easy way to separate these, so all are returned by the g function.
         To prevent accounting for these effects twice, this function will
         return an error instead of qfrc_bias again.
         """
-        raise Exception('Coriolis and centrifugal effects already accounted '
+        raise NotImplementedError('Coriolis and centrifugal effects already accounted '
                         + 'for in the term return by the gravity function.')
 
 
@@ -291,6 +297,8 @@ class MujocoConfig():
             The joint angles of the robot. If None the current state is
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
+        object_type: string, the Mujoco object type, optional (Default: body)
+            options: body, geom, site, camera, light, mocap
         """
         if x is not None and not np.allclose(x, 0):
             raise Exception('x offset currently not supported: ', x)
