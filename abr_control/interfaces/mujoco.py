@@ -17,6 +17,8 @@ class Mujoco(Interface):
         such as: number of joints, number of links, mass information etc.
     dt: float, optional (Default: 0.001)
         simulation time step in seconds
+    visualize: boolean, optional (Default: True)
+        turns visualization on or off
     """
 
     def __init__(self, robot_config, dt=.001, visualize=True):
@@ -38,6 +40,9 @@ class Mujoco(Interface):
         """
         NOTE: currently it is assumed that all joints are on the robot
         i.e. there are no bodies with freejoints elsewhere in the XML
+
+        camera_id: int, optional (Default: -1)
+            the id of the camera to use for the visualization
         """
         self.sim = mjp.MjSim(self.robot_config.model)
         self.sim.forward()  # run forward to fill in sim.data
@@ -108,7 +113,7 @@ class Mujoco(Interface):
         Parameters
         ----------
         u: np.array
-            the torques to apply to the robot
+            the torques to apply to the robot [Nm]
         """
 
         # NOTE: the qpos_addr's are unrelated to the order of the motors
@@ -140,9 +145,6 @@ class Mujoco(Interface):
         ----------
         q: np.array
             configuration to move to [radians]
-        joint_addrs: list, optional (Default: None)
-            ID numbers for the joint, used when trying to get information
-            out of the VREP remote API
         """
 
         self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
@@ -155,7 +157,9 @@ class Mujoco(Interface):
         Parameters
         ----------
         q: np.array
-            configuration to move to [radians]
+            configuration to move to [rad]
+        dq: np.array
+            joint velocities [rad/s]
         """
 
         self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)

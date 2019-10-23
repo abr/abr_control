@@ -5,6 +5,8 @@ from abr_control.interfaces.mujoco import Mujoco
 
 from .dummy_mujoco_arm import TwoJoint
 
+import pytest
+
 
 # TODO
 # def test_connect
@@ -61,7 +63,9 @@ def test_J():
 
 def test_M():
     test_arm = TwoJoint()
-    robot_config = arm.Config()
+    robot_config = arm('twojoint')
+    interface = Mujoco(robot_config=robot_config)
+    interface.connect()
 
     q_vals = np.linspace(0, 2*np.pi, 50)
     for q0 in q_vals:
@@ -72,22 +76,24 @@ def test_M():
 
 def test_R():
     test_arm = TwoJoint()
-    robot_config = arm.Config()
+    robot_config = arm('twojoint')
+    interface = Mujoco(robot_config=robot_config)
+    interface.connect()
 
     q_vals = np.linspace(0, 2*np.pi, 50)
     for q0 in q_vals:
         for q1 in q_vals:
             q = [q0, q1]
             assert np.allclose(
-                robot_config.R('link0', q), test_arm.R_link0(q))
+                robot_config.R('link1', q), test_arm.R_link0(q))
             assert np.allclose(
                 robot_config.R('joint0', q), test_arm.R_joint0(q))
             assert np.allclose(
-                robot_config.R('link1', q), test_arm.R_link1(q))
+                robot_config.R('link2', q), test_arm.R_link1(q))
             assert np.allclose(
                 robot_config.R('joint1', q), test_arm.R_joint1(q))
             assert np.allclose(
-                robot_config.R('link2', q), test_arm.R_link2(q))
+                robot_config.R('EE', q), test_arm.R_link2(q))
             assert np.allclose(
                 robot_config.R('EE', q), test_arm.R_EE(q))
 
@@ -98,16 +104,19 @@ def test_R():
 
 def test_C():
     test_arm = TwoJoint()
-    robot_config = arm.Config()
+    robot_config = arm('twojoint')
+    interface = Mujoco(robot_config=robot_config)
+    interface.connect()
 
-    q_vals = np.linspace(0, 2*np.pi, 15)
-    for q0 in q_vals:
-        for q1 in q_vals:
-            q = [q0, q1]
-            for dq0 in q_vals:
-                for dq1 in q_vals:
-                    dq = [dq0, dq1]
-                    assert np.allclose(robot_config.C(q, dq), test_arm.C(q, dq))
+    with pytest.raises(NotImplementedError):
+        q_vals = np.linspace(0, 2*np.pi, 15)
+        for q0 in q_vals:
+            for q1 in q_vals:
+                q = [q0, q1]
+                for dq0 in q_vals:
+                    for dq1 in q_vals:
+                        dq = [dq0, dq1]
+                        assert np.allclose(robot_config.C(q, dq), test_arm.C(q, dq))
 
 
 # TODO
