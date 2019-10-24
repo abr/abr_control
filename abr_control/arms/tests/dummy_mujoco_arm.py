@@ -20,6 +20,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
 
         self.MEANS = {'q':np.ones(2), 'dq':np.ones(2)*3}
         self.SCALES = {'q':np.ones(2) * 2, 'dq':np.ones(2)*.5}
+        print('M: ', self.M_LINKS)
 
 
     def R_link0(self, q):
@@ -125,10 +126,11 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
         c1 = np.cos(q[1])
         s0 = np.sin(q[0])
         s1 = np.sin(q[1])
-        return np.array([
-            [c0*c1, -s0, -c0*s1],
-            [s0*c1, c0, -s0*s1],
-            [s1, 0, c1]])
+        T21 = np.array([
+            [c1, 0, s1],
+            [0, 1, 0],
+            [-s1, 0, c1]])
+        return np.dot(self.R_link1(q), T21)
 
 
     def Tx_link2(self, q):
@@ -162,14 +164,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
 
     def R_EE(self, q):
         """ Returns rotation matrix of the end effector """
-        c0 = np.cos(q[0])
-        c1 = np.cos(q[1])
-        s0 = np.sin(q[0])
-        s1 = np.sin(q[1])
-        return np.array([
-            [c0 * c1 - s0 * s1, -c0 * s1 - s0 * c1, 0],
-            [s0 * c1 + c0 * s1, -s0 * s1 + c0 * c1, 0],
-            [0, 0, 1]])
+        return self.R_link2(q)
 
 
     def Tx_EE(self, q):
@@ -215,12 +210,48 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
                                  2*L[1]*lc2*np.cos(q[1])) + i1 + i2)
         m12 = m21 = m2 * (lc2**2 + L[1] * lc2 * np.cos(q[1])) + i2
         m22 = m2 * lc2**2 + i2
-        return np.array([[m11, m12], [m21, m22]])
+        print('M travis: ', np.array([[m11, m12], [m21, m22]]))
+        #return np.array([[m11, m12], [m21, m22]])
+
+        M1 = np.dot(np.dot(self.J_link1(q).T, self.M_LINKS[1]), self.J_link1(q))
+        M2 = np.dot(np.dot(self.J_link2(q).T, self.M_LINKS[2]), self.J_link2(q))
+        M3 = np.dot(np.dot(self.J_EE(q).T, self.M_LINKS[0]), self.J_EE(q))
+        M = M1 + M2 + M3
+        print('M numpy: ', M)
+
+        s0 = np.sin(q[0])
+        s1 = np.sin(q[1])
+        c0 = np.sin(q[0])
+        c1 = np.sin(q[1])
+        i1 = self.M_LINKS[1][3, 3]
+        i2 = self.M_LINKS[1][5, 5]
+        l2 = self.L[2]
+        # transform each inertia matrix into joint space
+        M1 = np.array([[i2, 0], [0, 0]])
+        M2 = np.array([
+            [s0*s1*l2*s0*s1*l2/2 + c0*s1*l2*c0*s1*l2/2,
+             -s0*s1*l2*c0*c1*l2/2 + c0*s1*l2*s0*c1*l2/2],
+            [c0*c1*l2*s0*s1*l2/2 + s0*c1*l2*c0*s1*l2/3,
+             -c0*c1*l2*c0*c1*l2/2 + s0*c1*l2*s0*c1*l2/2 + s1*s1*l2*l2/2 + i1*s0*s0 + i1*c0*c0]])
+        M = M1 + M2
+        print('M pawel: ', M)
+
+        return M
 
 
     def g(self, q):
         """ Returns the effects of gravity in joint space """
-        return np.array([0, 0])
+
+        gravity = np.array([[0, 0, -9.81, 0, 0, 0]]).T
+        # sum together the effects of each arm segment's inertia
+        g = np.dot(
+                np.dot(self.J_link1(q).T, np.asarray(self.M_LINKS[1])),
+                gravity)
+        g += np.dot(
+                np.dot(self.J_link2(q).T, np.asarray(self.M_LINKS[2])),
+                gravity)
+
+        return g
 
 
     def C(self, q, dq):
