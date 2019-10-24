@@ -1,11 +1,10 @@
 import numpy as np
+import pytest
 
 from abr_control.arms.mujoco_config import MujocoConfig as arm
 from abr_control.interfaces.mujoco import Mujoco
 
 from .dummy_mujoco_arm import TwoJoint
-
-import pytest
 
 
 # TODO

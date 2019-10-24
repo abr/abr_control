@@ -229,8 +229,9 @@ class MujocoConfig():
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM
         mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
-        self._MNN = self._MNN_vector.reshape((self.N_ALL_JOINTS,
-            self.N_ALL_JOINTS))[self.joint_dyn_addrs][:, self.joint_dyn_addrs]
+        self._MNN = self._MNN_vector.reshape(
+            (self.N_ALL_JOINTS, self.N_ALL_JOINTS))[
+                self.joint_dyn_addrs][:, self.joint_dyn_addrs]
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -275,8 +276,9 @@ class MujocoConfig():
         To prevent accounting for these effects twice, this function will
         return an error instead of qfrc_bias again.
         """
-        raise NotImplementedError('Coriolis and centrifugal effects already accounted '
-                        + 'for in the term return by the gravity function.')
+        raise NotImplementedError(
+            'Coriolis and centrifugal effects already accounted '
+            + 'for in the term return by the gravity function.')
 
 
     def T(self, name, q=None, x=None):
