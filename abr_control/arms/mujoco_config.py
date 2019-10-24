@@ -51,7 +51,7 @@ class MujocoConfig():
                     [float(angle) for angle in START_ANGLES])
 
 
-    def _connect(self, sim, joint_pos_addrs, joint_vel_addrs):
+    def _connect(self, sim, joint_pos_addrs, joint_vel_addrs, joint_dyn_addrs):
         """ Called by the interface once the Mujoco simulation is created,
         this connects the config to the simulator so it can access the
         kinematics and dynamics information calculated by Mujoco.
@@ -60,25 +60,32 @@ class MujocoConfig():
         ----------
         sim: MjSim
             The Mujoco Simulator object created by the Mujoco Interface class
+        joint_pos_addrs: np.array of ints
+            The index of the robot joints in the Mujoco simulation data joint
+            position array
+        joint_vel_addrs: np.array of ints
+            The index of the robot joints in the Mujoco simulation data joint
+            velocity array
+        joint_dyn_addrs: np.array of ints
+            The index of the robot joints in the Mujoco simulation data joint
+            Jacobian, inertia matrix, and gravity vector
         """
         # get access to the Mujoco simulation
         self.sim = sim
-        self.joint_pos_addrs = joint_pos_addrs
-        self.joint_vel_addrs = joint_vel_addrs
+        self.joint_pos_addrs = np.copy(joint_pos_addrs)
+        self.joint_vel_addrs = np.copy(joint_vel_addrs)
+        self.joint_dyn_addrs = np.copy(joint_dyn_addrs)
 
-        self.JOINT_NAMES = self.sim.model.joint_names
-        self.N_JOINTS = len(self.JOINT_NAMES)
-
-        # NOTE: We assume that every body defined in the xml _after_
-        # 'base_link' is part of the robot
-        self.base_link_index = self.sim.model.body_name2id('base_link')
-        self.N_LINKS = len(self.sim.model.body_parentid) - self.base_link_index
+        # number of joints in the robot arm
+        self.N_JOINTS = len(self.joint_pos_addrs)
+        # number of joints in the Mujoco simulation
+        self.N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp('EE')) / 3)
 
         # a place to store data returned from Mujoco
         self._g = np.zeros(self.N_JOINTS)
-        self._J3N = np.zeros(3 * self.N_JOINTS)
+        self._J3N = np.zeros(3 * self.N_ALL_JOINTS)
         self._J6N = np.zeros((6, self.N_JOINTS))
-        self._MNN_vector = np.zeros(self.N_JOINTS**2)
+        self._MNN_vector = np.zeros(self.N_ALL_JOINTS**2)
         self._MNN = np.zeros((self.N_JOINTS, self.N_JOINTS))
         self._R9 = np.zeros(9)
         self._R = np.zeros((3, 3))
@@ -130,7 +137,7 @@ class MujocoConfig():
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
-        g = -1 * np.copy(self.sim.data.qfrc_bias)
+        g = -1 * np.copy(self.sim.data.qfrc_bias[self.joint_dyn_addrs])
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -194,10 +201,12 @@ class MujocoConfig():
 
         # get the position Jacobian hstacked (1 x N_JOINTS*3)
         self._J3N[:] = jacp(name)
-        self._J6N[:3] = self._J3N.reshape((3, self.N_JOINTS))
+        self._J6N[:3] = self._J3N.reshape(
+            (3, self.N_ALL_JOINTS))[:, self.joint_dyn_addrs]
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
         self._J3N[:] = jacr(name)
-        self._J6N[3:] = self._J3N.reshape((3, self.N_JOINTS))
+        self._J6N[3:] = self._J3N.reshape(
+            (3, self.N_ALL_JOINTS))[:, self.joint_dyn_addrs]
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -220,8 +229,9 @@ class MujocoConfig():
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM
         mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
-        # TODO: there's a shape like _MNN function or some such, right?
-        self._MNN = self._MNN_vector.reshape((self.N_JOINTS, self.N_JOINTS))
+        self._MNN = self._MNN_vector.reshape(
+            (self.N_ALL_JOINTS, self.N_ALL_JOINTS))[
+                self.joint_dyn_addrs][:, self.joint_dyn_addrs]
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -266,8 +276,9 @@ class MujocoConfig():
         To prevent accounting for these effects twice, this function will
         return an error instead of qfrc_bias again.
         """
-        raise NotImplementedError('Coriolis and centrifugal effects already accounted '
-                        + 'for in the term return by the gravity function.')
+        raise NotImplementedError(
+            'Coriolis and centrifugal effects already accounted '
+            + 'for in the term return by the gravity function.')
 
 
     def T(self, name, q=None, x=None):
