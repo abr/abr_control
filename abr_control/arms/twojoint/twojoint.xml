@@ -33,7 +33,7 @@
 
         <body name="base_link" pos="0 0 0.05">
             <geom name="link0" type="cylinder" pos="0 0 0" size="0.025 0.05" rgba="0 0 1 0.9"/>
-            <inertial pos="0 0 0" mass="4" diaginertia="0.1 0.1 0.1" />
+            <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
 
             <body name="link1" pos="0 0 0.05">
                 <joint name='joint0' pos="0 0 0" axis="0 0 1"/>
@@ -46,7 +46,7 @@
                     <geom name="link2" type="cylinder" pos="0 0 0.2" size="0.025 0.2" rgba="1 1 0 0.9"/>
 
                     <body name="EE" pos="0 0 .4">
-                        <inertial pos="0 0 0" mass="4" diaginertia="0.3 0.1 0.2" />
+                        <inertial pos="0 0 0" mass="0" diaginertia="0.0 0.0 0.0" />
                     </body>
 
                 </body>

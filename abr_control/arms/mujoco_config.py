@@ -241,6 +241,12 @@ class MujocoConfig():
 
     def R(self, name, q=None):
         """ Returns the rotation matrix of the specified body
+
+        name: string
+            The name of the Mujoco body to retrieve the Jacobian for
+        q: float numpy.array, optional (Default: None)
+            The joint angles of the robot. If None the current state is
+            retrieved from the Mujoco simulator
         """
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
