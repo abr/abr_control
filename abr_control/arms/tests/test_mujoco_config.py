@@ -70,7 +70,11 @@ def test_M():
     for q0 in q_vals:
         for q1 in q_vals:
             q = [q0, q1]
-            assert np.allclose(robot_config.M(q), test_arm.M(q))
+            print('\nQ0: ', q0)
+            print('Q1: ', q1)
+            print('MUJOCOO: \n', robot_config.M(q))
+            print('ABR: \n', test_arm.M(q))
+            #assert np.allclose(robot_config.M(q), test_arm.M(q))
 
 
 def test_R():
@@ -83,18 +87,34 @@ def test_R():
     for q0 in q_vals:
         for q1 in q_vals:
             q = [q0, q1]
+            print('\n----Q0----: ', q0)
+            print('----Q1----: ', q0)
+            # print('MUJOCO: \n', robot_config.R('link0', q))
+            # print('MOCK: \n', test_arm.R_link0(q))
+            # assert np.allclose(
+            #     robot_config.R('link0', q), test_arm.R_link0(q))
+            # assert np.allclose(
+            #     robot_config.R('joint0', q), test_arm.R_joint0(q))
+            print('LINK1')
+            print('MUJOCO: \n', robot_config.R('link1', q))
+            print('MOCK: \n', test_arm.R_link1(q))
             assert np.allclose(
-                robot_config.R('link1', q), test_arm.R_link0(q))
+                robot_config.R('link1', q), test_arm.R_link1(q),
+                atol=1e-5)
+            # assert np.allclose(
+            #     robot_config.R('joint1', q), test_arm.R_joint1(q))
+            print('LINK2')
+            print('MUJOCO: \n', robot_config.R('link2', q))
+            print('MOCK: \n', test_arm.R_link2(q))
             assert np.allclose(
-                robot_config.R('joint0', q), test_arm.R_joint0(q))
+                robot_config.R('link2', q), test_arm.R_link2(q),
+                atol=1e-5)
+            print('EE')
+            print('MUJOCO: \n', robot_config.R('EE', q))
+            print('MOCK: \n', test_arm.R_EE(q))
             assert np.allclose(
-                robot_config.R('link2', q), test_arm.R_link1(q))
-            assert np.allclose(
-                robot_config.R('joint1', q), test_arm.R_joint1(q))
-            assert np.allclose(
-                robot_config.R('EE', q), test_arm.R_link2(q))
-            assert np.allclose(
-                robot_config.R('EE', q), test_arm.R_EE(q))
+                robot_config.R('EE', q), test_arm.R_EE(q),
+                atol=1e-5)
 
 
 # TODO
