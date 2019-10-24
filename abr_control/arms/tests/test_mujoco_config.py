@@ -44,7 +44,6 @@ def test_J():
     for q0 in q_vals:
         for q1 in q_vals:
             q = [q0, q1]
-            print('q: ', q)
             assert np.allclose(
                 robot_config.J('link0', q, object_type='geom'),
                 test_arm.J_link0(q))
@@ -54,8 +53,6 @@ def test_J():
             assert np.allclose(
                 robot_config.J('link2', q, object_type='geom'),
                 test_arm.J_link2(q))
-            print('J mujoco: ', robot_config.J('EE', q))
-            print('J test: ', test_arm.J_EE(q))
             assert np.allclose(
                 robot_config.J('EE', q), test_arm.J_EE(q))
 
