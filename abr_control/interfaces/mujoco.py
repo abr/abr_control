@@ -46,18 +46,55 @@ class Mujoco(Interface):
         """
         self.sim = mjp.MjSim(self.robot_config.model)
         self.sim.forward()  # run forward to fill in sim.data
+        model = self.sim.model
 
-        self.joint_pos_addrs = [self.sim.model.get_joint_qpos_addr(name)
-                                for name in self.sim.model.joint_names]
+        # get the kinematic tree for the arm
+        joint_ids = []
+        joint_names = []
+        body_id = model.body_name2id('EE')
+        # start with the end-effector (EE) and work back to the world body
+        while model.body_parentid[body_id] != 0:
+            jntadrs_start = model.body_jntadr[body_id]
+            for ii in range(model.body_jntnum[body_id]):
+                joint_ids.append(jntadrs_start + ii)
+                joint_names.append(model.joint_id2name(joint_ids[-1]))
+            body_id = model.body_parentid[body_id]
+        # flip the list so it starts with the base of the arm / first joint
+        joint_names = np.array(joint_names[::-1])
+        joint_ids = np.array(joint_ids[::-1])
 
-        self.joint_vel_addrs = [self.sim.model.get_joint_qvel_addr(name)
-                                for name in self.sim.model.joint_names]
+        self.joint_pos_addrs = [model.get_joint_qpos_addr(name)
+                                for name in joint_names]
+
+        self.joint_vel_addrs = [model.get_joint_qvel_addr(name)
+                                for name in joint_names]
+
+        # Need to also get the joint rows of the Jacobian, inertia matrix, and
+        # gravity vector. This is trickier because if there's a quaternion in
+        # the joint (e.g. a free joint or a ball joint) then the joint position
+        # address will be different than the joint Jacobian row. This is because
+        # the quaternion joint will have a 4D position and a 3D derivative. So
+        # we go through all the joints, and find out what type they are, then
+        # calculate the Jacobian position based on their order and type.
+        index = 0
+        self.joint_dyn_addrs = []
+        for ii, joint_type in enumerate(model.jnt_type):
+            if ii in joint_ids:
+                self.joint_dyn_addrs.append(index)
+            if joint_type == 0:  # free joint
+                index += 6  # derivative has 6 dimensions
+            elif joint_type == 1:  # ball joint
+                index += 3  # derivative has 3 dimensions
+            else:  # slide or hinge joint
+                index += 1  # derivative has 1 dimensions
+
 
         # give the robot config access to the sim for wrapping the
         # forward kinematics / dynamics functions
         self.robot_config._connect(self.sim,
                                    self.joint_pos_addrs,
-                                   self.joint_vel_addrs)
+                                   self.joint_vel_addrs,
+                                   self.joint_dyn_addrs)
 
         # create the visualizer
         if self.visualize:
@@ -164,7 +201,6 @@ class Mujoco(Interface):
 
         self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
         self.sim.data.qvel[self.joint_vel_addrs] = np.copy(dq)
-        # mjp.cymj._mj_step1(self.robot_config.model, self.sim.data)
         self.sim.forward()
 
 
