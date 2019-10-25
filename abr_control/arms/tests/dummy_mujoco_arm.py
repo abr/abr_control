@@ -10,17 +10,14 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
         self.L = [L0, L1, L2]
         self.M_LINKS = [np.diag(np.zeros(6))] # non-existent link0
         self.M_LINKS.append(np.diag(
-            [2.0, 2.0, 2.0, 0.226891, 0.226891, 0.0152074]))  # link1
+            [2.0, 2.0, 2.0, 0.226891, 0.226891, 0.0151074]))  # link1
         self.M_LINKS.append(np.diag(
-            [2.0, 2.0, 2.0, 0.226891, 0.226891, 0.0152074]))  # link2
+            [2.0, 2.0, 2.0, 0.226891, 0.226891, 0.0151074]))  # link2
         # joints don't weigh anything
         self.M_JOINTS = [np.zeros((6, 6)) for ii in range(2)]
 
-        self.base_offset = np.array([0, 0, 0.1])
-
         self.MEANS = {'q':np.ones(2), 'dq':np.ones(2)*3}
         self.SCALES = {'q':np.ones(2) * 2, 'dq':np.ones(2)*.5}
-        print('M: ', self.M_LINKS)
 
 
     def R_link0(self, q):
@@ -196,46 +193,82 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
 
     def M(self, q):
         """ Returns the inertia matrix in joint space """
-        m1 = self.M_LINKS[1][0, 0]
-        m2 = self.M_LINKS[2][0, 0]
-        i1 = self.M_LINKS[1][3, 3]
-        i2 = self.M_LINKS[2][3, 3]
-        L = self.L
-        lc1 = L[1] / 2.0
-        lc2 = L[2] / 2.0
+        # m1 = self.M_LINKS[1][0, 0]
+        # m2 = self.M_LINKS[2][0, 0]
+        # i1 = self.M_LINKS[1][3, 3]
+        # i2 = self.M_LINKS[2][3, 3]
+        # L = self.L
+        # lc1 = L[1] / 2.0
+        # lc2 = L[2] / 2.0
+        #
+        # # NOTE: (Spong et al, 2004) incorrectly has the term commented out
+        # # below included in their equations.
+        # m11 = (m1*lc1**2 + m2 * (L[1]**2 + lc2**2 + #2*L[1]*lc2**2 +
+        #                          2*L[1]*lc2*np.cos(q[1])) + i1 + i2)
+        # m12 = m21 = m2 * (lc2**2 + L[1] * lc2 * np.cos(q[1])) + i2
+        # m22 = m2 * lc2**2 + i2
+        # print('M travis: \n', np.array([[m11, m12], [m21, m22]]))
+        # #return np.array([[m11, m12], [m21, m22]])
+        #
+        # M1 = np.dot(np.dot(self.J_link1(q).T, self.M_LINKS[1]), self.J_link1(q))
+        # M2 = np.dot(np.dot(self.J_link2(q).T, self.M_LINKS[2]), self.J_link2(q))
+        # M = M1 + M2
+        # return M
+        # print('M numpy: \n', M)
+        #
+        # s0 = np.sin(q[0])
+        # s1 = np.sin(q[1])
+        # c0 = np.sin(q[0])
+        # c1 = np.sin(q[1])
+        # i1 = self.M_LINKS[1][3, 3]
+        # i2 = self.M_LINKS[1][5, 5]
+        # l2 = self.L[2]
+        # # transform each inertia matrix into joint space
+        # M1 = np.array([[i2, 0], [0, 0]])
+        # M2 = np.array([
+        #     [s0*s1*l2*s0*s1*l2/2 + c0*s1*l2*c0*s1*l2/2,
+        #      -s0*s1*l2*c0*c1*l2/2 + c0*s1*l2*s0*c1*l2/2],
+        #     [c0*c1*l2*s0*s1*l2/2 + s0*c1*l2*c0*s1*l2/3,
+        #      -c0*c1*l2*c0*c1*l2/2 + s0*c1*l2*s0*c1*l2/2 + s1*s1*l2*l2/2 + i1*s0*s0 + i1*c0*c0]])
+        # M = M1 + M2
+        # print('M pawel: \n', M)
+        #
+        #return M
 
-        # NOTE: (Spong et al, 2004) incorrectly has the term commented out
-        # below included in their equations.
-        m11 = (m1*lc1**2 + m2 * (L[1]**2 + lc2**2 + #2*L[1]*lc2**2 +
-                                 2*L[1]*lc2*np.cos(q[1])) + i1 + i2)
-        m12 = m21 = m2 * (lc2**2 + L[1] * lc2 * np.cos(q[1])) + i2
-        m22 = m2 * lc2**2 + i2
-        print('M travis: ', np.array([[m11, m12], [m21, m22]]))
-        #return np.array([[m11, m12], [m21, m22]])
+        J2 = self.J_link2(q)
+        J2T = self.J_link2(q).T
+        m2 = self.M_LINKS[2]
+        J1 = self.J_link1(q)
+        J1T = self.J_link1(q).T
+        m1 = self.M_LINKS[1]
 
-        M1 = np.dot(np.dot(self.J_link1(q).T, self.M_LINKS[1]), self.J_link1(q))
-        M2 = np.dot(np.dot(self.J_link2(q).T, self.M_LINKS[2]), self.J_link2(q))
-        M3 = np.dot(np.dot(self.J_EE(q).T, self.M_LINKS[0]), self.J_EE(q))
-        M = M1 + M2 + M3
-        print('M numpy: ', M)
+        M20x = np.array([
+                [(J2T[0,0]*m2[0,0] + J2T[0,1]*m2[1,0]) * J2[0,0]
+                 + (J2T[0,0]*m2[0,1] + J2T[0,1]*m2[1,1]) * J2[1,0]
+                 + m2[5,5]*J2[5,0],
 
-        s0 = np.sin(q[0])
-        s1 = np.sin(q[1])
-        c0 = np.sin(q[0])
-        c1 = np.sin(q[1])
-        i1 = self.M_LINKS[1][3, 3]
-        i2 = self.M_LINKS[1][5, 5]
-        l2 = self.L[2]
-        # transform each inertia matrix into joint space
-        M1 = np.array([[i2, 0], [0, 0]])
-        M2 = np.array([
-            [s0*s1*l2*s0*s1*l2/2 + c0*s1*l2*c0*s1*l2/2,
-             -s0*s1*l2*c0*c1*l2/2 + c0*s1*l2*s0*c1*l2/2],
-            [c0*c1*l2*s0*s1*l2/2 + s0*c1*l2*c0*s1*l2/3,
-             -c0*c1*l2*c0*c1*l2/2 + s0*c1*l2*s0*c1*l2/2 + s1*s1*l2*l2/2 + i1*s0*s0 + i1*c0*c0]])
-        M = M1 + M2
-        print('M pawel: ', M)
+                 (J2T[0,0]*m2[0,0] + J2T[0,1]*m2[1,0]) * J2[0,1]
+                 + (J2T[0,0]*m2[0,1] + J2T[0,1]*m2[1,1]) * J2[1,1]
+                 + (J2T[0,0]*m2[0,2] + J2T[0,1]*m2[1,2]) * J2[2,1]
+                 + m2[5,3]*J2[3,1]
+                 + m2[5,4]*J2[4,1]
+                ],
 
+                [(J2T[1,0]*m2[0,0] + J2T[1,1]*m2[1,0] + J2T[1,2]*m2[2,0]) * J2[0,0]
+                 + (J2T[1,0]*m2[0,1] + J2T[1,1]*m2[1,1] + J2T[1,2]*m2[2,1]) * J2[1,0]
+                 + (J2T[1,3]*m2[3,5] + J2T[1,4]*m2[4,5]) * J2[5,0],
+
+                 (J2T[1,0]*m2[0,0] + J2T[1,1]*m2[1,0] + J2T[1,2]*m2[2,0]) * J2[0,1]
+                 + (J2T[1,0]*m2[0,1] + J2T[1,1]*m2[1,1] + J2T[1,2]*m2[2,1]) * J2[1,1]
+                 + (J2T[1,0]*m2[0,2] + J2T[1,1]*m2[1,2] + J2T[1,2]*m2[2,2]) * J2[2,1]
+                 + (J2T[1,3]*m2[3,3] + J2T[1,4]*m2[4,3]) * J2[3,1]
+                 + (J2T[1,3]*m2[3,4] + J2T[1,4]*m2[4,4]) * J2[4,1]
+                ]])
+
+        print('Mx20_man: ', M20x)
+        M10x = np.array([[J1T[0,5] * m1[5,5] * J1[5, 0], 0], [0, 0]])
+        M = M20x + M10x
+        #print('M neeeew: \n', M)
         return M
 
 
@@ -243,13 +276,7 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
         """ Returns the effects of gravity in joint space """
 
         gravity = np.array([[0, 0, -9.81, 0, 0, 0]]).T
-        # sum together the effects of each arm segment's inertia
-        g = np.dot(
-                np.dot(self.J_link1(q).T, np.asarray(self.M_LINKS[1])),
-                gravity)
-        g += np.dot(
-                np.dot(self.J_link2(q).T, np.asarray(self.M_LINKS[2])),
-                gravity)
+        g = np.array([0, 9.81*np.sin(q[1])*self.L[2]])
 
         return g
 
