@@ -210,10 +210,11 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
         # print('M travis: \n', np.array([[m11, m12], [m21, m22]]))
         # #return np.array([[m11, m12], [m21, m22]])
         #
-        # M1 = np.dot(np.dot(self.J_link1(q).T, self.M_LINKS[1]), self.J_link1(q))
-        # M2 = np.dot(np.dot(self.J_link2(q).T, self.M_LINKS[2]), self.J_link2(q))
-        # M3 = np.dot(np.dot(self.J_EE(q).T, self.M_LINKS[0]), self.J_EE(q))
-        # M = M1 + M2 + M3
+        M1 = np.dot(np.dot(self.J_link1(q).T, self.M_LINKS[1]), self.J_link1(q))
+        M2 = np.dot(np.dot(self.J_link2(q).T, self.M_LINKS[2]), self.J_link2(q))
+        M3 = np.dot(np.dot(self.J_EE(q).T, self.M_LINKS[0]), self.J_EE(q))
+        M = M1 + M2
+        return M
         # print('M numpy: \n', M)
         #
         # s0 = np.sin(q[0])
@@ -235,41 +236,41 @@ class TwoJoint():  # pylint: disable=too-many-public-methods
         #
         #return M
 
-        J2 = self.J_link2(q)
-        J2T = self.J_link2(q).T
-        m2 = self.M_LINKS[2]
-        J1 = self.J_link1(q)
-        J1T = self.J_link1(q).T
-        m1 = self.M_LINKS[1]
-
-        M20x = np.array([
-                [(J2T[0,0]*m2[0,0] + J2T[0,1]*m2[1,0]) * J2[0,0]
-                 + (J2T[0,0]*m2[0,1] + J2T[0,1]*m2[1,1]) * J2[1,0]
-                 + m2[5,5]*J2[5,0],
-
-                 (J2T[0,0]*m2[0,0] + J2T[0,1]*m2[1,0]) * J2[0,1]
-                 + (J2T[0,0]*m2[0,1] + J2T[0,1]*m2[1,1]) * J2[1,1]
-                 + (J2T[0,0]*m2[0,2] + J2T[0,1]*m2[1,2]) * J2[2,1]
-                 + m2[5,3]*J2[3,1]
-                 + m2[5,4]*J2[4,1]
-                ],
-
-                [(J2T[1,0]*m2[0,0] + J2T[1,1]*m2[1,0] + J2T[1,2]*m2[2,0]) * J2[0,0]
-                 + (J2T[1,0]*m2[0,1] + J2T[1,1]*m2[1,1] + J2T[1,2]*m2[2,1]) * J2[1,0]
-                 + (J2T[1,3]*m2[3,5] + J2T[1,4]*m2[4,5]) * J2[5,0],
-
-                 (J2T[1,0]*m2[0,0] + J2T[1,1]*m2[1,0] + J2T[1,2]*m2[2,0]) * J2[0,1]
-                 + (J2T[1,0]*m2[0,1] + J2T[1,1]*m2[1,1] + J2T[1,2]*m2[2,1]) * J2[1,1]
-                 + (J2T[1,0]*m2[0,2] + J2T[1,1]*m2[1,2] + J2T[1,2]*m2[2,2]) * J2[2,1]
-                 + (J2T[1,3]*m2[3,3] + J2T[1,4]*m2[4,3]) * J2[3,1]
-                 + (J2T[1,3]*m2[3,4] + J2T[1,4]*m2[4,4]) * J2[4,1]
-                ]])
-
-        M10x = np.array([[J1T[0,5] * m1[5,5] * J1[5, 0], 0], [0, 0]])
-        M = M20x + M10x
-        #print('M neeeew: \n', M)
-        return M
-
+        # J2 = self.J_link2(q)
+        # J2T = self.J_link2(q).T
+        # m2 = self.M_LINKS[2]
+        # J1 = self.J_link1(q)
+        # J1T = self.J_link1(q).T
+        # m1 = self.M_LINKS[1]
+        #
+        # M20x = np.array([
+        #         [(J2T[0,0]*m2[0,0] + J2T[0,1]*m2[1,0]) * J2[0,0]
+        #          + (J2T[0,0]*m2[0,1] + J2T[0,1]*m2[1,1]) * J2[1,0]
+        #          + m2[5,5]*J2[5,0],
+        #
+        #          (J2T[0,0]*m2[0,0] + J2T[0,1]*m2[1,0]) * J2[0,1]
+        #          + (J2T[0,0]*m2[0,1] + J2T[0,1]*m2[1,1]) * J2[1,1]
+        #          + (J2T[0,0]*m2[0,2] + J2T[0,1]*m2[1,2]) * J2[2,1]
+        #          + m2[5,3]*J2[3,1]
+        #          + m2[5,4]*J2[4,1]
+        #         ],
+        #
+        #         [(J2T[1,0]*m2[0,0] + J2T[1,1]*m2[1,0] + J2T[1,2]*m2[2,0]) * J2[0,0]
+        #          + (J2T[1,0]*m2[0,1] + J2T[1,1]*m2[1,1] + J2T[1,2]*m2[2,1]) * J2[1,0]
+        #          + (J2T[1,3]*m2[3,5] + J2T[1,4]*m2[4,5]) * J2[5,0],
+        #
+        #          (J2T[1,0]*m2[0,0] + J2T[1,1]*m2[1,0] + J2T[1,2]*m2[2,0]) * J2[0,1]
+        #          + (J2T[1,0]*m2[0,1] + J2T[1,1]*m2[1,1] + J2T[1,2]*m2[2,1]) * J2[1,1]
+        #          + (J2T[1,0]*m2[0,2] + J2T[1,1]*m2[1,2] + J2T[1,2]*m2[2,2]) * J2[2,1]
+        #          + (J2T[1,3]*m2[3,3] + J2T[1,4]*m2[4,3]) * J2[3,1]
+        #          + (J2T[1,3]*m2[3,4] + J2T[1,4]*m2[4,4]) * J2[4,1]
+        #         ]])
+        #
+        # M10x = np.array([[J1T[0,5] * m1[5,5] * J1[5, 0], 0], [0, 0]])
+        # M = M20x + M10x
+        # #print('M neeeew: \n', M)
+        # return M
+        #
 
     def g(self, q):
         """ Returns the effects of gravity in joint space """

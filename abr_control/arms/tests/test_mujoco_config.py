@@ -63,6 +63,34 @@ def test_M(plt):
     interface = Mujoco(robot_config=robot_config)
     interface.connect()
 
+    muj_Mi = robot_config.sim.model.body_inertia
+    muj_m = robot_config.sim.model.body_mass
+    link1 = robot_config.sim.model.body_name2id('link1')
+    link2 = robot_config.sim.model.body_name2id('link2')
+
+    abr_Mi = np.asarray(test_arm.M_LINKS)[:, 3:, 3:]
+    abr_m = np.asarray(test_arm.M_LINKS)[:, :3, :3]
+
+    # check inertias
+    assert np.allclose(muj_Mi[link1], np.diag(abr_Mi[1]), atol=1e-5)
+    assert np.allclose(muj_Mi[link2], np.diag(abr_Mi[2]), atol=1e-5)
+    # check masses
+    assert np.allclose(muj_m[link1], np.diag(abr_m[1])[0], atol=1e-5)
+    assert np.allclose(muj_m[link2], np.diag(abr_m[2])[0], atol=1e-5)
+    # check our diag masses match
+    assert np.allclose(np.mean(np.diag(abr_m[1])), np.diag(abr_m[1])[0], atol=1e-5)
+    assert np.allclose(np.mean(np.diag(abr_m[2])), np.diag(abr_m[1])[2], atol=1e-5)
+
+    # link1 step by step
+
+    # link2 step by step
+
+
+    print('muj_Mi: ', muj_Mi)
+    print('muj_m: ', muj_m)
+    print('abr_Mi: ', abr_Mi)
+    print('abr_m: ', abr_m)
+
     q_vals = np.linspace(0, 2*np.pi, 50)
     q1s = []
     mujs = []
@@ -71,8 +99,11 @@ def test_M(plt):
     for ii in range(4):
         a[ii] = plt.subplot(4,1,ii+1)
     for q0 in q_vals:
+        q0 = q_vals[20]
         for q1 in q_vals:
             q = [q0, q1]
+            print('muj J1: ', robot_config.J('link1', q))
+            print('muj J2: ', robot_config.J('link2', q))
             # print('\nQ0: ', q0)
             # print('Q1: ', q1)
             muj = robot_config.M(q)
@@ -80,27 +111,27 @@ def test_M(plt):
             # print('\nMUJOCOO: \n', muj)
             # print('MINE: \n', mine)
             # test_arm.M(q)
-            #assert np.allclose(robot_config.M(q), test_arm.M(q))
-            q1s.append(np.copy(q1))
-            mujs.append(muj)
-            mines.append(mine)
-        mujs = np.asarray(mujs)
-        q1s = np.asarray(q1s)
-        mines = np.asarray(mines)
-        print('muj shape: ', mujs[:,0,0].shape)
-        print(q1s.shape)
-        print('muj shape: ', mujs[0].shape)
-        a[0].plot(q1s, mujs[:,0,0], 'g')
-        a[1].plot(q1s, mujs[:,0,1], 'g')
-        a[2].plot(q1s, mujs[:,1,0], 'g')
-        a[3].plot(q1s, mujs[:,1,1], 'g')
-        a[0].plot(q1s, mines[:,0,0], '--b')
-        a[1].plot(q1s, mines[:,0,1], '--b')
-        a[2].plot(q1s, mines[:,1,0], '--b')
-        a[3].plot(q1s, mines[:,1,1], '--b')
-        # for ax in a:
-        #     ax.legend([)
-        break
+            assert np.allclose(robot_config.M(q), test_arm.M(q))
+        #     q1s.append(np.copy(q1))
+        #     mujs.append(muj)
+        #     mines.append(mine)
+        # mujs = np.asarray(mujs)
+        # q1s = np.asarray(q1s)
+        # mines = np.asarray(mines)
+        # print('muj shape: ', mujs[:,0,0].shape)
+        # print(q1s.shape)
+        # print('muj shape: ', mujs[0].shape)
+        # a[0].plot(q1s, mujs[:,0,0], 'g')
+        # a[1].plot(q1s, mujs[:,0,1], 'g')
+        # a[2].plot(q1s, mujs[:,1,0], 'g')
+        # a[3].plot(q1s, mujs[:,1,1], 'g')
+        # a[0].plot(q1s, mines[:,0,0], '--b')
+        # a[1].plot(q1s, mines[:,0,1], '--b')
+        # a[2].plot(q1s, mines[:,1,0], '--b')
+        # a[3].plot(q1s, mines[:,1,1], '--b')
+        # # for ax in a:
+        # #     ax.legend([)
+        # break
     # plt.show()
     #
 
