@@ -57,21 +57,44 @@ def test_J():
                 robot_config.J('EE', q), test_arm.J_EE(q))
 
 
-def test_M():
+def test_M(plt):
     test_arm = TwoJoint()
     robot_config = arm('twojoint')
     interface = Mujoco(robot_config=robot_config)
     interface.connect()
 
     q_vals = np.linspace(0, 2*np.pi, 50)
+    a = [0,0,0,0]
+    for ii in range(4):
+        a[ii] = plt.subplot(4,1,ii+1)
     for q0 in q_vals:
         for q1 in q_vals:
             q = [q0, q1]
-            print('\nQ0: ', q0)
-            print('Q1: ', q1)
-            print('MUJOCOO: \n', robot_config.M(q))
-            print('ABR: \n', test_arm.M(q))
+            # print('\nQ0: ', q0)
+            # print('Q1: ', q1)
+            muj = robot_config.M(q)
+            mine = test_arm.M(q)
+            print('\nMUJOCOO: \n', muj)
+            print('MINE: \n', mine)
+            # test_arm.M(q)
             #assert np.allclose(robot_config.M(q), test_arm.M(q))
+            print('muj shape: ', muj.shape)
+            print('my shape: ', mine.shape)
+            print(muj[0,0])
+            print(q1)
+            a[0].plot(q1, muj[0,0], 'g')
+            a[1].plot(q1, muj[0,1], 'g')
+            a[2].plot(q1, muj[1,0], 'g')
+            a[3].plot(q1, muj[1,1], 'g')
+            a[0].plot(q1, mine[0,0], 'b')
+            a[1].plot(q1, mine[0,1], 'b')
+            a[2].plot(q1, mine[1,0], 'b')
+            a[3].plot(q1, mine[1,1], 'b')
+        # for ax in a:
+        #     ax.legend([)
+        break
+    # plt.show()
+    #
 
 
 def test_R():
