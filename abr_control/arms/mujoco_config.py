@@ -221,7 +221,7 @@ class MujocoConfig():
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
 
-        return self._J6N
+        return np.copy(self._J6N)
 
 
     def M(self, q=None):
@@ -245,7 +245,7 @@ class MujocoConfig():
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
 
-        return M
+        return np.copy(M)
 
 
     def R(self, name, q=None):
