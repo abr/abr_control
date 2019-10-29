@@ -17,7 +17,7 @@ from abr_control.utils import transformations
 
 
 # initialize our robot config
-robot_config = arm('jaco2')
+robot_config = arm('jaco2_gripper')
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
@@ -38,6 +38,15 @@ interface.connect()
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx('EE', feedback['q'])
+
+def gripper_forces(command=None, grip_force=0.5):
+    if command == 'open':
+        u_gripper = np.ones(3) * grip_force
+    elif command == 'close':
+        u_gripper = np.ones(3) * -grip_force
+    elif command is None:
+        u_gripper = np.zeros(3)
+    return u_gripper
 
 def get_target(robot_config):
     # pregenerate our path and orientation planners
@@ -102,6 +111,15 @@ try:
             target=target,
             #target_vel=np.hstack([vel, np.zeros(3)])
             )
+
+        if count < 1000:
+            u_gripper = gripper_forces('open')
+        elif count < 2000:
+            u_gripper = gripper_forces()
+        elif count < 3000:
+            u_gripper = gripper_forces('close')
+
+        u = np.hstack((u, u_gripper))
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)
