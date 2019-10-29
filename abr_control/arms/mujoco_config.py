@@ -212,10 +212,11 @@ class MujocoConfig():
             elif object_type == 'site':
                 jacp = self.sim.data.get_site_jacp
                 jacr = self.sim.data.get_site_jacr
+            else:
+                raise Exception('Invalid object type specified: ', object_type)
+
             jacp(name, self._J3NP)[self.jac_indices]
             jacr(name, self._J3NR)[self.jac_indices]
-        else:
-            raise Exception('Invalid object type specified: ', object_type)
 
         # get the position Jacobian hstacked (1 x N_JOINTS*3)
         self._J6N[:3] = self._J3NP[self.jac_indices].reshape((3, self.N_JOINTS))
