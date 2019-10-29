@@ -94,7 +94,8 @@ class MujocoConfig():
 
         # a place to store data returned from Mujoco
         self._g = np.zeros(self.N_JOINTS)
-        self._J3N = np.zeros(3 * self.N_JOINTS)
+        self._J3NP = np.zeros(3 * N_ALL_JOINTS)
+        self._J3NR = np.zeros(3 * N_ALL_JOINTS)
         self._J6N = np.zeros((6, self.N_JOINTS))
         self._MNN_vector = np.zeros(N_ALL_JOINTS**2)
         self._MNN = np.zeros(self.N_JOINTS**2)
@@ -180,7 +181,7 @@ class MujocoConfig():
 
 
     def J(self, name, q=None, x=None, object_type='body'):
-        """ Returns the Jacobian for the specified Mujoco body
+        """ Returns the Jacobian for the specified Mujoco object
 
         Parameters
         ----------
@@ -194,29 +195,32 @@ class MujocoConfig():
             options: body, geom, site
         """
         if x is not None and not np.allclose(x, 0):
-            raise Exception('x offset currently not supported: ', x)
+            raise Exception('x offset currently not supported, set to None')
 
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
         if object_type == 'body':
-            jacp = self.sim.data.get_body_jacp
-            jacr = self.sim.data.get_body_jacr
-        elif object_type == 'geom':
-            jacp = self.sim.data.get_geom_jacp
-            jacr = self.sim.data.get_geom_jacr
-        elif object_type == 'site':
-            jacp = self.sim.data.get_site_jacp
-            jacr = self.sim.data.get_site_jacr
+            # TODO: test if using this function is faster than the old way
+            # NOTE: for bodies, the Jacobian for the COM is returned
+            mjp.cymj._mj_jacBodyCom(self.model, self.sim.data, self._J3NP, self._J3NR,
+                                    self.model.body_name2id(name))
+        else:
+            if object_type == 'geom':
+                jacp = self.sim.data.get_geom_jacp
+                jacr = self.sim.data.get_geom_jacr
+            elif object_type == 'site':
+                jacp = self.sim.data.get_site_jacp
+                jacr = self.sim.data.get_site_jacr
+            jacp(name, self._J3NP)[self.jac_indices]
+            jacr(name, self._J3NR)[self.jac_indices]
         else:
             raise Exception('Invalid object type specified: ', object_type)
 
         # get the position Jacobian hstacked (1 x N_JOINTS*3)
-        self._J3N[:] = jacp(name)[self.jac_indices]
-        self._J6N[:3] = self._J3N.reshape((3, self.N_JOINTS))
+        self._J6N[:3] = self._J3NP[self.jac_indices].reshape((3, self.N_JOINTS))
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
-        self._J3N[:] = jacr(name)[self.jac_indices]
-        self._J6N[3:] = self._J3N.reshape((3, self.N_JOINTS))
+        self._J6N[3:] = self._J3NR[self.jac_indices].reshape((3, self.N_JOINTS))
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
