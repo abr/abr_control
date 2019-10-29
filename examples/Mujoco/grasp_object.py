@@ -205,18 +205,33 @@ def second_order_path_planner(n_timesteps=2000, error_scale=1):
 #     traj_planner = path_planners.FirstOrderArc(n_timesteps=n_timesteps)
 #     return traj_planner
 
-def target_shift(interface, scale=0.01):
+def target_shift(interface, base_location, scale=0.01, xlim=None, ylim=None, zlim=None):
     """
     Parameters
     ----------
     scale: float, optional (Default: 0.01)
         the amount to move with each button press [meters]
     """
-    shifted_target = scale * np.array([
+    if xlim is None:
+        xlim = [-1, 1]
+    if ylim is None:
+        ylim = [-1, 1]
+    if zlim is None:
+        zlim = [0, 1]
+
+    def clip(val, minimum, maximum):
+        val = max(val, minimum)
+        val = min(val, maximum)
+        return val
+
+    shifted_target = base_location + scale * np.array([
         interface.viewer.target_x,
         interface.viewer.target_y,
         interface.viewer.target_z])
-
+    shifted_target = np.array([
+        clip(shifted_target[0], xlim[0], xlim[1]),
+        clip(shifted_target[1], ylim[0], ylim[1]),
+        clip(shifted_target[2], zlim[0], zlim[1])])
     interface.viewer.target_x = 0
     interface.viewer.target_y = 0
     interface.viewer.target_z = 0
@@ -232,7 +247,7 @@ target_angles_track = []
 
 try:
     object_xyz = np.array([0, 0.5, 0.3])
-    deposit_xyz = np.array([0.4, 0.5, 0.3])
+    deposit_xyz = np.array([0.4, 0.5, 0.0])
     reach_list = [
              # move above object
              {'target_pos': object_xyz,
@@ -285,7 +300,7 @@ try:
               'n_timesteps': 1000,
               'grasp_command': 'close',
               'hold_timesteps': None,
-              'z_offset': 0.2,
+              'z_offset': 0.5,
               'approach_buffer': 0.0,
               'traj_planner': second_order_path_planner
              },
@@ -296,7 +311,7 @@ try:
               'n_timesteps': 1000,
               'grasp_command': 'close',
               'hold_timesteps': None,
-              'z_offset': 0.01,
+              'z_offset': 0.31,
               'approach_buffer': 0,
               'traj_planner': second_order_path_planner
              },
@@ -307,7 +322,7 @@ try:
               'n_timesteps': 1000,
               'grasp_command': 'open',
               'hold_timesteps': 500,
-              'z_offset': 0.01,
+              'z_offset': 0.31,
               'approach_buffer': 0,
               'traj_planner': second_order_path_planner
              },
@@ -318,7 +333,7 @@ try:
               'n_timesteps': 1000,
               'grasp_command': None,
               'hold_timesteps': None,
-              'z_offset': 0.35,
+              'z_offset': 0.65,
               'approach_buffer': 0.0,
               'traj_planner': second_order_path_planner
              }]
@@ -326,10 +341,14 @@ try:
 
     print('\nSimulation starting...\n')
 
+    final_xyz = deposit_xyz
+
     for reach in reach_list:
         count = 0
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
+        if np.allclose(reach['target_pos'], deposit_xyz, atol=1e-5):
+            reach['target_pos'] = final_xyz
         print('Next reach')
         traj_planner, orientation_planner, target_data = get_approach_path(
             robot_config=robot_config,
@@ -344,7 +363,6 @@ try:
             z_offset=reach['z_offset'])
         #
         # while count < reach['n_timesteps']:
-        shifted_target = target_data['approach_pos']
         at_target = False
         count = 0
         while not at_target:
@@ -360,8 +378,14 @@ try:
             orient = orientation_planner.next()
             target = np.hstack([pos, orient])
 
-            shifted_target += target_shift(interface, scale=0.05)
-            interface.set_mocap_xyz('path_planner', shifted_target)
+            final_xyz = target_shift(
+                interface=interface,
+                base_location=final_xyz,
+                scale=0.05,
+                xlim=[-0.5, 0.5],
+                ylim=[-0.5, 0.5],
+                zlim=[0.0, 0.7])
+            interface.set_mocap_xyz('target', final_xyz)
             interface.set_mocap_xyz('path_planner_orientation', target[:3])
             interface.set_mocap_orientation('path_planner_orientation',
                 transformations.quaternion_from_euler(
