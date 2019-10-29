@@ -205,6 +205,23 @@ def second_order_path_planner(n_timesteps=2000, error_scale=1):
 #     traj_planner = path_planners.FirstOrderArc(n_timesteps=n_timesteps)
 #     return traj_planner
 
+def target_shift(interface, scale=0.01):
+    """
+    Parameters
+    ----------
+    scale: float, optional (Default: 0.01)
+        the amount to move with each button press [meters]
+    """
+    shifted_target = scale * np.array([
+        interface.viewer.target_x,
+        interface.viewer.target_y,
+        interface.viewer.target_z])
+
+    interface.viewer.target_x = 0
+    interface.viewer.target_y = 0
+    interface.viewer.target_z = 0
+
+    return shifted_target
 
 # set up lists for tracking data
 ee_track = []
@@ -327,6 +344,7 @@ try:
             z_offset=reach['z_offset'])
         #
         # while count < reach['n_timesteps']:
+        shifted_target = target_data['approach_pos']
         at_target = False
         count = 0
         while not at_target:
@@ -342,6 +360,8 @@ try:
             orient = orientation_planner.next()
             target = np.hstack([pos, orient])
 
+            shifted_target += target_shift(interface, scale=0.05)
+            interface.set_mocap_xyz('path_planner', shifted_target)
             interface.set_mocap_xyz('path_planner_orientation', target[:3])
             interface.set_mocap_orientation('path_planner_orientation',
                 transformations.quaternion_from_euler(
