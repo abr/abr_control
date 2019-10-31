@@ -2,6 +2,8 @@
 <!-- https://github.com/Kinovarobotics/kinova-ros/kinova_description/meshes -->
 <!-- and place them in a meshes folder in this directory -->
 <mujoco model="jaco2_gripper">
+    <!-- <option solver="PGS"/> -->
+    <!--  -->
     <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
 
     <default>
@@ -25,6 +27,8 @@
         <mesh file="ring_small.STL"/>
         <mesh file="finger_distal.STL"/>
         <mesh file="finger_proximal.STL"/>
+        <mesh file="dumbbell.stl"/>
+        <mesh file="octagon.stl"/>
 
         <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
 
@@ -41,6 +45,9 @@
 
         <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
         <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="knurled_texture" file="meshes/grip.png" width="600" height="600" type="cube"/>
+        <material name="knurled" texture="knurled_texture" specular="0" shininess="0" reflectance="0" emission="1" />
     </asset>
 
     <contact>
@@ -209,11 +216,19 @@
         <exclude body1="path_planner_orientation" body2="link1"/>
         <exclude body1="path_planner_orientation" body2="base_link"/>
 
-        <exclude body1="object1" body2="path_planner_orientation"/>
-        <exclude body1="object1" body2="path_planner"/>
-        <exclude body1="object1" body2="target_orientation"/>
-        <exclude body1="object1" body2="target"/>
-        <exclude body1="object1" body2="hand"/>
+        <!-- <exclude body1="object1" body2="path_planner_orientation"/> -->
+        <!-- <exclude body1="object1" body2="path_planner"/> -->
+        <!-- <exclude body1="object1" body2="target_orientation"/> -->
+        <!-- <exclude body1="object1" body2="target"/> -->
+        <!-- <exclude body1="object1" body2="hand"/> -->
+
+        <exclude body1="dumbbell" body2="path_planner_orientation"/>
+        <exclude body1="dumbbell" body2="path_planner"/>
+        <exclude body1="dumbbell" body2="target_orientation"/>
+        <exclude body1="dumbbell" body2="target"/>
+        <exclude body1="dumbbell" body2="hand"/>
+        <exclude body1="dumbbell" body2="EE"/>
+
     </contact>
 
     <worldbody>
@@ -247,12 +262,37 @@
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
-        <body name="object1" pos="0 0.5 0.0">
-            <geom type="cylinder" size="0.05 0.075" rgba="0.2 0.2 0.2 1" pos="0 0 0.075"/>
-            <geom type="cylinder" size="0.015 0.2" rgba="1 0 0 1" pos="0 0 0.35"/>
-            <inertial pos="0.000000 0.000000 0.1" mass="0.5" diaginertia="0.25 0.25 0.25"/>
-            <freejoint name="object1"/>
+        <body name="dumbbell_stand1" pos="0.39 0 0">
+            <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.03"/>
         </body>
+        <body name="dumbbell_stand2" pos="0.61 0 0">
+            <geom name="dumbbell_stand2" type="box" size="0.05 0.075 0.03"/>
+        </body>
+
+        <body name="dumbbell" pos="0.5 0 0.085">
+            <geom name="handle" type="cylinder" pos="0 0 0" material="knurled" size="0.015 0.06" euler="0 1.57 0"
+                />
+                <!-- friction="1 1 1" solimp="0.95 0.95 0.01"/> -->
+                <!--  -->
+            <geom name="mass1" type="mesh" mesh="octagon" pos="0.1 0 0" material="carbon"/>
+            <geom name="mass2" type="mesh" mesh="octagon" pos="-0.1 0 0" material="carbon"/>
+            <inertial pos="0 0 0" mass="0.5" diaginertia="0.1 0.1 0.1"/>
+            <freejoint name="dumbbell"/>
+        </body>
+
+
+        <!-- <body name="dumbbell" pos="0.5 0 0.055"> -->
+        <!--     <geom name="dumbbell" type="mesh" mesh="dumbbell" pos="0 0 0" material="carbon"/> -->
+        <!--     <inertial pos="0 0 0.05" mass="1" diaginertia="0.25 0.25 0.25"/> -->
+        <!--     <freejoint name="dumbbell"/> -->
+        <!-- </body> -->
+
+        <!-- <body name="object1" pos="0 &#45;0.5 0.0"> -->
+        <!--     <geom type="cylinder" size="0.05 0.075" rgba="0.2 0.2 0.2 1" pos="0 0 0.075"/> -->
+        <!--     <geom type="cylinder" size="0.015 0.2" rgba="1 0 0 1" pos="0 0 0.35"/> -->
+        <!--     <inertial pos="0.000000 0.000000 0.1" mass="0.5" diaginertia="0.25 0.25 0.25"/> -->
+        <!--     <freejoint name="object1"/> -->
+        <!-- </body> -->
 
         <body name="base_link" pos="0 0 0">
             <geom name="link0" type="mesh" mesh="base" pos="0 0 0" material="carbon"/>
@@ -335,31 +375,49 @@
                                     </body>
 
                                     <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726  0.262085    0.02762996 -0.10213274">
-                                        <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0"/>
+                                        <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0"
+                                            />
+                                            <!-- friction="1 1 1" solimp="0.95 0.95 0.01"/> -->
+                                            <!--  -->
                                         <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.169928" limited="true" range="0 1.59626" stiffness="0.1" springref="0" damping="0.5"/>
 
                                         <body name="thumb_distal" pos="0 -0.003 0.044">
-                                            <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0"/>
+                                            <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0"
+                                                />
+                                                <!-- friction="1 1 1" solimp="0.95 0.95 0.01"/> -->
+                                                <!--  -->
                                             <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="0.4" limited="true" range="0 0.4" stiffness="0.1" springref="0" damping="0.1"/>
                                         </body>
                                     </body>
 
                                     <body name="index_proximal" pos="0.022256 0.027073 0.114668" quat="0.96181018 -0.25771638 0.0238668 -0.08907205">
-                                        <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                        <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
+                                            />
+                                            <!-- friction="1 1 1" solimp="0.95 0.95 0.01"/> -->
+                                            <!--  -->
                                         <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1659928" limited="true" range="0 1.59626" stiffness="0.1" springref="0" damping="0.5"/>
 
                                         <body name="index_distal" pos="0 0.003 0.044">
-                                            <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                            <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
+                                                />
+                                                <!-- friction="1 1 1" solimp="0.95 0.95 0.01"/> -->
+                                                <!--  -->
                                             <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="0.4" limited="true" range="0 0.4" stiffness="0.1" springref="0" damping="0.1"/>
                                         </body>
                                     </body>
 
                                     <body name="pinky_proximal" pos="-0.022256 0.027073 0.114816" quat="0.96181018 -0.25771638 -0.0238668 0.08907205">
-                                        <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                        <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
+                                            />
+                                            <!-- friction="1 1 1" solimp="0.95 0.95 0.01"/> -->
+                                            <!--  -->
                                         <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.169928" limited="true" range="0 1.59626" stiffness="0.1" springref="0" damping="0.5"/>
 
                                         <body name="pinky_distal" pos="0 0.003 0.044">
-                                            <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                            <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
+                                                />
+                                                <!-- friction="1 1 1" solimp="0.95 0.95 0.01"/> -->
+                                                <!--  -->
                                             <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0.4" limited="true" range="0 0.4" stiffness="0.1" springref="0" damping="0.1"/>
                                         </body>
                                     </body>
@@ -391,6 +449,9 @@
         <motor name="joint_thumb_motor" joint="joint_thumb"/>
         <motor name="joint_index_motor" joint="joint_index"/>
         <motor name="joint_pinky_motor" joint="joint_pinky"/>
+        <!-- <motor name="joint_thumb_motor_distal" joint="joint_thumb_distal"/> -->
+        <!-- <motor name="joint_index_motor_distal" joint="joint_index_distal"/> -->
+        <!-- <motor name="joint_pinky_motor_distal" joint="joint_pinky_distal"/> -->
     </actuator>
 
 </mujoco>
