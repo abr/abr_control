@@ -141,7 +141,7 @@ class Mujoco(Interface):
         self.sim.data.set_mocap_quat(name, quat)
 
 
-    def send_forces(self, u):
+    def send_forces(self, u, update_display=True):
         """ Apply the specified torque to the robot joints
 
         Apply the specified torque to the robot joints, move the simulation
@@ -170,7 +170,7 @@ class Mujoco(Interface):
         hand_quat = self.robot_config.quaternion(name='EE')
         self.set_mocap_orientation('hand', hand_quat)
 
-        if self.visualize:
+        if self.visualize and update_display:
             self.viewer.render()
         self.count += self.dt
 
