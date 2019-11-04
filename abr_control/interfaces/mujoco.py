@@ -125,13 +125,13 @@ class Mujoco(Interface):
             quat = self.sim.data.get_mocap_quat(name)
         elif object_type == 'body':
             body_id = self.sim.model.body_name2id(name)
-            quat = self.sim.model._body_quat[body_id]
+            quat = self.sim.model.body_quat[body_id]
         elif object_type == 'geom':
             geom_id = self.sim.model.geom_name2id(name)
             quat = self.sim.model.geom_quat[geom_id]
         elif object_type == 'site':
             site_id = self.sim.model.site_name2id(name)
-            quat = self.sim.model._site_quat[site_id]
+            quat = self.sim.model.site_quat[site_id]
         else:
             raise Exception('get_orientation for %s object type not supported'
                             % object_type)
