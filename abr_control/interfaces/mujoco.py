@@ -113,16 +113,29 @@ class Mujoco(Interface):
         print('MuJoCO session closed...')
 
 
-    def get_mocap_orientation(self, name):
-        """ Returns the orientation of an object as the [w x y z]
-        quaternion [radians]
+    def get_orientation(self, name, object_type='body'):
+        """ Returns the orientation of an object as the [w x y z] quaternion [radians]
 
         Parameters
         ----------
         name: string
             the name of the object of interest
         """
-        return self.sim.data.get_mocap_quat(name)
+        if object_type == 'mocap':  # commonly queried to find target
+            quat = self.sim.data.get_mocap_quat(name)
+        elif object_type == 'body':
+            body_id = self.sim.model.body_name2id(name)
+            quat = self.sim.model._body_quat[body_id]
+        elif object_type == 'geom':
+            geom_id = self.sim.model.geom_name2id(name)
+            quat = self.sim.model.geom_quat[geom_id]
+        elif object_type == 'site':
+            site_id = self.sim.model.site_name2id(name)
+            quat = self.sim.model._site_quat[site_id]
+        else:
+            raise Exception('get_orientation for %s object type not supported'
+                            % object_type)
+        return quat
 
 
     def set_mocap_orientation(self, name, quat):
