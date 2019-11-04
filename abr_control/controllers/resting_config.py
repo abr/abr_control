@@ -16,7 +16,10 @@ class RestingConfig(Controller):
         super(RestingConfig, self).__init__(robot_config)
 
         self.rest_angles = np.asarray(rest_angles)
+        # TODO: looks like we don't need null_indices, can remove them if
+        # new code checks out
         self.null_indices = [val is None for val in rest_angles]
+        self.rest_indices = [not val for val in self.null_indices]
         self.kp = kp
         self.kv = np.sqrt(kp) if kv is None else kv
 
@@ -33,9 +36,21 @@ class RestingConfig(Controller):
 
         # account for going across 2*pi line when calculating
         # distance / direction
-        q_des = ((self.rest_angles - q + np.pi) % (np.pi * 2) - np.pi)
-        q_des[not self.null_indices] = 0.0
-        self.dq_des[self.null_indices] = dq[self.null_indices]
+        q_des = np.zeros(len(q))
+        dq_des = np.zeros(len(q))
+        q_des[self.rest_indices] = (
+            (self.rest_angles[self.rest_indices]
+             - q[self.rest_indices]
+             + np.pi)
+            % (np.pi * 2)
+            - np.pi)
+        # q_des[self.null_indices] = 0.0
+        self.dq_des[self.rest_indices] = dq[self.rest_indices]
+        #TODO: remove print statements when finished debugging
+        # print('null: ', self.null_indices)
+        # print('rest: ', self.rest_angles[self.rest_indices])
+        # print('q: ', q[self.rest_indices])
+        # print('q des: ', q_des[self.rest_indices])
 
         # calculate joint space inertia matrix
         M = self.robot_config.M(q=q)

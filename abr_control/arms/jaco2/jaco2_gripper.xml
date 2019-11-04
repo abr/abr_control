@@ -155,20 +155,46 @@
         <exclude body1="hand" body2="link1"/>
         <exclude body1="hand" body2="base_link"/>
 
-        <exclude body1="target" body2="EE"/>
-        <exclude body1="target" body2="thumb_distal"/>
-        <exclude body1="target" body2="thumb_proximal"/>
-        <exclude body1="target" body2="index_distal"/>
-        <exclude body1="target" body2="index_proximal"/>
-        <exclude body1="target" body2="pinky_distal"/>
-        <exclude body1="target" body2="pinky_proximal"/>
-        <exclude body1="target" body2="link6"/>
-        <exclude body1="target" body2="link5"/>
-        <exclude body1="target" body2="link4"/>
-        <exclude body1="target" body2="link3"/>
-        <exclude body1="target" body2="link2"/>
-        <exclude body1="target" body2="link1"/>
-        <exclude body1="target" body2="base_link"/>
+        <exclude body1="target_green" body2="EE"/>
+        <exclude body1="target_green" body2="thumb_distal"/>
+        <exclude body1="target_green" body2="thumb_proximal"/>
+        <exclude body1="target_green" body2="index_distal"/>
+        <exclude body1="target_green" body2="index_proximal"/>
+        <exclude body1="target_green" body2="pinky_distal"/>
+        <exclude body1="target_green" body2="pinky_proximal"/>
+        <exclude body1="target_green" body2="link6"/>
+        <exclude body1="target_green" body2="link5"/>
+        <exclude body1="target_green" body2="link4"/>
+        <exclude body1="target_green" body2="link3"/>
+        <exclude body1="target_green" body2="link2"/>
+        <exclude body1="target_green" body2="link1"/>
+        <exclude body1="target_green" body2="base_link"/>
+        <exclude body1="target_green" body2="ring1"/>
+        <exclude body1="target_green" body2="ring2"/>
+        <exclude body1="target_green" body2="ring3"/>
+        <exclude body1="target_green" body2="ring4"/>
+        <exclude body1="target_green" body2="ring5"/>
+
+
+        <exclude body1="target_red" body2="EE"/>
+        <exclude body1="target_red" body2="thumb_distal"/>
+        <exclude body1="target_red" body2="thumb_proximal"/>
+        <exclude body1="target_red" body2="index_distal"/>
+        <exclude body1="target_red" body2="index_proximal"/>
+        <exclude body1="target_red" body2="pinky_distal"/>
+        <exclude body1="target_red" body2="pinky_proximal"/>
+        <exclude body1="target_red" body2="link6"/>
+        <exclude body1="target_red" body2="link5"/>
+        <exclude body1="target_red" body2="link4"/>
+        <exclude body1="target_red" body2="link3"/>
+        <exclude body1="target_red" body2="link2"/>
+        <exclude body1="target_red" body2="link1"/>
+        <exclude body1="target_red" body2="base_link"/>
+        <exclude body1="target_red" body2="ring1"/>
+        <exclude body1="target_red" body2="ring2"/>
+        <exclude body1="target_red" body2="ring3"/>
+        <exclude body1="target_red" body2="ring4"/>
+        <exclude body1="target_red" body2="ring5"/>
 
         <exclude body1="target_orientation" body2="EE"/>
         <exclude body1="target_orientation" body2="thumb_distal"/>
@@ -184,6 +210,11 @@
         <exclude body1="target_orientation" body2="link2"/>
         <exclude body1="target_orientation" body2="link1"/>
         <exclude body1="target_orientation" body2="base_link"/>
+        <exclude body1="target_orientation" body2="ring1"/>
+        <exclude body1="target_orientation" body2="ring2"/>
+        <exclude body1="target_orientation" body2="ring3"/>
+        <exclude body1="target_orientation" body2="ring4"/>
+        <exclude body1="target_orientation" body2="ring5"/>
 
         <exclude body1="path_planner" body2="EE"/>
         <exclude body1="path_planner" body2="thumb_distal"/>
@@ -199,6 +230,11 @@
         <exclude body1="path_planner" body2="link2"/>
         <exclude body1="path_planner" body2="link1"/>
         <exclude body1="path_planner" body2="base_link"/>
+        <exclude body1="path_planner" body2="ring1"/>
+        <exclude body1="path_planner" body2="ring2"/>
+        <exclude body1="path_planner" body2="ring3"/>
+        <exclude body1="path_planner" body2="ring4"/>
+        <exclude body1="path_planner" body2="ring5"/>
 
         <exclude body1="path_planner_orientation" body2="EE"/>
         <exclude body1="path_planner_orientation" body2="thumb_distal"/>
@@ -223,13 +259,15 @@
         <!-- <exclude body1="object1" body2="path_planner_orientation"/> -->
         <!-- <exclude body1="object1" body2="path_planner"/> -->
         <!-- <exclude body1="object1" body2="target_orientation"/> -->
-        <!-- <exclude body1="object1" body2="target"/> -->
+        <!-- <exclude body1="object1" body2="target_red"/> -->
+        <!-- <exclude body1="object1" body2="target_green"/> -->
         <!-- <exclude body1="object1" body2="hand"/> -->
 
         <exclude body1="dumbbell" body2="path_planner_orientation"/>
         <exclude body1="dumbbell" body2="path_planner"/>
         <exclude body1="dumbbell" body2="target_orientation"/>
-        <exclude body1="dumbbell" body2="target"/>
+        <exclude body1="dumbbell" body2="target_red"/>
+        <exclude body1="dumbbell" body2="target_green"/>
         <exclude body1="dumbbell" body2="hand"/>
         <exclude body1="dumbbell" body2="EE"/>
 
@@ -244,8 +282,12 @@
             <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="2"/>
         </body>
 
-        <body name="target" pos="0 0 -0.5" mocap="true">
+        <body name="target_red" pos="0 0 -0.5" mocap="true">
             <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
+        </body>
+
+        <body name="target_green" pos="0 0 -0.5" mocap="true">
+            <geom type="sphere" size="0.05" rgba="0 0.9 0 .5"/>
         </body>
 
         <body name="target_orientation" pos="0 0 -0.5" mocap="true">
