@@ -13,7 +13,6 @@
 
     <custom>
         <numeric name="START_ANGLES" data="0.0 2.79 2.62 4.71 0.0 3.04"/>
-        <numeric name="N_JOINTS" data="6"/>
     </custom>
 
     <asset>
