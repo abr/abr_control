@@ -309,20 +309,20 @@
 
         <body name="dumbbell_stand1" pos="-0.39 0 0">
             <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.03"
-                friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
         </body>
         <body name="dumbbell_stand2" pos="-0.61 0 0">
             <geom name="dumbbell_stand2" type="box" size="0.05 0.075 0.03"
-                friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
         </body>
 
         <body name="dumbbell" pos="-0.5 0 0.085">
-            <geom name="handle" type="cylinder" pos="0 0 0" material="knurled" size="0.015 0.06" euler="0 1.57 0"
-                friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+            <geom name="handle" type="cylinder" pos="0 0 0" material="knurled" size="0.012 0.06" euler="0 1.57 0"
+                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
             <geom name="mass1" type="mesh" mesh="octagon" pos="0.1 0 0" material="carbon"
-                friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
             <geom name="mass2" type="mesh" mesh="octagon" pos="-0.1 0 0" material="carbon"
-                friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                friction="1 0.005 0.001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
             <inertial pos="0 0 0" mass="0.5" diaginertia="0.1 0.1 0.1"/>
             <freejoint name="dumbbell"/>
         </body>
@@ -394,7 +394,7 @@
                                 <body name="link6" pos="0 0.037 0.0641">
                                     <inertial pos="0.000030 -0.006840 0.082220" mass="0.727000" diaginertia="0.025 0.025 0.025"/>
                                     <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="carbon"
-                                            friction="1 1 1" solimp="0.97 0.97 0.01" solref="0.01 1" condim="4" />
+                                            solimp="0.97 0.97 0.01" solref="0.01 1" condim="4" />
                                     <joint name="joint5" pos="0 0 0" axis="0 0 -1" ref="0"/>
 
                                     <!-- for fingertip EE -->
@@ -411,48 +411,48 @@
 
                                     <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726  0.262085    0.02762996 -0.10213274">
                                         <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0"
-                                            friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                                            friction="1 0.005 0.0001" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                         <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true"
-                                            range="-0.2 1.1" stiffness="2" springref="0.0" damping="0.5"
+                                            range="-0.2 1.1" stiffness="2" springref="0.0" damping="0.25"
                                             solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
 
                                         <body name="thumb_distal" pos="0 -0.003 0.044">
                                             <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0"
-                                                friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                                                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                             <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="0" limited="true"
                                                 range="-0.4 0.4" stiffness="2" springref="-0.4" damping="1"
-                                                solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
+                                                solimplimit="0.95 0.95 0.01" solreflimit="0.01 0.25"/>
                                         </body>
                                     </body>
 
                                     <body name="index_proximal" pos="0.022256 0.027073 0.114668" quat="0.96181018 -0.25771638 0.0238668 -0.08907205">
                                         <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
-                                            friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                                            friction="1 0.005 0.0001" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                         <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true"
-                                            range="-0.2 1.1" stiffness="2" springref="0.0" damping="0.5"
+                                            range="-0.2 1.1" stiffness="2" springref="0.0" damping="0.25"
                                             solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
 
                                         <body name="index_distal" pos="0 0.003 0.044">
                                             <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
-                                                friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                                                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                             <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true"
-                                                range="-0.4 0.4" stiffness="2" springref="-0.4" damping="1"
+                                                range="-0.4 0.4" stiffness="2" springref="-0.4" damping="0.25"
                                                 solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
 
                                     <body name="pinky_proximal" pos="-0.022256 0.027073 0.114816" quat="0.96181018 -0.25771638 -0.0238668 0.08907205">
                                         <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
-                                            friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                                            friction="1 0.005 0.0001" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                         <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true"
-                                            range="-0.2 1.1" stiffness="2" springref="0.0" damping="0.5"
+                                            range="-0.2 1.1" stiffness="2" springref="0.0" damping="0.25"
                                             solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
 
                                         <body name="pinky_distal" pos="0 0.003 0.044">
                                             <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
-                                                friction="1 1 1" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+                                                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
                                             <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true"
-                                                range="-0.4 0.4" stiffness="2" springref="-0.4" damping="1"
+                                                range="-0.4 0.4" stiffness="2" springref="-0.4" damping="0.25"
                                                 solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
