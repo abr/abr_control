@@ -328,19 +328,6 @@
         </body>
 
 
-        <!-- <body name="dumbbell" pos="0.5 0 0.055"> -->
-        <!--     <geom name="dumbbell" type="mesh" mesh="dumbbell" pos="0 0 0" material="carbon"/> -->
-        <!--     <inertial pos="0 0 0.05" mass="1" diaginertia="0.25 0.25 0.25"/> -->
-        <!--     <freejoint name="dumbbell"/> -->
-        <!-- </body> -->
-
-        <!-- <body name="object1" pos="0 &#45;0.5 0.0"> -->
-        <!--     <geom type="cylinder" size="0.05 0.075" rgba="0.2 0.2 0.2 1" pos="0 0 0.075"/> -->
-        <!--     <geom type="cylinder" size="0.015 0.2" rgba="1 0 0 1" pos="0 0 0.35"/> -->
-        <!--     <inertial pos="0.000000 0.000000 0.1" mass="0.5" diaginertia="0.25 0.25 0.25"/> -->
-        <!--     <freejoint name="object1"/> -->
-        <!-- </body> -->
-
         <body name="base_link" pos="0 0 0">
             <geom name="link0" type="mesh" mesh="base" pos="0 0 0" material="carbon"/>
             <inertial pos="0.000000 0.000000 0.125500" mass="1.226" diaginertia="0.25 0.25 0.25"/>
