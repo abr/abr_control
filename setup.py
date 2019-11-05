@@ -29,7 +29,7 @@ version = runpy.run_path(
     os.path.join(root, 'abr_control', 'version.py'))['version']
 
 setup_requires = [
-    "scipy==1.1.0",
+    "scipy>=1.1.0",
     "cython<= 0.29.13",
     "setuptools>=18.0",
     "cython>=0.29.0",
