@@ -189,6 +189,20 @@ class Mujoco(Interface):
         self.count += self.dt
 
 
+    def set_external_force(self, name, u_ext):
+        """
+        Applies an external force to a specified body
+
+        Parameters
+        ----------
+        u_ext: np.array([x, y, z, alpha, beta, gamma])
+            external force to apply [Nm]
+        name: string
+            name of the body to apply the force to
+        """
+        self.sim.data.xfrc_applied[self.model.body_name2id(name)] = u_ext
+
+
     def send_target_angles(self, q):
         """ Move the robot to the specified configuration.
 
