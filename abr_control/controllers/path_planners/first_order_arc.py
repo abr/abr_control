@@ -74,10 +74,10 @@ class FirstOrderArc(PathPlanner):
         z1 = np.ones(self.n_timesteps) * zval(r1, theta1)
 
         r2 = r_val(target_pos)
-        theta2 = np.arccos(target_pos[2]/r1)
+        theta2 = np.arccos(target_pos[2]/r2)
         x2 = xval(r2, theta2, phi)
         y2 = yval(r2, theta2, phi)
-        z2 = np.ones(self.n_timesteps) * zval(r1, theta2)
+        z2 = np.ones(self.n_timesteps) * zval(r2, theta2)
 
         linear_scaling = np.linspace(1, 0, self.n_timesteps)
         x3 = x1 * linear_scaling + x2 * linear_scaling[::-1]
