@@ -47,6 +47,20 @@
 
         <texture name="knurled_texture" file="meshes/grip.png" width="600" height="600" type="cube"/>
         <material name="knurled" texture="knurled_texture" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="mars" file="meshes/mars_crop.png" width="882" height="882" type="2d"/>
+        <material name="mars_surface" texture="mars" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="jupiter" file="meshes/jupiter_crop.png" width="2048" height="2048" type="2d"/>
+        <material name="jupiter_surface" texture="jupiter" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="moon" file="meshes/moon_crop.png" width="2048" height="2048" type="2d"/>
+        <material name="moon_surface" texture="moon" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="earth" file="meshes/earth_crop.png" width="2048" height="2048" type="2d"/>
+        <material name="earth_surface" texture="earth" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="stars" file="meshes/stars_scale.png" width="2048" height="2048" type="skybox"/>
     </asset>
 
     <contact>
@@ -296,7 +310,9 @@
     <worldbody>
         <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
 
-        <geom name="floor_grey_tile" pos="0 0 -0.001" size="1 1 0.05" type="plane" material="tile"/>
+        <!-- <geom name="floor_grey_tile" pos="0 0 &#45;0.001" size="1 1 0.05" type="plane" material="tile"/> -->
+        <!--  -->
+        <geom name="floor_grey_tile" pos="0 0 -0.001" size="1 0.01" type="cylinder" material="tile"/>
 
         <body name="hand" pos="0 0 -0.5" mocap="true">
             <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="2"/>
@@ -351,6 +367,31 @@
         <body name="adapt_on" pos="0 0 -1" mocap="true">
             <geom type="mesh" mesh="adapt" rgba="0.9 0.75 0.1 1"/>
         </body>
+
+
+    <body name="ISS" pos="1.0 1.0 -1" mocap="true">
+        <geom name="ISS" type="sphere" size="0.0005"/>
+    </body>
+
+    <body name="earth" pos="1.0 1.0 -1" mocap="true">
+        <geom name="earth" type="sphere" size="0.24" material="earth_surface" euler="1.57 0 0"/>
+    </body>
+
+    <body name="moon" pos="1.0 1.0 -1" mocap="true">
+        <geom name="moon" type="sphere" size="0.1" material="moon_surface" euler="1.57 0 0"/>
+    </body>
+
+    <body name="mars" pos="1.0 1.0 -1" mocap="true">
+        <geom name="mars" type="sphere" size="0.2" material="mars_surface" euler="1.57 0 0"/>
+    </body>
+
+    <body name="jupiter" pos="1.0 1.0 -1" mocap="true">
+        <geom name="jupiter" type="sphere" size="0.3" material="jupiter_surface" euler="1.57 0 0"/>
+    </body>
+
+    <!-- <body name="floor_mars" pos="0 0 0"> -->
+    <!--     <geom name="floor_mars" pos="0 0 &#45;0.001" size="0 0 1" type="plane" material="mars_surface"/> -->
+    <!-- </body> -->
 
         <body name="base_link" pos="0 0 0">
             <geom name="link0" type="mesh" mesh="base" pos="0 0 0" material="carbon"/>
