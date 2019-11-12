@@ -274,49 +274,28 @@
         <exclude body1="dumbbell" body2="target"/>
         <exclude body1="dumbbell" body2="hand"/>
         <exclude body1="dumbbell" body2="EE"/>
-        <exclude body1="dumbbell" body2="adapt_on"/>
-        <exclude body1="dumbbell" body2="adapt_off"/>
+        <exclude body1="dumbbell" body2="adapt"/>
         <exclude body1="dumbbell" body2="brain"/>
 
-        <exclude body1="adapt_on" body2="EE"/>
-        <exclude body1="adapt_on" body2="thumb_distal"/>
-        <exclude body1="adapt_on" body2="thumb_proximal"/>
-        <exclude body1="adapt_on" body2="index_distal"/>
-        <exclude body1="adapt_on" body2="index_proximal"/>
-        <exclude body1="adapt_on" body2="pinky_distal"/>
-        <exclude body1="adapt_on" body2="pinky_proximal"/>
-        <exclude body1="adapt_on" body2="link6"/>
-        <exclude body1="adapt_on" body2="link5"/>
-        <exclude body1="adapt_on" body2="link4"/>
-        <exclude body1="adapt_on" body2="link3"/>
-        <exclude body1="adapt_on" body2="link2"/>
-        <exclude body1="adapt_on" body2="link1"/>
-        <exclude body1="adapt_on" body2="base_link"/>
-        <exclude body1="adapt_on" body2="ring1"/>
-        <exclude body1="adapt_on" body2="ring2"/>
-        <exclude body1="adapt_on" body2="ring3"/>
-        <exclude body1="adapt_on" body2="ring4"/>
-        <exclude body1="adapt_on" body2="ring5"/>
-
-        <exclude body1="adapt_off" body2="EE"/>
-        <exclude body1="adapt_off" body2="thumb_distal"/>
-        <exclude body1="adapt_off" body2="thumb_proximal"/>
-        <exclude body1="adapt_off" body2="index_distal"/>
-        <exclude body1="adapt_off" body2="index_proximal"/>
-        <exclude body1="adapt_off" body2="pinky_distal"/>
-        <exclude body1="adapt_off" body2="pinky_proximal"/>
-        <exclude body1="adapt_off" body2="link6"/>
-        <exclude body1="adapt_off" body2="link5"/>
-        <exclude body1="adapt_off" body2="link4"/>
-        <exclude body1="adapt_off" body2="link3"/>
-        <exclude body1="adapt_off" body2="link2"/>
-        <exclude body1="adapt_off" body2="link1"/>
-        <exclude body1="adapt_off" body2="base_link"/>
-        <exclude body1="adapt_off" body2="ring1"/>
-        <exclude body1="adapt_off" body2="ring2"/>
-        <exclude body1="adapt_off" body2="ring3"/>
-        <exclude body1="adapt_off" body2="ring4"/>
-        <exclude body1="adapt_off" body2="ring5"/>
+        <exclude body1="adapt" body2="EE"/>
+        <exclude body1="adapt" body2="thumb_distal"/>
+        <exclude body1="adapt" body2="thumb_proximal"/>
+        <exclude body1="adapt" body2="index_distal"/>
+        <exclude body1="adapt" body2="index_proximal"/>
+        <exclude body1="adapt" body2="pinky_distal"/>
+        <exclude body1="adapt" body2="pinky_proximal"/>
+        <exclude body1="adapt" body2="link6"/>
+        <exclude body1="adapt" body2="link5"/>
+        <exclude body1="adapt" body2="link4"/>
+        <exclude body1="adapt" body2="link3"/>
+        <exclude body1="adapt" body2="link2"/>
+        <exclude body1="adapt" body2="link1"/>
+        <exclude body1="adapt" body2="base_link"/>
+        <exclude body1="adapt" body2="ring1"/>
+        <exclude body1="adapt" body2="ring2"/>
+        <exclude body1="adapt" body2="ring3"/>
+        <exclude body1="adapt" body2="ring4"/>
+        <exclude body1="adapt" body2="ring5"/>
     </contact>
 
     <worldbody>
@@ -350,6 +329,10 @@
             <geom type="sphere" size="0.05" rgba="0 0 1 1"/>
         </body>
 
+        <body name="elbow" pos="0 0 -0.5" mocap="true">
+            <geom type="sphere" size="0.05" rgba="0 1 1 .25"/>
+        </body>
+
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
         <body name="dumbbell_stand1" pos="-0.39 0 0">
@@ -372,12 +355,8 @@
             <freejoint name="dumbbell"/>
         </body>
 
-        <body name="adapt_off" pos="0 0 -1" mocap="true">
-            <geom type="mesh" mesh="adapt" rgba="0.5 0.5 0.5 0.1"/>
-        </body>
-
-        <body name="adapt_on" pos="0 0 -1" mocap="true">
-            <geom type="mesh" mesh="adapt" rgba="0.9 0.75 0.1 1"/>
+        <body name="adapt" pos="0 1 0" mocap="true">
+            <geom name="adapt" type="mesh" mesh="adapt" rgba="0.5 0.5 0.5 0.1"/>
         </body>
 
         <body name="brain" pos="0 0 1" mocap="true">
