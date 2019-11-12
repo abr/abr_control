@@ -30,6 +30,22 @@
         <mesh file="adapt.stl" scale="0.5 0.5 0.5"/>
         <mesh file="brain.stl"/>
 
+        <texture name="mars_terrain" file="meshes/mars_terrain.png" width="2000" height="2000" type="2d"/>
+        <material name="mars_terrain" texture="mars_terrain" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="earth_terrain" file="meshes/earth_terrain.png" width="2000" height="2000" type="2d"/>
+        <material name="earth_terrain" texture="earth_terrain" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="moon_terrain" file="meshes/moon_terrain.png" width="1200" height="1200" type="2d"/>
+        <material name="moon_terrain" texture="moon_terrain" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="jupiter_terrain" file="meshes/jupiter_terrain.png" width="2000" height="2000" type="2d"/>
+        <material name="jupiter_terrain" texture="jupiter_terrain" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
+        <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
+
+
         <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
 
         <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
@@ -43,9 +59,6 @@
         <texture name="foam_blocks" file="meshes/foam_blocks.png" width="2744" height="2744" type="2d"/>
         <material name="foam" texture="foam_blocks" specular="0" shininess="0" reflectance="0" emission="1" />
 
-        <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
-        <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
-
         <texture name="knurled_texture" file="meshes/grip.png" width="600" height="600" type="cube"/>
         <material name="knurled" texture="knurled_texture" specular="0" shininess="0" reflectance="0" emission="1" />
 
@@ -58,10 +71,16 @@
         <texture name="moon" file="meshes/moon_crop.png" width="2048" height="2048" type="2d"/>
         <material name="moon_surface" texture="moon" specular="0" shininess="0" reflectance="0" emission="1" />
 
+        <!-- <texture name="earth" file="meshes/earth_box.png" width="1028" height="1536" type="2d" -->
+        <!--     gridlayout=".U..LFRB.D.." gridsize="3 4"/> -->
         <texture name="earth" file="meshes/earth_crop.png" width="2048" height="2048" type="2d"/>
         <material name="earth_surface" texture="earth" specular="0" shininess="0" reflectance="0" emission="1" />
 
-        <texture name="stars" file="meshes/stars_scale.png" width="2048" height="2048" type="skybox"/>
+
+        <!-- <texture name="stars" file="meshes/stars_scale.png" width="2048" height="2048" type="skybox"/> -->
+        <!--  -->
+        <texture name="stars" file="meshes/stars3x4.png" width="2048" height="2048" type="skybox"
+            gridlayout=".U..LFRB.D.." gridsize="3 4"/>
     </asset>
 
     <contact>
@@ -296,14 +315,38 @@
         <exclude body1="adapt" body2="ring3"/>
         <exclude body1="adapt" body2="ring4"/>
         <exclude body1="adapt" body2="ring5"/>
+
     </contact>
 
     <worldbody>
-        <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
-
+        <!-- <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/> -->
+        <!--  -->
         <!-- <geom name="floor_grey_tile" pos="0 0 &#45;0.001" size="1 1 0.05" type="plane" material="tile"/> -->
         <!--  -->
-        <geom name="floor_grey_tile" pos="0 0 -0.001" size="1 0.01" type="cylinder" material="tile"/>
+        <body name="earth_floor" mocap="true">
+            <geom name="earth_floor" pos="0 0 0.0" size="1 0.01"
+                type="cylinder" material="earth_terrain"/>
+        </body>
+
+        <body name="mars_floor" mocap="true">
+            <geom name="mars_floor" pos="0 0 0.0" size="1 0.01"
+                type="cylinder" material="mars_terrain"/>
+        </body>
+
+        <body name="moon_floor" mocap="true">
+            <geom name="moon_floor" pos="0 0 0.0" size="1 0.01"
+                type="cylinder" material="moon_terrain"/>
+        </body>
+
+        <body name="jupiter_floor" mocap="true">
+            <geom name="jupiter_floor" pos="0 0 0.0" size="1 0.01"
+                type="cylinder" material="jupiter_terrain"/>
+        </body>
+
+        <body name="ISS_floor" mocap="true">
+            <geom name="ISS_floor" pos="0 0 0.0" size="1 0.01"
+                type="cylinder" material="tile"/>
+        </body>
 
         <body name="hand" pos="0 0 -0.5" mocap="true">
             <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="2"/>
