@@ -28,6 +28,7 @@
         <mesh file="finger_proximal.STL"/>
         <mesh file="octagon.stl"/>
         <mesh file="adapt.stl" scale="0.5 0.5 0.5"/>
+        <mesh file="brain.stl"/>
 
         <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
 
@@ -93,6 +94,7 @@
         <exclude body1="ring1" body2="link2"/>
         <exclude body1="ring1" body2="link1"/>
         <exclude body1="ring1" body2="base_link"/>
+        <exclude body1="ring1" body2="brain"/>
 
         <exclude body1="ring2" body2="EE"/>
         <exclude body1="ring2" body2="thumb_distal"/>
@@ -108,6 +110,7 @@
         <exclude body1="ring2" body2="link2"/>
         <exclude body1="ring2" body2="link1"/>
         <exclude body1="ring2" body2="base_link"/>
+        <exclude body1="ring2" body2="brain"/>
 
         <exclude body1="ring3" body2="EE"/>
         <exclude body1="ring3" body2="thumb_distal"/>
@@ -123,6 +126,7 @@
         <exclude body1="ring3" body2="link2"/>
         <exclude body1="ring3" body2="link1"/>
         <exclude body1="ring3" body2="base_link"/>
+        <exclude body1="ring3" body2="brain"/>
 
         <exclude body1="ring4" body2="EE"/>
         <exclude body1="ring4" body2="thumb_distal"/>
@@ -138,6 +142,7 @@
         <exclude body1="ring4" body2="link2"/>
         <exclude body1="ring4" body2="link1"/>
         <exclude body1="ring4" body2="base_link"/>
+        <exclude body1="ring4" body2="brain"/>
 
         <exclude body1="ring5" body2="EE"/>
         <exclude body1="ring5" body2="thumb_distal"/>
@@ -153,6 +158,7 @@
         <exclude body1="ring5" body2="link2"/>
         <exclude body1="ring5" body2="link1"/>
         <exclude body1="ring5" body2="base_link"/>
+        <exclude body1="ring5" body2="brain"/>
 
         <exclude body1="hand" body2="EE"/>
         <exclude body1="hand" body2="thumb_distal"/>
@@ -170,6 +176,7 @@
         <exclude body1="hand" body2="base_link"/>
         <exclude body1="hand" body2="target"/>
         <exclude body1="hand" body2="dumbbell"/>
+        <exclude body1="hand" body2="brain"/>
 
         <exclude body1="target" body2="EE"/>
         <exclude body1="target" body2="thumb_distal"/>
@@ -190,6 +197,7 @@
         <exclude body1="target" body2="ring3"/>
         <exclude body1="target" body2="ring4"/>
         <exclude body1="target" body2="ring5"/>
+        <exclude body1="target" body2="brain"/>
 
         <exclude body1="target_orientation" body2="EE"/>
         <exclude body1="target_orientation" body2="thumb_distal"/>
@@ -210,6 +218,7 @@
         <exclude body1="target_orientation" body2="ring3"/>
         <exclude body1="target_orientation" body2="ring4"/>
         <exclude body1="target_orientation" body2="ring5"/>
+        <exclude body1="target_orientation" body2="brain"/>
 
         <exclude body1="path_planner" body2="EE"/>
         <exclude body1="path_planner" body2="thumb_distal"/>
@@ -230,6 +239,7 @@
         <exclude body1="path_planner" body2="ring3"/>
         <exclude body1="path_planner" body2="ring4"/>
         <exclude body1="path_planner" body2="ring5"/>
+        <exclude body1="path_planner" body2="brain"/>
 
         <exclude body1="path_planner_orientation" body2="EE"/>
         <exclude body1="path_planner_orientation" body2="thumb_distal"/>
@@ -250,6 +260,7 @@
         <exclude body1="path_planner_orientation" body2="ring3"/>
         <exclude body1="path_planner_orientation" body2="ring4"/>
         <exclude body1="path_planner_orientation" body2="ring5"/>
+        <exclude body1="path_planner_orientation" body2="brain"/>
 
         <!-- <exclude body1="object1" body2="path_planner_orientation"/> -->
         <!-- <exclude body1="object1" body2="path_planner"/> -->
@@ -265,6 +276,7 @@
         <exclude body1="dumbbell" body2="EE"/>
         <exclude body1="dumbbell" body2="adapt_on"/>
         <exclude body1="dumbbell" body2="adapt_off"/>
+        <exclude body1="dumbbell" body2="brain"/>
 
         <exclude body1="adapt_on" body2="EE"/>
         <exclude body1="adapt_on" body2="thumb_distal"/>
@@ -368,6 +380,9 @@
             <geom type="mesh" mesh="adapt" rgba="0.9 0.75 0.1 1"/>
         </body>
 
+        <body name="brain" pos="0 0 1" mocap="true">
+            <geom type="mesh" mesh="brain" rgba="0.92 0.82 0.84 1"/>
+        </body>
 
     <body name="ISS" pos="1.0 1.0 -1" mocap="true">
         <geom name="ISS" type="sphere" size="0.0005"/>
