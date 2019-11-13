@@ -46,6 +46,7 @@
         <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
 
 
+        <material name="blue_steel" specular="1" shininess="1" reflectance="1" rgba="0.1 0.125 0.15 1" emission="1" />
         <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
 
         <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
@@ -178,6 +179,22 @@
         <exclude body1="ring5" body2="link1"/>
         <exclude body1="ring5" body2="base_link"/>
         <exclude body1="ring5" body2="brain"/>
+
+        <exclude body1="elbow" body2="link5"/>
+        <exclude body1="elbow" body2="link4"/>
+        <exclude body1="elbow" body2="link3"/>
+        <exclude body1="elbow" body2="link2"/>
+        <exclude body1="elbow" body2="link1"/>
+        <exclude body1="elbow" body2="target"/>
+        <exclude body1="elbow" body2="dumbbell"/>
+        <exclude body1="elbow" body2="joint_logo0"/>
+        <exclude body1="elbow" body2="joint_logo1"/>
+        <exclude body1="elbow" body2="joint_logo2"/>
+        <exclude body1="elbow" body2="joint_logo3"/>
+        <exclude body1="elbow" body2="ring1"/>
+        <exclude body1="elbow" body2="ring2"/>
+        <exclude body1="elbow" body2="ring3"/>
+        <exclude body1="elbow" body2="ring4"/>
 
         <exclude body1="hand" body2="EE"/>
         <exclude body1="hand" body2="thumb_distal"/>
@@ -373,7 +390,7 @@
         </body>
 
         <body name="elbow" pos="0 0 -0.5" mocap="true">
-            <geom type="sphere" size="0.05" rgba="0 1 1 .25"/>
+            <geom name="elbow" type="sphere" size="0.05" rgba="0 1 1 .25"/>
         </body>
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
@@ -434,13 +451,13 @@
     <!-- </body> -->
 
         <body name="base_link" pos="0 0 0">
-            <geom name="link0" type="mesh" mesh="base" pos="0 0 0" material="carbon"/>
+            <geom name="link0" type="mesh" mesh="base" pos="0 0 0" material="blue_steel"/>
             <inertial pos="0.000000 0.000000 0.125500" mass="1.226" diaginertia="0.25 0.25 0.25"/>
             <geom type="sphere" size="0.025" pos="0.000000 0.000000 0.125500" rgba="1 0.5 0 1"/>
 
             <body name="link1" pos="0 0 0.157">
                 <inertial pos="-0.000042 -0.001285 0.112784" mass="0.754000" diaginertia="0.3 0.3 0.3"/>
-                <geom name="link1" type="mesh" mesh="shoulder" pos="0 0 0" euler="0 3.14 0" material="carbon"/>
+                <geom name="link1" type="mesh" mesh="shoulder" pos="0 0 0" euler="0 3.14 0" material="blue_steel"/>
                 <joint name="joint0" axis="0 0 -1" pos="0 0 0"/>
 
                 <!-- <body name="ring0"> -->
@@ -452,7 +469,7 @@
 
                 <body name="link2" pos="0 0.0016 0.1186">
                     <inertial pos="0.000014 0.009353 0.329006" mass="1.010000" diaginertia="0.3 0.3 0.3"/>
-                    <geom name="link2" type="mesh" mesh="arm" pos="0 0 0" euler="1.57 0 3.14" material="carbon"/>
+                    <geom name="link2" type="mesh" mesh="arm" pos="0 0 0" euler="1.57 0 3.14" material="blue_steel"/>
                     <joint name="joint1" pos="0 0 0" axis="0 -1 0"  ref="3.14" limited="true" range="0.872665 5.41052"/>
 
                     <body name="ring1">
@@ -468,7 +485,7 @@
 
                     <body name="link3" pos="0 0 0.410">
                         <inertial pos="-0.000039 -0.018069 0.153270" mass="0.559000" diaginertia="0.275 0.275 0.275"/>
-                        <geom name="link3" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 3.14 0" material="carbon"/>
+                        <geom name="link3" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 3.14 0" material="blue_steel"/>
                         <joint name="joint2" pos="0 0 0" axis="0 1 0" ref="3.14" limited="true" range="0.331613 5.95157"/>
                         <body name="joint_logo3">
                             <geom type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.038 0" euler="1.54 0 0"/>
@@ -480,7 +497,7 @@
 
                         <body name="link4" pos="0 -0.0115 0.2072">
                             <inertial pos="0.000000 0.032302 0.059705" mass="0.417000" diaginertia="0.175 0.175 0.175"/>
-                            <geom name="link4" type="mesh" mesh="wrist" euler="3.14 0 0" material="carbon"/>
+                            <geom name="link4" type="mesh" mesh="wrist" euler="3.14 0 0" material="blue_steel"/>
                             <joint name="joint3" pos="0 0 0" axis="0 0 -1" ref="0"/>
 
                             <body name="ring3">
@@ -489,7 +506,7 @@
 
                             <body name="link5" pos="0 0.037 0.0641">
                                 <inertial pos="-0.000000 0.035545 0.057833" mass="0.417" diaginertia="0.175 0.175 0.175"/>
-                                <geom name="link5" type="mesh" mesh="wrist" euler="-1.0472 3.14 0" material="carbon"/>
+                                <geom name="link5" type="mesh" mesh="wrist" euler="-1.0472 3.14 0" material="blue_steel"/>
                                 <joint name="joint4" pos="0 0 0" axis="0 -1.9 -1.1" ref="0"/>
 
                                 <body name="ring4">
@@ -498,7 +515,7 @@
 
                                 <body name="link6" pos="0 0.037 0.0641">
                                     <inertial pos="0.000030 -0.006840 0.082220" mass="0.727000" diaginertia="0.025 0.025 0.025"/>
-                                    <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="carbon"
+                                    <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="blue_steel"
                                             solimp="0.97 0.97 0.01" solref="0.01 1" condim="6" />
                                     <joint name="joint5" pos="0 0 0" axis="0 0 -1" ref="0"/>
 
