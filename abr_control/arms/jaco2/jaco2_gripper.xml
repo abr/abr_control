@@ -71,9 +71,9 @@
         <texture name="moon" file="meshes/moon_crop.png" width="2048" height="2048" type="2d"/>
         <material name="moon_surface" texture="moon" specular="0" shininess="0" reflectance="0" emission="1" />
 
-        <!-- <texture name="earth" file="meshes/earth_box.png" width="1028" height="1536" type="2d" -->
-        <!--     gridlayout=".U..LFRB.D.." gridsize="3 4"/> -->
-        <texture name="earth" file="meshes/earth_crop.png" width="2048" height="2048" type="2d"/>
+        <texture name="earth" file="meshes/earth3x4.png" width="2048" height="1536"
+            gridlayout=".U..LFRB.D.." gridsize="3 4"/>
+        <!-- <texture name="earth" file="meshes/earth_crop.png" width="2048" height="2048" type="2d"/> -->
         <material name="earth_surface" texture="earth" specular="0" shininess="0" reflectance="0" emission="1" />
 
 
@@ -378,13 +378,15 @@
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
-        <body name="dumbbell_stand1" pos="-0.39 0 0">
-            <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.03"
-                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+        <body name="dumbbell_stand1" pos="-0.39 0 0.015">
+            <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.015"
+                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1"
+                condim="4" material='knurled'/>
         </body>
-        <body name="dumbbell_stand2" pos="-0.61 0 0">
-            <geom name="dumbbell_stand2" type="box" size="0.05 0.075 0.03"
-                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" />
+        <body name="dumbbell_stand2" pos="-0.61 0 0.015">
+            <geom name="dumbbell_stand2" type="box" size="0.05 0.075 0.015"
+                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1"
+                condim="4" material='knurled'/>
         </body>
 
         <body name="dumbbell" pos="-0.5 0 0.085">
@@ -399,7 +401,8 @@
         </body>
 
         <body name="adapt" pos="0 1 0" mocap="true">
-            <geom name="adapt" type="mesh" mesh="adapt" rgba="0.5 0.5 0.5 0.1"/>
+            <geom name="adapt" type="mesh" mesh="adapt" rgba="0.5 0.5 0.5 0.1"
+                material='knurled'/>
         </body>
 
         <body name="brain" pos="0 0 1" mocap="true">
