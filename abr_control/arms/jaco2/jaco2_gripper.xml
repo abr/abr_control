@@ -2,13 +2,12 @@
 <!-- https://github.com/Kinovarobotics/kinova-ros/kinova_description/meshes -->
 <!-- and place them in a meshes folder in this directory -->
 <mujoco model="jaco2_gripper">
-    <!-- <option solver="CG"/> -->
-    <!--  -->
     <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
 
     <default>
         <light castshadow="false" diffuse="1 1 1" />
         <camera fovy="60" />
+        <geom contype="1" conaffinity="1" />
     </default>
 
     <custom>
@@ -26,6 +25,11 @@
         <mesh file="ring_small.STL"/>
         <mesh file="finger_distal.STL"/>
         <mesh file="finger_proximal.STL"/>
+        <mesh file="alt.stl" />
+        <mesh file="l-arrow-double.stl" />
+        <mesh file="r-arrow-double.stl" />
+        <mesh file="u-arrow-double.stl" />
+        <mesh file="d-arrow-double.stl" />
         <mesh file="octagon.stl"/>
         <mesh file="adapt.stl" scale="0.5 0.5 0.5"/>
         <mesh file="brain.stl"/>
@@ -44,7 +48,6 @@
 
         <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
         <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
-
 
         <material name="blue_steel" specular="1" shininess="1" reflectance="1" rgba="0.1 0.125 0.15 1" emission="1" />
         <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
@@ -72,313 +75,57 @@
         <texture name="moon" file="meshes/moon_crop.png" width="2048" height="2048" type="2d"/>
         <material name="moon_surface" texture="moon" specular="0" shininess="0" reflectance="0" emission="1" />
 
-        <texture name="earth" file="meshes/earth3x4.png" width="2048" height="1536"
-            gridlayout=".U..LFRB.D.." gridsize="3 4"/>
-        <!-- <texture name="earth" file="meshes/earth_crop.png" width="2048" height="2048" type="2d"/> -->
+        <texture name="earth" file="meshes/earth3x4.png" width="2048" height="1536" gridlayout=".U..LFRB.D.." gridsize="3 4"/>
         <material name="earth_surface" texture="earth" specular="0" shininess="0" reflectance="0" emission="1" />
 
-
-        <!-- <texture name="stars" file="meshes/stars_scale.png" width="2048" height="2048" type="skybox"/> -->
-        <!--  -->
-        <texture name="stars" file="meshes/stars3x4.png" width="2048" height="2048" type="skybox"
-            gridlayout=".U..LFRB.D.." gridsize="3 4"/>
+        <texture name="stars" file="meshes/stars3x4.png" width="2048" height="2048" type="skybox" gridlayout=".U..LFRB.D.." gridsize="3 4"/>
     </asset>
 
     <contact>
-        <!-- <exclude body1="ring0" body2="EE"/> -->
-        <!-- <exclude body1="ring0" body2="thumb_distal"/> -->
-        <!-- <exclude body1="ring0" body2="thumb_proximal"/> -->
-        <!-- <exclude body1="ring0" body2="index_distal"/> -->
-        <!-- <exclude body1="ring0" body2="index_proximal"/> -->
-        <!-- <exclude body1="ring0" body2="pinky_distal"/> -->
-        <!-- <exclude body1="ring0" body2="pinky_proximal"/> -->
-        <!-- <exclude body1="ring0" body2="link6"/> -->
-        <!-- <exclude body1="ring0" body2="link5"/> -->
-        <!-- <exclude body1="ring0" body2="link4"/> -->
-        <!-- <exclude body1="ring0" body2="link3"/> -->
-        <!-- <exclude body1="ring0" body2="link2"/> -->
-        <!-- <exclude body1="ring0" body2="link1"/> -->
-        <!-- <exclude body1="ring0" body2="base_link"/> -->
-
-        <exclude body1="ring1" body2="EE"/>
-        <exclude body1="ring1" body2="thumb_distal"/>
-        <exclude body1="ring1" body2="thumb_proximal"/>
-        <exclude body1="ring1" body2="index_distal"/>
-        <exclude body1="ring1" body2="index_proximal"/>
-        <exclude body1="ring1" body2="pinky_distal"/>
-        <exclude body1="ring1" body2="pinky_proximal"/>
-        <exclude body1="ring1" body2="link6"/>
-        <exclude body1="ring1" body2="link5"/>
-        <exclude body1="ring1" body2="link4"/>
-        <exclude body1="ring1" body2="link3"/>
-        <exclude body1="ring1" body2="link2"/>
-        <exclude body1="ring1" body2="link1"/>
-        <exclude body1="ring1" body2="base_link"/>
-        <exclude body1="ring1" body2="brain"/>
-
-        <exclude body1="ring2" body2="EE"/>
-        <exclude body1="ring2" body2="thumb_distal"/>
-        <exclude body1="ring2" body2="thumb_proximal"/>
-        <exclude body1="ring2" body2="index_distal"/>
-        <exclude body1="ring2" body2="index_proximal"/>
-        <exclude body1="ring2" body2="pinky_distal"/>
-        <exclude body1="ring2" body2="pinky_proximal"/>
-        <exclude body1="ring2" body2="link6"/>
-        <exclude body1="ring2" body2="link5"/>
-        <exclude body1="ring2" body2="link4"/>
-        <exclude body1="ring2" body2="link3"/>
-        <exclude body1="ring2" body2="link2"/>
-        <exclude body1="ring2" body2="link1"/>
-        <exclude body1="ring2" body2="base_link"/>
-        <exclude body1="ring2" body2="brain"/>
-
-        <exclude body1="ring3" body2="EE"/>
-        <exclude body1="ring3" body2="thumb_distal"/>
-        <exclude body1="ring3" body2="thumb_proximal"/>
-        <exclude body1="ring3" body2="index_distal"/>
-        <exclude body1="ring3" body2="index_proximal"/>
-        <exclude body1="ring3" body2="pinky_distal"/>
-        <exclude body1="ring3" body2="pinky_proximal"/>
-        <exclude body1="ring3" body2="link6"/>
-        <exclude body1="ring3" body2="link5"/>
-        <exclude body1="ring3" body2="link4"/>
-        <exclude body1="ring3" body2="link3"/>
-        <exclude body1="ring3" body2="link2"/>
-        <exclude body1="ring3" body2="link1"/>
-        <exclude body1="ring3" body2="base_link"/>
-        <exclude body1="ring3" body2="brain"/>
-
-        <exclude body1="ring4" body2="EE"/>
-        <exclude body1="ring4" body2="thumb_distal"/>
-        <exclude body1="ring4" body2="thumb_proximal"/>
-        <exclude body1="ring4" body2="index_distal"/>
-        <exclude body1="ring4" body2="index_proximal"/>
-        <exclude body1="ring4" body2="pinky_distal"/>
-        <exclude body1="ring4" body2="pinky_proximal"/>
-        <exclude body1="ring4" body2="link6"/>
-        <exclude body1="ring4" body2="link5"/>
-        <exclude body1="ring4" body2="link4"/>
-        <exclude body1="ring4" body2="link3"/>
-        <exclude body1="ring4" body2="link2"/>
-        <exclude body1="ring4" body2="link1"/>
-        <exclude body1="ring4" body2="base_link"/>
-        <exclude body1="ring4" body2="brain"/>
-
-        <exclude body1="ring5" body2="EE"/>
-        <exclude body1="ring5" body2="thumb_distal"/>
-        <exclude body1="ring5" body2="thumb_proximal"/>
-        <exclude body1="ring5" body2="index_distal"/>
-        <exclude body1="ring5" body2="index_proximal"/>
-        <exclude body1="ring5" body2="pinky_distal"/>
-        <exclude body1="ring5" body2="pinky_proximal"/>
-        <exclude body1="ring5" body2="link6"/>
-        <exclude body1="ring5" body2="link5"/>
-        <exclude body1="ring5" body2="link4"/>
-        <exclude body1="ring5" body2="link3"/>
-        <exclude body1="ring5" body2="link2"/>
-        <exclude body1="ring5" body2="link1"/>
-        <exclude body1="ring5" body2="base_link"/>
-        <exclude body1="ring5" body2="brain"/>
-
-        <exclude body1="elbow" body2="link5"/>
-        <exclude body1="elbow" body2="link4"/>
-        <exclude body1="elbow" body2="link3"/>
-        <exclude body1="elbow" body2="link2"/>
-        <exclude body1="elbow" body2="link1"/>
-        <exclude body1="elbow" body2="target"/>
-        <exclude body1="elbow" body2="dumbbell"/>
-        <exclude body1="elbow" body2="joint_logo0"/>
-        <exclude body1="elbow" body2="joint_logo1"/>
-        <exclude body1="elbow" body2="joint_logo2"/>
-        <exclude body1="elbow" body2="joint_logo3"/>
-        <exclude body1="elbow" body2="ring1"/>
-        <exclude body1="elbow" body2="ring2"/>
-        <exclude body1="elbow" body2="ring3"/>
-        <exclude body1="elbow" body2="ring4"/>
-
-        <exclude body1="hand" body2="EE"/>
-        <exclude body1="hand" body2="thumb_distal"/>
-        <exclude body1="hand" body2="thumb_proximal"/>
-        <exclude body1="hand" body2="index_distal"/>
-        <exclude body1="hand" body2="index_proximal"/>
-        <exclude body1="hand" body2="pinky_distal"/>
-        <exclude body1="hand" body2="pinky_proximal"/>
-        <exclude body1="hand" body2="link6"/>
-        <exclude body1="hand" body2="link5"/>
-        <exclude body1="hand" body2="link4"/>
-        <exclude body1="hand" body2="link3"/>
-        <exclude body1="hand" body2="link2"/>
-        <exclude body1="hand" body2="link1"/>
-        <exclude body1="hand" body2="base_link"/>
-        <exclude body1="hand" body2="target"/>
-        <exclude body1="hand" body2="dumbbell"/>
-        <exclude body1="hand" body2="brain"/>
-
-        <exclude body1="target" body2="EE"/>
-        <exclude body1="target" body2="thumb_distal"/>
-        <exclude body1="target" body2="thumb_proximal"/>
-        <exclude body1="target" body2="index_distal"/>
-        <exclude body1="target" body2="index_proximal"/>
-        <exclude body1="target" body2="pinky_distal"/>
-        <exclude body1="target" body2="pinky_proximal"/>
-        <exclude body1="target" body2="link6"/>
-        <exclude body1="target" body2="link5"/>
-        <exclude body1="target" body2="link4"/>
-        <exclude body1="target" body2="link3"/>
-        <exclude body1="target" body2="link2"/>
-        <exclude body1="target" body2="link1"/>
-        <exclude body1="target" body2="base_link"/>
-        <exclude body1="target" body2="ring1"/>
-        <exclude body1="target" body2="ring2"/>
-        <exclude body1="target" body2="ring3"/>
-        <exclude body1="target" body2="ring4"/>
-        <exclude body1="target" body2="ring5"/>
-        <exclude body1="target" body2="brain"/>
-
-        <exclude body1="target_orientation" body2="EE"/>
-        <exclude body1="target_orientation" body2="thumb_distal"/>
-        <exclude body1="target_orientation" body2="thumb_proximal"/>
-        <exclude body1="target_orientation" body2="index_distal"/>
-        <exclude body1="target_orientation" body2="index_proximal"/>
-        <exclude body1="target_orientation" body2="pinky_distal"/>
-        <exclude body1="target_orientation" body2="pinky_proximal"/>
-        <exclude body1="target_orientation" body2="link6"/>
-        <exclude body1="target_orientation" body2="link5"/>
-        <exclude body1="target_orientation" body2="link4"/>
-        <exclude body1="target_orientation" body2="link3"/>
-        <exclude body1="target_orientation" body2="link2"/>
-        <exclude body1="target_orientation" body2="link1"/>
-        <exclude body1="target_orientation" body2="base_link"/>
-        <exclude body1="target_orientation" body2="ring1"/>
-        <exclude body1="target_orientation" body2="ring2"/>
-        <exclude body1="target_orientation" body2="ring3"/>
-        <exclude body1="target_orientation" body2="ring4"/>
-        <exclude body1="target_orientation" body2="ring5"/>
-        <exclude body1="target_orientation" body2="brain"/>
-
-        <exclude body1="path_planner" body2="EE"/>
-        <exclude body1="path_planner" body2="thumb_distal"/>
-        <exclude body1="path_planner" body2="thumb_proximal"/>
-        <exclude body1="path_planner" body2="index_distal"/>
-        <exclude body1="path_planner" body2="index_proximal"/>
-        <exclude body1="path_planner" body2="pinky_distal"/>
-        <exclude body1="path_planner" body2="pinky_proximal"/>
-        <exclude body1="path_planner" body2="link6"/>
-        <exclude body1="path_planner" body2="link5"/>
-        <exclude body1="path_planner" body2="link4"/>
-        <exclude body1="path_planner" body2="link3"/>
-        <exclude body1="path_planner" body2="link2"/>
-        <exclude body1="path_planner" body2="link1"/>
-        <exclude body1="path_planner" body2="base_link"/>
-        <exclude body1="path_planner" body2="ring1"/>
-        <exclude body1="path_planner" body2="ring2"/>
-        <exclude body1="path_planner" body2="ring3"/>
-        <exclude body1="path_planner" body2="ring4"/>
-        <exclude body1="path_planner" body2="ring5"/>
-        <exclude body1="path_planner" body2="brain"/>
-
-        <exclude body1="path_planner_orientation" body2="EE"/>
-        <exclude body1="path_planner_orientation" body2="thumb_distal"/>
-        <exclude body1="path_planner_orientation" body2="thumb_proximal"/>
-        <exclude body1="path_planner_orientation" body2="index_distal"/>
-        <exclude body1="path_planner_orientation" body2="index_proximal"/>
-        <exclude body1="path_planner_orientation" body2="pinky_distal"/>
-        <exclude body1="path_planner_orientation" body2="pinky_proximal"/>
-        <exclude body1="path_planner_orientation" body2="link6"/>
-        <exclude body1="path_planner_orientation" body2="link5"/>
-        <exclude body1="path_planner_orientation" body2="link4"/>
-        <exclude body1="path_planner_orientation" body2="link3"/>
-        <exclude body1="path_planner_orientation" body2="link2"/>
-        <exclude body1="path_planner_orientation" body2="link1"/>
-        <exclude body1="path_planner_orientation" body2="base_link"/>
-        <exclude body1="path_planner_orientation" body2="ring1"/>
-        <exclude body1="path_planner_orientation" body2="ring2"/>
-        <exclude body1="path_planner_orientation" body2="ring3"/>
-        <exclude body1="path_planner_orientation" body2="ring4"/>
-        <exclude body1="path_planner_orientation" body2="ring5"/>
-        <exclude body1="path_planner_orientation" body2="brain"/>
-
-        <!-- <exclude body1="object1" body2="path_planner_orientation"/> -->
-        <!-- <exclude body1="object1" body2="path_planner"/> -->
-        <!-- <exclude body1="object1" body2="target_orientation"/> -->
-        <!-- <exclude body1="object1" body2="target"/> -->
-        <!-- <exclude body1="object1" body2="hand"/> -->
-
         <exclude body1="dumbbell" body2="path_planner_orientation"/>
         <exclude body1="dumbbell" body2="path_planner"/>
         <exclude body1="dumbbell" body2="target_orientation"/>
         <exclude body1="dumbbell" body2="target"/>
-        <exclude body1="dumbbell" body2="hand"/>
         <exclude body1="dumbbell" body2="EE"/>
         <exclude body1="dumbbell" body2="adapt"/>
         <exclude body1="dumbbell" body2="brain"/>
-
-        <exclude body1="adapt" body2="EE"/>
-        <exclude body1="adapt" body2="thumb_distal"/>
-        <exclude body1="adapt" body2="thumb_proximal"/>
-        <exclude body1="adapt" body2="index_distal"/>
-        <exclude body1="adapt" body2="index_proximal"/>
-        <exclude body1="adapt" body2="pinky_distal"/>
-        <exclude body1="adapt" body2="pinky_proximal"/>
-        <exclude body1="adapt" body2="link6"/>
-        <exclude body1="adapt" body2="link5"/>
-        <exclude body1="adapt" body2="link4"/>
-        <exclude body1="adapt" body2="link3"/>
-        <exclude body1="adapt" body2="link2"/>
-        <exclude body1="adapt" body2="link1"/>
-        <exclude body1="adapt" body2="base_link"/>
-        <exclude body1="adapt" body2="ring1"/>
-        <exclude body1="adapt" body2="ring2"/>
-        <exclude body1="adapt" body2="ring3"/>
-        <exclude body1="adapt" body2="ring4"/>
-        <exclude body1="adapt" body2="ring5"/>
-
     </contact>
 
     <worldbody>
-        <!-- <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/> -->
-        <!--  -->
-        <!-- <geom name="floor_grey_tile" pos="0 0 &#45;0.001" size="1 1 0.05" type="plane" material="tile"/> -->
-        <!--  -->
         <body name="earth_floor" mocap="true">
-            <geom name="earth_floor" pos="0 0 0.0" size="1 0.01"
-                type="cylinder" material="earth_terrain"/>
+            <geom name="earth_floor" pos="0 0 0.0" size="1 0.01" type="cylinder" material="earth_terrain"/>
         </body>
 
         <body name="mars_floor" mocap="true">
-            <geom name="mars_floor" pos="0 0 0.0" size="1 0.01"
-                type="cylinder" material="mars_terrain"/>
+            <geom name="mars_floor" pos="0 0 0.0" size="1 0.01" type="cylinder" material="mars_terrain"/>
         </body>
 
         <body name="moon_floor" mocap="true">
-            <geom name="moon_floor" pos="0 0 0.0" size="1 0.01"
-                type="cylinder" material="moon_terrain"/>
+            <geom name="moon_floor" pos="0 0 0.0" size="1 0.01" type="cylinder" material="moon_terrain"/>
         </body>
 
         <body name="jupiter_floor" mocap="true">
-            <geom name="jupiter_floor" pos="0 0 0.0" size="1 0.01"
-                type="cylinder" material="jupiter_terrain"/>
+            <geom name="jupiter_floor" pos="0 0 0.0" size="1 0.01" type="cylinder" material="jupiter_terrain"/>
         </body>
 
         <body name="ISS_floor" mocap="true">
-            <geom name="ISS_floor" pos="0 0 0.0" size="1 0.01"
-                type="cylinder" material="tile"/>
+            <geom name="ISS_floor" pos="0 0 0.0" size="1 0.01" type="cylinder" material="tile"/>
         </body>
 
         <body name="hand" pos="0 0 -0.5" mocap="true">
-            <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="2"/>
+            <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="4" conaffinity="4"/>
         </body>
 
         <body name="target" pos="0 0 -0.5" mocap="true">
-            <geom name="target" type="sphere" size="0.05" rgba=".9 0 0 .5"/>
+            <geom name="target" type="sphere" size="0.05" rgba=".9 0 0 .5" contype="2" conaffinity="2"/>
         </body>
 
         <body name="target_orientation" pos="0 0 -0.5" mocap="true">
-            <geom type="box" size=".02 .04 .06" rgba=".9 0 0 .5" contype="2"/>
+            <geom type="box" size=".02 .04 .06" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
         </body>
 
         <body name="path_planner" pos="0 0 -0.5" mocap="true">
-            <geom type="sphere" size="0.05" rgba="0 1 1 0.5"/>
+            <geom type="sphere" size="0.05" rgba="0 1 1 0.5" contype="8" conaffinity="8"/>
         </body>
 
         <body name="path_planner_orientation" pos="0 0 -0.5" mocap="true">
@@ -390,65 +137,85 @@
         </body>
 
         <body name="elbow" pos="0 0 -0.5" mocap="true">
-            <geom name="elbow" type="sphere" size="0.05" rgba="0 1 1 .25"/>
+            <geom name="elbow" type="sphere" size="0.05" rgba="0 1 1 .25" contype="32" conaffinity="32"/>
         </body>
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
         <body name="dumbbell_stand1" pos="-0.39 0 0.015">
-            <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.015"
-                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1"
-                condim="4" material='knurled'/>
+            <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.015" friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" material='knurled'/>
         </body>
         <body name="dumbbell_stand2" pos="-0.61 0 0.015">
-            <geom name="dumbbell_stand2" type="box" size="0.05 0.075 0.015"
-                friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1"
-                condim="4" material='knurled'/>
+            <geom name="dumbbell_stand2" type="box" size="0.05 0.075 0.015" friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" material='knurled'/>
         </body>
 
         <body name="dumbbell" pos="-0.5 0 0.085">
-            <geom name="handle" type="cylinder" pos="0 0 0" material="knurled" size="0.0127 0.06" euler="0 1.57 0"
-                friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-            <geom name="mass1" type="mesh" mesh="octagon" pos="0.1 0 0" material="carbon"
-                friction="1 0.005 0.001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="6" />
-            <geom name="mass2" type="mesh" mesh="octagon" pos="-0.1 0 0" material="carbon"
-                friction="1 0.005 0.001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="6" />
+            <geom name="handle" type="cylinder" pos="0 0 0" material="knurled" size="0.0127 0.06" euler="0 1.57 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+            <geom name="mass1" type="mesh" mesh="octagon" pos="0.1 0 0" material="carbon" friction="1 0.005 0.001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="6" />
+            <geom name="mass2" type="mesh" mesh="octagon" pos="-0.1 0 0" material="carbon" friction="1 0.005 0.001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="6" />
             <inertial pos="0 0 0" mass="4" diaginertia="0.1 0.1 0.1"/>
             <freejoint name="dumbbell"/>
         </body>
 
         <body name="adapt" pos="0 1 0" mocap="true">
-            <geom name="adapt" type="mesh" mesh="adapt" rgba="0.5 0.5 0.5 0.1"
-                material='knurled'/>
+            <geom name="adapt" type="mesh" mesh="adapt" rgba="0.5 0.5 0.5 0.1" material='knurled' contype="32" conaffinity="32"/>
         </body>
 
         <body name="brain" pos="0 0 1" mocap="true">
             <geom type="mesh" mesh="brain" rgba="0.92 0.82 0.84 1"/>
         </body>
 
-    <body name="ISS" pos="1.0 1.0 -1" mocap="true">
-        <geom name="ISS" type="sphere" size="0.0005"/>
-    </body>
+        <body name="l-arrow-double" pos="0 1 .5" mocap="true">
+            <geom type="mesh" mesh="l-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32"/>
+        </body>
 
-    <body name="earth" pos="1.0 1.0 -1" mocap="true">
-        <geom name="earth" type="sphere" size="0.24" material="earth_surface" euler="1.57 0 0"/>
-    </body>
+        <body name="r-arrow-double" pos="0 1 .5" mocap="true">
+            <geom type="mesh" mesh="r-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32"/>
+        </body>
 
-    <body name="moon" pos="1.0 1.0 -1" mocap="true">
-        <geom name="moon" type="sphere" size="0.1" material="moon_surface" euler="1.57 0 0"/>
-    </body>
+        <body name="u-arrow-double" pos="0 1 .5" mocap="true">
+            <geom type="mesh" mesh="u-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32"/>
+        </body>
 
-    <body name="mars" pos="1.0 1.0 -1" mocap="true">
-        <geom name="mars" type="sphere" size="0.2" material="mars_surface" euler="1.57 0 0"/>
-    </body>
+        <body name="d-arrow-double" pos="0 1 .5" mocap="true">
+            <geom type="mesh" mesh="d-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32"/>
+        </body>
 
-    <body name="jupiter" pos="1.0 1.0 -1" mocap="true">
-        <geom name="jupiter" type="sphere" size="0.3" material="jupiter_surface" euler="1.57 0 0"/>
-    </body>
+        <body name="alt1" pos="0 1 1" mocap="true">
+            <geom type="mesh" euler="0 3.14 0" mesh="alt" contype="32" conaffinity="32"/>
+        </body>
 
-    <!-- <body name="floor_mars" pos="0 0 0"> -->
-    <!--     <geom name="floor_mars" pos="0 0 &#45;0.001" size="0 0 1" type="plane" material="mars_surface"/> -->
-    <!-- </body> -->
+        <body name="u-arrow-double2" pos="0 1 .5" mocap="true">
+            <geom type="mesh" mesh="u-arrow-double" contype="32" conaffinity="32"/>
+        </body>
+
+        <body name="alt2" pos="0 1 1" mocap="true">
+            <geom type="mesh" euler="0 3.14 0" mesh="alt" contype="32" conaffinity="32"/>
+        </body>
+
+        <body name="d-arrow-double2" pos="0 1 .5" mocap="true">
+            <geom type="mesh" mesh="d-arrow-double" contype="32" conaffinity="32"/>
+        </body>
+
+        <body name="ISS" pos="1.0 1.0 -1" mocap="true">
+            <geom name="ISS" type="sphere" size="0.0005"/>
+        </body>
+
+        <body name="earth" pos="1.0 1.0 -1" mocap="true">
+            <geom name="earth" type="sphere" size="0.24" material="earth_surface" euler="1.57 0 0"/>
+        </body>
+
+        <body name="moon" pos="1.0 1.0 -1" mocap="true">
+            <geom name="moon" type="sphere" size="0.1" material="moon_surface" euler="1.57 0 0"/>
+        </body>
+
+        <body name="mars" pos="1.0 1.0 -1" mocap="true">
+            <geom name="mars" type="sphere" size="0.2" material="mars_surface" euler="1.57 0 0"/>
+        </body>
+
+        <body name="jupiter" pos="1.0 1.0 -1" mocap="true">
+            <geom name="jupiter" type="sphere" size="0.3" material="jupiter_surface" euler="1.57 0 0"/>
+        </body>
 
         <body name="base_link" pos="0 0 0">
             <geom name="link0" type="mesh" mesh="base" pos="0 0 0" material="blue_steel"/>
@@ -458,65 +225,45 @@
             <body name="link1" pos="0 0 0.157">
                 <inertial pos="-0.000042 -0.001285 0.112784" mass="0.754000" diaginertia="0.3 0.3 0.3"/>
                 <geom name="link1" type="mesh" mesh="shoulder" pos="0 0 0" euler="0 3.14 0" material="blue_steel"/>
+                <!-- <geom name="ring0" type="mesh" mesh="ring_big" material="grey_plastic"/> -->
+                <geom name="joint_logo0" type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.0364 0.1186" euler="1.6 0 0"/>
                 <joint name="joint0" axis="0 0 -1" pos="0 0 0"/>
 
-                <!-- <body name="ring0"> -->
-                <!--     <geom name="ring0" type="mesh" mesh="ring_big" material="grey_plastic"/> -->
-                <!-- </body> -->
-                <body name="joint_logo0">
-                    <geom type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.0364 0.1186" euler="1.6 0 0"/>
-                </body>
 
                 <body name="link2" pos="0 0.0016 0.1186">
                     <inertial pos="0.000014 0.009353 0.329006" mass="1.010000" diaginertia="0.3 0.3 0.3"/>
                     <geom name="link2" type="mesh" mesh="arm" pos="0 0 0" euler="1.57 0 3.14" material="blue_steel"/>
+                    <geom name="ring1" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
+                    <geom name="joint_logo1" type="cylinder" size="0.032 0.005" material="logo_flip" pos="0 0.038 0" euler="1.52 0 0"/>
+                    <geom name="joint_logo2" type="cylinder" size="0.032 0.005" material="logo_flip" pos="0 0.0385 0.410" euler="1.62 0 0"/>
                     <joint name="joint1" pos="0 0 0" axis="0 -1 0"  ref="3.14" limited="true" range="0.872665 5.41052"/>
-
-                    <body name="ring1">
-                        <geom name="ring1" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
-                    </body>
-                    <body name="joint_logo1">
-                        <geom type="cylinder" size="0.032 0.005" material="logo_flip" pos="0 0.038 0" euler="1.52 0 0"/>
-                    </body>
-                    <body name="joint_logo2">
-                        <geom type="cylinder" size="0.032 0.005" material="logo_flip" pos="0 0.0385 0.410" euler="1.62 0 0"/>
-                    </body>
-
 
                     <body name="link3" pos="0 0 0.410">
                         <inertial pos="-0.000039 -0.018069 0.153270" mass="0.559000" diaginertia="0.275 0.275 0.275"/>
                         <geom name="link3" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 3.14 0" material="blue_steel"/>
                         <joint name="joint2" pos="0 0 0" axis="0 1 0" ref="3.14" limited="true" range="0.331613 5.95157"/>
-                        <body name="joint_logo3">
-                            <geom type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.038 0" euler="1.54 0 0"/>
-                        </body>
+                        <geom name="joint_logo3" type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.038 0" euler="1.54 0 0"/>
 
                         <body name="ring2">
-                            <geom name="ring2" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
+                            <geom name="ring2" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0" contype="16" conaffinity="16"/>
                         </body>
 
                         <body name="link4" pos="0 -0.0115 0.2072">
                             <inertial pos="0.000000 0.032302 0.059705" mass="0.417000" diaginertia="0.175 0.175 0.175"/>
                             <geom name="link4" type="mesh" mesh="wrist" euler="3.14 0 0" material="blue_steel"/>
+                            <geom name="ring3" type="mesh" mesh="ring_small" material="grey_plastic"/>
                             <joint name="joint3" pos="0 0 0" axis="0 0 -1" ref="0"/>
-
-                            <body name="ring3">
-                                <geom name="ring3" type="mesh" mesh="ring_small" material="grey_plastic"/>
-                            </body>
 
                             <body name="link5" pos="0 0.037 0.0641">
                                 <inertial pos="-0.000000 0.035545 0.057833" mass="0.417" diaginertia="0.175 0.175 0.175"/>
                                 <geom name="link5" type="mesh" mesh="wrist" euler="-1.0472 3.14 0" material="blue_steel"/>
+                                <geom name="ring4" type="mesh" mesh="ring_small" material="grey_plastic" euler="-1.0471 0 0"/>
                                 <joint name="joint4" pos="0 0 0" axis="0 -1.9 -1.1" ref="0"/>
-
-                                <body name="ring4">
-                                    <geom name="ring4" type="mesh" mesh="ring_small" material="grey_plastic" euler="-1.0471 0 0"/>
-                                </body>
 
                                 <body name="link6" pos="0 0.037 0.0641">
                                     <inertial pos="0.000030 -0.006840 0.082220" mass="0.727000" diaginertia="0.025 0.025 0.025"/>
-                                    <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="blue_steel"
-                                            solimp="0.97 0.97 0.01" solref="0.01 1" condim="6" />
+                                    <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="blue_steel" solimp="0.97 0.97 0.01" solref="0.01 1" condim="6" />
+                                    <geom name="ring5" type="mesh" mesh="ring_small" material="grey_plastic"/>
                                     <joint name="joint5" pos="0 0 0" axis="0 0 -1" ref="0"/>
 
                                     <!-- for fingertip EE -->
@@ -527,71 +274,41 @@
                                     <body name="EE" pos="0 0 0.12" euler="0 0 0">
                                     </body>
 
-                                    <body name="ring5">
-                                        <geom name="ring5" type="mesh" mesh="ring_small" material="grey_plastic"/>
-                                    </body>
-
                                     <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726  0.262085    0.02762996 -0.10213274">
-                                        <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0"
-                                            friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true"
-                                            range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"
-                                            stiffness="5" springref="0.0" damping="0.35"/>
+                                        <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
 
                                         <body name="thumb_distal" pos="0 -0.003 0.044">
-                                            <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0"
-                                                friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                            <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="0" limited="true"
-                                                range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5"
-                                                solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
+                                            <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
 
                                     <body name="index_proximal" pos="0.022256 0.027073 0.114668" quat="0.96181018 -0.25771638 0.0238668 -0.08907205">
-                                        <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
-                                            friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true"
-                                            range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"
-                                            stiffness="5" springref="0.0" damping="0.35"/>
+                                        <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
 
                                         <body name="index_distal" pos="0 0.003 0.044">
-                                            <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
-                                                friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                            <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true"
-                                                range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5"
-                                                solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
+                                            <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
 
                                     <body name="pinky_proximal" pos="-0.022256 0.027073 0.114816" quat="0.96181018 -0.25771638 -0.0238668 0.08907205">
-                                        <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
-                                            friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                        <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true"
-                                            range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"
-                                            stiffness="5" springref="0.0" damping="0.35"/>
+                                        <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
 
                                         <body name="pinky_distal" pos="0 0.003 0.044">
-                                            <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"
-                                                friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
-                                            <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true"
-                                                range="-0.4 0.4" stiffness="5" springref="0.4" damping="0.5"
-                                                solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
+                                            <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
-
-
                                 </body>
-
                             </body>
-
                         </body>
-
                     </body>
-
                 </body>
-
             </body>
-
         </body>
 
     </worldbody>
