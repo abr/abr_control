@@ -38,7 +38,8 @@
         <mesh file="2_5lb.stl" scale="3 3 3"/>
         <mesh file="5lb.stl" scale="3 3 3"/>
         <mesh file="gravity.stl" scale="3 3 3"/>
-        <mesh file="0N.stl" scale="3 3 3"/>
+        <mesh file="0_00N.stl" scale="3 3 3"/>
+        <mesh file="1_62N.stl" scale="3 3 3"/>
         <mesh file="9_81N.stl" scale="3 3 3"/>
         <mesh file="3_71N.stl" scale="3 3 3"/>
         <mesh file="24_92N.stl" scale="3 3 3"/>
@@ -155,14 +156,14 @@
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
-        <body name="dumbbell_stand1" pos="-0.39 0 0.015">
-            <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.015" friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" material='knurled'/>
+        <body name="dumbbell_stand1" pos="-0.39 0 0.025">
+            <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.03" friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" material='knurled'/>
         </body>
-        <body name="dumbbell_stand2" pos="-0.61 0 0.015">
-            <geom name="dumbbell_stand2" type="box" size="0.05 0.075 0.015" friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" material='knurled'/>
+        <body name="dumbbell_stand2" pos="-0.61 0 0.025">
+            <geom name="dumbbell_stand2" type="box" size="0.05 0.075 0.03" friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" material='knurled'/>
         </body>
 
-        <body name="dumbbell" pos="-0.5 0 0.085">
+        <body name="dumbbell" pos="-0.5 0 0.095">
             <geom name="handle" type="cylinder" pos="0 0 0" material="knurled" size="0.0127 0.06" euler="0 1.57 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
             <geom name="mass1" type="mesh" mesh="octagon" pos="0.1 0 0" material="carbon" friction="1 0.005 0.001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="6" />
             <geom name="mass2" type="mesh" mesh="octagon" pos="-0.1 0 0" material="carbon" friction="1 0.005 0.001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="6" />
@@ -186,16 +187,20 @@
             <geom name="5lb" type="mesh" mesh="5lb" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="weight" pos=".06 1.015 0.3" mocap="true">
+        <body name="weight" pos="-.14 1.015 0.3" mocap="true">
             <geom name="weight" type="mesh" mesh="weight" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="gravity" pos=".05 1 0.398" mocap="true">
+        <body name="gravity" pos="-.15 1 0.398" mocap="true">
             <geom name="gravity" type="mesh" mesh="gravity" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="0N" pos="-.05 1.0275 0.4" mocap="true">
-            <geom name="0N" type="mesh" mesh="0N" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
+        <body name="0_00N" pos="-.05 1.0275 0.4" mocap="true">
+            <geom name="0_00N" type="mesh" mesh="0_00N" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
+        </body>
+
+        <body name="1_62N" pos="-.05 1.0275 0.4" mocap="true">
+            <geom name="1_62N" type="mesh" mesh="1_62N" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
         <body name="9_81N" pos="-.05 1.0275 0.4" mocap="true">
