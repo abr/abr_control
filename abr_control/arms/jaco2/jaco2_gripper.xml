@@ -32,10 +32,14 @@
         <mesh file="d-arrow-double.stl" />
         <mesh file="shift.stl" />
         <mesh file="tab.stl" />
+        <mesh file="F1.stl" />
+        <mesh file="F2.stl" />
+        <mesh file="F3.stl" />
         <mesh file="octagon.stl"/>
         <mesh file="adapt.stl" scale="0.5 0.5 0.5"/>
         <mesh file="brain.stl"/>
         <mesh file="weight.stl" scale="3 3 3"/>
+        <mesh file="ISS.stl" scale="0.1 0.1 0.1"/>
         <mesh file="1lb.stl" scale="3 3 3"/>
         <mesh file="2_5lb.stl" scale="3 3 3"/>
         <mesh file="5lb.stl" scale="3 3 3"/>
@@ -108,6 +112,7 @@
         <material name="earth_surface" texture="earth" specular="0" shininess="0" reflectance="0" emission="1" />
 
         <texture name="stars" file="meshes/stars3x4.png" width="2048" height="2048" type="skybox" gridlayout=".U..LFRB.D.." gridsize="3 4"/>
+
     </asset>
 
     <contact>
@@ -283,13 +288,30 @@
             <geom  name='shift_col' type='box' size="0.04 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
+        <body name="F1" pos="0.05 0.75 0.2" mocap="true" euler="1.57 0 0">
+            <geom type="mesh" mesh="F1" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='F1_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
+        <body name="F2" pos="0.25 0.75 0.2" mocap="true" euler="1.57 0 0">
+            <geom type="mesh" mesh="F2" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='F2_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
+        <body name="F3" pos="0.45 0.75 0.2" mocap="true">
+            <geom type="mesh" mesh="F3" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='F3_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
         <body name="tab" pos="0.5 0.5 0.2" mocap="true" euler="1.57 0 0">
             <geom type="mesh" mesh="tab" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='tab_col' type='box' size="0.03 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="ISS" pos="1.0 1.0 -1" mocap="true">
-            <geom name="ISS" type="sphere" size="0.0005"/>
+            <!-- <geom name="ISS" type="sphere" size="0.0005"/> -->
+            <!--  -->
+            <geom name='ISS' type='mesh' mesh='ISS' pos='0 0 0' contype='32' conaffinity='32'/>
         </body>
 
         <body name="earth" pos="1.0 1.0 -1" mocap="true">
