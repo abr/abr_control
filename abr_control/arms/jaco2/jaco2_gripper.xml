@@ -30,6 +30,8 @@
         <mesh file="r-arrow-double.stl" />
         <mesh file="u-arrow-double.stl" />
         <mesh file="d-arrow-double.stl" />
+        <mesh file="shift.stl" />
+        <mesh file="tab.stl" />
         <mesh file="octagon.stl"/>
         <mesh file="adapt.stl" scale="0.5 0.5 0.5"/>
         <mesh file="brain.stl"/>
@@ -78,6 +80,8 @@
         <!-- <material name="blue_plastic" texture="blue_plastic" /> -->
 
         <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
+
+        <material name="key_col" specular="0.5" shininess="0" reflectance="0" rgba="0.4 0.9 0.0 1" emission="1" />
 
         <texture name="abr_logo" file="meshes/abr_logo.png" width="193" height="193" type="2d"/>
         <material name="logo" texture="abr_logo"/>
@@ -235,35 +239,53 @@
         </body>
 
         <body name="l-arrow-double" pos="0 1 .5" mocap="true">
-            <geom type="mesh" mesh="l-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32"/>
+            <geom type="mesh" mesh="l-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='l_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="r-arrow-double" pos="0 1 .5" mocap="true">
-            <geom type="mesh" mesh="r-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32"/>
+            <geom type="mesh" mesh="r-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='r_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="u-arrow-double" pos="0 1 .5" mocap="true">
-            <geom type="mesh" mesh="u-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32"/>
+            <geom type="mesh" mesh="u-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='u_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="d-arrow-double" pos="0 1 .5" mocap="true">
-            <geom type="mesh" mesh="d-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32"/>
+            <geom type="mesh" mesh="d-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='d_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="alt1" pos="0 1 1" mocap="true">
-            <geom type="mesh" euler="0 3.14 0" mesh="alt" contype="32" conaffinity="32"/>
+            <geom type="mesh" euler="0 3.14 0" mesh="alt" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='alt1_arrow_col' type='box' size="0.02 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="u-arrow-double2" pos="0 1 .5" mocap="true">
-            <geom type="mesh" mesh="u-arrow-double" contype="32" conaffinity="32"/>
+            <geom type="mesh" mesh="u-arrow-double" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='u2_arrow_col' type='box' size="0.02 0.01495 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="alt2" pos="0 1 1" mocap="true">
-            <geom type="mesh" euler="0 3.14 0" mesh="alt" contype="32" conaffinity="32"/>
+            <geom type="mesh" euler="0 3.14 0" mesh="alt" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='alt2_arrow_col' type='box' size="0.02 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="d-arrow-double2" pos="0 1 .5" mocap="true">
-            <geom type="mesh" mesh="d-arrow-double" contype="32" conaffinity="32"/>
+            <geom type="mesh" mesh="d-arrow-double" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='d2_arrow_col' type='box' size="0.02 0.01495 0.02" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
+        <body name="shift" pos="0.25 0.75 0.2" mocap="true">
+            <geom type="mesh" mesh="shift" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='shift_col' type='box' size="0.04 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
+        <body name="tab" pos="0.5 0.5 0.2" mocap="true" euler="1.57 0 0">
+            <geom type="mesh" mesh="tab" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='tab_col' type='box' size="0.03 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
         <body name="ISS" pos="1.0 1.0 -1" mocap="true">
