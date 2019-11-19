@@ -31,10 +31,13 @@
         <mesh file="u-arrow-double.stl" />
         <mesh file="d-arrow-double.stl" />
         <mesh file="shift.stl" />
+        <mesh file="enter.stl" />
         <mesh file="tab.stl" />
+        <mesh file="esc.stl" />
         <mesh file="F1.stl" />
         <mesh file="F2.stl" />
         <mesh file="F3.stl" />
+        <mesh file="F5.stl" />
         <mesh file="w.stl" />
         <mesh file="a.stl" />
         <mesh file="s.stl" />
@@ -53,6 +56,7 @@
         <mesh file="9_81N.stl" scale="3 3 3"/>
         <mesh file="3_71N.stl" scale="3 3 3"/>
         <mesh file="24_92N.stl" scale="3 3 3"/>
+        <mesh file="flag3.stl" scale="0.1 0.1 0.1"/>
 
         <!-- <texture name="mars_terrain" file="meshes/mars_terrain.png" width="2000" height="2000" type="2d"/> -->
         <!-- <material name="mars_terrain" texture="mars_terrain" specular="0" shininess="0" reflectance="0" emission="1" /> -->
@@ -69,9 +73,26 @@
         <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
         <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
 
+        <texture name="asteroid" file="meshes/asteroid.png" width="2000" height="2000" type="cube"/>
+        <material name="asteroid" texture="asteroid" specular="0" shininess="0" reflectance="0" emission="1" />
+
         <material name="blue_steel" specular="1" shininess="1" reflectance="1" rgba="0.1 0.125 0.15 1" emission="1" />
 
         <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
+
+        <!-- <texture name="abr_word" file="meshes/abr_word&#45;cube.png" width="3620" height="3620" type="cube"/> -->
+        <!--  -->
+        <texture name="abr_word" file="meshes/abr_word_transparent.png" width="3620" height="2060" type="2d"/>
+        <material name="abr_word" texture="abr_word" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="exit" file="meshes/exit.png" width="1600" height="1000" type="2d"/>
+        <material name="exit" texture="exit" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="restart" file="meshes/restart.png" width="1600" height="1000" type="2d"/>
+        <material name="restart" texture="restart" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="demo_mode" file="meshes/demo_mode.png" width="1600" height="1000" type="2d"/>
+        <material name="demo_mode" texture="demo_mode" specular="0" shininess="0" reflectance="0" emission="1" />
 
         <!-- <texture name="black_rubber" file="meshes/black_rubber.png" width="3000" height="2250" type="2d"/> -->
         <!--  -->
@@ -154,6 +175,8 @@
 
         <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
 
+        <!-- <geom name="floor_asteroid" pos="0 0 &#45;0.02" size="1 0.01" type="cylinder" material="asteroid"/> -->
+        <!--  -->
         <body name="hand" pos="0 -0.5 0.5" mocap="true">
             <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="4" conaffinity="4"/>
         </body>
@@ -198,6 +221,35 @@
             <inertial pos="0 0 0" mass="4" diaginertia="0.1 0.1 0.1"/>
             <freejoint name="dumbbell"/>
         </body>
+
+        <body name="main_logo" mocap="true">
+            <geom type="box" pos='0 0 0' size="0.16 0.1 .0001" material='abr_word' contype="32" conaffinity='32' euler='1.57 0 0'/>
+        </body>
+
+        <body name="exit" mocap="true">
+            <geom type="box" pos='0 0 0' size="0.16 0.1 .0001" material='exit' contype="32" conaffinity='32'/>
+        </body>
+
+        <body name="restart" mocap="true">
+            <geom type="box" pos='0 0 0' size="0.16 0.1 .0001" material='restart' contype="32" conaffinity='32'/>
+        </body>
+
+        <body name="demo_mode" mocap="true">
+            <geom type="box" pos='0 0 0' size="0.16 0.1 .0001" material='demo_mode' contype="32" conaffinity='32'/>
+        </body>
+
+        <!-- <body name="flag" mocap="true"> -->
+        <!--     <geom type='mesh' mesh='flag3' pos='0.5 &#45;0.5 0' material='abr_word'/> -->
+        <!--     <geom type="box" pos='&#45;0.585 0.75 0.5' size="0.16 0.1 .0001" material='abr_word' contype="2" euler='1.57 0 0'/> -->
+        <!--     <geom name="pole" type="cylinder" pos="&#45;0.75 0.75 0.32" material="knurled" size="0.005 0.3"/> -->
+        <!--     <geom name="pole_top" type="sphere" pos="&#45;0.75 0.75 0.62" material="knurled" size="0.01"/> -->
+        <!-- </body> -->
+
+        <!-- <body name="abr_word_logo" mocap="true"> -->
+        <!--     <geom type="box" pos='0 &#45;0.625 0.0' size="0.16 0.1 .0001" material='abr_word' contype="2"/> -->
+        <!--         <!&#45;&#45; euler='1.57 0 0'/> &#45;&#45;> -->
+        <!--         <!&#45;&#45;  &#45;&#45;> -->
+        <!-- </body> -->
 
         <body name="adapt" pos="0 -0.5 0.5" mocap="true">
             <geom name="adapt" type="mesh" mesh="adapt" rgba="0.5 0.5 0.5 0.1" material='knurled' contype="32" conaffinity="32"/>
@@ -312,6 +364,11 @@
             <geom  name='shift_col' type='box' size="0.04 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
+        <body name="enter" pos="0 -0.5 0.5" mocap="true">
+            <geom type="mesh" mesh="enter" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='enter_col' type='box' size="0.04 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
         <body name="F1" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
             <geom type="mesh" mesh="F1" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='F1_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
@@ -327,10 +384,21 @@
             <geom  name='F3_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
+        <body name="F5" pos="0 -0.5 0.5" mocap="true" euler='1.57 0 0'>
+            <geom type="mesh" mesh="F5" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='F5_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
         <body name="tab" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
             <geom type="mesh" mesh="tab" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='tab_col' type='box' size="0.03 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
         </body>
+
+        <body name="esc" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
+            <geom type="mesh" mesh="esc" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='esc_col' type='box' size="0.03 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
 
         <body name="ISS" pos="0 -0.5 0.5" mocap="true">
             <!-- <geom name="ISS" type="sphere" size="0.0005"/> -->
