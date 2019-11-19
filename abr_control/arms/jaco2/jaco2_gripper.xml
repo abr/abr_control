@@ -56,7 +56,6 @@
         <mesh file="9_81N.stl" scale="3 3 3"/>
         <mesh file="3_71N.stl" scale="3 3 3"/>
         <mesh file="24_92N.stl" scale="3 3 3"/>
-        <mesh file="flag3.stl" scale="0.1 0.1 0.1"/>
 
         <!-- <texture name="mars_terrain" file="meshes/mars_terrain.png" width="2000" height="2000" type="2d"/> -->
         <!-- <material name="mars_terrain" texture="mars_terrain" specular="0" shininess="0" reflectance="0" emission="1" /> -->
@@ -73,8 +72,8 @@
         <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
         <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
 
-        <texture name="asteroid" file="meshes/asteroid.png" width="2000" height="2000" type="cube"/>
-        <material name="asteroid" texture="asteroid" specular="0" shininess="0" reflectance="0" emission="1" />
+        <!-- <texture name="asteroid" file="meshes/asteroid.png" width="2000" height="2000" type="cube"/> -->
+        <!-- <material name="asteroid" texture="asteroid" specular="0" shininess="0" reflectance="0" emission="1" /> -->
 
         <material name="blue_steel" specular="1" shininess="1" reflectance="1" rgba="0.1 0.125 0.15 1" emission="1" />
 
