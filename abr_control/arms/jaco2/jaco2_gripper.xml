@@ -35,6 +35,10 @@
         <mesh file="F1.stl" />
         <mesh file="F2.stl" />
         <mesh file="F3.stl" />
+        <mesh file="w.stl" />
+        <mesh file="a.stl" />
+        <mesh file="s.stl" />
+        <mesh file="d.stl" />
         <mesh file="octagon.stl"/>
         <mesh file="adapt.stl" scale="0.5 0.5 0.5"/>
         <mesh file="brain.stl"/>
@@ -150,31 +154,31 @@
 
         <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
 
-        <body name="hand" pos="0 0 -0.5" mocap="true">
+        <body name="hand" pos="0 -0.5 0.5" mocap="true">
             <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="4" conaffinity="4"/>
         </body>
 
-        <body name="target" pos="0 0 -0.5" mocap="true">
+        <body name="target" pos="0 -0.5 0.5" mocap="true">
             <geom name="target" type="sphere" size="0.05" rgba=".9 0 0 .5" contype="2" conaffinity="2"/>
         </body>
 
-        <body name="target_orientation" pos="0 0 -0.5" mocap="true">
+        <body name="target_orientation" pos="0 -0.5 0.5" mocap="true">
             <geom type="box" size=".02 .04 .06" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
         </body>
 
-        <body name="path_planner" pos="0 0 -0.5" mocap="true">
+        <body name="path_planner" pos="0 -0.5 0.5" mocap="true">
             <geom type="sphere" size="0.05" rgba="0 1 1 0.5" contype="8" conaffinity="8"/>
         </body>
 
-        <body name="path_planner_orientation" pos="0 0 -0.5" mocap="true">
+        <body name="path_planner_orientation" pos="0 -0.5 0.5" mocap="true">
             <geom type="box" size=".02 .04 .06" rgba="0 1 1 .5" contype="2"/>
         </body>
 
-        <body name="obstacle" pos="0 0 -0.5" mocap="true">
+        <body name="obstacle" pos="0 -0.5 0.5" mocap="true">
             <geom type="sphere" size="0.05" rgba="0 0 1 1"/>
         </body>
 
-        <body name="elbow" pos="0 0 -0.5" mocap="true">
+        <body name="elbow" pos="0 -0.5 0.5" mocap="true">
             <geom name="elbow" type="sphere" size="0.05" rgba="0 1 1 .25" contype="32" conaffinity="32"/>
         </body>
 
@@ -195,138 +199,158 @@
             <freejoint name="dumbbell"/>
         </body>
 
-        <body name="adapt" pos="0 0.75 0" mocap="true">
+        <body name="adapt" pos="0 -0.5 0.5" mocap="true">
             <geom name="adapt" type="mesh" mesh="adapt" rgba="0.5 0.5 0.5 0.1" material='knurled' contype="32" conaffinity="32"/>
         </body>
 
-        <body name="1lb" pos="0.35 1.0275 0.25" mocap="true">
+        <body name="1lb" pos="0 -0.5 0.5" mocap="true">
             <geom name="1lb" type="mesh" mesh="1lb" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="2_5lb" pos="0.5 1 0.235" mocap="true">
+        <body name="2_5lb" pos="0 -0.5 0.5" mocap="true">
             <geom name="2_5lb" type="mesh" mesh="2_5lb" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="5lb" pos="0.75 1 0.25" mocap="true">
+        <body name="5lb" pos="0 -0.5 0.5" mocap="true">
             <geom name="5lb" type="mesh" mesh="5lb" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="weight" pos="-.14 1.015 0.3" mocap="true">
+        <body name="weight" pos="0 -0.5 0.5" mocap="true">
             <geom name="weight" type="mesh" mesh="weight" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="gravity" pos="-.15 1 0.398" mocap="true">
+        <body name="gravity" pos="0 -0.5 0.5" mocap="true">
             <geom name="gravity" type="mesh" mesh="gravity" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="0_00N" pos="-.05 1.0275 0.4" mocap="true">
+        <body name="0_00N" pos="0 -0.5 0.5" mocap="true">
             <geom name="0_00N" type="mesh" mesh="0_00N" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="1_62N" pos="-.05 1.0275 0.4" mocap="true">
+        <body name="1_62N" pos="0 -0.5 0.5" mocap="true">
             <geom name="1_62N" type="mesh" mesh="1_62N" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="9_81N" pos="-.05 1.0275 0.4" mocap="true">
+        <body name="9_81N" pos="0 -0.5 0.5" mocap="true">
             <geom name="9_81N" type="mesh" mesh="9_81N" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="3_71N" pos="-.05 1.0275 0.4" mocap="true">
+        <body name="3_71N" pos="0 -0.5 0.5" mocap="true">
             <geom name="3_71N" type="mesh" mesh="3_71N" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="24_92N" pos="-.05 1.0275 0.4" mocap="true">
+        <body name="24_92N" pos="0 -0.5 0.5" mocap="true">
             <geom name="24_92N" type="mesh" mesh="24_92N" rgba="0.77 0.79 0.81 1" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="brain" pos="0 0 1" mocap="true">
+        <body name="brain" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="brain" rgba="0.92 0.82 0.84 1"/>
         </body>
 
-        <body name="l-arrow-double" pos="0 1 .5" mocap="true">
+        <body name="l-arrow-double" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="l-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='l_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="r-arrow-double" pos="0 1 .5" mocap="true">
+        <body name="r-arrow-double" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="r-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='r_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="u-arrow-double" pos="0 1 .5" mocap="true">
+        <body name="u-arrow-double" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="u-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='u_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="d-arrow-double" pos="0 1 .5" mocap="true">
+        <body name="d-arrow-double" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="d-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='d_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="alt1" pos="0 1 1" mocap="true">
+        <body name="alt1" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" euler="0 3.14 0" mesh="alt" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='alt1_arrow_col' type='box' size="0.02 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="u-arrow-double2" pos="0 1 .5" mocap="true">
+        <body name="u-arrow-double2" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="u-arrow-double" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='u2_arrow_col' type='box' size="0.02 0.01495 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="alt2" pos="0 1 1" mocap="true">
+        <body name="alt2" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" euler="0 3.14 0" mesh="alt" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='alt2_arrow_col' type='box' size="0.02 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="d-arrow-double2" pos="0 1 .5" mocap="true">
+        <body name="d-arrow-double2" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="d-arrow-double" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='d2_arrow_col' type='box' size="0.02 0.01495 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="shift" pos="0.25 0.75 0.2" mocap="true">
+        <body name="w" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
+            <geom type="mesh" mesh="w" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='w_col' type='box' size="0.02 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
+        <body name="a" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
+            <geom type="mesh" mesh="a" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='a_col' type='box' size="0.02 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
+        <body name="s" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
+            <geom type="mesh" mesh="s" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='s_col' type='box' size="0.02 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
+        <body name="d" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
+            <geom type="mesh" mesh="d" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name='d_col' type='box' size="0.02 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
+        <body name="shift" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="shift" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='shift_col' type='box' size="0.04 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="F1" pos="0.05 0.75 0.2" mocap="true" euler="1.57 0 0">
+        <body name="F1" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
             <geom type="mesh" mesh="F1" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='F1_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="F2" pos="0.25 0.75 0.2" mocap="true" euler="1.57 0 0">
+        <body name="F2" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
             <geom type="mesh" mesh="F2" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='F2_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="F3" pos="0.45 0.75 0.2" mocap="true">
+        <body name="F3" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="F3" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='F3_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="tab" pos="0.5 0.5 0.2" mocap="true" euler="1.57 0 0">
+        <body name="tab" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
             <geom type="mesh" mesh="tab" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='tab_col' type='box' size="0.03 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
-        <body name="ISS" pos="1.0 1.0 -1" mocap="true">
+        <body name="ISS" pos="0 -0.5 0.5" mocap="true">
             <!-- <geom name="ISS" type="sphere" size="0.0005"/> -->
             <!--  -->
             <geom name='ISS' type='mesh' mesh='ISS' pos='0 0 0' contype='32' conaffinity='32'/>
         </body>
 
-        <body name="earth" pos="1.0 1.0 -1" mocap="true">
+        <body name="earth" pos="0 -0.5 0.5" mocap="true">
             <geom name="earth" type="sphere" size="0.24" material="earth_surface" euler="1.57 0 0"/>
         </body>
 
-        <body name="moon" pos="1.0 1.0 -1" mocap="true">
+        <body name="moon" pos="0 -0.5 0.5" mocap="true">
             <geom name="moon" type="sphere" size="0.1" material="moon_surface" euler="1.57 0 0"/>
         </body>
 
-        <body name="mars" pos="1.0 1.0 -1" mocap="true">
+        <body name="mars" pos="0 -0.5 0.5" mocap="true">
             <geom name="mars" type="sphere" size="0.2" material="mars_surface" euler="1.57 0 0"/>
         </body>
 
-        <body name="jupiter" pos="1.0 1.0 -1" mocap="true">
+        <body name="jupiter" pos="0 -2 1.5" mocap="true">
             <geom name="jupiter" type="sphere" size="0.3" material="jupiter_surface" euler="1.57 0 0"/>
         </body>
 
