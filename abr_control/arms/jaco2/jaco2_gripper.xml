@@ -15,6 +15,7 @@
     </custom>
 
     <asset>
+        <!-- arm models -->
         <mesh file="base.STL" />
         <mesh file="shoulder.STL"/>
         <mesh file="arm.STL"/>
@@ -25,6 +26,7 @@
         <mesh file="ring_small.STL"/>
         <mesh file="finger_distal.STL"/>
         <mesh file="finger_proximal.STL"/>
+        <!-- keyboard keys -->
         <mesh file="alt.stl" />
         <mesh file="l-arrow-double.stl" />
         <mesh file="r-arrow-double.stl" />
@@ -42,6 +44,30 @@
         <mesh file="a.stl" />
         <mesh file="s.stl" />
         <mesh file="d.stl" />
+        <!-- xbox keys -->
+        <mesh file="xbox_button_blank_oversized.stl"/>
+        <mesh file="xbox_x.stl"/>
+        <mesh file="xbox_a.stl"/>
+        <mesh file="xbox_b.stl"/>
+        <mesh file="xbox_y.stl"/>
+        <mesh file="xbox_start.stl"/>
+        <mesh file="xbox_select.stl"/>
+        <mesh file="xbox_home.stl"/>
+        <mesh file="joystick_tilt.stl"/>
+        <mesh file="joystick_arrow.stl"/>
+        <mesh file="joystick_arrow_flat.stl"/>
+        <mesh file="joystick_base.stl"/>
+        <mesh file="dpad.stl"/>
+        <mesh file="dpad_oversize.stl"/>
+        <mesh file="controller_RB.stl"/>
+        <mesh file="rb.stl"/>
+        <mesh file="controller_LB.stl"/>
+        <mesh file="lb.stl"/>
+        <mesh file="controller_RT.stl"/>
+        <mesh file="rt.stl"/>
+        <mesh file="controller_LT.stl"/>
+        <mesh file="lt.stl"/>
+        <!-- world objects -->
         <mesh file="octagon.stl"/>
         <mesh file="adapt.stl" scale="0.5 0.5 0.5"/>
         <mesh file="brain.stl"/>
@@ -95,8 +121,11 @@
 
         <!-- <texture name="black_rubber" file="meshes/black_rubber.png" width="3000" height="2250" type="2d"/> -->
         <!--  -->
-        <texture name="black_rubber" file="meshes/black_rubber-cube.png" width="3000" height="2250" type="cube"/>
+        <texture name="black_rubber" file="meshes/black_rubber-cube.png" width="2250" height="2250" type="cube"/>
         <material name="black_rubber" texture="black_rubber" specular="0.5" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="black_rubber_2d" file="meshes/black_rubber.png" width="3000" height="2250" type="2d"/>
+        <material name="black_rubber_2d" texture="black_rubber_2d" specular="0.5" shininess="0" reflectance="0" emission="1" />
 
         <texture name="scratched_aluminum" file="meshes/scratched_aluminum-cube.png" width="975" height="975" type="2d"/>
 
@@ -109,7 +138,12 @@
 
         <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
 
-        <material name="key_col" specular="0.5" shininess="0" reflectance="0" rgba="0.4 0.9 0.0 1" emission="1" />
+        <material name="xbox_grey_1" specular="0" shininess="0" reflectance="0" rgba="0.62 0.64 0.64 1" emission="0" />
+        <material name="xbox_grey_2" specular="0" shininess="0" reflectance="0" rgba="0.22 0.24 0.24 1" emission="0" />
+        <material name="xbox_highlight_dark" specular="0" shininess="0" reflectance="0" rgba="1 0 0 1" emission="0" />
+        <material name="xbox_highlight_light" specular="0" shininess="0" reflectance="0" rgba="1 1 0 0.9" emission="0" />
+
+        <material name="key_col" specular="0.5" shininess="0" reflectance="0" rgba="1 1 0 0.9" emission="1" />
 
         <texture name="abr_logo" file="meshes/abr_logo.png" width="193" height="193" type="2d"/>
         <material name="logo" texture="abr_logo"/>
@@ -150,6 +184,7 @@
     </contact>
 
     <worldbody>
+        <!-- planet terrains -->
         <!-- <body name="earth_floor" mocap="true"> -->
         <!--     <geom name="earth_floor" pos="0 0 0.0" size="1 0.01" type="cylinder" material="earth_terrain"/> -->
         <!-- </body> -->
@@ -169,13 +204,12 @@
         <!-- <body name="ISS_floor" mocap="true"> -->
         <!--     <geom name="ISS_floor" pos="0 0 0.0" size="1 0.01" type="cylinder" material="tile"/> -->
         <!-- </body> -->
-
-        <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
-
-        <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
-
         <!-- <geom name="floor_asteroid" pos="0 0 &#45;0.02" size="1 0.01" type="cylinder" material="asteroid"/> -->
         <!--  -->
+        <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
+        <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
+
+        <!-- control visualizations -->
         <body name="hand" pos="0 -0.5 0.5" mocap="true">
             <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="4" conaffinity="4"/>
         </body>
@@ -206,6 +240,7 @@
 
         <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
 
+        <!-- interactable objects -->
         <body name="dumbbell_stand1" pos="-0.39 0 0.015">
             <geom name="dumbbell_stand1" type="box" size="0.05 0.075 0.015" friction="1 0.005 0.0001" solimp="0.95 0.95 0.01" solref="0.01 1" condim="4" material='knurled'/>
         </body>
@@ -221,6 +256,7 @@
             <freejoint name="dumbbell"/>
         </body>
 
+        <!-- icons and visualizations -->
         <body name="main_logo" mocap="true">
             <geom type="box" pos='0 0 0' size="0.16 0.1 .0001" material='abr_word' contype="32" conaffinity='32' euler='1.57 0 0'/>
         </body>
@@ -298,6 +334,7 @@
             <geom type="mesh" mesh="brain" rgba="0.92 0.82 0.84 1"/>
         </body>
 
+        <!-- Keyboard keys -->
         <body name="l-arrow-double" pos="0 -0.5 0.5" mocap="true">
             <geom type="mesh" mesh="l-arrow-double" euler="1.57 0 0" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='l_arrow_col' type='box' size="0.02 0.02 0.01495" contype="32" conaffinity="32" material="key_col"/>
@@ -399,9 +436,126 @@
         </body>
 
 
+        <!-- Xbox buttons -->
+        <body name="xbox_x" pos="0 -0.5 0.5" mocap="true" euler='1.3 0 0'>
+            <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="xbox_x" contype="32" conaffinity="32" rgba='0.13 0.65 0.9 1'/>
+        </body>
+
+        <body name="xbox_a" pos="0.2 -0.5 0.5" mocap="true" euler='1.3 0 0'>
+            <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="xbox_a" contype="32" conaffinity="32" rgba='0 0.8 0 0.9'/>
+        </body>
+
+        <body name="xbox_y" pos="0.4 -0.5 0.5" mocap="true" euler='1.3 0 0'>
+            <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="xbox_y" contype="32" conaffinity="32" rgba='1 1 0 0.9'/>
+        </body>
+
+        <body name="xbox_b" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 0'>
+            <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="xbox_b" contype="32" conaffinity="32" rgba='1 0 0 0.9'/>
+        </body>
+
+        <body name="xbox_home" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 0'>
+            <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="xbox_home" contype="32" conaffinity="32" rgba='0 1 0 1'/>
+        </body>
+
+        <!-- <body name="xbox_start" pos="0.6 &#45;0.5 0.5" mocap="true" euler='1.3 0 0'> -->
+        <!--     <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/> -->
+        <!--     <geom type="mesh" mesh="xbox_start" contype="32" conaffinity="32" rgba='0 0 0 1'/> -->
+        <!-- </body> -->
+
+        <body name="xbox_select" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 0'>
+            <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="xbox_select" contype="32" conaffinity="32" rgba='1 1 1 1'/>
+        </body>
+
+        <body name="r_dpad" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 0'>
+            <geom type="mesh" mesh="dpad" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="dpad_oversize" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="l_dpad" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 3.14'>
+            <geom type="mesh" mesh="dpad" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="dpad_oversize" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="u_dpad" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 1.57'>
+            <geom type="mesh" mesh="dpad" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="dpad_oversize" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="d_dpad" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 4.71'>
+            <geom type="mesh" mesh="dpad" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="dpad_oversize" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="r_joystick" pos="0.6 -0.5 0.5" mocap="true" euler='0 0 0'>
+            <geom type="mesh" mesh="joystick_tilt" contype="32" conaffinity="32" material='xbox_grey_2'/>
+            <geom type="mesh" mesh="joystick_base" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom type="mesh" mesh="joystick_arrow" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="l_joystick" pos="0.6 -0.5 0.5" mocap="true" euler='0 0 3.14'>
+            <geom type="mesh" mesh="joystick_tilt" contype="32" conaffinity="32" material='xbox_grey_2'/>
+            <geom type="mesh" mesh="joystick_base" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom type="mesh" mesh="joystick_arrow" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="u_joystick1" pos="0.6 -0.5 0.5" mocap="true" euler='0 0 1.57'>
+            <geom type="mesh" mesh="joystick_tilt" contype="32" conaffinity="32" material='xbox_grey_2'/>
+            <geom type="mesh" mesh="joystick_base" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom type="mesh" mesh="joystick_arrow_flat" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="u_joystick2" pos="0.6 -0.5 0.5" mocap="true" euler='0 0 1.57'>
+            <geom type="mesh" mesh="joystick_tilt" contype="32" conaffinity="32" material='xbox_grey_2'/>
+            <geom type="mesh" mesh="joystick_base" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom type="mesh" mesh="joystick_arrow_flat" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="d_joystick1" pos="0.6 -0.5 0.5" mocap="true" euler='0 0 4.71'>
+            <geom type="mesh" mesh="joystick_tilt" contype="32" conaffinity="32" material='xbox_grey_2'/>
+            <geom type="mesh" mesh="joystick_base" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom type="mesh" mesh="joystick_arrow_flat" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="d_joystick2" pos="0.6 -0.5 0.5" mocap="true" euler='0 0 4.71'>
+            <geom type="mesh" mesh="joystick_tilt" contype="32" conaffinity="32" material='xbox_grey_2'/>
+            <geom type="mesh" mesh="joystick_base" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom type="mesh" mesh="joystick_arrow_flat" contype="32" conaffinity="32" material="xbox_highlight_light"/>
+        </body>
+
+        <body name="r_bumper" pos="0.0 -0.5 0.5" mocap="true" euler='2.2 0 0'>
+            <geom type="mesh" mesh="controller_RB" contype="32" conaffinity="32" rgba='1 1 1 1'/>
+            <geom type="mesh" mesh="rb" contype="32" conaffinity="32" material='xbox_highlight_dark'/>
+        </body>
+
+        <body name="l_bumper" pos="0.9 -0.5 0.5" mocap="true" euler='2.2 0 0'>
+            <geom type="mesh" mesh="controller_LB" contype="32" conaffinity="32" rgba='1 1 1 1'/>
+            <geom type="mesh" mesh="lb" contype="32" conaffinity="32" material='xbox_highlight_dark'/>
+        </body>
+
+        <body name="r_trigger1" pos="0.6 -0.5 0.5" mocap="true" euler='2.2 0 0'>
+            <geom type="mesh" mesh="controller_RT" contype="32" conaffinity="32" rgba='1 1 1 1'/>
+            <geom type="mesh" mesh="rt" contype="32" conaffinity="32" material='xbox_highlight_dark'/>
+        </body>
+
+        <body name="r_trigger2" pos="0.6 -0.5 0.5" mocap="true" euler='2.2 0 0'>
+            <geom type="mesh" mesh="controller_RT" contype="32" conaffinity="32" rgba='1 1 1 1'/>
+            <geom type="mesh" mesh="rt" contype="32" conaffinity="32" material='xbox_highlight_dark'/>
+        </body>
+
+        <!-- Set up for left trigger, currently unused -->
+        <!-- <body name="l_trigger" pos="0.3 &#45;0.5 0.5" mocap="true" euler='2.2 0 0'> -->
+        <!--     <geom type="mesh" mesh="controller_LT" contype="32" conaffinity="32" rgba='1 1 1 1'/> -->
+        <!--     <geom type="mesh" mesh="lt" contype="32" conaffinity="32" material='xbox_highlight_dark'/> -->
+        <!-- </body> -->
+
+        <!-- planets -->
         <body name="ISS" pos="0 -0.5 0.5" mocap="true">
-            <!-- <geom name="ISS" type="sphere" size="0.0005"/> -->
-            <!--  -->
             <geom name='ISS' type='mesh' mesh='ISS' pos='0 0 0' contype='32' conaffinity='32'/>
         </body>
 
