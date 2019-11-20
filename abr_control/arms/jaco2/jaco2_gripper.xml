@@ -36,6 +36,7 @@
         <mesh file="enter.stl" />
         <mesh file="tab.stl" />
         <mesh file="esc.stl" />
+        <mesh file="space.stl" />
         <mesh file="F1.stl" />
         <mesh file="F2.stl" />
         <mesh file="F3.stl" />
@@ -118,6 +119,9 @@
 
         <texture name="demo_mode" file="meshes/demo_mode.png" width="1600" height="1000" type="2d"/>
         <material name="demo_mode" texture="demo_mode" specular="0" shininess="0" reflectance="0" emission="1" />
+
+        <texture name="info" file="meshes/info.png" width="512" height="512" type="2d"/>
+        <material name="info" texture="info" specular="0" shininess="0" reflectance="0" emission="1" />
 
         <!-- <texture name="black_rubber" file="meshes/black_rubber.png" width="3000" height="2250" type="2d"/> -->
         <!--  -->
@@ -273,6 +277,10 @@
             <geom type="box" pos='0 0 0' size="0.16 0.1 .0001" material='demo_mode' contype="32" conaffinity='32'/>
         </body>
 
+        <body name="info" mocap="true">
+            <geom type="cylinder" pos='0 0 0' size="0.05 0.01" material='info' contype="32" conaffinity='32'/>
+        </body>
+
         <!-- <body name="flag" mocap="true"> -->
         <!--     <geom type='mesh' mesh='flag3' pos='0.5 &#45;0.5 0' material='abr_word'/> -->
         <!--     <geom type="box" pos='&#45;0.585 0.75 0.5' size="0.16 0.1 .0001" material='abr_word' contype="2" euler='1.57 0 0'/> -->
@@ -405,6 +413,11 @@
             <geom  name='enter_col' type='box' size="0.04 0.0145 0.02" contype="32" conaffinity="32" material="key_col"/>
         </body>
 
+        <body name="space" pos="0 -0.5 0.5" mocap="true" euler='1.57 0 0'>
+            <geom type="mesh" mesh="space" contype="32" conaffinity="32" material='grey_plastic'/>
+            <geom  name="space_col" type='box' size="0.07 0.02 0.0145" contype="32" conaffinity="32" material="key_col"/>
+        </body>
+
         <body name="F1" pos="0 -0.5 0.5" mocap="true" euler="1.57 0 0">
             <geom type="mesh" mesh="F1" contype="32" conaffinity="32" material='grey_plastic'/>
             <geom  name='F1_col' type='box' size="0.02 0.02 0.0149" contype="32" conaffinity="32" material="key_col"/>
@@ -462,14 +475,14 @@
             <geom type="mesh" mesh="xbox_home" contype="32" conaffinity="32" rgba='0 1 0 1'/>
         </body>
 
-        <!-- <body name="xbox_start" pos="0.6 &#45;0.5 0.5" mocap="true" euler='1.3 0 0'> -->
-        <!--     <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/> -->
-        <!--     <geom type="mesh" mesh="xbox_start" contype="32" conaffinity="32" rgba='0 0 0 1'/> -->
-        <!-- </body> -->
+        <body name="xbox_start" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 0'>
+            <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/>
+            <geom type="mesh" mesh="xbox_start" contype="32" conaffinity="32" material='xbox_highlight_light'/>
+        </body>
 
         <body name="xbox_select" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 0'>
             <geom type="mesh" mesh="xbox_button_blank_oversized" contype="32" conaffinity="32" material='xbox_grey_1'/>
-            <geom type="mesh" mesh="xbox_select" contype="32" conaffinity="32" rgba='1 1 1 1'/>
+            <geom type="mesh" mesh="xbox_select" contype="32" conaffinity="32" material='xbox_highlight_light'/>
         </body>
 
         <body name="r_dpad" pos="0.6 -0.5 0.5" mocap="true" euler='1.3 0 0'>
