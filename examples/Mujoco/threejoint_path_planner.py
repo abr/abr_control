@@ -35,8 +35,9 @@ robot_config = MujocoConfig(model_filename)
 dt = 0.001
 interface = Mujoco(robot_config, dt=dt)
 interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
 
-ctrlr = OSC(robot_config, kp=10, kv=5,
+ctrlr = OSC(robot_config, kp=30, kv=20,
             ctrlr_dof=[True, True, True, False, False, False])
 
 interface.send_target_angles(np.ones(3))
@@ -45,6 +46,10 @@ target_xyz = np.array([0.1, 0.1, 0.3])
 interface.set_mocap_xyz('target', target_xyz)
 
 interface.set_mocap_xyz('hand', np.array([.2, .4, 1]))
+
+target_geom_id = interface.sim.model.geom_name2id("target")
+green = [0, 0.9, 0, 0.5]
+red = [0.9, 0, 0, 0.5]
 
 # create our path planner
 params = {}
@@ -64,6 +69,7 @@ ee_track = []
 target_track = []
 
 count = 0
+update_target = True
 link_name = 'EE'
 try:
     while True:
@@ -76,15 +82,7 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
-        if use_wall_clock:
-            # either update target every 1s
-            update_target = time_elapsed >= run_time
-        else:
-            # or update target when trajectory is done
-            update_target = (count == params['n_timesteps'])
-
         if update_target:
-            print('TIMES UP')
             count = 0
             time_elapsed = 0.0
             target_xyz[0] = (np.random.uniform(0.2, 0.3)
@@ -105,8 +103,8 @@ try:
 
         # get next target along trajectory
         if use_wall_clock:
-            target = [function(time_elapsed) for function in pos_path]
-            target_vel = [function(time_elapsed) for function in vel_path]
+            target = [function(min(time_elapsed, run_time)) for function in pos_path]
+            target_vel = [function(min(time_elapsed, run_time)) for function in vel_path]
         else:
             target, target_vel = path_planner.next()
 
@@ -123,14 +121,27 @@ try:
         # apply the control signal, step the sim forward
         interface.send_forces(u)
 
-        if count %500 == 0:
-            print('ee_xyz: ', hand_xyz)
-            print('target_xyz', target_xyz)
-
         ee_track.append(np.copy(hand_xyz))
-        target_track.append(interface.get_mocap_xyz(link_name))
+        target_track.append(interface.get_xyz(link_name))
         count += 1
         time_elapsed += timeit.default_timer() - start
+
+        error = np.linalg.norm(hand_xyz-target_xyz)
+        if error < 0.02:
+            interface.sim.model.geom_rgba[target_geom_id] = green
+        else:
+            interface.sim.model.geom_rgba[target_geom_id] = red
+
+        if count %500 == 0:
+            print('error: ', error)
+
+        if use_wall_clock:
+            # either update target every 1s
+            update_target = time_elapsed >= run_time + 2
+        else:
+            # or update target when trajectory is done
+            update_target = (count == params['n_timesteps'] + 500)
+
 
 
 finally:

@@ -51,6 +51,7 @@ robot_config = MujocoConfig(model_filename)
 dt = 0.001
 interface = Mujoco(robot_config, dt=dt)
 interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
 
 ctrlr = OSC(robot_config, kp=10, kv=5,
             ctrlr_dof=ctrlr_dof)

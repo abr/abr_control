@@ -122,6 +122,9 @@ class Mujoco(Interface):
         ----------
         name: string
             the name of the object of interest
+        object_type: string, Optional (Default: body)
+            The type of mujoco object to get the orientation of.
+            Can be: mocap, body, geom, site
         """
         if object_type == 'mocap':  # commonly queried to find target
             quat = self.sim.data.get_mocap_quat(name)
@@ -165,6 +168,8 @@ class Mujoco(Interface):
         ----------
         u: np.array
             the torques to apply to the robot [Nm]
+        update_display: boolean, Optional (Default:True)
+            toggle for updating display
         """
 
         # NOTE: the qpos_addr's are unrelated to the order of the motors
@@ -253,6 +258,7 @@ class Mujoco(Interface):
             name of the object you want the xyz position of
         object_type: string
             type of object you want the xyz position of
+            Can be: mocap, body, geom, site
         """
         if object_type == 'mocap':  # commonly queried to find target
             xyz = self.sim.data.get_mocap_pos(name)

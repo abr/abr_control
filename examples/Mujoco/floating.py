@@ -18,13 +18,13 @@ from abr_control.utils import transformations
 # initialize our robot config
 robot_config = arm('jaco2')
 
-# instantiate the controller
-ctrlr = Floating(robot_config, task_space=True, dynamic=True)
-
 # create the Mujoco interface and connect up
 interface = Mujoco(robot_config, dt=.001)
 interface.connect()
 interface.send_target_angles(robot_config.START_ANGLES)
+
+# instantiate the controller
+ctrlr = Floating(robot_config, task_space=True, dynamic=True)
 
 # set up arrays for tracking end-effector and target position
 ee_track = []
@@ -49,6 +49,9 @@ try:
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'])
+
+        # add gripper forces
+        u = np.hstack((u, np.ones(3)*0.05))
 
         # send forces into Mujoco
         interface.send_forces(u)

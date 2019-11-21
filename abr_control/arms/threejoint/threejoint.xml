@@ -30,7 +30,7 @@
             <geom type="box" size=".02 .04 .06" rgba="0 .9 0 .5" contype="2"/>
         </body>
         <body name="target" pos="0 0 0" mocap="true">
-            <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
+            <geom name="target" type="sphere" size="0.05" rgba=".9 0 0 .5"/>
         </body>
         <body name="path_planner" pos="0 0 0" mocap="true">
             <geom type="sphere" size="0.05" rgba="0 0 1 0.5"/>

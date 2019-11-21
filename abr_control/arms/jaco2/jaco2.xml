@@ -1,20 +1,21 @@
 <!-- Download stl files from -->
 <!-- https://github.com/Kinovarobotics/kinova-ros/kinova_description/meshes -->
 <!-- and place them in a meshes folder in this directory -->
-<mujoco model="jaco2_fivelink">
+<mujoco model="jaco2">
     <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
 
     <default>
         <light castshadow="false" diffuse="1 1 1" />
         <camera fovy="60" />
+        <geom contype="1" conaffinity="1" />
     </default>
 
     <custom>
-        <numeric name="START_ANGLES" data="0.0 2.79 2.62 4.71 0.0 3.04"/>
-        <numeric name="N_JOINTS" data="6"/>
+        <numeric name="START_ANGLES" data="2.0 3.14 1.57 4.71 0.0 3.04"/>
     </custom>
 
     <asset>
+        <!-- arm models -->
         <mesh file="base.STL" />
         <mesh file="shoulder.STL"/>
         <mesh file="arm.STL"/>
@@ -26,8 +27,10 @@
         <mesh file="finger_distal.STL"/>
         <mesh file="finger_proximal.STL"/>
 
-        <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
+        <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
+        <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
 
+        <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
         <material name="grey_plastic" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
 
         <texture name="abr_logo" file="meshes/abr_logo.png" width="193" height="193" type="2d"/>
@@ -39,203 +42,34 @@
         <texture name="foam_blocks" file="meshes/foam_blocks.png" width="2744" height="2744" type="2d"/>
         <material name="foam" texture="foam_blocks" specular="0" shininess="0" reflectance="0" emission="1" />
 
-        <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
-        <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />
     </asset>
-
-    <contact>
-        <exclude body1="ring0" body2="EE"/>
-        <exclude body1="ring0" body2="thumb_distal"/>
-        <exclude body1="ring0" body2="thumb_proximal"/>
-        <exclude body1="ring0" body2="index_distal"/>
-        <exclude body1="ring0" body2="index_proximal"/>
-        <exclude body1="ring0" body2="middle_distal"/>
-        <exclude body1="ring0" body2="middle_proximal"/>
-        <exclude body1="ring0" body2="link6"/>
-        <exclude body1="ring0" body2="link5"/>
-        <exclude body1="ring0" body2="link4"/>
-        <exclude body1="ring0" body2="link3"/>
-        <exclude body1="ring0" body2="link2"/>
-        <exclude body1="ring0" body2="link1"/>
-        <exclude body1="ring0" body2="base_link"/>
-
-        <exclude body1="ring1" body2="EE"/>
-        <exclude body1="ring1" body2="thumb_distal"/>
-        <exclude body1="ring1" body2="thumb_proximal"/>
-        <exclude body1="ring1" body2="index_distal"/>
-        <exclude body1="ring1" body2="index_proximal"/>
-        <exclude body1="ring1" body2="middle_distal"/>
-        <exclude body1="ring1" body2="middle_proximal"/>
-        <exclude body1="ring1" body2="link6"/>
-        <exclude body1="ring1" body2="link5"/>
-        <exclude body1="ring1" body2="link4"/>
-        <exclude body1="ring1" body2="link3"/>
-        <exclude body1="ring1" body2="link2"/>
-        <exclude body1="ring1" body2="link1"/>
-        <exclude body1="ring1" body2="base_link"/>
-
-        <exclude body1="ring2" body2="EE"/>
-        <exclude body1="ring2" body2="thumb_distal"/>
-        <exclude body1="ring2" body2="thumb_proximal"/>
-        <exclude body1="ring2" body2="index_distal"/>
-        <exclude body1="ring2" body2="index_proximal"/>
-        <exclude body1="ring2" body2="middle_distal"/>
-        <exclude body1="ring2" body2="middle_proximal"/>
-        <exclude body1="ring2" body2="link6"/>
-        <exclude body1="ring2" body2="link5"/>
-        <exclude body1="ring2" body2="link4"/>
-        <exclude body1="ring2" body2="link3"/>
-        <exclude body1="ring2" body2="link2"/>
-        <exclude body1="ring2" body2="link1"/>
-        <exclude body1="ring2" body2="base_link"/>
-
-        <exclude body1="ring3" body2="EE"/>
-        <exclude body1="ring3" body2="thumb_distal"/>
-        <exclude body1="ring3" body2="thumb_proximal"/>
-        <exclude body1="ring3" body2="index_distal"/>
-        <exclude body1="ring3" body2="index_proximal"/>
-        <exclude body1="ring3" body2="middle_distal"/>
-        <exclude body1="ring3" body2="middle_proximal"/>
-        <exclude body1="ring3" body2="link6"/>
-        <exclude body1="ring3" body2="link5"/>
-        <exclude body1="ring3" body2="link4"/>
-        <exclude body1="ring3" body2="link3"/>
-        <exclude body1="ring3" body2="link2"/>
-        <exclude body1="ring3" body2="link1"/>
-        <exclude body1="ring3" body2="base_link"/>
-
-        <exclude body1="ring4" body2="EE"/>
-        <exclude body1="ring4" body2="thumb_distal"/>
-        <exclude body1="ring4" body2="thumb_proximal"/>
-        <exclude body1="ring4" body2="index_distal"/>
-        <exclude body1="ring4" body2="index_proximal"/>
-        <exclude body1="ring4" body2="middle_distal"/>
-        <exclude body1="ring4" body2="middle_proximal"/>
-        <exclude body1="ring4" body2="link6"/>
-        <exclude body1="ring4" body2="link5"/>
-        <exclude body1="ring4" body2="link4"/>
-        <exclude body1="ring4" body2="link3"/>
-        <exclude body1="ring4" body2="link2"/>
-        <exclude body1="ring4" body2="link1"/>
-        <exclude body1="ring4" body2="base_link"/>
-
-        <exclude body1="ring5" body2="EE"/>
-        <exclude body1="ring5" body2="thumb_distal"/>
-        <exclude body1="ring5" body2="thumb_proximal"/>
-        <exclude body1="ring5" body2="index_distal"/>
-        <exclude body1="ring5" body2="index_proximal"/>
-        <exclude body1="ring5" body2="middle_distal"/>
-        <exclude body1="ring5" body2="middle_proximal"/>
-        <exclude body1="ring5" body2="link6"/>
-        <exclude body1="ring5" body2="link5"/>
-        <exclude body1="ring5" body2="link4"/>
-        <exclude body1="ring5" body2="link3"/>
-        <exclude body1="ring5" body2="link2"/>
-        <exclude body1="ring5" body2="link1"/>
-        <exclude body1="ring5" body2="base_link"/>
-
-        <exclude body1="hand" body2="EE"/>
-        <exclude body1="hand" body2="thumb_distal"/>
-        <exclude body1="hand" body2="thumb_proximal"/>
-        <exclude body1="hand" body2="index_distal"/>
-        <exclude body1="hand" body2="index_proximal"/>
-        <exclude body1="hand" body2="middle_distal"/>
-        <exclude body1="hand" body2="middle_proximal"/>
-        <exclude body1="hand" body2="link6"/>
-        <exclude body1="hand" body2="link5"/>
-        <exclude body1="hand" body2="link4"/>
-        <exclude body1="hand" body2="link3"/>
-        <exclude body1="hand" body2="link2"/>
-        <exclude body1="hand" body2="link1"/>
-        <exclude body1="hand" body2="base_link"/>
-
-        <exclude body1="target" body2="EE"/>
-        <exclude body1="target" body2="thumb_distal"/>
-        <exclude body1="target" body2="thumb_proximal"/>
-        <exclude body1="target" body2="index_distal"/>
-        <exclude body1="target" body2="index_proximal"/>
-        <exclude body1="target" body2="middle_distal"/>
-        <exclude body1="target" body2="middle_proximal"/>
-        <exclude body1="target" body2="link6"/>
-        <exclude body1="target" body2="link5"/>
-        <exclude body1="target" body2="link4"/>
-        <exclude body1="target" body2="link3"/>
-        <exclude body1="target" body2="link2"/>
-        <exclude body1="target" body2="link1"/>
-        <exclude body1="target" body2="base_link"/>
-
-        <exclude body1="target_orientation" body2="EE"/>
-        <exclude body1="target_orientation" body2="thumb_distal"/>
-        <exclude body1="target_orientation" body2="thumb_proximal"/>
-        <exclude body1="target_orientation" body2="index_distal"/>
-        <exclude body1="target_orientation" body2="index_proximal"/>
-        <exclude body1="target_orientation" body2="middle_distal"/>
-        <exclude body1="target_orientation" body2="middle_proximal"/>
-        <exclude body1="target_orientation" body2="link6"/>
-        <exclude body1="target_orientation" body2="link5"/>
-        <exclude body1="target_orientation" body2="link4"/>
-        <exclude body1="target_orientation" body2="link3"/>
-        <exclude body1="target_orientation" body2="link2"/>
-        <exclude body1="target_orientation" body2="link1"/>
-        <exclude body1="target_orientation" body2="base_link"/>
-
-        <exclude body1="path_planner" body2="EE"/>
-        <exclude body1="path_planner" body2="thumb_distal"/>
-        <exclude body1="path_planner" body2="thumb_proximal"/>
-        <exclude body1="path_planner" body2="index_distal"/>
-        <exclude body1="path_planner" body2="index_proximal"/>
-        <exclude body1="path_planner" body2="middle_distal"/>
-        <exclude body1="path_planner" body2="middle_proximal"/>
-        <exclude body1="path_planner" body2="link6"/>
-        <exclude body1="path_planner" body2="link5"/>
-        <exclude body1="path_planner" body2="link4"/>
-        <exclude body1="path_planner" body2="link3"/>
-        <exclude body1="path_planner" body2="link2"/>
-        <exclude body1="path_planner" body2="link1"/>
-        <exclude body1="path_planner" body2="base_link"/>
-
-        <exclude body1="path_planner_orientation" body2="EE"/>
-        <exclude body1="path_planner_orientation" body2="thumb_distal"/>
-        <exclude body1="path_planner_orientation" body2="thumb_proximal"/>
-        <exclude body1="path_planner_orientation" body2="index_distal"/>
-        <exclude body1="path_planner_orientation" body2="index_proximal"/>
-        <exclude body1="path_planner_orientation" body2="middle_distal"/>
-        <exclude body1="path_planner_orientation" body2="middle_proximal"/>
-        <exclude body1="path_planner_orientation" body2="link6"/>
-        <exclude body1="path_planner_orientation" body2="link5"/>
-        <exclude body1="path_planner_orientation" body2="link4"/>
-        <exclude body1="path_planner_orientation" body2="link3"/>
-        <exclude body1="path_planner_orientation" body2="link2"/>
-        <exclude body1="path_planner_orientation" body2="link1"/>
-        <exclude body1="path_planner_orientation" body2="base_link"/>
-    </contact>
 
     <worldbody>
         <geom name="floor_foam_block" pos="0 0 0" size="0.5 0.5 0.05" type="plane" rgba="1 0.83 0.61 1" material="foam"/>
+        <geom name="floor_grey_tile" pos="0 0 -0.001" size="0.75 0.75 0.05" type="plane" material="tile"/>
 
-        <geom name="floor_grey_tile" pos="0 0 -0.001" size="1 1 0.05" type="plane" material="tile"/>
-
-        <body name="hand" pos="0 0 -0.5" mocap="true">
-            <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="2"/>
+        <!-- control visualizations -->
+        <body name="hand" pos="0 0 -0.15" mocap="true">
+            <geom type="box" size=".002 .004 .006" rgba="0 .9 0 .5" contype="2" conaffinity="2"/>
         </body>
 
-        <body name="target" pos="0 0 -0.5" mocap="true">
-            <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
+        <body name="target" pos="0 0 -0.15" mocap="true">
+            <geom name="target" type="sphere" size="0.05" rgba=".9 0 0 .5" contype="4" conaffinity="4"/>
         </body>
 
-        <body name="target_orientation" pos="0 0 -0.5" mocap="true">
-            <geom type="box" size=".02 .04 .06" rgba=".9 0 0 .5" contype="2"/>
+        <body name="target_orientation" pos="0 0 -0.15" mocap="true">
+            <geom type="box" size=".02 .04 .06" rgba=".9 0 0 .5" contype="8" conaffinity="8"/>
         </body>
 
-        <body name="path_planner" pos="0 0 -0.5" mocap="true">
-            <geom type="sphere" size="0.05" rgba="0 1 1 0.5"/>
+        <body name="path_planner" pos="0 0 -0.15" mocap="true">
+            <geom type="sphere" size="0.05" rgba="0 1 1 0.5" contype="16" conaffinity="16"/>
         </body>
 
-        <body name="path_planner_orientation" pos="0 0 -0.5" mocap="true">
-            <geom type="box" size=".02 .04 .06" rgba="0 1 1 .5" contype="2"/>
+        <body name="path_planner_orientation" pos="0 0 -0.15" mocap="true">
+            <geom type="box" size=".02 .04 .06" rgba="0 1 1 .5" contype="32" conaffinity="32"/>
         </body>
 
-        <body name="obstacle" pos="0 0 -0.5" mocap="true">
+        <body name="obstacle" pos="0 0 -0.15" mocap="true">
             <geom type="sphere" size="0.05" rgba="0 0 1 1"/>
         </body>
 
@@ -249,109 +83,88 @@
             <body name="link1" pos="0 0 0.157">
                 <inertial pos="-0.000042 -0.001285 0.112784" mass="0.754000" diaginertia="0.3 0.3 0.3"/>
                 <geom name="link1" type="mesh" mesh="shoulder" pos="0 0 0" euler="0 3.14 0" material="carbon"/>
+                <!-- <geom name="ring0" type="mesh" mesh="ring_big" material="grey_plastic"/> -->
+                <geom name="joint_logo0" type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.0364 0.1186" euler="1.6 0 0"/>
                 <joint name="joint0" axis="0 0 -1" pos="0 0 0"/>
 
-                <body name="ring0">
-                    <geom name="ring0" type="mesh" mesh="ring_big" material="grey_plastic"/>
-                </body>
-                <body name="joint_logo0">
-                    <geom type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.0364 0.1186" euler="1.6 0 0"/>
-                </body>
 
                 <body name="link2" pos="0 0.0016 0.1186">
                     <inertial pos="0.000014 0.009353 0.329006" mass="1.010000" diaginertia="0.3 0.3 0.3"/>
                     <geom name="link2" type="mesh" mesh="arm" pos="0 0 0" euler="1.57 0 3.14" material="carbon"/>
+                    <geom name="ring1" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
+                    <geom name="joint_logo1" type="cylinder" size="0.032 0.005" material="logo_flip" pos="0 0.038 0" euler="1.52 0 0"/>
+                    <geom name="joint_logo2" type="cylinder" size="0.032 0.005" material="logo_flip" pos="0 0.0385 0.410" euler="1.62 0 0"/>
                     <joint name="joint1" pos="0 0 0" axis="0 -1 0"  ref="3.14" limited="true" range="0.872665 5.41052"/>
-
-                    <body name="ring1">
-                        <geom name="ring1" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
-                    </body>
-                    <body name="joint_logo1">
-                        <geom type="cylinder" size="0.032 0.005" material="logo_flip" pos="0 0.038 0" euler="1.52 0 0"/>
-                    </body>
-                    <body name="joint_logo2">
-                        <geom type="cylinder" size="0.032 0.005" material="logo_flip" pos="0 0.0385 0.410" euler="1.62 0 0"/>
-                    </body>
-
 
                     <body name="link3" pos="0 0 0.410">
                         <inertial pos="-0.000039 -0.018069 0.153270" mass="0.559000" diaginertia="0.275 0.275 0.275"/>
                         <geom name="link3" type="mesh" mesh="forearm" pos="0 0 0" euler="1.57 3.14 0" material="carbon"/>
+                        <geom name="ring2" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
                         <joint name="joint2" pos="0 0 0" axis="0 1 0" ref="3.14" limited="true" range="0.331613 5.95157"/>
-                        <body name="joint_logo3">
-                            <geom type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.038 0" euler="1.54 0 0"/>
-                        </body>
+                        <geom name="joint_logo3" type="cylinder" size="0.032 0.005" material="logo" pos="0 -0.038 0" euler="1.54 0 0"/>
 
-                        <body name="ring2">
-                            <geom name="ring2" type="mesh" mesh="ring_big" material="grey_plastic" euler="1.57 0 0"/>
-                        </body>
 
                         <body name="link4" pos="0 -0.0115 0.2072">
                             <inertial pos="0.000000 0.032302 0.059705" mass="0.417000" diaginertia="0.175 0.175 0.175"/>
                             <geom name="link4" type="mesh" mesh="wrist" euler="3.14 0 0" material="carbon"/>
+                            <geom name="ring3" type="mesh" mesh="ring_small" material="grey_plastic"/>
                             <joint name="joint3" pos="0 0 0" axis="0 0 -1" ref="0"/>
-
-                            <body name="ring3">
-                                <geom name="ring3" type="mesh" mesh="ring_small" material="grey_plastic"/>
-                            </body>
 
                             <body name="link5" pos="0 0.037 0.0641">
                                 <inertial pos="-0.000000 0.035545 0.057833" mass="0.417" diaginertia="0.175 0.175 0.175"/>
                                 <geom name="link5" type="mesh" mesh="wrist" euler="-1.0472 3.14 0" material="carbon"/>
+                                <geom name="ring4" type="mesh" mesh="ring_small" material="grey_plastic" euler="-1.0471 0 0"/>
                                 <joint name="joint4" pos="0 0 0" axis="0 -1.9 -1.1" ref="0"/>
-
-                                <body name="ring4">
-                                    <geom name="ring4" type="mesh" mesh="ring_small" material="grey_plastic" euler="-1.0471 0 0"/>
-                                </body>
 
                                 <body name="link6" pos="0 0.037 0.0641">
                                     <inertial pos="0.000030 -0.006840 0.082220" mass="0.727000" diaginertia="0.025 0.025 0.025"/>
-                                    <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="carbon"/>
+                                    <geom name="link6" type="mesh" mesh="hand_3finger" euler="3.14 0 0" material="carbon" solimp="0.97 0.97 0.01" solref="0.01 1" condim="6" />
+                                    <geom name="ring5" type="mesh" mesh="ring_small" material="grey_plastic"/>
                                     <joint name="joint5" pos="0 0 0" axis="0 0 -1" ref="0"/>
 
-                                    <body name="ring5">
-                                        <geom name="ring5" type="mesh" mesh="ring_small" material="grey_plastic"/>
+                                    <!-- for fingertip EE -->
+                                    <!-- <body name="EE" pos="0 0 0.20222" euler="0 0 0"> -->
+                                    <!-- </body> -->
+
+                                    <!-- for palm EE -->
+                                    <body name="EE" pos="0 0 0.12" euler="0 0 0">
                                     </body>
 
                                     <body name="thumb_proximal" pos="0.002786 -0.03126 0.114668" quat="0.95922726  0.262085    0.02762996 -0.10213274">
-                                        <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0"/>
+                                        <geom name="thumb_proximal" type="mesh" mesh="finger_proximal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <joint name="joint_thumb" pos="0 0 0" axis="1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
 
                                         <body name="thumb_distal" pos="0 -0.003 0.044">
-                                            <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0"/>
+                                            <geom name="thumb_distal" type="mesh" mesh="finger_distal" euler="0 -1.5707 0" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_thumb_distal" pos="0 0 0" axis="-1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
 
                                     <body name="index_proximal" pos="0.022256 0.027073 0.114668" quat="0.96181018 -0.25771638 0.0238668 -0.08907205">
-                                        <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                        <geom name="index_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <joint name="joint_index" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
 
                                         <body name="index_distal" pos="0 0.003 0.044">
-                                            <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                            <geom name="index_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_index_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="-0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
 
-                                    <body name="middle_proximal" pos="-0.022256 0.027073 0.114816" quat="0.96181018 -0.25771638 -0.0238668 0.08907205">
-                                        <geom name="middle_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                    <body name="pinky_proximal" pos="-0.022256 0.027073 0.114816" quat="0.96181018 -0.25771638 -0.0238668 0.08907205">
+                                        <geom name="pinky_proximal" type="mesh" mesh="finger_proximal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                        <joint name="joint_pinky" pos="0 0 0" axis="-1 0 0" ref="1.1" limited="true" range="-0.2 1.1" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1" stiffness="5" springref="0.0" damping="0.35"/>
 
-                                        <body name="middle_distal" pos="0 0.003 0.044">
-                                            <geom name="middle_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01"/>
+                                        <body name="pinky_distal" pos="0 0.003 0.044">
+                                            <geom name="pinky_distal" type="mesh" mesh="finger_distal" quat="5.63312174e-04  7.06824957e-01 -5.62863772e-04  7.07388045e-01" friction="1 0.5 0.01" solimp="0.95 0.95 0.01 0.5 6" solref="0.01 1" condim="6" margin="0.0"/>
+                                            <joint name="joint_pinky_distal" pos="0 0 0" axis="1 0 0" ref="0" limited="true" range="-0.4 0.4" stiffness="5" springref="0.4" damping="0.5" solimplimit="0.95 0.95 0.01" solreflimit="0.01 1"/>
                                         </body>
                                     </body>
-
-                                    <body name="EE" pos="0 0 0.20222" euler="0 0 0">
-                                    </body>
-
                                 </body>
-
                             </body>
-
                         </body>
-
                     </body>
-
                 </body>
-
             </body>
-
         </body>
 
     </worldbody>
@@ -363,6 +176,9 @@
         <motor name="joint3_motor" joint="joint3"/>
         <motor name="joint4_motor" joint="joint4"/>
         <motor name="joint5_motor" joint="joint5"/>
+        <motor name="joint_thumb_motor" joint="joint_thumb"/>
+        <motor name="joint_index_motor" joint="joint_index"/>
+        <motor name="joint_pinky_motor" joint="joint_pinky"/>
     </actuator>
 
 </mujoco>
