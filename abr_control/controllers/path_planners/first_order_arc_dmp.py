@@ -37,26 +37,6 @@ class FirstOrderArcDMP(FirstOrderArc):
 
         self.pos_dmp = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=dt)
         self.pos_dmp.imitate_path(pos.T)
-        # self.vel_dmp = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=dt)
-        # self.vel_dmp.imitate_path(vel)
-
-        # # create a dmp for a straight reach with a bell shaped velocity profile
-        # x = np.linspace(0, np.pi*2, 100)
-        # a = 1  # amplitude
-        # b = np.pi  # center
-        # c = 1  # std deviation
-        # g = a * np.exp(-(x-b)**2/(2*c)**2)
-        # g /= np.sum(g)  # normalize
-        # # integrate desired velocities to get desired positions over time
-        # y_des = np.cumsum(g)
-        # # want to follow the same trajectory in (x, y, z)
-        # y_des = np.vstack([y_des, y_des, y_des])
-        #
-        # # we can control the DMP rollout speed with the time step size
-        # # the DMP will reach the target in 1s of sim time
-        # dt = 1 / n_timesteps
-        # self.dmps = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=dt)
-        # self.dmps.imitate_path(y_des)
 
 
     def generate_path(self, position, target_pos, plot=False):

@@ -1,7 +1,7 @@
 """
 A basic script for connecting and moving the arm to a target
 configuration in joint space, offset from its starting position.
-The simulation simulates 1500 time steps and then plots the results.
+The simulation simulates 2500 time steps and then plots the results.
 """
 import numpy as np
 import traceback
@@ -34,7 +34,7 @@ q_track = []
 try:
     count = 0
     print('\nSimulation starting...\n')
-    while count < 15000:
+    while count < 2500:
         if interface.viewer.exit:
             glfw.destroy_window(interface.viewer.window)
             break

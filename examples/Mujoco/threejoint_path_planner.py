@@ -120,10 +120,6 @@ try:
         # apply the control signal, step the sim forward
         interface.send_forces(u)
 
-        if count %500 == 0:
-            print('hand_xyz: ', hand_xyz)
-            print('target_xyz', target_xyz)
-
         ee_track.append(np.copy(hand_xyz))
         target_track.append(interface.get_xyz(link_name))
         count += 1
@@ -134,6 +130,9 @@ try:
             interface.sim.model.geom_rgba[target_geom_id] = green
         else:
             interface.sim.model.geom_rgba[target_geom_id] = red
+
+        if count %500 == 0:
+            print('error: ', error)
 
         if use_wall_clock:
             # either update target every 1s

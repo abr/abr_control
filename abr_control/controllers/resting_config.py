@@ -44,13 +44,7 @@ class RestingConfig(Controller):
              + np.pi)
             % (np.pi * 2)
             - np.pi)
-        # q_des[self.null_indices] = 0.0
         self.dq_des[self.rest_indices] = dq[self.rest_indices]
-        #TODO: remove print statements when finished debugging
-        # print('null: ', self.null_indices)
-        # print('rest: ', self.rest_angles[self.rest_indices])
-        # print('q: ', q[self.rest_indices])
-        # print('q des: ', q_des[self.rest_indices])
 
         # calculate joint space inertia matrix
         M = self.robot_config.M(q=q)
