@@ -16,6 +16,10 @@ from abr_control.utils import transformations
 # initialize our robot config
 robot_config = arm('jaco2', use_sim_state=False)
 
+# create our Mujoco interface
+interface = Mujoco(robot_config, dt=.001)
+interface.connect()
+
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # instantiate controller
@@ -27,15 +31,15 @@ ctrlr = OSC(
     # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
     ctrlr_dof = [True, True, True, False, False, False])
 
-# create our Mujoco interface
-interface = Mujoco(robot_config, dt=.001)
-interface.connect()
 interface.send_target_angles(robot_config.START_ANGLES)
 
 # set up lists for tracking data
 ee_track = []
 target_track = []
 
+target_geom_id = interface.sim.model.geom_name2id("target")
+green = [0, 0.9, 0, 0.5]
+red = [0.9, 0, 0, 0.5]
 
 try:
     # get the end-effector's initial position
@@ -43,12 +47,12 @@ try:
     start = robot_config.Tx('EE', feedback['q'])
 
     # make the target offset from that start position
-    target_xyz = start + np.array([0.2, -0.2, -0.3])
+    target_xyz = np.clip(a=np.random.rand(3), a_min=-0.7, a_max=0.7)
     interface.set_mocap_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
     print('\nSimulation starting...\n')
-    while count < 1500:
+    while 1:
         if interface.viewer.exit:
             glfw.destroy_window(interface.viewer.window)
             break
@@ -56,9 +60,9 @@ try:
         feedback = interface.get_feedback()
 
         target = np.hstack([
-            interface.get_mocap_xyz('target'),
+            interface.get_xyz('target'),
             transformations.euler_from_quaternion(
-                interface.get_mocap_orientation('target'), 'rxyz')])
+                interface.get_orientation('target'), 'rxyz')])
 
         # calculate the control signal
         u = ctrlr.generate(
@@ -66,6 +70,9 @@ try:
             dq=feedback['dq'],
             target=target,
             )
+
+        # add gripper forces
+        u = np.hstack((u, np.ones(3)*0.05))
 
         # send forces into Mujoco, step the sim forward
         interface.send_forces(u)
@@ -76,7 +83,18 @@ try:
         ee_track.append(np.copy(ee_xyz))
         target_track.append(np.copy(target[:3]))
 
-        count += 1
+        error = np.linalg.norm(ee_xyz-target[:3])
+        if error < 0.02:
+            interface.sim.model.geom_rgba[target_geom_id] = green
+            count += 1
+        else:
+            count = 0
+            interface.sim.model.geom_rgba[target_geom_id] = red
+
+        if count >= 50:
+            target_xyz = np.clip(np.random.rand(3), a_min=-0.7, a_max=0.7)
+            interface.set_mocap_xyz(name='target', xyz=target_xyz)
+            count = 0
 
 except:
     print(traceback.format_exc())

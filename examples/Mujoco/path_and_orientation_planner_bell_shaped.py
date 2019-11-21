@@ -17,7 +17,11 @@ from abr_control.utils import transformations
 
 
 # initialize our robot config
-robot_config = arm('jaco2_gripper')
+robot_config = arm('jaco2')
+
+# create our interface
+interface = Mujoco(robot_config, dt=.001)
+interface.connect()
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
@@ -32,14 +36,10 @@ ctrlr = OSC(
     # control all DOF [x, y, z, alpha, beta, gamma]
     ctrlr_dof = [True, True, True, True, True, True])
 
-# create our interface
-interface = Mujoco(robot_config, dt=.001)
-interface.connect()
-
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx('EE', feedback['q'])
 
-def gripper_forces(command=None, grip_force=0.5):
+def gripper_forces(command=None, grip_force=0.05):
     if command == 'open':
         u_gripper = np.ones(3) * grip_force
     elif command == 'close':
@@ -119,6 +119,7 @@ try:
         elif count < 3000:
             u_gripper = gripper_forces('close')
 
+        # add gripper forces
         u = np.hstack((u, u_gripper))
 
         # apply the control signal, step the sim forward

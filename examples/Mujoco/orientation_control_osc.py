@@ -14,6 +14,11 @@ from abr_control.utils import transformations
 # initialize our robot config
 robot_config = arm('jaco2')
 
+# create our interface
+interface = Mujoco(robot_config, dt=.001)
+interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
+
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
@@ -24,11 +29,6 @@ ctrlr = OSC(
     null_controllers=[damping],
     # control (alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
     ctrlr_dof = [False, False, False, True, True, True])
-
-# create our interface
-interface = Mujoco(robot_config, dt=.001)
-interface.connect()
-interface.send_target_angles(robot_config.START_ANGLES)
 
 # set up lists for tracking data
 ee_angles_track = []
@@ -61,9 +61,9 @@ try:
         interface.set_mocap_orientation('target_orientation', rand_orient)
 
         target = np.hstack([
-            interface.get_mocap_xyz('target_orientation'),
+            interface.get_xyz('target_orientation'),
             transformations.euler_from_quaternion(
-                interface.get_mocap_orientation('target_orientation'), 'rxyz')])
+                interface.get_orientation('target_orientation'), 'rxyz')])
 
         rc_matrix = robot_config.R('EE', feedback['q'])
         rc_angles = transformations.euler_from_matrix(rc_matrix, axes='rxyz')
@@ -74,6 +74,9 @@ try:
             target=target,
             )
 
+        # add gripper forces
+        u = np.hstack((u, np.ones(3) * 0.05))
+
         # apply the control signal, step the sim forward
         interface.send_forces(u)
 
@@ -81,7 +84,7 @@ try:
         ee_angles_track.append(transformations.euler_from_matrix(
             robot_config.R('EE', feedback['q']), axes='rxyz'))
         target_angles_track.append(transformations.euler_from_quaternion(
-                interface.get_mocap_orientation('target_orientation'), 'rxyz'))
+                interface.get_orientation('target_orientation'), 'rxyz'))
         cnt += 1
 
 finally:

@@ -21,6 +21,11 @@ robot_config = arm('jaco2')
 ctrlr_dof = [False, True, False, True, True, True]
 dof_labels = ['x', 'y', 'z', 'a', 'b', 'g']
 
+# create our interface
+interface = Mujoco(robot_config, dt=.001)
+interface.connect()
+
+target_orientation = np.random.random(4)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
@@ -34,11 +39,6 @@ ctrlr = OSC(
     # control (x, alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
     ctrlr_dof=ctrlr_dof)
 
-# create our interface
-interface = Mujoco(robot_config, dt=.001)
-interface.connect()
-
-target_orientation = np.random.random(4)
 target_orientation /= np.linalg.norm(target_orientation)
 target_xyz = np.array([0.3, 0.3, 0.5])
 
@@ -63,15 +63,18 @@ try:
         hand_xyz = robot_config.Tx('EE', feedback['q'])
 
         target = np.hstack([
-            interface.get_mocap_xyz('target_orientation'),
+            interface.get_xyz('target_orientation'),
             transformations.euler_from_quaternion(
-                interface.get_mocap_orientation('target_orientation'), 'rxyz')])
+                interface.get_orientation('target_orientation'), 'rxyz')])
 
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
             )
+
+        # add gripper forces
+        u = np.hstack((u, np.ones(3)*0.05))
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)
