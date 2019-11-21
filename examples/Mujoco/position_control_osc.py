@@ -19,6 +19,7 @@ robot_config = arm('jaco2', use_sim_state=False)
 # create our Mujoco interface
 interface = Mujoco(robot_config, dt=.001)
 interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)

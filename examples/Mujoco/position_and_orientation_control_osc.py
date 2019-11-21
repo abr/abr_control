@@ -24,6 +24,7 @@ dof_labels = ['x', 'y', 'z', 'a', 'b', 'g']
 # create our interface
 interface = Mujoco(robot_config, dt=.001)
 interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
 
 target_orientation = np.random.random(4)
 # damp the movements of the arm

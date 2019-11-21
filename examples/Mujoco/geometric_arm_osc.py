@@ -83,10 +83,6 @@ try:
             )
         interface.send_forces(u)
 
-        if count %500 == 0:
-            print('ee_xyz: ', hand_xyz)
-            print('target', target)
-
         if np.linalg.norm(hand_xyz[:N_JOINTS] - target[:N_JOINTS]) < 0.01:
             target[0] = (np.random.uniform(0.2, 0.25)
                          * np.sign(np.random.uniform(-1, 1)))

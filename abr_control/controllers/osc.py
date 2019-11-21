@@ -73,11 +73,18 @@ class OSC(Controller):
         self.task_space_gains = np.array([self.kp,]*3 + [self.ko,]*3)
         self.lamb = self.task_space_gains / self.kv
 
-        if self.n_ctrlr_dof > robot_config.N_JOINTS:
-            print('\nRobot has fewer DOF (%i) than the specified number of ' %
-                  robot_config.N_JOINTS + 'space dimensions to control (%i). ' %
-                  self.n_ctrlr_dof + 'Poor performance may result.\n')
-
+        try:
+            if self.n_ctrlr_dof > robot_config.N_JOINTS:
+                print('\nRobot has fewer DOF (%i) than the specified number of ' %
+                    robot_config.N_JOINTS + 'space dimensions to control (%i). ' %
+                    self.n_ctrlr_dof + 'Poor performance may result.\n')
+        except AttributeError as e:
+            print('\n********************************************************\n'
+                  + 'If using Mujoco you will need to instantiate and connect\n'
+                  + 'to the interface to gain access to parameters required\n'
+                  + 'for this controller\n')
+            print(e)
+            print('********************************************************\n')
         self.vmax = vmax
         if vmax is not None:
             # precalculate gains used in velocity limiting
