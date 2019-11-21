@@ -11,16 +11,13 @@ from .path_planner import PathPlanner
 
 
 class FirstOrderArc(PathPlanner):
-    """
-    PARAMETERS
-    ----------
-    n_timesteps: int, Optional (Default: 3000)
-        the number of steps to break the path into
-    error_scale: int, Optional (Default: 1)
-        the scaling factor to apply to the error term, increasing error passed
-        1 will increase the speed of motion
-    """
     def __init__(self, n_timesteps=3000):
+        """
+        PARAMETERS
+        ----------
+        n_timesteps: int, Optional (Default: 3000)
+            the number of steps to break the path into
+        """
         self.n_timesteps = n_timesteps
 
     def generate_path(self, position, target_pos, plot=False):
