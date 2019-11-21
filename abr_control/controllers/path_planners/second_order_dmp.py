@@ -1,10 +1,23 @@
 """
-Given two points, a path is drawn between them along the perimiter of a circle.
-If the two points are of different radius from the origin, then two circles are
-generated and they're paths are linearly combined to join the points. The shortest
-path around the circle is taken. A linear path along z is taken.
-"""
+Running operational space control with a PyGame display, and using the pydmps
+library to specify a trajectory for the end-effector to follow, in
+this case, a bell shaped velocity profile.
+To install the pydmps library, clone https://github.com/studywolf/pydmps
+and run 'python setup.py develop'
 
+***NOTE*** there are two ways to use this filter
+1: wrt to timesteps
+- the dmp is created during the instantiation of the class and the next step
+along the path is returned by calling the `step()` function
+
+2: wrt to time
+- after instantiation, calling `generate_path_function()` interpolates the dmp
+to the specified time limit. Calling the `next_timestep(t)` function at a
+specified time will return the end-effector state at that point along the path
+planner. This ensures that the path will reach the desired target within the
+time_limit specified in `generate_path_function()`
+
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -13,10 +26,10 @@ try:
 except ImportError:
     print('\npydmps library required, see github.com/studywolf/pydmps\n')
 
-from .first_order_arc import FirstOrderArc
+from .path_planner import PathPlanner
 
 
-class FirstOrderArcDMP(FirstOrderArc):
+class SecondOrderDMP(PathPlanner):
     """
     PARAMETERS
     ----------
@@ -29,14 +42,24 @@ class FirstOrderArcDMP(FirstOrderArc):
     def __init__(self, n_timesteps=3000, error_scale=1):
         self.n_timesteps = n_timesteps
         self.error_scale = error_scale
-        dt = 1/self.n_timesteps
 
-        super(FirstOrderArcDMP, self).__init__(n_timesteps=self.n_timesteps)
-        pos, vel = super(FirstOrderArcDMP, self).generate_path(
-            position=np.ones(3), target_pos=np.ones(3))
+        # create a dmp for a straight reach with a bell shaped velocity profile
+        x = np.linspace(0, np.pi*2, 100)
+        a = 1  # amplitude
+        b = np.pi  # center
+        c = 1  # std deviation
+        g = a * np.exp(-(x-b)**2/(2*c)**2)
+        g /= np.sum(g)  # normalize
+        # integrate desired velocities to get desired positions over time
+        y_des = np.cumsum(g)
+        # want to follow the same trajectory in (x, y, z)
+        y_des = np.vstack([y_des, y_des, y_des])
 
-        self.pos_dmp = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=dt)
-        self.pos_dmp.imitate_path(pos.T)
+        # we can control the DMP rollout speed with the time step size
+        # the DMP will reach the target in 1s of sim time
+        dt = 1 / n_timesteps
+        self.dmps = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=dt)
+        self.dmps.imitate_path(y_des)
 
 
     def generate_path(self, position, target_pos, plot=False):
@@ -55,7 +78,7 @@ class FirstOrderArcDMP(FirstOrderArc):
         """
         self.reset(target_pos=target_pos, position=position)
 
-        self.position, self.velocity, _ = self.pos_dmp.rollout(
+        self.position, self.velocity, _ = self.dmps.rollout(
             timesteps=self.n_timesteps)
         self.position = np.array([traj + self.origin for traj in self.position])
 
@@ -82,10 +105,8 @@ class FirstOrderArcDMP(FirstOrderArc):
             the current end-effector cartesian position [meters]
         """
         self.origin = position
-        self.pos_dmp.reset_state()
-        self.pos_dmp.goal = target_pos - self.origin
-        # self.vel_dmp.reset_state()
-        # self.vel_dmp.goal = np.zeros(3)
+        self.dmps.reset_state()
+        self.dmps.goal = target_pos - self.origin
 
 
     def _step(self, error=None):
@@ -96,7 +117,7 @@ class FirstOrderArcDMP(FirstOrderArc):
         if error is None:
             error = 0
         # get the next point in the target trajectory from the dmp
-        position, velocity, _ = self.pos_dmp.step(error=error * self.error_scale)
+        position, velocity, _ = self.dmps.step(error=error * self.error_scale)
         # add the start position offset since the dmp starts from the origin
         position = position + self.origin
 

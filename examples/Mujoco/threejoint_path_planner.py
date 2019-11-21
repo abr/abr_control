@@ -62,7 +62,7 @@ else:
     params['n_timesteps'] = 3000  # time steps each trajectory lasts
     count = np.copy(params['n_timesteps'])
     time_elapsed = 0.0
-path_planner = path_planners.BellShaped(**params)
+path_planner = path_planners.SecondOrderDMP(**params)
 
 ee_track = []
 target_track = []
