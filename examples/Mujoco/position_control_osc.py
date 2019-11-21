@@ -47,7 +47,7 @@ try:
     start = robot_config.Tx('EE', feedback['q'])
 
     # make the target offset from that start position
-    target_xyz = np.clip(a=np.random.rand(3), a_min=-0.7, a_max=0.7)
+    target_xyz = np.clip(a=np.random.rand(3), a_min=-0.6, a_max=0.6)
     interface.set_mocap_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
@@ -92,7 +92,7 @@ try:
             interface.sim.model.geom_rgba[target_geom_id] = red
 
         if count >= 50:
-            target_xyz = np.clip(np.random.rand(3), a_min=-0.7, a_max=0.7)
+            target_xyz = np.clip(np.random.rand(3), a_min=-0.6, a_max=0.6)
             interface.set_mocap_xyz(name='target', xyz=target_xyz)
             count = 0
 
