@@ -15,6 +15,11 @@ from abr_control.utils import transformations
 # initialize our robot config for the jaco2
 robot_config = arm('jaco2')
 
+# create our Mujoco interface
+interface = Mujoco(robot_config, dt=.001)
+interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
+
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # instantiate controller
@@ -41,10 +46,9 @@ adapt = signals.DynamicsAdaptation(
         0.08, 1.4, 1.6, 0.7, 1.2],
     spherical=True)
 
-# create our Mujoco interface
-interface = Mujoco(robot_config, dt=.001)
-interface.connect()
-interface.send_target_angles(robot_config.START_ANGLES)
+target_geom_id = interface.sim.model.geom_name2id("target")
+green = [0, 0.9, 0, 0.5]
+red = [0.9, 0, 0, 0.5]
 
 # set up lists for tracking data
 ee_track = []
@@ -71,9 +75,9 @@ try:
         feedback = interface.get_feedback()
 
         target = np.hstack([
-            interface.get_mocap_xyz('target'),
+            interface.get_xyz('target'),
             transformations.euler_from_quaternion(
-                interface.get_mocap_orientation('target'), 'rxyz')])
+                interface.get_orientation('target'), 'rxyz')])
 
         # calculate the control signal
         u = ctrlr.generate(
@@ -94,6 +98,9 @@ try:
         extra_gravity = robot_config.g(feedback['q']) * 2
         u += extra_gravity
 
+        # add gripper forces
+        u = np.hstack((u, np.ones(3)*0.05))
+
         # send forces into Mujoco, step the sim forward
         interface.send_forces(u)
 
@@ -106,6 +113,12 @@ try:
         dq_track.append(np.copy(feedback['dq']))
 
         count += 1
+
+        error = np.linalg.norm(ee_xyz-target[:3])
+        if error < 0.02:
+            interface.sim.model.geom_rgba[target_geom_id] = green
+        else:
+            interface.sim.model.geom_rgba[target_geom_id] = red
 
 except:
     print(traceback.format_exc())

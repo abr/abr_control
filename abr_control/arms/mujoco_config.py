@@ -10,20 +10,25 @@ class MujocoConfig():
     dynamics calculations necessary for controllers.
     """
 
-    def __init__(self, xml_file, use_sim_state=False):
+    def __init__(self, xml_file, folder=None, use_sim_state=False):
         """ Loads the Mujoco model from the specified xml file
 
         Parameters
         ----------
         xml_file: string
-            the name of the arm model to load
-            The string passed in is parsed such that everything up to the first
+            the name of the arm model to load. If folder remains as None,
+            the string passed in is parsed such that everything up to the first
             underscore is used for the arm directory, and the full string is
             used to load the xml within that folder.
 
             EX: 'myArm' and 'myArm_with_gripper' will both look in the
             'myArm' directory, however they will load myArm.xml and
             myArm_with_gripper.xml, respectively
+
+            If a folder is passed in, then folder/xml_file is used
+        folder: string, Optional (Default: None)
+            specifies what folder to find the xml_file, if None specified will
+            checking in abr_control/arms/xml_file (see above for xml_file)
         use_sim_state: Boolean, optional (Default: False)
             If set true, the q and dq values passed in to the functions are
             ignored, and the current state of the simulator is used to
@@ -31,9 +36,13 @@ class MujocoConfig():
             the state on every call.
         """
 
-        current_dir = os.path.dirname(__file__)
-        self.xml_file = os.path.join(
-            current_dir, xml_file.split('_')[0], '%s.xml' % xml_file)
+        if folder is None:
+            current_dir = os.path.dirname(__file__)
+            self.xml_file = os.path.join(
+                current_dir, xml_file.split('_')[0], '%s.xml' % xml_file)
+        else:
+            self.xml_file = os.path.join(folder, xml_file)
+
         self.model = mjp.load_model_from_path(self.xml_file)
 
         self.use_sim_state = use_sim_state
@@ -254,6 +263,8 @@ class MujocoConfig():
     def R(self, name, q=None):
         """ Returns the rotation matrix of the specified body
 
+        Parameters
+        ----------
         name: string
             The name of the Mujoco body to retrieve the Jacobian for
         q: float numpy.array, optional (Default: None)
@@ -275,6 +286,14 @@ class MujocoConfig():
 
     def quaternion(self, name, q=None):
         """ Returns the quaternion of the specified body
+        Parameters
+        ----------
+
+        name: string
+            The name of the Mujoco body to retrieve the Jacobian for
+        q: float numpy.array, optional (Default: None)
+            The joint angles of the robot. If None the current state is
+            retrieved from the Mujoco simulator
         """
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)

@@ -1,7 +1,7 @@
 """
 A basic script for connecting and moving the arm to a target
 configuration in joint space, offset from its starting position.
-The simulation simulates 1500 time steps and then plots the results.
+The simulation simulates 2500 time steps and then plots the results.
 """
 import numpy as np
 import traceback
@@ -15,13 +15,13 @@ from abr_control.controllers import Joint
 # initialize our robot config
 robot_config = arm('jaco2')
 
-# instantiate the REACH controller for the jaco2 robot
-ctrlr = Joint(robot_config, kp=20, kv=10)
-
 # create interface and connect
 interface = Mujoco(robot_config=robot_config, dt=.001)
 interface.connect()
 interface.send_target_angles(robot_config.START_ANGLES)
+
+# instantiate the REACH controller for the jaco2 robot
+ctrlr = Joint(robot_config, kp=20, kv=10)
 
 # make the target an offset of the current configuration
 feedback = interface.get_feedback()
@@ -34,7 +34,7 @@ q_track = []
 try:
     count = 0
     print('\nSimulation starting...\n')
-    while count < 15000:
+    while count < 2500:
         if interface.viewer.exit:
             glfw.destroy_window(interface.viewer.window)
             break
@@ -47,6 +47,9 @@ try:
             dq=feedback['dq'],
             target=target,
             )
+
+        # add gripper forces
+        u = np.hstack((u, np.ones(3)*0.05))
 
         # send forces into Mujoco, step the sim forward
         interface.send_forces(u)
@@ -71,6 +74,6 @@ finally:
         plt.gca().set_prop_cycle(None)
         plt.plot(np.ones(q_track.shape) *
                 ((target + np.pi) % (np.pi * 2) - np.pi), '--')
-        plt.legend(range(robot_config.N_LINKS))
+        plt.legend(range(robot_config.N_JOINTS))
         plt.tight_layout()
         plt.show()

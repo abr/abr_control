@@ -19,6 +19,11 @@ from abr_control.utils import transformations
 # initialize our robot config
 robot_config = arm('jaco2')
 
+# create our interface
+interface = Mujoco(robot_config, dt=.001)
+interface.connect()
+interface.send_target_angles(robot_config.START_ANGLES)
+
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
@@ -31,10 +36,6 @@ ctrlr = OSC(
     vmax=None,  # [m/s, rad/s]
     # control all DOF [x, y, z, alpha, beta, gamma]
     ctrlr_dof = [True, True, True, True, True, True])
-
-# create our interface
-interface = Mujoco(robot_config, dt=.001)
-interface.connect()
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx('EE', feedback['q'])
@@ -102,6 +103,9 @@ try:
             target=target,
             #target_vel=np.hstack([vel, np.zeros(3)])
             )
+
+        # add gripper forces
+        u = np.hstack((u, np.ones(3)*0.05))
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)

@@ -37,7 +37,7 @@
             <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
 
             <body name="link1" pos="0 0 0.05">
-                <joint name='joint0' pos="0 0 0" axis="0 0 1"/>
+                <joint name='joint0' pos="0 0 0" axis="0 1 0"/>
                 <inertial pos="0 0 0.1" mass="2" diaginertia="0.226891 0.226891 0.0151074" />
                 <geom name="link1" type="cylinder" pos="0 0 0.1" size="0.025 0.1" rgba="0 1 0 0.9"/>
 
