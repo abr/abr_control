@@ -105,6 +105,9 @@ ENV/
 
 # ignore any generated pngs
 *.png
+*.jpg
 
 # ignore mujoco log files
 MUJOCO_LOG*
+*.stl
+*.STL
