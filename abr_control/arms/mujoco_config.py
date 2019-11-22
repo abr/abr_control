@@ -43,9 +43,7 @@ class MujocoConfig():
         root = tree.getroot()
         for custom in root.findall('custom/numeric'):
             name = custom.get('name')
-            if name == 'N_JOINTS':
-                self.N_JOINTS = int(custom.get('data'))
-            elif name == 'START_ANGLES':
+            if name == 'START_ANGLES':
                 START_ANGLES = custom.get('data').split(' ')
                 self.START_ANGLES = np.array(
                     [float(angle) for angle in START_ANGLES])
