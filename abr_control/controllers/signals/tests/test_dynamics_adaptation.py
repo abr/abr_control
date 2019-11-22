@@ -5,7 +5,8 @@ import numpy as np
 from abr_control.arms import ur5
 from abr_control.controllers import signals
 from abr_control.controllers.signals import DynamicsAdaptation
-from nengolib.stats import ScatteredHypersphere
+from abr_control._vendor.nengolib.stats import ScatteredHypersphere
+
 
 def test_scaling():
     robot_config = ur5.Config(use_cython=True)
