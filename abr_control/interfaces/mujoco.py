@@ -3,6 +3,7 @@ import numpy as np
 import mujoco_py as mjp
 
 from mujoco_py.generated import const
+from abr_control.utils import transformations
 
 from .interface import Interface
 
@@ -124,18 +125,17 @@ class Mujoco(Interface):
         if object_type == 'mocap':  # commonly queried to find target
             quat = self.sim.data.get_mocap_quat(name)
         elif object_type == 'body':
-            body_id = self.sim.model.body_name2id(name)
-            quat = self.sim.model.body_quat[body_id]
+            quat = self.sim.data.get_body_xquat(name)
         elif object_type == 'geom':
-            geom_id = self.sim.model.geom_name2id(name)
-            quat = self.sim.model.geom_quat[geom_id]
+            xmat = self.sim.data.get_geom_xmat(name)
+            quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
         elif object_type == 'site':
-            site_id = self.sim.model.site_name2id(name)
-            quat = self.sim.model.site_quat[site_id]
+            xmat = self.sim.model.get_site_xmat(name)
+            quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
         else:
             raise Exception('get_orientation for %s object type not supported'
                             % object_type)
-        return quat
+        return np.copy(quat)
 
 
     def set_mocap_orientation(self, name, quat):
@@ -231,13 +231,26 @@ class Mujoco(Interface):
                 'dq': self.dq}
 
 
-    def get_mocap_xyz(self, name):
+    def get_xyz(self, name, object_type='body'):
         """ Returns the xyz position of the specified object
 
         name: string
             name of the object you want the xyz position of
+        object_type: string
+            type of object you want the xyz position of
         """
-        return self.sim.data.get_mocap_pos(name)
+        if object_type == 'mocap':  # commonly queried to find target
+            xyz = self.sim.data.get_mocap_pos(name)
+        elif object_type == 'body':
+            xyz = self.sim.data.get_body_xpos(name)
+        elif object_type == 'geom':
+            xyz = self.sim.data.get_geom_xpos(name)
+        elif object_type == 'site':
+            xyz = self.sim.model.get_site_xpos(name)
+        else:
+            raise Exception('get_xyz for %s object type not supported' % object_type)
+
+        return np.copy(xyz)
 
 
     def set_mocap_xyz(self, name, xyz):
