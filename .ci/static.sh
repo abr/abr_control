@@ -15,7 +15,7 @@ if [[ "$COMMAND" == "install" ]]; then
     exe pip install codespell pylint gitlint
 elif [[ "$COMMAND" == "script" ]]; then
     exe pylint abr_control --rcfile=setup.cfg --ignore=arm_files,vrep_files
-    exe codespell -q 3 --skip=arm_files,vrep_files --ignore-words-list="DOF,dof"
+    exe codespell -q 3 --skip=arm_files,vrep_files --ignore-words-list="DOF,dof,hist"
     exe shellcheck -e SC2087 .ci/*.sh
     # undo single-branch cloning
     git config --replace-all remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
