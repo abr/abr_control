@@ -35,7 +35,7 @@ class Config(BaseConfig):
     and translations
     """
 
-    def __init__(self, hand_attached=False, **kwargs):
+    def __init__(self, hand_attached=True, **kwargs):
 
         self.hand_attached = hand_attached
         N_LINKS = 7 if hand_attached else 6
