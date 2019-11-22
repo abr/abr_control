@@ -37,7 +37,7 @@ class MujocoConfig():
         """
 
         if folder is None:
-            current_dir = os.path.dirname(__file__)
+            current_dir = os.getcwd()
             self.xml_file = os.path.join(
                 current_dir, xml_file.split('_')[0], '%s.xml' % xml_file)
         else:
