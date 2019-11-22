@@ -38,6 +38,7 @@ try:
     while 1:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
+        print(feedback)
 
         # calculate the control signal
         u = ctrlr.generate(
