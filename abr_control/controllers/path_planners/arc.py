@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from .path_planner import PathPlanner
 
 
-class FirstOrderArc(PathPlanner):
+class Arc(PathPlanner):
     def __init__(self, n_timesteps=3000):
         """
         PARAMETERS

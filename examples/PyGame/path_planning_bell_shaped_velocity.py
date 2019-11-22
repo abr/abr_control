@@ -46,7 +46,7 @@ else:
     params['n_timesteps'] = 500  # time steps each trajectory lasts
     count = np.copy(params['n_timesteps'])
     time_elapsed = 0.0
-path_planner = path_planners.BellShaped(**params)
+path_planner = path_planners.SecondOrderDMP(**params)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=0.001)
