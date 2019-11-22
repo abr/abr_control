@@ -29,7 +29,7 @@ except ImportError:
 from .path_planner import PathPlanner
 
 
-class BellShaped(PathPlanner):
+class SecondOrderDMP(PathPlanner):
     """
     PARAMETERS
     ----------
