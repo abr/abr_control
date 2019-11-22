@@ -48,6 +48,7 @@ class Mujoco(Interface):
         self.sim = mjp.MjSim(self.robot_config.model)
         self.sim.forward()  # run forward to fill in sim.data
         model = self.sim.model
+        self.model = model
 
         # get the kinematic tree for the arm
         joint_ids = []
