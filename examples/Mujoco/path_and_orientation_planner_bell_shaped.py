@@ -43,7 +43,7 @@ hand_xyz = robot_config.Tx('EE', feedback['q'])
 def get_target(robot_config):
     # pregenerate our path and orientation planners
     n_timesteps = 2000
-    traj_planner = path_planners.BellShaped(
+    traj_planner = path_planners.SecondOrderDMP(
         error_scale=0.01, n_timesteps=n_timesteps)
 
     starting_orientation = robot_config.quaternion('EE', feedback['q'])

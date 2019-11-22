@@ -29,7 +29,7 @@ import numpy as np
 from .path_planner import PathPlanner
 
 
-class SecondOrder(PathPlanner):
+class SecondOrderFilter(PathPlanner):
     """
     Parameters
     ----------
