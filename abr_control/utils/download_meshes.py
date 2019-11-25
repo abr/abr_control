@@ -44,7 +44,6 @@ def check_and_download(xml_dir, google_id, force_download=False):
                 answered = True
             elif reply[0] in no:
                 raise Exception('Please download the required files to run the demo')
-                answered = True
             else:
                 question = "Please Enter (y/n) "
 
