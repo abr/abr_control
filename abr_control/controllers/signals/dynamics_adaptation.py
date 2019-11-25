@@ -233,6 +233,7 @@ class DynamicsAdaptation():
             # put into the 0-1 range
             scaled_input = scaled_input / 2 + .5
             # project onto unit hypersphere in larger state space
+            scaled_input = scaled_input.flatten()
             scaled_input = spherical_transform(
                 scaled_input.reshape(1, len(scaled_input)))
 

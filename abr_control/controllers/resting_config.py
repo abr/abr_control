@@ -16,14 +16,9 @@ class RestingConfig(Controller):
         super(RestingConfig, self).__init__(robot_config)
 
         self.rest_angles = np.asarray(rest_angles)
-        # TODO: looks like we don't need null_indices, can remove them if
-        # new code checks out
-        self.null_indices = [val is None for val in rest_angles]
-        self.rest_indices = [not val for val in self.null_indices]
+        self.rest_indices = [val is not None for val in rest_angles]
         self.kp = kp
         self.kv = np.sqrt(kp) if kv is None else kv
-
-        self.dq_des = np.zeros(robot_config.N_JOINTS)
 
     def generate(self, q, dq):
         """ Generates the control signal
@@ -44,9 +39,9 @@ class RestingConfig(Controller):
              + np.pi)
             % (np.pi * 2)
             - np.pi)
-        self.dq_des[self.rest_indices] = dq[self.rest_indices]
+        dq_des[self.rest_indices] = dq[self.rest_indices]
 
         # calculate joint space inertia matrix
         M = self.robot_config.M(q=q)
 
-        return np.dot(M, (self.kp * q_des - self.kv * self.dq_des))
+        return np.dot(M, (self.kp * q_des - self.kv * dq_des))
