@@ -2,7 +2,7 @@
 
     <custom>
         <numeric name="START_ANGLES" data="0.0 0.0"/>
-        <numeric name="N_JOINTS" data="2"/>
+        <text name="google_id" data="None"/>
     </custom>
 
     <contact>

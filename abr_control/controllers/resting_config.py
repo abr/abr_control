@@ -16,10 +16,7 @@ class RestingConfig(Controller):
         super(RestingConfig, self).__init__(robot_config)
 
         self.rest_angles = np.asarray(rest_angles)
-        # TODO: looks like we don't need null_indices, can remove them if
-        # new code checks out
-        self.null_indices = [val is None for val in rest_angles]
-        self.rest_indices = [not val for val in self.null_indices]
+        self.rest_indices = [val is not None for val in rest_angles]
         self.kp = kp
         self.kv = np.sqrt(kp) if kv is None else kv
 
