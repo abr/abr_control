@@ -20,8 +20,6 @@ class RestingConfig(Controller):
         self.kp = kp
         self.kv = np.sqrt(kp) if kv is None else kv
 
-        self.dq_des = np.zeros(robot_config.N_JOINTS)
-
     def generate(self, q, dq):
         """ Generates the control signal
 
@@ -41,9 +39,9 @@ class RestingConfig(Controller):
              + np.pi)
             % (np.pi * 2)
             - np.pi)
-        self.dq_des[self.rest_indices] = dq[self.rest_indices]
+        dq_des[self.rest_indices] = dq[self.rest_indices]
 
         # calculate joint space inertia matrix
         M = self.robot_config.M(q=q)
 
-        return np.dot(M, (self.kp * q_des - self.kv * self.dq_des))
+        return np.dot(M, (self.kp * q_des - self.kv * dq_des))
