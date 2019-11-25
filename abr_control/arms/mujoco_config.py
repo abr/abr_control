@@ -69,10 +69,11 @@ class MujocoConfig():
 
         # check if the user has downloaded the required mesh files
         # if not prompt them to do so
-        download_meshes.check_and_download(
-            xml_dir=self.xml_dir,
-            google_id=self.google_id,
-            force_download=download)
+        if self.google_id != 'None':
+            download_meshes.check_and_download(
+                xml_dir=self.xml_dir,
+                google_id=self.google_id,
+                force_download=download)
 
         self.model = mjp.load_model_from_path(self.xml_file)
         self.use_sim_state = use_sim_state

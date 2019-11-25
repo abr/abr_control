@@ -1,6 +1,6 @@
-import requests
 import os
 import tarfile
+import requests
 
 def check_and_download(xml_dir, google_id, force_download=False):
     """
@@ -34,7 +34,8 @@ def check_and_download(xml_dir, google_id, force_download=False):
         answered = False
         question = 'Download mesh and texture files to run sim? (y/n): '
         while not answered:
-            reply = str(input('Download mesh and texture files to run sim?' +' (y/n): ')).lower().strip()
+            reply = str(input(
+                'Download mesh and texture files to run sim?' +' (y/n): ')).lower().strip()
 
             if reply[0] in yes:
                 print('Downloading files...')
@@ -42,8 +43,7 @@ def check_and_download(xml_dir, google_id, force_download=False):
                 print('Sim files saved to %s/meshes'%xml_dir)
                 answered = True
             elif reply[0] in no:
-                raise Exception ('Please download the required files to run the demo')
-                answered = True
+                raise Exception('Please download the required files to run the demo')
             else:
                 question = "Please Enter (y/n) "
 
@@ -75,12 +75,12 @@ def download_files(google_id, destination):
 
     session = requests.Session()
 
-    response = session.get(URL, params = { 'id' : google_id }, stream = True)
+    response = session.get(URL, params={'id': google_id}, stream=True)
     token = _get_confirm_token(response)
 
     if token:
-        params = { 'id' : google_id, 'confirm' : token }
-        response = session.get(URL, params = params, stream = True)
+        params = {'id': google_id, 'confirm': token}
+        response = session.get(URL, params=params, stream=True)
 
     _save_response_content(response, destination)
 
