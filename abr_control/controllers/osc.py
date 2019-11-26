@@ -76,8 +76,8 @@ class OSC(Controller):
         #try:
         if self.n_ctrlr_dof > robot_config.N_JOINTS:
             print('\nRobot has fewer DOF (%i) than the specified number of ' %
-                    robot_config.N_JOINTS + 'space dimensions to control (%i). ' %
-                    self.n_ctrlr_dof + 'Poor performance may result.\n')
+                  robot_config.N_JOINTS + 'space dimensions to control (%i). ' %
+                  self.n_ctrlr_dof + 'Poor performance may result.\n')
         # except AttributeError as e:
         #     print('\n********************************************************\n'
         #           + 'If using Mujoco you will need to instantiate and connect\n'
