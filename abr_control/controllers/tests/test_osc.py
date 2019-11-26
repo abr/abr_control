@@ -97,14 +97,20 @@ def test_calc_orientation_forces(arm, orientation_algorithm):
 
     for ii in range(100):
         q = np.random.random(robot_config.N_JOINTS) * 2 * np.pi
+        quat = robot_config.quaternion('EE', q=q)
 
-        # create a target orientation
-        target_abg = np.random.random(3) * np.pi - np.pi / 2.0
+        theta = np.pi / 2
+        axis = np.array([0, 0, 1])
+        quat_rot = transformations.unit_vector(
+            np.hstack([np.cos(theta/2), np.sin(theta/2) * axis]))
+        quat_target = transformations.quaternion_multiply(quat, quat_rot)
+        target_abg = transformations.euler_from_quaternion(quat_target, axes='rxyz')
 
         # calculate current position quaternion
         R = robot_config.R('EE', q=q)
         quat_1 = transformations.unit_vector(
             transformations.quaternion_from_matrix(R))
+        dist1 = calc_distance(quat_1, np.copy(quat_target))
 
         # calculate current position quaternion with u_task added
         u_task = ctrlr._calc_orientation_forces(target_abg, q=q)
@@ -117,12 +123,6 @@ def test_calc_orientation_forces(arm, orientation_algorithm):
         quat_2 = transformations.unit_vector(
             transformations.quaternion_from_matrix(R_2))
 
-        # calculate the quaternion of the target
-        quat_target = transformations.unit_vector(
-            transformations.quaternion_from_euler(
-                target_abg[0], target_abg[1], target_abg[2], axes='rxyz'))
-
-        dist1 = calc_distance(quat_1, np.copy(quat_target))
         dist2 = calc_distance(quat_2, np.copy(quat_target))
 
         assert np.abs(dist2) < np.abs(dist1)
