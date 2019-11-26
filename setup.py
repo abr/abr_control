@@ -43,8 +43,7 @@ tests_require = [
     "pytest>=4.3.0",
     "pytest-xdist>=1.26.0",
     "pytest-cov>=2.6.0",
-    "coverage>=4.5.0",
-    "nengolib>=0.5.2",]
+    "coverage>=4.5.0"]
 
 setup(
     name="abr_control",
