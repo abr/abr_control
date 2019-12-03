@@ -1,8 +1,9 @@
 import os
-import tarfile
+import zipfile
 import requests
 
-def check_and_download(xml_dir, google_id, force_download=False):
+
+def check_and_download(name, google_id, force_download=False):
     """
     Checks if the meshes folder exists in the xml directory
     If not it will ask the user if they want to download them
@@ -10,27 +11,27 @@ def check_and_download(xml_dir, google_id, force_download=False):
 
     Parameters
     ----------
-    xml_dir: string
-        the directory that has the xml configuration file
+    name: string
+        the file or directory to download
     google_id: string
-        the google id that points to the location of the
-        meshes tarball. This should be in the xml file
-        under a custom text tag with the name 'google_id'
+        the google id that points to the location of the zip file.
+        This should be stored in the xml or config file
     force_download: boolean, Optional (Default: False)
-        True to skip checking if the meshes folder exists
+        True to skip checking if the file or folder exists
     """
     files_missing = False
 
     if force_download:
         files_missing = True
     else:
-        # print('looking for meshes folder in in %s' % xml_dir)
-        if not os.path.isdir('%s/meshes'%xml_dir):
+        # check if the provided name is a file or folder
+        print('checking for : ', name)
+        if not os.path.isfile(name) and not os.path.isdir(name):
             files_missing = True
 
     if files_missing:
-        yes = ['y', 'Y', 'yes']
-        no = ['n', 'N', 'no']
+        yes = ['y', 'yes']
+        no = ['n', 'no']
         answered = False
         question = 'Download mesh and texture files to run sim? (y/n): '
         while not answered:
@@ -39,8 +40,10 @@ def check_and_download(xml_dir, google_id, force_download=False):
 
             if reply[0] in yes:
                 print('Downloading files...')
-                download_files(google_id, '%s/meshes.tar' % xml_dir)
-                print('Sim files saved to %s/meshes'%xml_dir)
+                name = name.split('/')
+                name = '/'.join(s for s in name[:-1])
+                download_files(google_id, name + '/tmp')
+                print('Sim files saved to %s' % name)
                 answered = True
             elif reply[0] in no:
                 raise Exception('Please download the required files to run the demo')
@@ -49,6 +52,8 @@ def check_and_download(xml_dir, google_id, force_download=False):
 
 
 def download_files(google_id, destination):
+    print('destination: ', destination)
+
     def _get_confirm_token(response):
         for key, value in response.cookies.items():
             if key.startswith('download_warning'):
@@ -59,17 +64,17 @@ def download_files(google_id, destination):
     def _save_response_content(response, destination):
         CHUNK_SIZE = 32768
 
-        with open('%s' % destination, "wb") as f:
+        with open(destination, "wb") as f:
             for chunk in response.iter_content(CHUNK_SIZE):
                 if chunk: # filter out keep-alive new chunks
                     f.write(chunk)
 
-    def _extract_tar_files(tar_file):
-        tar_file = '%s' % tar_file
-        tarball = tarfile.open(tar_file)
-        tarball.extractall(tar_file.split('meshes.tar')[0])
-        tarball.close()
-        os.remove(tar_file)
+    def _extract_zip_files(zip_file):
+        zip_file = '%s' % zip_file
+        zipball = zipfile.ZipFile(zip_file)
+        zipball.extractall(zip_file.split('tmp')[0])
+        zipball.close()
+        os.remove(zip_file)
 
     URL = "https://docs.google.com/uc?export=download"
 
@@ -84,4 +89,4 @@ def download_files(google_id, destination):
 
     _save_response_content(response, destination)
 
-    _extract_tar_files(destination)
+    _extract_zip_files(destination)

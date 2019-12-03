@@ -6,12 +6,14 @@ import numpy as np
 import mujoco_py as mjp
 from abr_control.utils import download_meshes
 
+
 class MujocoConfig():
     """ A wrapper on the Mujoco simulator to generate all the kinematics and
     dynamics calculations necessary for controllers.
     """
 
-    def __init__(self, xml_file, folder=None, use_sim_state=False, download=False):
+    def __init__(self, xml_file, folder=None, use_sim_state=False,
+                 force_download=False):
         """ Loads the Mujoco model from the specified xml file
 
         Parameters
@@ -35,7 +37,7 @@ class MujocoConfig():
             ignored, and the current state of the simulator is used to
             calculate all functions. Can speed up simulation by not resetting
             the state on every call.
-        download: boolean, Optional (Default: False)
+        force_download: boolean, Optional (Default: False)
             True to force downloading the mesh and texture files, useful when new files
             are added that may be missing.
             False: if the meshes folder is missing it will ask the user whether they want
@@ -61,6 +63,7 @@ class MujocoConfig():
                 START_ANGLES = custom.get('data').split(' ')
                 self.START_ANGLES = np.array(
                     [float(angle) for angle in START_ANGLES])
+
         # get the location of our mesh files
         for custom in root.findall('custom/text'):
             name = custom.get('name')
@@ -71,9 +74,9 @@ class MujocoConfig():
         # if not prompt them to do so
         if self.google_id != 'None':
             download_meshes.check_and_download(
-                xml_dir=self.xml_dir,
+                name=self.xml_dir + '/meshes',
                 google_id=self.google_id,
-                force_download=download)
+                force_download=force_download)
 
         self.model = mjp.load_model_from_path(self.xml_file)
         self.use_sim_state = use_sim_state
