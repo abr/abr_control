@@ -12,9 +12,7 @@ from abr_control.interfaces import VREP
 
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
-# if using the Jaco 2 arm with the hand attached, use the following instead:
-# robot_config = arm.Config(use_cython=True, hand_attached=False)
+robot_config = arm.Config()
 
 avoid = AvoidObstacles(robot_config)
 # damp the movements of the arm

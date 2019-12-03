@@ -78,7 +78,7 @@ class BaseConfig():
     """
 
     def __init__(self, N_JOINTS, N_LINKS, ROBOT_NAME="robot",
-                 use_cython=False):
+                 use_cython=True):
 
         self.N_JOINTS = N_JOINTS
         self.N_LINKS = N_LINKS

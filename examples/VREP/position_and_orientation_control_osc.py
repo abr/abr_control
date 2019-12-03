@@ -11,7 +11,7 @@ from abr_control.utils import transformations
 
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
+robot_config = arm.Config()
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)

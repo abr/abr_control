@@ -13,9 +13,7 @@ from abr_control.controllers import Sliding
 from abr_control.interfaces import VREP
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
-# if using the Jaco 2 arm with the hand attached, use the following instead:
-# robot_config = arm.Config(use_cython=True, hand_attached=True)
+robot_config = arm.Config()
 
 # instantiate controller
 # NOTE: These values are non-optimal

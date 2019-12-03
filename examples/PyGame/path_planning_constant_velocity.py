@@ -15,7 +15,7 @@ from abr_control.controllers import OSC, Damping, path_planners
 
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
+robot_config = arm.Config()
 
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
