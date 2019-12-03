@@ -1,10 +1,9 @@
 import numpy as np
 
+from abr_control.utils import transformations, download_meshes
+
 from .interface import Interface
 from .vrep_files import vrep
-
-from abr_control.utils import transformations
-from abr_control.utils import download_meshes
 
 
 class VREP(Interface):

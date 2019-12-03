@@ -12,7 +12,7 @@ from abr_control.interfaces import VREP
 
 
 # initialize our robot config for the jaco2
-robot_config = arm.Config(use_cython=True, hand_attached=True)
+robot_config = arm.Config()
 
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
@@ -40,6 +40,7 @@ adapt = signals.DynamicsAdaptation(
 # create our VREP interface
 interface = VREP(robot_config, dt=.005)
 interface.connect()
+interface.send_target_angles(q=robot_config.START_ANGLES)
 
 # set up lists for tracking data
 ee_track = []

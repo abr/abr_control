@@ -14,9 +14,7 @@ from abr_control.interfaces import VREP
 
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
-# if using the Jaco 2 arm with the hand attached, use the following instead:
-# robot_config = arm.Config(use_cython=True, hand_attached=False)
+robot_config = arm.Config()
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = Joint(robot_config, kp=50)

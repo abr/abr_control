@@ -27,7 +27,7 @@ dmps = pydmps.DMPs_rhythmic(n_dmps=2, n_bfs=50, dt=.01)
 dmps.imitate_path(dmps_traj)
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
+robot_config = arm.Config()
 # create our arm simulation
 arm_sim = arm.ArmSim(robot_config)
 

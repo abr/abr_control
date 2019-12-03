@@ -14,7 +14,7 @@ from abr_control.interfaces import VREP
 
 
 # initialize our robot config
-robot_config = arm.Config(use_cython=True)
+robot_config = arm.Config()
 
 # instantiate the controller
 ctrlr = Floating(robot_config, task_space=True)
@@ -38,7 +38,6 @@ try:
     while 1:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
-        print(feedback)
 
         # calculate the control signal
         u = ctrlr.generate(

@@ -1,6 +1,6 @@
 # Config file for Jaco 2 in VREP
-import numpy as np
 import os
+import numpy as np
 import sympy as sp
 
 import abr_control
@@ -56,8 +56,7 @@ class Config(BaseConfig):
         self.JOINT_NAMES = ['joint%i' % ii for ii in range(self.N_JOINTS)]
 
         # position to move to before switching to torque mode
-        self.START_ANGLES = np.array(
-            [0.0, 2.79, 2.62, 4.71, 0.0, 3.04], dtype="float32")
+        self.START_ANGLES = np.array([2.0, 3.14, 1.57, 4.71, 0.0, 3.04])
 
         # inertia values in VREP are divided by mass, account for that here
         self._M_LINKS = [
