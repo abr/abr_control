@@ -11,8 +11,8 @@
     </default>
 
     <custom>
-        <numeric name="START_ANGLES" data="2.0 3.14 1.57 4.71 0.0 3.04"/>
-        <text name="google_id" data="1lG06vWe7ezJZUasjKQ2L4HCvAb_e8dKe"/>
+        <numeric name="START_ANGLES" data="2.0 3.14 1.57 4.71 0.0 3.04" />
+        <text name="google_id" data="1doam-DgkW7OSPnwWZQM84edzX84ot-GK" />
     </custom>
 
     <asset>

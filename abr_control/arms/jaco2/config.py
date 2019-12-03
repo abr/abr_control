@@ -1,5 +1,6 @@
 # Config file for Jaco 2 in VREP
 import numpy as np
+import os
 import sympy as sp
 
 import abr_control
@@ -42,6 +43,8 @@ class Config(BaseConfig):
         N_JOINTS = 6 if hand_attached else 5
         super(Config, self).__init__(N_JOINTS=N_JOINTS, N_LINKS=N_LINKS,
                                      ROBOT_NAME='jaco2', **kwargs)
+        self.filename = '%s/jaco2.ttt' % os.path.dirname(os.path.abspath(__file__))
+        self.google_id = '1g8X7qVjAG0eHu95tcb8jhd6Twptlfb64'
 
         self._T = {}  # dictionary for storing calculated transforms
 

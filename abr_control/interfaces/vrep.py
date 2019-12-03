@@ -1,11 +1,12 @@
 import numpy as np
 
-from abr_control.utils import transformations
 from .interface import Interface
 from .vrep_files import vrep
 
+from abr_control.utils import transformations
+from abr_control.utils import download_meshes
 
-# TODO: add ability to load models files so that vrep only has to be open
+
 class VREP(Interface):
     """ An interface for VREP.
 
@@ -39,7 +40,7 @@ class VREP(Interface):
         self.count = 0  # keep track of how many times send forces is called
         self.misc_handles = {}  # for tracking miscellaneous object handles
 
-    def connect(self):
+    def connect(self, load_scene=True, force_download=False):
         """ Connect to the current scene open in VREP
 
         Finds the VREP references to the joints of the robot.
@@ -59,6 +60,20 @@ class VREP(Interface):
 
         if self.clientID == -1:
             raise Exception('Failed connecting to remote API server')
+
+        if load_scene:
+            # if there's a google id, check for files and download if missing
+            if self.robot_config.google_id != 'None':
+                download_meshes.check_and_download(
+                    name=self.robot_config.filename,
+                    google_id=self.robot_config.google_id,
+                    force_download=force_download)
+            # load the scene specified in the config
+            vrep.simxLoadScene(
+                self.clientID,
+                self.robot_config.filename,
+                0,
+                vrep.simx_opmode_blocking)
 
         vrep.simxSynchronous(self.clientID, True)
 
