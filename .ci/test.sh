@@ -13,7 +13,6 @@ COMMAND=$1
 if [[ "$COMMAND" == "install" ]]; then
     exe pip install numpy
     exe pip install -e ".[tests]"
-    exe pip install scipy==1.1.0
 elif [[ "$COMMAND" == "script" ]]; then
     exe pytest -v -n 2 --color=yes --durations 20 --cov=abr_control abr_control --ignore-glob="*/test_mujoco_config.py"
 elif [[ "$COMMAND" == "after_script" ]]; then

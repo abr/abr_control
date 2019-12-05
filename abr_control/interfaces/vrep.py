@@ -66,7 +66,8 @@ class VREP(Interface):
                 download_meshes.check_and_download(
                     name=self.robot_config.filename,
                     google_id=self.robot_config.google_id,
-                    force_download=force_download)
+                    force_download=force_download,
+                    files=None)
             # load the scene specified in the config
             vrep.simxLoadScene(
                 self.clientID,
