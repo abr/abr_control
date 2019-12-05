@@ -73,10 +73,21 @@ class MujocoConfig():
         # check if the user has downloaded the required mesh files
         # if not prompt them to do so
         if self.google_id != 'None':
+            # get a list of expected files so we can check if they all have been downloaded
+            files = []
+            for asset in root.findall('asset/mesh'):
+                files.append(asset.get('file'))
+
+            for asset in root.findall('asset/texture'):
+                # assuming that texture are placed in the meshes folder
+                files.append(asset.get('file').split('/')[1])
+
+            # check if our mesh folder exists, then check we have all the files
             download_meshes.check_and_download(
                 name=self.xml_dir + '/meshes',
                 google_id=self.google_id,
-                force_download=force_download)
+                force_download=force_download,
+                files=files)
 
         self.model = mjp.load_model_from_path(self.xml_file)
         self.use_sim_state = use_sim_state
