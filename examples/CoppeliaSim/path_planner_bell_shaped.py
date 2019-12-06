@@ -38,6 +38,7 @@ interface.connect()
 n_timesteps = 100
 traj_planner = path_planners.SecondOrderDMP(
     error_scale=50, n_timesteps=n_timesteps)
+orientation_planner = path_planners.Orientation()
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx('EE', feedback['q'])
@@ -51,8 +52,9 @@ target_position = [-0.4, -0.3, 0.6]
 
 traj_planner.generate_path(
     position=hand_xyz, target_pos=target_position)
-_, orientation_planner = traj_planner.generate_orientation_path(
-    orientation=starting_orientation, target_orientation=target_orientation)
+orientation_planner.match_position_path(
+    orientation=starting_orientation, target_orientation=target_orientation,
+    position_path=traj_planner.position)
 
 # set up lists for tracking data
 ee_track = []
