@@ -98,6 +98,41 @@ class Orientation():
         return orientation
 
 
+    def match_position_path(self, orientation, target_orientation,
+                            position_path, plot=False):
+        """ Generates orientation trajectory with the same profile as the path
+        generated for position
+
+        Ex: if a second order filter is applied to the trajectory, the same will
+        be applied to the orientation trajectory
+
+        PARAMETERS
+        ----------
+        orientation: list of 4 floats
+            the starting orientation as a quaternion
+        target_orientation: list of 4 floats
+            the target orientation as a quaternion
+        plot: boolean, Optional (Default: False)
+            True to plot the profile of the steps taken from start to target
+            orientation
+        """
+
+        error = []
+        dist = np.sqrt(np.sum((position_path[-1] - position_path[0])**2))
+        for ee in position_path:
+            error.append(np.sqrt(np.sum((position_path[-1] - ee)**2)))
+        error /= dist
+        error = 1 - error
+
+        self.timesteps = error
+        self.n_timesteps = len(self.timesteps)
+        orientation_path = self.generate_path(
+            orientation=orientation, target_orientation=target_orientation,
+            plot=plot)
+
+        return orientation_path
+
+
     def _plot(self):
         """ Plot the generated trajectory
         """

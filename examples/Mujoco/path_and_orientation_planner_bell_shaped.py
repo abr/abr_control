@@ -45,6 +45,7 @@ def get_target(robot_config):
     n_timesteps = 2000
     traj_planner = path_planners.SecondOrderDMP(
         error_scale=0.01, n_timesteps=n_timesteps)
+    orientation_planner = path_planners.Orientation()
 
     starting_orientation = robot_config.quaternion('EE', feedback['q'])
 
@@ -60,8 +61,10 @@ def get_target(robot_config):
 
     traj_planner.generate_path(
         position=hand_xyz, target_pos=target_position)
-    _, orientation_planner = traj_planner.generate_orientation_path(
-        orientation=starting_orientation, target_orientation=target_orientation)
+
+    orientation_planner.match_position_path(
+        orientation=starting_orientation, target_orientation=target_orientation,
+        position_path=traj_planner.position)
 
     return traj_planner, orientation_planner, target_position, target_orientation
 

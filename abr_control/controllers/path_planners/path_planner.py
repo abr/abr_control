@@ -4,9 +4,6 @@ import matplotlib.pyplot as plt
 
 import scipy.interpolate
 
-from .orientation import Orientation
-
-
 class PathPlanner:
     """ Base class for path planners.
     """
@@ -41,40 +38,6 @@ class PathPlanner:
                 times, pregenerated_path[:, dim]))
 
         return self.path
-
-
-    def generate_orientation_path(self, orientation, target_orientation,
-                                  plot=False):
-        """ Generates orientation trajectory with the same profile as the path
-        generated for position
-
-        Ex: if a second order filter is applied to the trajectory, the same will
-        be applied to the orientation trajectory
-
-        PARAMETERS
-        ----------
-        orientation: list of 4 floats
-            the starting orientation as a quaternion
-        target_orientation: list of 4 floats
-            the target orientation as a quaternion
-        plot: boolean, Optional (Default: False)
-            True to plot the profile of the steps taken from start to target
-            orientation
-        """
-
-        error = []
-        dist = np.sqrt(np.sum((self.position[-1] - self.position[0])**2))
-        for ee in self.position:
-            error.append(np.sqrt(np.sum((self.position[-1] - ee)**2)))
-        error /= dist
-        error = 1 - error
-
-        orientation_path_planner = Orientation(timesteps=error)
-        orientation_path = orientation_path_planner.generate_path(
-            orientation=orientation, target_orientation=target_orientation,
-            plot=plot)
-
-        return orientation_path, orientation_path_planner
 
 
     #NOTE: do we need this check? should it be in the generate_path func?
