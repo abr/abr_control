@@ -10,12 +10,6 @@ from ..base_config import BaseConfig
 class Config(BaseConfig):
     """ Robot config file for the Kinova Jaco^2 V2
 
-    Parameters
-    ----------
-    hand_attached : boolean, optional (Default: False)
-        if false will set the last wrist joint as the end effector
-        if true will set the palm of the hand as the end effector
-
     Attributes
     ----------
     START_ANGLES : numpy.array
@@ -36,11 +30,10 @@ class Config(BaseConfig):
     and translations
     """
 
-    def __init__(self, hand_attached=True, **kwargs):
+    def __init__(self, **kwargs):
 
-        self.hand_attached = hand_attached
-        N_LINKS = 7 if hand_attached else 6
-        N_JOINTS = 6 if hand_attached else 5
+        N_LINKS = 7
+        N_JOINTS = 6
         super(Config, self).__init__(N_JOINTS=N_JOINTS, N_LINKS=N_LINKS,
                                      ROBOT_NAME='jaco2', **kwargs)
         self.filename = '%s/jaco2.ttt' % os.path.dirname(os.path.abspath(__file__))
@@ -48,8 +41,6 @@ class Config(BaseConfig):
 
         self._T = {}  # dictionary for storing calculated transforms
 
-        # set up saved functions folder to be in the abr_jaco repo
-        self.config_folder += ('with_hand' if self.hand_attached else 'no_hand')
         # make config folder if it doesn't exist
         abr_control.utils.os_utils.makedirs(self.config_folder)
 
@@ -66,10 +57,8 @@ class Config(BaseConfig):
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link3
             sp.diag(0.5, 0.5, 0.5, 0.02, 0.02, 0.02),  # link4
-            sp.diag(0.25, 0.25, 0.25, 0.01, 0.01, 0.01)]  # link5
-        if self.hand_attached:
-            self._M_LINKS.append(
-                sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04))  # link6
+            sp.diag(0.25, 0.25, 0.25, 0.01, 0.01, 0.01),  # link5
+            sp.diag(0.37, 0.37, 0.37, 0.04, 0.04, 0.04)]  # link6
 
         # the joints don't weigh anything in VREP
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
@@ -87,11 +76,10 @@ class Config(BaseConfig):
             [-4.0053e-04, 1.2581e-02, -3.5270e-02],  # link 4 offset
             [-2.3603e-03, -4.8662e-03, 3.7097e-02],  # joint 4 offset
             [-5.2974e-04, 1.2272e-02, -3.5485e-02],  # link 5 offset
-            [-1.9534e-03, 5.0298e-03, -3.7176e-02]]  # joint 5 offset
+            [-1.9534e-03, 5.0298e-03, -3.7176e-02],  # joint 5 offset
+            [4.925e-3, 2.024e-3, -1.059e-1],  # com of the hand
+            [0.0, 0.0, 0.09]]  # offset to end of fingers
 
-        if self.hand_attached:  # add in hand offset
-            self.L.append([4.925e-3, 2.024e-3, -1.059e-1])  # com of the hand
-            self.L.append([0.0, 0.0, 0.09])  # offset to end of fingers
         self.L = np.array(self.L)
 
         # ---- Transform Matrices ----
@@ -228,28 +216,27 @@ class Config(BaseConfig):
             [0, -0.461245863, 0.887272337, self.L[11, 2]],
             [0, 0, 0, 1]])
 
-        if self.hand_attached:  # add in hand offset
-            # Transform matrix: joint 5 -> link 6 / hand COM
-            # account for rotations due to q
-            self.Tj5handcoma = sp.Matrix([
-                [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
-                [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1]])
-            # account for axes changes and offsets
-            self.Tj5handcomb = sp.Matrix([
-                [-1, 0, 0, self.L[12, 0]],
-                [0, 1, 0, self.L[12, 1]],
-                [0, 0, -1, self.L[12, 2]],
-                [0, 0, 0, 1]])
-            self.Tj5handcom = self.Tj5handcoma * self.Tj5handcomb
+        # Transform matrix: joint 5 -> link 6 / hand COM
+        # account for rotations due to q
+        self.Tj5handcoma = sp.Matrix([
+            [sp.cos(self.q[5]), -sp.sin(self.q[5]), 0, 0],
+            [sp.sin(self.q[5]), sp.cos(self.q[5]), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]])
+        # account for axes changes and offsets
+        self.Tj5handcomb = sp.Matrix([
+            [-1, 0, 0, self.L[12, 0]],
+            [0, 1, 0, self.L[12, 1]],
+            [0, 0, -1, self.L[12, 2]],
+            [0, 0, 0, 1]])
+        self.Tj5handcom = self.Tj5handcoma * self.Tj5handcomb
 
-            # no axes change, account for offsets
-            self.Thandcomfingers = sp.Matrix([
-                [1, 0, 0, self.L[13, 0]],
-                [0, 1, 0, self.L[13, 1]],
-                [0, 0, 1, self.L[13, 2]],
-                [0, 0, 0, 1]])
+        # no axes change, account for offsets
+        self.Thandcomfingers = sp.Matrix([
+            [1, 0, 0, self.L[13, 0]],
+            [0, 1, 0, self.L[13, 1]],
+            [0, 0, 1, self.L[13, 2]],
+            [0, 0, 0, 1]])
 
         # orientation part of the Jacobian (compensating for angular velocity)
         self.J_orientation = [
@@ -293,11 +280,9 @@ class Config(BaseConfig):
                 self._T[name] = self._calc_T('joint4') * self.Tj4l5
             elif name == 'joint5':
                 self._T[name] = self._calc_T('link5') * self.Tl5j5
-            elif self.hand_attached is False and name == 'EE':
-                self._T[name] = self._calc_T('joint5')
-            elif self.hand_attached and name == 'link6':
+            elif name == 'link6':
                 self._T[name] = self._calc_T('joint5') * self.Tj5handcom
-            elif self.hand_attached and name == 'EE':
+            elif name == 'EE':
                 self._T[name] = self._calc_T('link6') * self.Thandcomfingers
 
             else:
