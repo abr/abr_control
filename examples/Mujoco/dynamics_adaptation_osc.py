@@ -37,9 +37,7 @@ adapt = signals.DynamicsAdaptation(
     n_ensembles=5,
     n_input=10,  # we apply adaptation on the most heavily stressed joints
     n_output=5,
-    pes_learning_rate=5e-5,
-    intercepts_bounds=[-0.3, 0.1],
-    intercepts_mode=-0.1,
+    pes_learning_rate=1e-4,
     means=[0.12, 2.14, 1.87, 4.32, 0.59,
         0.12, -0.38, -0.42, -0.29, 0.36],
     variances=[0.08, 0.6, 0.7, 0.3, 0.6,
@@ -64,6 +62,8 @@ try:
     # make the target offset from that start position
     target_xyz = start + np.array([0.2, -0.2, -0.2])
     interface.set_mocap_xyz(name='target', xyz=target_xyz)
+    # set the status of the top right text for adaptation
+    interface.viewer.adapt = True
 
     count = 0.0
     while 1:
@@ -139,17 +139,6 @@ finally:
 
         fig = plt.figure(figsize=(8,12))
 
-        # for ii in range(6):
-        #     a = fig.add_subplot(6,2,ii*2+1)
-        #     a.plot(q_track[:, ii], label=np.mean(q_track[:, ii]))
-        #     a.set_title('q%i'%ii)
-        #     a.legend()
-        #     a2 = fig.add_subplot(6,2,ii*2+2)
-        #     a2.plot(dq_track[:, ii], label=np.mean(dq_track[:, ii]))
-        #     a2.set_title('dq%i'%ii)
-        #     a2.legend()
-        # plt.show()
-
         ax1 = fig.add_subplot(211)
         ax1.set_ylabel('Distance (m)')
         ax1.set_xlabel('Time (ms)')
@@ -160,7 +149,7 @@ finally:
         ax2 = fig.add_subplot(212, projection='3d')
         ax2.set_title('End-Effector Trajectory')
         ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
-        ax2.scatter(target_track[0, 0], target_track[0, 1], target_track[0, 2],
+        ax2.scatter(target_xyz[0], target_xyz[1], target_xyz[2],
                  label='target', c='r')
         ax2.legend()
         plt.show()
