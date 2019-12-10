@@ -44,8 +44,6 @@ def test_scaling():
         assert np.linalg.norm(scaled) - 1 < 1e-5
 
 @pytest.mark.parametrize('spherical', ((True), (False)))
-@pytest.mark.parametrize('intercepts_bounds, intercepts_mode', (
-    ([-0.4, -0.2], -0.3), (None, None)))
 @pytest.mark.parametrize('n_neurons', ((1000), (100)))
 @pytest.mark.parametrize('n_ensembles', ((1), (4)))
 @pytest.mark.parametrize('intercepts', (('manual'), (None)))
@@ -53,7 +51,7 @@ def test_scaling():
 
 
 def test_intercepts_and_encoders(
-        spherical, intercepts_bounds, intercepts_mode, n_neurons, n_ensembles,
+        spherical, n_neurons, n_ensembles,
         intercepts, encoders):
 
     n_input = 2
@@ -93,8 +91,6 @@ def test_intercepts_and_encoders(
         n_neurons=n_neurons,
         n_ensembles=n_ensembles,
         seed=seed,
-        intercepts_bounds=intercepts_bounds,
-        intercepts_mode=intercepts_mode,
         encoders=encoders,
         intercepts=intercepts,
         spherical=spherical)
@@ -116,8 +112,6 @@ def test_intercepts_and_encoders(
         n_neurons=n_neurons,
         n_ensembles=n_ensembles,
         seed=seed,
-        intercepts_bounds=intercepts_bounds,
-        intercepts_mode=intercepts_mode,
         encoders=encoders,
         intercepts=intercepts,
         spherical=spherical)

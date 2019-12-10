@@ -32,8 +32,6 @@ adapt = signals.DynamicsAdaptation(
     n_input=2,  # we apply adaptation on the most heavily stressed joints
     n_output=2,
     pes_learning_rate=5e-5,
-    intercepts_bounds=[-0.6, -0.2],
-    intercepts_mode=-0.2,
     means=[3.14, 3.14],
     variances=[1.57, 1.57])
 
@@ -128,7 +126,7 @@ finally:
         ax2 = fig.add_subplot(212, projection='3d')
         ax2.set_title('End-Effector Trajectory')
         ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
-        ax2.scatter(target_track[0, 0], target_track[0, 1], target_track[0, 2],
+        ax2.scatter(target_xyz[0], target_xyz[1], target_xyz[2],
                  label='target', c='r')
         ax2.legend()
         plt.show()

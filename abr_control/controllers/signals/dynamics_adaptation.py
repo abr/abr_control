@@ -29,12 +29,7 @@ class DynamicsAdaptation():
         controls the speed of neural adaptation
     intercepts: np.array, optional (Default: None)
         the neural intercepts to be used by the neural ensembles
-    intercepts_bounds: list, optional (Default: [-0.9, 0.0])
-        the upper and lower bounds of the AreaIntercepts distribution
-        for selecting intercepts
-    intercepts_mode: scalar, optional (Default: -0.5)
-        the desired mode of the AreaIntercepts distribution used for selecting
-        intercepts
+        shape (n_ensembles, n_neurons)
     encoders: np.array, optional (Default: None)
         an (n_encoders, n_neurons, n_input) array of preferred directions
         for all of the neurons in the adaptive ensembles
@@ -58,7 +53,6 @@ class DynamicsAdaptation():
 
     def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
                  seed=None, pes_learning_rate=1e-6, intercepts=None,
-                 intercepts_bounds=None, intercepts_mode=None,
                  weights=None, encoders=None, spherical=False,
                  means=None, variances=None,
                  tau_input=0.012, tau_training=0.012, tau_output=0.2,
@@ -93,13 +87,8 @@ class DynamicsAdaptation():
         if intercepts is None:
             np.random.seed = self.seed
             # set up neuron intercepts
-            if intercepts_bounds is None:
-                intercepts_bounds = [-0.9, 0.0]
-            self.intercepts_bounds = intercepts_bounds
-
-            if intercepts_mode is None:
-                intercepts_mode = -0.5
-            self.intercepts_mode = intercepts_mode
+            intercepts_bounds = [-0.3, 0.1]
+            intercepts_mode = -0.1
 
             intercepts_dist = AreaIntercepts(
                 dimensions=n_input, base=Triangular(
