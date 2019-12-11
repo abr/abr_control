@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.special
 
 import nengo
 
@@ -85,17 +84,14 @@ class DynamicsAdaptation():
         self.pes_learning_rate = pes_learning_rate
 
         if intercepts is None:
-            np.random.seed = self.seed
-            # set up neuron intercepts
-            intercepts_bounds = [-0.3, 0.1]
-            intercepts_mode = -0.1
-
-            intercepts_dist = AreaIntercepts(
-                dimensions=n_input, base=Triangular(
-                    intercepts_bounds[0], intercepts_mode, intercepts_bounds[1])
-                )
-            intercepts = intercepts_dist.sample(n=n_neurons*n_ensembles)
-            intercepts = intercepts.reshape(n_ensembles, n_neurons)
+            # Generates intercepts for a d-dimensional ensemble, such that, given a
+            # random uniform input (from the interior of the d-dimensional ball), the
+            # probability of a neuron firing has the probability density function given
+            # by rng.triangular(left, mode, right, size=n)
+            triangular = np.random.triangular(
+                left=0.35, mode=0.45, right=0.55, size=n_neurons*n_ensembles)
+            intercepts = nengo.dists.CosineSimilarity(n_input + 2).ppf(1 - triangular)
+            intercepts = intercepts.reshape((n_ensembles, n_neurons))
 
         if weights is None:
             weights = np.zeros((self.n_ensembles, n_output, self.n_neurons))
@@ -241,60 +237,3 @@ class DynamicsAdaptation():
 
         return [self.sim.signals[self.sim.model.sig[conn]['weights']]
                 for conn in self.conn_learn]
-
-
-class AreaIntercepts(nengo.dists.Distribution):
-    """ Generate an optimally distributed set of intercepts in
-    high-dimensional space.
-    """
-    dimensions = nengo.params.NumberParam('dimensions')
-    base = nengo.dists.DistributionParam('base')
-
-    def __init__(self, dimensions, base=nengo.dists.Uniform(-1, 1)):
-        super(AreaIntercepts, self).__init__()
-        self.dimensions = dimensions
-        self.base = base
-
-    def __repr(self):
-        return ("AreaIntercepts(dimensions=%r, base=%r)" %
-                (self.dimensions, self.base))
-
-    def transform(self, x):
-        sign = 1
-        if x > 0:
-            x = -x
-            sign = -1
-        return sign * np.sqrt(1 - scipy.special.betaincinv(
-            (self.dimensions + 1) / 2.0, 0.5, x + 1))
-
-    def sample(self, n, d=None, rng=np.random):
-        s = self.base.sample(n=n, d=d, rng=rng)
-        for ii, ss in enumerate(s):
-            s[ii] = self.transform(ss)
-        return s
-
-
-class Triangular(nengo.dists.Distribution):
-    """ Generate an optimally distributed set of intercepts in
-    high-dimensional space using a triangular distribution.
-    """
-    left = nengo.params.NumberParam('dimensions')
-    right = nengo.params.NumberParam('dimensions')
-    mode = nengo.params.NumberParam('dimensions')
-
-    def __init__(self, left, mode, right):
-        super(Triangular, self).__init__()
-        self.left = left
-        self.right = right
-        self.mode = mode
-
-    def __repr__(self):
-        return ("Triangular(left=%r, mode=%r, right=%r)" %
-                (self.left, self.mode, self.right))
-
-    def sample(self, n, d=None, rng=np.random):
-        if d is None:
-            return rng.triangular(self.left, self.mode, self.right, size=n)
-        else:
-            return rng.triangular(
-                self.left, self.mode, self.right, size=(n, d))
