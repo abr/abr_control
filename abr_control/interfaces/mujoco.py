@@ -57,12 +57,16 @@ class Mujoco(Interface):
         # start with the end-effector (EE) and work back to the world body
         while model.body_parentid[body_id] != 0:
             jntadrs_start = model.body_jntadr[body_id]
+            tmp_ids = []
+            tmp_names = []
             for ii in range(model.body_jntnum[body_id]):
-                joint_ids.append(jntadrs_start + ii)
-                joint_names.append(model.joint_id2name(joint_ids[-1]))
+                tmp_ids.append(jntadrs_start + ii)
+                tmp_names.append(model.joint_id2name(tmp_ids[-1]))
+            joint_ids += tmp_ids[::-1]
+            joint_names += tmp_names[::-1]
             body_id = model.body_parentid[body_id]
         # flip the list so it starts with the base of the arm / first joint
-        joint_names = np.array(joint_names[::-1])
+        joint_names = joint_names[::-1]
         joint_ids = np.array(joint_ids[::-1])
 
         self.joint_pos_addrs = [model.get_joint_qpos_addr(name)
