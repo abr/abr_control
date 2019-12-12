@@ -6,9 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from abr_control.utils import transformations
+from .path_planner import PathPlanner
 
 
-class Orientation():
+class Orientation(PathPlanner):
     """
     PARAMETERS
     ----------
