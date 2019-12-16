@@ -4,7 +4,7 @@ ABR Control
 
 ABR_Control: Robotic arm control in Python
 
-Installation
+Installationd
 ============
 
 The ABR_Control library depends on NumPy, SymPy, SciPy, CloudPickle, and
