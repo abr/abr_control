@@ -196,7 +196,7 @@ A control loop using these three files looks like::
 
     target_xyz = [.2, .2, .5]  # in metres
     target_orientation = [0, 0, 0]  # Euler angles, relevant when controlled
-    for ii in range(1000)
+    for ii in range(1000):
         feedback = interface.get_feedback()  # returns a dictionary with q, dq
         u = ctrlr.generate(
             q=feedback['q'],
