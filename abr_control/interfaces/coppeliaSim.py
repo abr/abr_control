@@ -3,7 +3,7 @@ import numpy as np
 from abr_control.utils import transformations, download_meshes
 
 from .interface import Interface
-from .coppeliaSim_files import cs
+from .coppeliaSim_files import sim
 
 
 class COPPELIASIM(Interface):
@@ -53,9 +53,9 @@ class COPPELIASIM(Interface):
         """
 
         # close any open connections
-        cs.simxFinish(-1)
+        sim.simxFinish(-1)
         # Connect to the V-REP continuous server
-        self.clientID = cs.simxStart('127.0.0.1', 19997, True, True, 500, 5)
+        self.clientID = sim.simxStart('127.0.0.1', 19997, True, True, 500, 5)
 
         if self.clientID == -1:
             raise Exception('Failed connecting to CoppeliaSim remote API server')
@@ -68,47 +68,47 @@ class COPPELIASIM(Interface):
                     google_id=self.robot_config.google_id,
                     force_download=force_download)
             # load the scene specified in the config
-            cs.simxLoadScene(
+            sim.simxLoadScene(
                 self.clientID,
                 self.robot_config.filename,
                 0,
-                cs.simx_opmode_blocking)
+                sim.simx_opmode_blocking)
 
-        cs.simxSynchronous(self.clientID, True)
+        sim.simxSynchronous(self.clientID, True)
 
         # get the handles for each joint and set up streaming
-        self.joint_handles = [cs.simxGetObjectHandle(
+        self.joint_handles = [sim.simxGetObjectHandle(
             self.clientID,
             name,
-            cs.simx_opmode_blocking)[1] for name in
+            sim.simx_opmode_blocking)[1] for name in
                               self.robot_config.JOINT_NAMES]
 
         # get handle for target and set up streaming
         _, self.misc_handles['target'] = \
-            cs.simxGetObjectHandle(self.clientID,
+            sim.simxGetObjectHandle(self.clientID,
                                      'target',
-                                     cs.simx_opmode_blocking)
+                                     sim.simx_opmode_blocking)
         # get handle for hand
         _, self.hand_handle = \
-            cs.simxGetObjectHandle(self.clientID,
+            sim.simxGetObjectHandle(self.clientID,
                                      'hand',
-                                     cs.simx_opmode_blocking)
+                                     sim.simx_opmode_blocking)
 
-        cs.simxSetFloatingParameter(
+        sim.simxSetFloatingParameter(
             self.clientID,
-            cs.sim_floatparam_simulation_time_step,
+            sim.sim_floatparam_simulation_time_step,
             self.dt,  # specify a simulation time step
-            cs.simx_opmode_oneshot)
+            sim.simx_opmode_oneshot)
 
-        cs.simxSetBooleanParameter(
+        sim.simxSetBooleanParameter(
             self.clientID,
-            cs.sim_boolparam_display_enabled,
+            sim.sim_boolparam_display_enabled,
             True,
-            cs.simx_opmode_oneshot)
+            sim.simx_opmode_oneshot)
 
         # start our simulation in lockstep with our code
-        cs.simxStartSimulation(self.clientID,
-                                 cs.simx_opmode_blocking)
+        sim.simxStartSimulation(self.clientID,
+                                 sim.simx_opmode_blocking)
 
         print('Connected to CoppeliaSim remote API server')
 
@@ -116,14 +116,14 @@ class COPPELIASIM(Interface):
         """ Stop and reset the simulation. """
 
         # stop the simulation
-        cs.simxStopSimulation(self.clientID, cs.simx_opmode_blocking)
+        sim.simxStopSimulation(self.clientID, sim.simx_opmode_blocking)
 
         # Before closing the connection to V-REP,
         # make sure that the last command sent out had time to arrive.
-        cs.simxGetPingTime(self.clientID)
+        sim.simxGetPingTime(self.clientID)
 
         # Now close the connection to V-REP:
-        cs.simxFinish(self.clientID)
+        sim.simxFinish(self.clientID)
         print('CoppeliaSim connection closed...')
 
     def get_orientation(self, name):
@@ -142,16 +142,16 @@ class COPPELIASIM(Interface):
             # if we haven't retrieved the handle previously
             # get the handle and set up streaming
             _, self.misc_handles[name] = \
-                cs.simxGetObjectHandle(self.clientID,
+                sim.simxGetObjectHandle(self.clientID,
                                          name,
-                                         cs.simx_opmode_blocking)
+                                         sim.simx_opmode_blocking)
 
         _, orientation = \
-            cs.simxGetObjectOrientation(
+            sim.simxGetObjectOrientation(
                 self.clientID,
                 self.misc_handles[name],
                 -1, # orientation relative to world
-                cs.simx_opmode_blocking)
+                sim.simx_opmode_blocking)
         return orientation
 
     def set_orientation(self, name, angles):
@@ -173,15 +173,15 @@ class COPPELIASIM(Interface):
             # if we haven't retrieved the handle previously
             # get the handle and set up streaming
             _, self.misc_handles[name] = \
-                cs.simxGetObjectHandle(self.clientID,
+                sim.simxGetObjectHandle(self.clientID,
                                          name,
-                                         cs.simx_opmode_blocking)
-        _ = cs.simxSetObjectOrientation(
+                                         sim.simx_opmode_blocking)
+        _ = sim.simxSetObjectOrientation(
             self.clientID,
             self.misc_handles[name],
             -1,  # orientation relative to world
             angles,
-            cs.simx_opmode_blocking)
+            sim.simx_opmode_blocking)
 
     def send_forces(self, u):
         """ Apply the specified torque to the robot joints
@@ -201,10 +201,10 @@ class COPPELIASIM(Interface):
         for ii, joint_handle in enumerate(self.joint_handles):
 
             # get the current joint torque
-            _, torque = cs.simxGetJointForce(
+            _, torque = sim.simxGetJointForce(
                 self.clientID,
                 joint_handle,
-                cs.simx_opmode_blocking)
+                sim.simx_opmode_blocking)
             if _ != 0:
                 raise Exception('Error retrieving joint torque, ' +
                                 'return code ', _)
@@ -214,20 +214,20 @@ class COPPELIASIM(Interface):
             if np.sign(torque) * np.sign(u[ii]) <= 0:
                 self.joint_target_velocities[ii] = \
                     self.joint_target_velocities[ii] * -1
-                _ = cs.simxSetJointTargetVelocity(
+                _ = sim.simxSetJointTargetVelocity(
                     self.clientID,
                     joint_handle,
                     self.joint_target_velocities[ii],
-                    cs.simx_opmode_blocking)
+                    sim.simx_opmode_blocking)
                 if _ != 0:
                     raise Exception('Error setting joint target velocity, ' +
                                     'return code ', _)
 
             # and now modulate the force
-            _ = cs.simxSetJointForce(self.clientID,
+            _ = sim.simxSetJointForce(self.clientID,
                                        joint_handle,
                                        abs(u[ii]),  # force to apply
-                                       cs.simx_opmode_blocking)
+                                       sim.simx_opmode_blocking)
             if _ != 0:
                 raise Exception('Error setting max joint force, ' +
                                 'return code ', _)
@@ -242,7 +242,7 @@ class COPPELIASIM(Interface):
         self.set_orientation('hand', angles)
 
         # move simulation ahead one time step
-        cs.simxSynchronousTrigger(self.clientID)
+        sim.simxSynchronousTrigger(self.clientID)
         self.count += self.dt
 
     def send_target_angles(self, q, joint_handles=None):
@@ -263,11 +263,11 @@ class COPPELIASIM(Interface):
         for ii, joint_handle in enumerate(joint_handles):
             # send in angles to move to
             # NOTE: no success / fail message received in oneshot mode
-            cs.simxSetJointPosition(
+            sim.simxSetJointPosition(
                 self.clientID,
                 joint_handle,
                 q[ii],
-                cs.simx_opmode_oneshot)
+                sim.simx_opmode_oneshot)
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller.
@@ -278,20 +278,20 @@ class COPPELIASIM(Interface):
 
         for ii, joint_handle in enumerate(self.joint_handles):
             # get the joint angles
-            _, self.q[ii] = cs.simxGetJointPosition(
+            _, self.q[ii] = sim.simxGetJointPosition(
                 self.clientID,
                 joint_handle,
-                cs.simx_opmode_blocking)
+                sim.simx_opmode_blocking)
             if _ != 0:
                 raise Exception('Error retrieving joint angle, ' +
                                 'return code ', _)
 
             # get the joint velocity
-            _, self.dq[ii] = cs.simxGetObjectFloatParameter(
+            _, self.dq[ii] = sim.simxGetObjectFloatParameter(
                 self.clientID,
                 joint_handle,
                 2012,  # ID for joint angular velocity
-                cs.simx_opmode_blocking)
+                sim.simx_opmode_blocking)
             if _ != 0:
                 raise Exception('Error retrieving joint velocity, ' +
                                 'return code ', _)
@@ -310,15 +310,15 @@ class COPPELIASIM(Interface):
             # if we haven't retrieved the handle previously
             # get the handle and set up streaming
             _, self.misc_handles[name] = \
-                cs.simxGetObjectHandle(self.clientID,
+                sim.simxGetObjectHandle(self.clientID,
                                          name,
-                                         cs.simx_opmode_blocking)
+                                         sim.simx_opmode_blocking)
 
-        _, xyz = cs.simxGetObjectPosition(
+        _, xyz = sim.simxGetObjectPosition(
             self.clientID,
             self.misc_handles[name],
             -1,  # get absolute, not relative position
-            cs.simx_opmode_blocking)
+            sim.simx_opmode_blocking)
         return xyz
 
     def set_xyz(self, name, xyz):
@@ -334,13 +334,13 @@ class COPPELIASIM(Interface):
             # if we haven't retrieved the handle previously
             # get the handle and set up streaming
             _, self.misc_handles[name] = \
-                cs.simxGetObjectHandle(self.clientID,
+                sim.simxGetObjectHandle(self.clientID,
                                          name,
-                                         cs.simx_opmode_blocking)
+                                         sim.simx_opmode_blocking)
 
-        cs.simxSetObjectPosition(
+        sim.simxSetObjectPosition(
             self.clientID,
             self.misc_handles[name],
             -1,  # set absolute, not relative position
             xyz,
-            cs.simx_opmode_blocking)
+            sim.simx_opmode_blocking)
