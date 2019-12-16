@@ -58,7 +58,7 @@ class COPPELIASIM(Interface):
         self.clientID = cs.simxStart('127.0.0.1', 19997, True, True, 500, 5)
 
         if self.clientID == -1:
-            raise Exception('Failed connecting to remote API server')
+            raise Exception('Failed connecting to CoppeliaSim remote API server')
 
         if load_scene:
             # if there's a google id, check for files and download if missing
