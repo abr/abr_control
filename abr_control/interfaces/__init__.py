@@ -1,3 +1,3 @@
 from .pygame import PyGame
-#from .vrep import VREP 		# uncomment-me
+from .vrep import VREP 	
 from .coppeliaSim import COPPELIASIM
