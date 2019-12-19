@@ -2,7 +2,11 @@
 Running the operational space control with a first order path planner
 using the PyGame display. The path planner system will generate a
 trajectory for the controller to follow, moving the end-effector in a
-straight line to the target.
+in an arc to the target. Two circles are drawn, one with a radius of
+origin to EE, and the other from origin to target. The path is taken
+from these circles by linearly weighting their paths starting with
+full weighting at the EE arc to full weighting at the target arc by
+the end of the path.
 
 There are two ways to run the path planner:
     1) Trajectories last for a specified number of time steps
@@ -47,7 +51,7 @@ if use_wall_clock:
 else:
     count = np.copy(params['n_timesteps'])
     time_elapsed = 0.0
-path_planner = path_planners.Linear(**params)
+path_planner = path_planners.Arc(**params)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=.001)

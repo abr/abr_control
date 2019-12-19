@@ -43,30 +43,26 @@ hand_xyz = robot_config.Tx('EE', feedback['q'])
 def get_target(robot_config):
     # pregenerate our path and orientation planners
     n_timesteps = 2000
-    traj_planner = path_planners.SecondOrderDMP(
+    position_planner = path_planners.SecondOrderDMP(
         error_scale=0.01, n_timesteps=n_timesteps)
-    orientation_planner = path_planners.Orientation()
+    orientation_path = path_planners.Orientation()
 
     starting_orientation = robot_config.quaternion('EE', feedback['q'])
 
-    target_orientation = np.random.random(3)
-    target_orientation /= np.linalg.norm(target_orientation)
-    # convert our orientation to a quaternion
-    target_orientation = [0] + list(target_orientation)
-
-    #target_position = [0.4, -0.3, 0.5]
     mag = 0.6
     target_position = np.random.random(3)*0.5
     target_position = target_position / np.linalg.norm(target_position) * mag
 
-    traj_planner.generate_path(
-        position=hand_xyz, target_pos=target_position)
+    position_planner.generate_path(
+        position=hand_xyz, target_position=target_position)
 
-    orientation_planner.match_position_path(
-        orientation=starting_orientation, target_orientation=target_orientation,
-        position_path=traj_planner.position)
+    target_orientation = transformations.random_quaternion()
 
-    return traj_planner, orientation_planner, target_position, target_orientation
+    orientation_path.match_position_path(
+            orientation=starting_orientation, target_orientation=target_orientation,
+        position_path=position_planner.position_path)
+
+    return position_planner, orientation_path, target_position, target_orientation
 
 # set up lists for tracking data
 ee_track = []
@@ -87,12 +83,12 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
         if count % 3000 == 0:
-            traj_planner, orientation_planner, target_position, target_orientation = get_target(robot_config)
+            position_planner, orientation_path, target_position, target_orientation = get_target(robot_config)
             interface.set_mocap_xyz('target_orientation', target_position)
             interface.set_mocap_orientation('target_orientation', target_orientation)
 
-        pos, vel = traj_planner.next()
-        orient = orientation_planner.next()
+        pos, vel = position_planner.next()
+        orient = orientation_path.next()
         target = np.hstack([pos, orient])
 
         interface.set_mocap_xyz('path_planner_orientation', target[:3])
@@ -104,7 +100,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=target,
-            #target_vel=np.hstack([vel, np.zeros(3)])
             )
 
         # add gripper forces

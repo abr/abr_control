@@ -37,15 +37,11 @@ target_angles_track = []
 
 try:
     print('\nSimulation starting...\n')
-    def get_random_orientation():
-        rand_orient = np.random.rand(4)
-        rand_orient /= np.linalg.norm(rand_orient)
-        return rand_orient
     cnt = 0
     while 1:
         if cnt % 500 == 0:
             # generate a random target orientation
-            rand_orient = get_random_orientation()
+            rand_orient = transformations.random_quaternion()
             print('New target orientation: ', rand_orient)
 
         if interface.viewer.exit:

@@ -62,7 +62,7 @@ class SecondOrderDMP(PathPlanner):
         self.dmps.imitate_path(y_des)
 
 
-    def generate_path(self, position, target_pos, plot=False):
+    def generate_path(self, position, target_position, plot=False):
         """
         Calls the step function self.n_timestep times to pregenerate
         the entire path planner
@@ -71,42 +71,42 @@ class SecondOrderDMP(PathPlanner):
         ----------
         position: numpy.array
             the current position of the system
-        target_pos: numpy.array
+        target_position: numpy.array
             the target position
         plot: boolean, optional (Default: False)
             plot the path after generating if True
         """
-        self.reset(target_pos=target_pos, position=position)
+        self.reset(target_position=target_position, position=position)
 
-        self.position, self.velocity, _ = self.dmps.rollout(
+        self.position_path, self.velocity_path, _ = self.dmps.rollout(
             timesteps=self.n_timesteps)
-        self.position = np.array([traj + self.origin for traj in self.position])
+        self.position_path = np.array([traj + self.origin for traj in self.position_path])
 
         # reset trajectory index
         self.n = 0
 
         if plot:
-            plt.plot(self.position)
+            plt.plot(self.position_path)
             plt.legend(['X', 'Y', 'Z'])
             plt.show()
 
-        return self.position, self.velocity
+        return self.position_path, self.velocity_path
 
 
-    def reset(self, target_pos, position):
+    def reset(self, target_position, position):
         """
-        Resets the dmp path planner to a new state and target_pos
+        Resets the dmp path planner to a new state and target_position
 
         PARAMETERS
         ----------
-        target_pos: list of 3 floats
-            the target_pos end-effector position in cartesian coordinates [meters]
+        target_position: list of 3 floats
+            the target_position end-effector position in cartesian coordinates [meters]
         position: list of 3 floats
             the current end-effector cartesian position [meters]
         """
         self.origin = position
         self.dmps.reset_state()
-        self.dmps.goal = target_pos - self.origin
+        self.dmps.goal = target_position - self.origin
 
 
     def _step(self, error=None):

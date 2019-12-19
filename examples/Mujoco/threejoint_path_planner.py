@@ -21,8 +21,12 @@ from abr_control.controllers import OSC, Damping, RestingConfig, path_planners
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.arms.mujoco_config import MujocoConfig
 
+if len(sys.argv) > 1:
+    use_wall_clock = True
+else:
+    use_wall_clock = False
+    print("To plan the path based on real time instead of steps, append 'True' to your script call")
 
-use_wall_clock = True
 
 if len(sys.argv) > 1:
     show_plot = sys.argv[1]
@@ -59,11 +63,10 @@ if use_wall_clock:
     time_elapsed = np.copy(run_time)
     count = 0
 else:
-    params['error_scale'] = 50
-    params['n_timesteps'] = 3000  # time steps each trajectory lasts
+    params['n_timesteps'] = 2000  # time steps each trajectory lasts
     count = np.copy(params['n_timesteps'])
     time_elapsed = 0.0
-path_planner = path_planners.SecondOrderDMP(**params)
+path_planner = path_planners.Arc(**params)
 
 ee_track = []
 target_track = []
@@ -94,19 +97,19 @@ try:
             interface.set_mocap_xyz('target', target_xyz)
 
             pos_path, vel_path = path_planner.generate_path(
-                position=hand_xyz, target_pos=target_xyz, plot=False)
+                position=hand_xyz, target_position=target_xyz, plot=False)
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
-                    pregenerated_path=pos_path, time_limit=run_time)
+                    path=pos_path, time_length=run_time)
                 vel_path = path_planner.convert_to_time(
-                    pregenerated_path=vel_path, time_limit=run_time)
+                    path=vel_path, time_length=run_time)
 
         # get next target along trajectory
         if use_wall_clock:
             target = [function(min(time_elapsed, run_time)) for function in pos_path]
-            target_vel = [function(min(time_elapsed, run_time)) for function in vel_path]
+            target_velocity = [function(min(time_elapsed, run_time)) for function in vel_path]
         else:
-            target, target_vel = path_planner.next()
+            target, target_velocity = path_planner.next()
 
         interface.set_mocap_xyz('path_planner', target)
         # generate an operational space control signal
@@ -114,7 +117,6 @@ try:
             q=feedback['q'],
             dq=feedback['dq'],
             target=np.hstack((target, np.zeros(3))),
-            #target_vel=np.hstack((target_vel, np.zeros(3))),
             ref_frame=link_name
             )
 

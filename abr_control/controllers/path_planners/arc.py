@@ -20,7 +20,7 @@ class Arc(PathPlanner):
         """
         self.n_timesteps = n_timesteps
 
-    def generate_path(self, position, target_pos, plot=False):
+    def generate_path(self, position, target_position, plot=False):
         """
         Calls the step function self.n_timestep times to pregenerate
         the entire path planner
@@ -29,7 +29,7 @@ class Arc(PathPlanner):
         ----------
         position: numpy.array
             the current position of the system
-        target_pos: numpy.array
+        target_position: numpy.array
             the target position
         plot: boolean, optional (Default: False)
             plot the path after generating if True
@@ -41,7 +41,7 @@ class Arc(PathPlanner):
             phi_start += 6.28
 
         # get the angle between x cardinal dir and target pos
-        phi_target = np.arctan2(target_pos[1], target_pos[0])
+        phi_target = np.arctan2(target_position[1], target_position[0])
         if phi_target < 0:
             phi_target += 6.28
 
@@ -70,8 +70,8 @@ class Arc(PathPlanner):
         y1 = yval(r1, theta1, phi)
         z1 = np.ones(self.n_timesteps) * zval(r1, theta1)
 
-        r2 = r_val(target_pos)
-        theta2 = np.arccos(target_pos[2]/r2)
+        r2 = r_val(target_position)
+        theta2 = np.arccos(target_position[2]/r2)
         x2 = xval(r2, theta2, phi)
         y2 = yval(r2, theta2, phi)
         z2 = np.ones(self.n_timesteps) * zval(r2, theta2)
@@ -91,7 +91,7 @@ class Arc(PathPlanner):
 
             plt.plot(0, 0, marker='+', c='k', label='origin')
             plt.plot(position[0], position[1], marker='*', label='start')
-            plt.plot(target_pos[0], target_pos[1], marker='o', label='target')
+            plt.plot(target_position[0], target_position[1], marker='o', label='target')
             plt.plot(x1, y1, c='r', label='start arc')
             plt.plot(x2, y2, c='b', label='target arc')
             plt.plot(x3, y3, c='tab:purple', label='linearly combined')
@@ -100,8 +100,8 @@ class Arc(PathPlanner):
 
         # reset trajectory index
         self.n = 0
-        self.position = np.vstack((np.vstack((x3, y3)), z3)).T
-        self.velocity = np.vstack(
+        self.position_path = np.vstack((np.vstack((x3, y3)), z3)).T
+        self.velocity_path = np.vstack(
             (np.vstack((np.gradient(x3), np.gradient(y3))), np.gradient(z3))).T
 
-        return self.position, self.velocity
+        return self.position_path, self.velocity_path

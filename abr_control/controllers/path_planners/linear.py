@@ -25,14 +25,14 @@ class Linear(PathPlanner):
         self.dx = dx
         self.dt = dt
 
-    def generate_path(self, position, target_pos, plot=False):
+    def generate_path(self, position, target_position, plot=False):
         """ Generates a linear trajectory to the target
 
         Parameters
         ----------
         position : numpy.array
             the current position of the system
-        target_pos : numpy.array
+        target_position : numpy.array
             the target position
         plot: boolean, optional (Default: False)
             plot the path after generating if True
@@ -40,38 +40,38 @@ class Linear(PathPlanner):
         n_states = len(position)
 
         if self.dx is None:
-            self.position = np.zeros((self.n_timesteps, n_states))
-            self.velocity = np.zeros((self.n_timesteps, n_states))
+            self.position_path = np.zeros((self.n_timesteps, n_states))
+            self.velocity_path = np.zeros((self.n_timesteps, n_states))
             for ii in range(n_states):
                 # calculate target states
-                self.position[:, ii] = np.linspace(
-                    position[ii], target_pos[ii], self.n_timesteps)
+                self.position_path[:, ii] = np.linspace(
+                    position[ii], target_position[ii], self.n_timesteps)
         else:
-            distance = (target_pos - position)
+            distance = (target_position - position)
             norm_distance = np.linalg.norm(distance)
             step = distance / norm_distance * self.dx
 
             self.n_timesteps = int(np.ceil(norm_distance / self.dx))
 
-            self.position = np.zeros((self.n_timesteps, n_states))
-            self.velocity = np.zeros((self.n_timesteps, n_states))
+            self.position_path = np.zeros((self.n_timesteps, n_states))
+            self.velocity_path = np.zeros((self.n_timesteps, n_states))
 
             for ii in range(n_states):
                 # calculate target states
                 if abs(step[ii]) > 1e-5:
-                    self.position[:, ii] = np.arange(
-                        position[ii], target_pos[ii], step[ii])
+                    self.position_path[:, ii] = np.arange(
+                        position[ii], target_position[ii], step[ii])
 
         for ii in range(n_states):
             # calculate target velocities
-            self.velocity[:-1, ii] = (
-                np.diff(self.position[:, ii]) / self.dt)
+            self.velocity_path[:-1, ii] = (
+                np.diff(self.position_path[:, ii]) / self.dt)
 
         # reset trajectory index
         self.n = 0
-        self.n_timesteps = self.position.shape[0]
+        self.n_timesteps = self.position_path.shape[0]
 
         if plot:
-            self._plot(target_pos)
+            self._plot(target_position)
 
-        return self.position, self.velocity
+        return self.position_path, self.velocity_path

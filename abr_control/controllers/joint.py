@@ -27,7 +27,7 @@ class Joint(Controller):
         self.ZEROS_N_JOINTS = np.zeros(robot_config.N_JOINTS)
         self.q_tilde = np.copy(self.ZEROS_N_JOINTS)
 
-    def generate(self, q, dq, target, target_vel=None):
+    def generate(self, q, dq, target, target_velocity=None):
         """Generate a joint space control signal
 
         Parameters
@@ -38,12 +38,12 @@ class Joint(Controller):
             current joint velocities [radians/second]
         target : float numpy.array
             desired joint angles [radians]
-        target_vel : float numpy.array, optional (Default: None)
+        target_velocity : float numpy.array, optional (Default: None)
             desired joint velocities [radians/sec]
         """
 
-        if target_vel is None:
-            target_vel = self.ZEROS_N_JOINTS
+        if target_velocity is None:
+            target_velocity = self.ZEROS_N_JOINTS
 
         # calculate the direction for each joint to move, wrapping
         # around the -pi to pi limits to find the shortest distance
@@ -51,7 +51,7 @@ class Joint(Controller):
 
         # get the joint space inertia matrix
         M = self.robot_config.M(q)
-        u = np.dot(M, (self.kp * self.q_tilde + self.kv * (target_vel - dq)))
+        u = np.dot(M, (self.kp * self.q_tilde + self.kv * (target_velocity - dq)))
         # account for gravity
         u -= self.robot_config.g(q)
 
