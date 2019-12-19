@@ -58,7 +58,7 @@ try:
             interface.set_target(target_xyz)
             path_planner.generate_path(
                 position=hand_xyz,
-                target_pos=target_xyz,
+                target_position=target_xyz,
                 plot=False)
 
         # returns desired [position, velocity]

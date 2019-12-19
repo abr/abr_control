@@ -32,7 +32,7 @@ ctrlr = OSC(robot_config, kp=50, null_controllers=[damping],
 adapt = signals.DynamicsAdaptation(
     n_input=robot_config.N_JOINTS,
     n_output=robot_config.N_JOINTS,
-    pes_learning_rate=1e-3,
+    pes_learning_rate=1e-4,
     means=[0, 0, 0],
     variances=[np.pi, np.pi, np.pi],
     )

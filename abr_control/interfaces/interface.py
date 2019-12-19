@@ -36,6 +36,16 @@ class Interface:
 
         raise NotImplementedError
 
+    def send_target_angles(self, q):
+        """ Moves the arm to the specified joint angles
+
+        q : numpy.array
+            the target joint angles [radians]
+        """
+
+        raise NotImplementedError
+
+
     def get_feedback(self):
         """ Returns a dictionary of the relevant feedback
 

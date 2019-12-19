@@ -78,7 +78,7 @@ try:
                 q=feedback['q'],
                 dq=feedback['dq'],
                 target=target[:robot_config.N_JOINTS],
-                target_vel=target[robot_config.N_JOINTS:],
+                target_velocity=target[robot_config.N_JOINTS:],
                 )
 
             # apply the control signal, step the sim forward

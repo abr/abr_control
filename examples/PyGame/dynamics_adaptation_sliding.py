@@ -28,7 +28,7 @@ ctrlr = Sliding(robot_config, kd=30)
 adapt = signals.DynamicsAdaptation(
     n_input=robot_config.N_JOINTS,
     n_output=robot_config.N_JOINTS,
-    pes_learning_rate=1e-1,
+    pes_learning_rate=3e-3,
     means=[0, 0, 0],
     variances=[2*np.pi, 2*np.pi, 2*np.pi],
     )

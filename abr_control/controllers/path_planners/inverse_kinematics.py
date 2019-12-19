@@ -25,7 +25,7 @@ class InverseKinematics:
         self.max_dq = max_dq
 
 
-    def generate_path(self, position, target_pos, n_timesteps=200,
+    def generate_path(self, position, target_position, n_timesteps=200,
                       dt=0.001, plot=False, method=3, axes='rxyz'):
         """
 
@@ -33,10 +33,10 @@ class InverseKinematics:
         ----------
         position: numpy.array
             the current position of the system
-        target_pos: numpy.array
+        target_position: numpy.array
             the task space target position and orientation
         n_timesteps: int, optional (Default: 200)
-            the number of time steps to reach the target_pos
+            the number of time steps to reach the target_position
         dt: float, optional (Default: 0.001)
             the time step for calculating desired velocities [seconds]
         plot: boolean, optional (Default: False)
@@ -51,7 +51,7 @@ class InverseKinematics:
             First letter r or s represents 'relative' or 'static'
         """
 
-        self.trajectory = np.zeros((n_timesteps, position.shape[0]*2))
+        path = np.zeros((n_timesteps, position.shape[0]*2))
         ee_track = []
         ee_err = []
         ea_err = []
@@ -65,7 +65,7 @@ class InverseKinematics:
 
         Qd = np.array(transformations.unit_vector(
             transformations.quaternion_from_euler(
-                target_pos[3], target_pos[4], target_pos[5], axes='sxyz')))
+                target_position[3], target_position[4], target_position[5], axes='sxyz')))
 
         q = np.copy(position)
         for ii in range(n_timesteps):
@@ -73,7 +73,7 @@ class InverseKinematics:
             T = self.robot_config.T('EE', q=q)
             ee_track.append(T[:3, 3])
 
-            dx = target_pos[:3] - T[:3, 3]
+            dx = target_position[:3] - T[:3, 3]
 
             Qe = self.robot_config.quaternion('EE', q=q)
             # Method 4
@@ -115,7 +115,7 @@ class InverseKinematics:
             if max(abs(dq)) > max_dq:
                 dq = dq / max(abs(dq)) * max_dq
 
-            self.trajectory[ii] = np.hstack([q, dq])
+            path[ii] = np.hstack([q, dq])
             q = q + dq
 
         if plot:
@@ -124,7 +124,7 @@ class InverseKinematics:
             plt.subplot(2, 1, 1)
             plt.plot(ee_track)
             plt.gca().set_prop_cycle(None)
-            plt.plot(np.ones((n_timesteps, 3)) * target_pos[:3], '--')
+            plt.plot(np.ones((n_timesteps, 3)) * target_position[:3], '--')
             plt.legend(['%i' % ii for ii in range(3)] +
                        ['%i_target' % ii for ii in range(3)])
             plt.title('Trajectory positions')
@@ -140,20 +140,23 @@ class InverseKinematics:
             plt.show()
             plt.savefig('IK_plot.png')
 
-        # reset trajectory index
+        # reset position_path index
         self.n_timesteps = n_timesteps
         self.n = 0
+        self.position_path = path[:, :self.robot_config.N_JOINTS]
+        self.velocity_path = path[:, self.robot_config.N_JOINTS:]
 
-        return (self.trajectory[:, :self.robot_config.N_JOINTS],
-                self.trajectory[:, self.robot_config.N_JOINTS:],
-                ee_track)
+        return self.position_path, self.velocity_path
 
     def next(self):
-        """ Return the next target point along the generated trajectory """
+        """ Return the next target point along the generated position_path """
 
-        # get the next target state if we're not at the end of the trajectory
-        self.target = (self.trajectory[self.n]
-                       if self.n < self.n_timesteps else self.target)
+        # get the next target state if we're not at the end of the position_path
+        self.position = (self.position_path[self.n]
+                         if self.n < self.n_timesteps else self.target)
+
+        self.velocity = (self.position_path[self.n]
+                         if self.n < self.n_timesteps else self.velocity)
         self.n = min(self.n+1, self.n_timesteps)
 
-        return self.target
+        return self.position, self.velocity

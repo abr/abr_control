@@ -32,7 +32,7 @@ class Sliding(Controller):
         self.cartesian = cartesian
 
     def generate(self, q, dq,
-                 target, target_vel=0, target_acc=0,
+                 target, target_velocity=0, target_acc=0,
                  ref_frame='EE', offset=None):
         """ Generates the control signal to move the EE to a target
 
@@ -44,7 +44,7 @@ class Sliding(Controller):
             current joint velocities [radians/second]
         target : float numpy.array
             desired joint angles [radians]
-        target_vel : float numpy.array, optional (Default: numpy.zeros)
+        target_velocity : float numpy.array, optional (Default: numpy.zeros)
             desired joint velocities [radians/sec]
         ref_frame : string, optional (Default: 'EE')
             the point being controlled, default is the end-effector.
@@ -67,15 +67,15 @@ class Sliding(Controller):
 
             dq_ref = np.dot(
                 J_inv,
-                target_vel + self.lamb * (target - xyz))
+                target_velocity + self.lamb * (target - xyz))
             ddq_ref = np.dot(
                 J_inv,
-                target_acc + self.lamb * (target_vel - dxyz) -
+                target_acc + self.lamb * (target_velocity - dxyz) -
                 np.dot(dJ, dq_ref))
         else:
             q_tilde = q - target
-            dq_tilde = dq - target_vel
-            dq_ref = target_vel - self.lamb * q_tilde
+            dq_tilde = dq - target_velocity
+            dq_ref = target_velocity - self.lamb * q_tilde
             ddq_ref = target_acc - self.lamb * dq_tilde
 
         # store the control signal s for training in case

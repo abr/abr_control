@@ -12,21 +12,23 @@ from abr_control.arms.mujoco_config import MujocoConfig as arm
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
 from abr_control.controllers import OSC, Damping
+from abr_control.utils import transformations
 
-print('******************************')
-print('* DOF Controlled: x, a, b ,g *')
-print('******************************')
 # initialize our robot config
 robot_config = arm('jaco2')
-ctrlr_dof = [False, True, False, True, True, True]
+ctrlr_dof = [False, False, True, True, True, True]
 dof_labels = ['x', 'y', 'z', 'a', 'b', 'g']
+dof_print = '* DOF Controlled: %s *'% (np.array(dof_labels)[ctrlr_dof])
+stars = '*' * len(dof_print)
+print(stars)
+print(dof_print)
+print(stars)
 
 # create our interface
 interface = Mujoco(robot_config, dt=.001)
 interface.connect()
 interface.send_target_angles(robot_config.START_ANGLES)
 
-target_orientation = np.random.random(4)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
@@ -40,8 +42,8 @@ ctrlr = OSC(
     # control (x, alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
     ctrlr_dof=ctrlr_dof)
 
-target_orientation /= np.linalg.norm(target_orientation)
 target_xyz = np.array([0.3, 0.3, 0.5])
+target_orientation = transformations.random_quaternion()
 
 # set up lists for tracking data
 ee_track = []
@@ -53,15 +55,20 @@ target_angles_track = []
 try:
     count = 0
     print('\nSimulation starting...\n')
-    interface.set_mocap_xyz('target_orientation', target_xyz)
-    interface.set_mocap_orientation('target_orientation', target_orientation)
     while 1:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
-            break
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx('EE', feedback['q'])
+
+        for ii, dof in enumerate(ctrlr_dof[:3]):
+            if not dof:
+                target_xyz[ii] = hand_xyz[ii]
+
+        interface.set_mocap_xyz('target_orientation', target_xyz)
+        interface.set_mocap_orientation('target_orientation', target_orientation)
+        if interface.viewer.exit:
+            glfw.destroy_window(interface.viewer.window)
+            break
 
         target = np.hstack([
             interface.get_xyz('target_orientation'),

@@ -83,26 +83,26 @@ try:
             J = robot_config.J('EE', feedback['q'])
             pos_path, vel_path = path_planner.generate_path(
                 position=hand_xyz, velocity=np.dot(J, feedback['dq'])[:3],
-                target_pos=target_xyz, plot=False)
+                target_position=target_xyz, plot=False)
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
-                    pregenerated_path=pos_path, time_limit=run_time)
+                    path=pos_path, time_length=run_time)
                 vel_path = path_planner.convert_to_time(
-                    pregenerated_path=vel_path, time_limit=run_time)
+                    path=vel_path, time_length=run_time)
 
         # get next target along trajectory
         if use_wall_clock:
             target = [function(time_elapsed) for function in pos_path]
-            target_vel = [function(time_elapsed) for function in vel_path]
+            target_velocity = [function(time_elapsed) for function in vel_path]
         else:
-            target, target_vel = path_planner.next()
+            target, target_velocity = path_planner.next()
 
         # generate an operational space control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
             target=np.hstack((target, np.zeros(3))),
-            target_vel=np.hstack((target_vel, np.zeros(3))),
+            target_velocity=np.hstack((target_velocity, np.zeros(3))),
             )
 
         # apply the control signal, step the sim forward

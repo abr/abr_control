@@ -191,7 +191,7 @@ class OSC(Controller):
         return self.kv * scale * self.lamb * u_task
 
 
-    def generate(self, q, dq, target, target_vel=None,
+    def generate(self, q, dq, target, target_velocity=None,
                  ref_frame='EE', xyz_offset=None):
         """ Generates the control signal to move the EE to a target
 
@@ -204,7 +204,7 @@ class OSC(Controller):
         target: 6 dimensional float numpy.array
             desired task space position and orientation [meters, radians]
             orientation component is alpha, beta, gamma in relative xyz axes
-        target_vel: float 6D numpy.array, optional (Default: None)
+        target_velocity: float 6D numpy.array, optional (Default: None)
             desired task space velocities [meters/sec, radians/sec]
         ref_frame: string, optional (Default: 'EE')
             the point being controlled, default is the end-effector.
@@ -212,8 +212,8 @@ class OSC(Controller):
             point of interest inside the frame of reference [meters]
         """
 
-        if target_vel is None:
-            target_vel = self.ZEROS_SIX
+        if target_velocity is None:
+            target_velocity = self.ZEROS_SIX
 
         J = self.robot_config.J(ref_frame, q, x=xyz_offset)  # Jacobian
         # isolate rows of Jacobian corresponding to controlled task space DOF
@@ -248,14 +248,14 @@ class OSC(Controller):
             u_task *= self.task_space_gains
 
         # compensate for velocity
-        if np.all(target_vel == 0):
+        if np.all(target_velocity == 0):
             # if there's no target velocity in task space,
             # compensate for velocity in joint space (more accurate)
             u = -1 * self.kv * np.dot(M, dq)
         else:
             dx = np.zeros(6)
             dx[self.ctrlr_dof] = np.dot(J, dq)
-            u_task += self.kv * (dx - target_vel)
+            u_task += self.kv * (dx - target_velocity)
 
         # isolate task space forces corresponding to controlled DOF
         u_task = u_task[self.ctrlr_dof]

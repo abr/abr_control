@@ -55,7 +55,7 @@ class SecondOrderFilter(PathPlanner):
         self.threshold = threshold
 
 
-    def generate_path(self, position, velocity, target_pos, plot=False):
+    def generate_path(self, position, target_position, velocity=None, plot=False):
         """
         Calls the step function self.n_timestep times to pregenerate
         the entire path planner
@@ -64,35 +64,40 @@ class SecondOrderFilter(PathPlanner):
         ----------
         position: numpy.array
             the current position of the system
-        velocity: numpy.array
+        velocity: numpy.array, Optional (Default: np.zeros(3)
             the current velocity of the system
-        target_pos: numpy.array
+        target_position: numpy.array
             the target position
         plot: boolean, optional (Default: False)
             plot the path after generating if True
         """
 
-        position_path = []
-        velocity_path = []
+        if velocity is None:
+            velocity = np.zeros(3)
+
+        self.position_path = []
+        self.velocity_path = []
 
         for _ in range(self.n_timesteps):
-            position_path.append(position)
-            velocity_path.append(velocity)
-            position, velocity = self._step(position, velocity, target_pos)
+            self.position_path.append(position)
+            self.velocity_path.append(velocity)
+            position, velocity = self._step(position, velocity, target_position)
 
-        self.position = np.array(position_path)
-        self.velocity = np.array(velocity_path)
+        self.position = np.array(self.position_path)
+        self.velocity = np.array(self.velocity_path)
 
         # reset trajectory index
         self.n = 0
 
         if plot:
-            self.plot(target_pos)
+            self.plot(target_position)
 
-        return self.position, self.velocity
+        self.position_path = np.array(self.position_path)
+        self.velocity_path = np.array(self.velocity_path)
+        return self.position_path, self.velocity_path
 
 
-    def _step(self, position, velocity, target_pos):
+    def _step(self, position, velocity, target_position):
         """ Calculates the next state given the current state and
         system dynamics' parameters.
 
@@ -102,18 +107,18 @@ class SecondOrderFilter(PathPlanner):
             the current position of the system
         velocity: numpy.array
             the current velocity of the system
-        target_pos: numpy.array
+        target_position: numpy.array
             the target position of the system
         """
 
         w = self.w
-        if np.linalg.norm(position - target_pos) < self.threshold:
+        if np.linalg.norm(position - target_position) < self.threshold:
             # if within a threshold distance, reduce the filter effect
             # NOTE: this is a ad-hoc method of improving performance at
             # short distances
             w *= 3
 
-        accel = (w**2 * target_pos
+        accel = (w**2 * target_position
                  - velocity * self.zeta * w
                  - position * w**2)
         velocity = velocity + accel * self.dt
