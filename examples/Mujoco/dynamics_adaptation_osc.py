@@ -3,6 +3,7 @@ Move the jaco2 Mujoco arm to a target position.
 The simulation ends after 1.5 simulated seconds, and the
 trajectory of the end-effector is plotted in 3D.
 """
+import sys
 import numpy as np
 import traceback
 import glfw
@@ -12,8 +13,12 @@ from abr_control.arms.mujoco_config import MujocoConfig as arm
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
 
+if len(sys.argv) > 1:
+    arm_model = sys.argv[1]
+else:
+    arm_model = 'jaco2'
 # initialize our robot config for the jaco2
-robot_config = arm('jaco2')
+robot_config = arm(arm_model)
 
 # create our Mujoco interface
 interface = Mujoco(robot_config, dt=.001)
@@ -99,7 +104,7 @@ try:
         u += extra_gravity
 
         # add gripper forces
-        u = np.hstack((u, np.ones(3)*0.05))
+        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
 
         # send forces into Mujoco, step the sim forward
         interface.send_forces(u)
