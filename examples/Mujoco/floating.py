@@ -5,6 +5,7 @@ is recorded and plotted when the script is exited (with ctrl-c).
 
 In this example, the floating controller is applied in the joint space
 """
+import sys
 import numpy as np
 import traceback
 import glfw
@@ -15,8 +16,12 @@ from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
 
 
+if len(sys.argv) > 1:
+    arm_model = sys.argv[1]
+else:
+    arm_model = 'jaco2'
 # initialize our robot config
-robot_config = arm('jaco2')
+robot_config = arm(arm_model)
 
 # create the Mujoco interface and connect up
 interface = Mujoco(robot_config, dt=.001)
@@ -51,7 +56,7 @@ try:
             dq=feedback['dq'])
 
         # add gripper forces
-        u = np.hstack((u, np.ones(3)*0.05))
+        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
 
         # send forces into Mujoco
         interface.send_forces(u)

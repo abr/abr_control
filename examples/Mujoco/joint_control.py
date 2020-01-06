@@ -3,6 +3,7 @@ A basic script for connecting and moving the arm to a target
 configuration in joint space, offset from its starting position.
 The simulation simulates 2500 time steps and then plots the results.
 """
+import sys
 import numpy as np
 import traceback
 import glfw
@@ -12,8 +13,12 @@ from abr_control.interfaces.mujoco import Mujoco
 from abr_control.controllers import Joint
 
 
-# initialize our robot config
-robot_config = arm('jaco2')
+if len(sys.argv) > 1:
+    arm_model = sys.argv[1]
+else:
+    arm_model = 'jaco2'
+# initialize our robot config for the jaco2
+robot_config = arm(arm_model)
 
 # create interface and connect
 interface = Mujoco(robot_config=robot_config, dt=.001)
@@ -49,7 +54,7 @@ try:
             )
 
         # add gripper forces
-        u = np.hstack((u, np.ones(3)*0.05))
+        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
 
         # send forces into Mujoco, step the sim forward
         interface.send_forces(u)

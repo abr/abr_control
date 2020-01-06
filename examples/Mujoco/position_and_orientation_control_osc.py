@@ -5,6 +5,7 @@ move the end-effector to the target object's X position and orientation.
 The cartesian direction being controlled is set in the first three booleans
 of the ctrlr_dof parameter
 """
+import sys
 import numpy as np
 import glfw
 
@@ -14,8 +15,14 @@ from abr_control.utils import transformations
 from abr_control.controllers import OSC, Damping
 from abr_control.utils import transformations
 
-# initialize our robot config
-robot_config = arm('jaco2')
+
+if len(sys.argv) > 1:
+    arm_model = sys.argv[1]
+else:
+    arm_model = 'jaco2'
+# initialize our robot config for the jaco2
+robot_config = arm(arm_model)
+
 ctrlr_dof = [False, False, True, True, True, True]
 dof_labels = ['x', 'y', 'z', 'a', 'b', 'g']
 dof_print = '* DOF Controlled: %s *'% (np.array(dof_labels)[ctrlr_dof])
@@ -82,7 +89,7 @@ try:
             )
 
         # add gripper forces
-        u = np.hstack((u, np.ones(3)*0.05))
+        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)

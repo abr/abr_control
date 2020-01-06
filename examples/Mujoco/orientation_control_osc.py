@@ -2,6 +2,7 @@
 Running operational space control using Mujoco. The controller will
 move the end-effector to the target object's orientation.
 """
+import sys
 import numpy as np
 import glfw
 
@@ -11,8 +12,12 @@ from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
 
 
-# initialize our robot config
-robot_config = arm('jaco2')
+if len(sys.argv) > 1:
+    arm_model = sys.argv[1]
+else:
+    arm_model = 'jaco2'
+# initialize our robot config for the jaco2
+robot_config = arm(arm_model)
 
 # create our interface
 interface = Mujoco(robot_config, dt=.001)
@@ -71,7 +76,7 @@ try:
             )
 
         # add gripper forces
-        u = np.hstack((u, np.ones(3) * 0.05))
+        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)

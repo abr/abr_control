@@ -54,6 +54,8 @@ class MujocoConfig():
             self.xml_dir = '%s' % (folder)
             self.xml_file = os.path.join(self.xml_dir, xml_file)
 
+        self.N_GRIPPEPR_JOINTS = 0
+
         # get access to some of our custom arm parameters from the xml definition
         tree = ElementTree.parse(self.xml_file)
         root = tree.getroot()
@@ -63,6 +65,8 @@ class MujocoConfig():
                 START_ANGLES = custom.get('data').split(' ')
                 self.START_ANGLES = np.array(
                     [float(angle) for angle in START_ANGLES])
+            elif name == 'N_GRIPPER_JOINTS':
+                self.N_GRIPPER_JOINTS = int(custom.get('data'))
 
         # get the location of our mesh files
         for custom in root.findall('custom/text'):
