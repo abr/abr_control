@@ -1,12 +1,13 @@
 """
-Running operational space control using VREP. The controller will
-move the end-effector to the target object's position and orientation.
+Running operational space control using CoppeliaSim. The controller will
+move the end-effector to the target object's orientation.
 """
 import numpy as np
 
 from abr_control.arms import ur5 as arm
+# from abr_control.arms import jaco2 as arm
 from abr_control.controllers import OSC, Damping
-from abr_control.interfaces import VREP
+from abr_control.interfaces import CoppeliaSim
 from abr_control.utils import transformations
 
 
@@ -18,25 +19,22 @@ damping = Damping(robot_config, kv=10)
 # create opreational space controller
 ctrlr = OSC(
     robot_config,
-    kp=200,
+    kp=200,  # position gain
+    ko=200,  # orientation gain
     null_controllers=[damping],
-    vmax=[10, 10],  # [m/s, rad/s]
-    # control (x, alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-    ctrlr_dof=[True, False, False, True, True, True])
+    # control (alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
+    ctrlr_dof = [False, False, False, True, True, True])
 
 # create our interface
-interface = VREP(robot_config, dt=.005)
+interface = CoppeliaSim(robot_config, dt=.005)
 interface.connect()
 
 # set up lists for tracking data
-ee_track = []
 ee_angles_track = []
-target_track = []
 target_angles_track = []
 
 
 try:
-    count = 0
     print('\nSimulation starting...\n')
     while 1:
         # get arm feedback
@@ -46,6 +44,9 @@ try:
         target = np.hstack([
             interface.get_xyz('target'),
             interface.get_orientation('target')])
+
+        rc_matrix = robot_config.R('EE', feedback['q'])
+        rc_angles = transformations.euler_from_matrix(rc_matrix, axes='rxyz')
 
         u = ctrlr.generate(
             q=feedback['q'],
@@ -57,12 +58,9 @@ try:
         interface.send_forces(u)
 
         # track data
-        ee_track.append(np.copy(hand_xyz))
         ee_angles_track.append(transformations.euler_from_matrix(
             robot_config.R('EE', feedback['q']), axes='rxyz'))
-        target_track.append(np.copy(target[:3]))
         target_angles_track.append(interface.get_orientation('target'))
-        count += 1
 
 finally:
     # stop and reset the simulation
@@ -70,32 +68,18 @@ finally:
 
     print('Simulation terminated...')
 
-    ee_track = np.array(ee_track)
     ee_angles_track = np.array(ee_angles_track)
-    target_track = np.array(target_track)
     target_angles_track = np.array(target_angles_track)
 
-    if ee_track.shape[0] > 0:
+    if ee_angles_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
         import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
-        fig = plt.figure(figsize=(8,12))
-        ax1 = fig.add_subplot(311)
-        ax1.set_ylabel('3D position (m)')
-        ax1.plot(ee_track)
-        ax1.plot(target_track, '--')
-
-        ax2 = fig.add_subplot(312)
-        ax2.plot(ee_angles_track)
-        ax2.plot(target_angles_track, '--')
-        ax2.set_ylabel('3D orientation (rad)')
-        ax2.set_xlabel('Time (s)')
-
-        ax3 = fig.add_subplot(313, projection='3d')
-        ax3.set_title('End-Effector Trajectory')
-        ax3.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
-        ax3.scatter(target_track[0, 0], target_track[0, 1], target_track[0, 2],
-                    label='target', c='g')
-        ax3.legend()
+        plt.figure()
+        plt.plot(ee_angles_track)
+        plt.gca().set_prop_cycle(None)
+        plt.plot(target_angles_track, '--')
+        plt.ylabel('3D orientation (rad)')
+        plt.xlabel('Time (s)')
+        plt.tight_layout()
         plt.show()

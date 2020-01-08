@@ -3,13 +3,13 @@ import numpy as np
 from abr_control.utils import transformations, download_meshes
 
 from .interface import Interface
-from .vrep_files import vrep
+from .coppeliasim_files import sim
 
 
-class VREP(Interface):
-    """ An interface for VREP.
+class CoppeliaSim(Interface):
+    """ An interface for CoppeliaSim.
 
-    Implements force control using VREP's torque-limiting method.
+    Implements force control using CoppeliaSim's torque-limiting method.
     Lock-steps the simulation so that it only moves forward one dt
     every time send_forces is called.
 
@@ -22,9 +22,9 @@ class VREP(Interface):
         simulation time step in seconds
     """
 
-    def __init__(self, robot_config, dt=.001):
+    def __init__(self, robot_config, dt=0.001):
 
-        super(VREP, self).__init__(robot_config)
+        super(CoppeliaSim, self).__init__(robot_config)
 
         self.q = np.zeros(self.robot_config.N_JOINTS)  # joint angles
         self.dq = np.zeros(self.robot_config.N_JOINTS)  # joint_velocities
@@ -32,103 +32,98 @@ class VREP(Interface):
         # joint target velocities, as part of the torque limiting control
         # these need to be super high so that the joints are always moving
         # at the maximum allowed torque
-        self.joint_target_velocities = (np.ones(robot_config.N_JOINTS) *
-                                        10000.0)
+        self.joint_target_velocities = np.ones(robot_config.N_JOINTS) * 10000.0
 
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times send forces is called
         self.misc_handles = {}  # for tracking miscellaneous object handles
 
     def connect(self, load_scene=True, force_download=False):
-        """ Connect to the current scene open in VREP
+        """ Connect to the current scene open in CoppeliaSim
 
-        Finds the VREP references to the joints of the robot.
+        Finds the CoppeliaSim references to the joints of the robot.
         Sets the time step for simulation and put into lock-step mode.
 
         NOTE: the joints and links must follow the naming convention of
         'joint#' and 'link#', starting from 'joint0' and 'link0'
 
-        NOTE: The dt in the VREP physics engine must also be specified
+        NOTE: The dt in the CoppeliaSim physics engine must also be specified
         to be less than the dt used here.
         """
 
         # close any open connections
-        vrep.simxFinish(-1)
+        sim.simxFinish(-1)
         # Connect to the V-REP continuous server
-        self.clientID = vrep.simxStart('127.0.0.1', 19997, True, True, 500, 5)
+        self.clientID = sim.simxStart("127.0.0.1", 19997, True, True, 500, 5)
 
         if self.clientID == -1:
-            raise Exception('Failed connecting to remote API server')
+            raise Exception("Failed connecting to CoppeliaSim remote API server")
 
         if load_scene:
             # if there's a google id, check for files and download if missing
-            if self.robot_config.google_id != 'None':
+            if self.robot_config.google_id != "None":
                 download_meshes.check_and_download(
                     name=self.robot_config.filename,
                     google_id=self.robot_config.google_id,
                     force_download=force_download,
-                    files=None)
+                )
             # load the scene specified in the config
-            vrep.simxLoadScene(
-                self.clientID,
-                self.robot_config.filename,
-                0,
-                vrep.simx_opmode_blocking)
+            sim.simxLoadScene(
+                self.clientID, self.robot_config.filename, 0, sim.simx_opmode_blocking
+            )
 
-        vrep.simxSynchronous(self.clientID, True)
+        sim.simxSynchronous(self.clientID, True)
 
         # get the handles for each joint and set up streaming
-        self.joint_handles = [vrep.simxGetObjectHandle(
-            self.clientID,
-            name,
-            vrep.simx_opmode_blocking)[1] for name in
-                              self.robot_config.JOINT_NAMES]
+        self.joint_handles = [
+            sim.simxGetObjectHandle(self.clientID, name, sim.simx_opmode_blocking)[1]
+            for name in self.robot_config.JOINT_NAMES
+        ]
 
         # get handle for target and set up streaming
-        _, self.misc_handles['target'] = \
-            vrep.simxGetObjectHandle(self.clientID,
-                                     'target',
-                                     vrep.simx_opmode_blocking)
+        _, self.misc_handles["target"] = sim.simxGetObjectHandle(
+            self.clientID, "target", sim.simx_opmode_blocking
+        )
         # get handle for hand
-        _, self.hand_handle = \
-            vrep.simxGetObjectHandle(self.clientID,
-                                     'hand',
-                                     vrep.simx_opmode_blocking)
+        _, self.hand_handle = sim.simxGetObjectHandle(
+            self.clientID, "hand", sim.simx_opmode_blocking
+        )
 
-        vrep.simxSetFloatingParameter(
+        sim.simxSetFloatingParameter(
             self.clientID,
-            vrep.sim_floatparam_simulation_time_step,
+            sim.sim_floatparam_simulation_time_step,
             self.dt,  # specify a simulation time step
-            vrep.simx_opmode_oneshot)
+            sim.simx_opmode_oneshot,
+        )
 
-        vrep.simxSetBooleanParameter(
+        sim.simxSetBooleanParameter(
             self.clientID,
-            vrep.sim_boolparam_display_enabled,
+            sim.sim_boolparam_display_enabled,
             True,
-            vrep.simx_opmode_oneshot)
+            sim.simx_opmode_oneshot,
+        )
 
         # start our simulation in lockstep with our code
-        vrep.simxStartSimulation(self.clientID,
-                                 vrep.simx_opmode_blocking)
+        sim.simxStartSimulation(self.clientID, sim.simx_opmode_blocking)
 
-        print('Connected to VREP remote API server')
+        print("Connected to CoppeliaSim remote API server")
 
     def disconnect(self):
         """ Stop and reset the simulation. """
 
         # stop the simulation
-        vrep.simxStopSimulation(self.clientID, vrep.simx_opmode_blocking)
+        sim.simxStopSimulation(self.clientID, sim.simx_opmode_blocking)
 
         # Before closing the connection to V-REP,
         # make sure that the last command sent out had time to arrive.
-        vrep.simxGetPingTime(self.clientID)
+        sim.simxGetPingTime(self.clientID)
 
         # Now close the connection to V-REP:
-        vrep.simxFinish(self.clientID)
-        print('VREP connection closed...')
+        sim.simxFinish(self.clientID)
+        print("CoppeliaSim connection closed...")
 
     def get_orientation(self, name):
-        """ Returns the orientation of an object in VREP
+        """ Returns the orientation of an object in CoppeliaSim
 
         the Euler angles [radians] are returned in the relative xyz frame.
         http://www.coppeliarobotics.com/helpFiles/en/eulerAngles.htm
@@ -142,21 +137,20 @@ class VREP(Interface):
         if self.misc_handles.get(name, None) is None:
             # if we haven't retrieved the handle previously
             # get the handle and set up streaming
-            _, self.misc_handles[name] = \
-                vrep.simxGetObjectHandle(self.clientID,
-                                         name,
-                                         vrep.simx_opmode_blocking)
+            _, self.misc_handles[name] = sim.simxGetObjectHandle(
+                self.clientID, name, sim.simx_opmode_blocking
+            )
 
-        _, orientation = \
-            vrep.simxGetObjectOrientation(
-                self.clientID,
-                self.misc_handles[name],
-                -1, # orientation relative to world
-                vrep.simx_opmode_blocking)
+        _, orientation = sim.simxGetObjectOrientation(
+            self.clientID,
+            self.misc_handles[name],
+            -1,  # orientation relative to world
+            sim.simx_opmode_blocking,
+        )
         return orientation
 
     def set_orientation(self, name, angles):
-        """ Sets the orientation of an object in VREP
+        """ Sets the orientation of an object in CoppeliaSim
 
         Sets the orientation of an object using the provided Euler angles.
         Angles must be in a relative xyz frame.
@@ -173,16 +167,16 @@ class VREP(Interface):
         if self.misc_handles.get(name, None) is None:
             # if we haven't retrieved the handle previously
             # get the handle and set up streaming
-            _, self.misc_handles[name] = \
-                vrep.simxGetObjectHandle(self.clientID,
-                                         name,
-                                         vrep.simx_opmode_blocking)
-        _ = vrep.simxSetObjectOrientation(
+            _, self.misc_handles[name] = sim.simxGetObjectHandle(
+                self.clientID, name, sim.simx_opmode_blocking
+            )
+        _ = sim.simxSetObjectOrientation(
             self.clientID,
             self.misc_handles[name],
             -1,  # orientation relative to world
             angles,
-            vrep.simx_opmode_blocking)
+            sim.simx_opmode_blocking,
+        )
 
     def send_forces(self, u):
         """ Apply the specified torque to the robot joints
@@ -196,54 +190,55 @@ class VREP(Interface):
             the torques to apply to the robot
         """
 
-        # invert because VREP torque directions are opposite of expected
+        # invert because CoppeliaSim torque directions are opposite of expected
         u *= -1
 
         for ii, joint_handle in enumerate(self.joint_handles):
 
             # get the current joint torque
-            _, torque = vrep.simxGetJointForce(
-                self.clientID,
-                joint_handle,
-                vrep.simx_opmode_blocking)
+            _, torque = sim.simxGetJointForce(
+                self.clientID, joint_handle, sim.simx_opmode_blocking
+            )
             if _ != 0:
-                raise Exception('Error retrieving joint torque, ' +
-                                'return code ', _)
+                raise Exception("Error retrieving joint torque, " + "return code ", _)
 
             # if force has changed signs,
             # we need to change the target velocity sign
             if np.sign(torque) * np.sign(u[ii]) <= 0:
-                self.joint_target_velocities[ii] = \
-                    self.joint_target_velocities[ii] * -1
-                _ = vrep.simxSetJointTargetVelocity(
+                self.joint_target_velocities[ii] = self.joint_target_velocities[ii] * -1
+                _ = sim.simxSetJointTargetVelocity(
                     self.clientID,
                     joint_handle,
                     self.joint_target_velocities[ii],
-                    vrep.simx_opmode_blocking)
+                    sim.simx_opmode_blocking,
+                )
                 if _ != 0:
-                    raise Exception('Error setting joint target velocity, ' +
-                                    'return code ', _)
+                    raise Exception(
+                        "Error setting joint target velocity, " + "return code ", _
+                    )
 
             # and now modulate the force
-            _ = vrep.simxSetJointForce(self.clientID,
-                                       joint_handle,
-                                       abs(u[ii]),  # force to apply
-                                       vrep.simx_opmode_blocking)
+            _ = sim.simxSetJointForce(
+                self.clientID,
+                joint_handle,
+                abs(u[ii]),  # force to apply
+                sim.simx_opmode_blocking,
+            )
             if _ != 0:
-                raise Exception('Error setting max joint force, ' +
-                                'return code ', _)
+                raise Exception("Error setting max joint force, " + "return code ", _)
 
         # Update position of hand object
-        hand_xyz = self.robot_config.Tx(name='EE', q=self.q)
-        self.set_xyz('hand', hand_xyz)
+        hand_xyz = self.robot_config.Tx(name="EE", q=self.q)
+        self.set_xyz("hand", hand_xyz)
 
         # Update orientation of hand object
         angles = transformations.euler_from_matrix(
-            self.robot_config.R('EE', q=self.q), axes='rxyz')
-        self.set_orientation('hand', angles)
+            self.robot_config.R("EE", q=self.q), axes="rxyz"
+        )
+        self.set_orientation("hand", angles)
 
         # move simulation ahead one time step
-        vrep.simxSynchronousTrigger(self.clientID)
+        sim.simxSynchronousTrigger(self.clientID)
         self.count += self.dt
 
     def send_target_angles(self, q, joint_handles=None):
@@ -255,20 +250,17 @@ class VREP(Interface):
             configuration to move to [radians]
         joint_handles: list, optional (Default: None)
             ID numbers for the joint, used when trying to get information
-            out of the VREP remote API
+            out of the CoppeliaSim remote API
         """
 
-        joint_handles = (self.joint_handles if joint_handles is None
-                         else joint_handles)
+        joint_handles = self.joint_handles if joint_handles is None else joint_handles
 
         for ii, joint_handle in enumerate(joint_handles):
             # send in angles to move to
             # NOTE: no success / fail message received in oneshot mode
-            vrep.simxSetJointPosition(
-                self.clientID,
-                joint_handle,
-                q[ii],
-                vrep.simx_opmode_oneshot)
+            sim.simxSetJointPosition(
+                self.clientID, joint_handle, q[ii], sim.simx_opmode_oneshot
+            )
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller.
@@ -279,26 +271,23 @@ class VREP(Interface):
 
         for ii, joint_handle in enumerate(self.joint_handles):
             # get the joint angles
-            _, self.q[ii] = vrep.simxGetJointPosition(
-                self.clientID,
-                joint_handle,
-                vrep.simx_opmode_blocking)
+            _, self.q[ii] = sim.simxGetJointPosition(
+                self.clientID, joint_handle, sim.simx_opmode_blocking
+            )
             if _ != 0:
-                raise Exception('Error retrieving joint angle, ' +
-                                'return code ', _)
+                raise Exception("Error retrieving joint angle, " + "return code ", _)
 
             # get the joint velocity
-            _, self.dq[ii] = vrep.simxGetObjectFloatParameter(
+            _, self.dq[ii] = sim.simxGetObjectFloatParameter(
                 self.clientID,
                 joint_handle,
                 2012,  # ID for joint angular velocity
-                vrep.simx_opmode_blocking)
+                sim.simx_opmode_blocking,
+            )
             if _ != 0:
-                raise Exception('Error retrieving joint velocity, ' +
-                                'return code ', _)
+                raise Exception("Error retrieving joint velocity, " + "return code ", _)
 
-        return {'q': self.q,
-                'dq': self.dq}
+        return {"q": self.q, "dq": self.dq}
 
     def get_xyz(self, name):
         """ Returns the xyz position of the specified object
@@ -310,16 +299,16 @@ class VREP(Interface):
         if self.misc_handles.get(name, None) is None:
             # if we haven't retrieved the handle previously
             # get the handle and set up streaming
-            _, self.misc_handles[name] = \
-                vrep.simxGetObjectHandle(self.clientID,
-                                         name,
-                                         vrep.simx_opmode_blocking)
+            _, self.misc_handles[name] = sim.simxGetObjectHandle(
+                self.clientID, name, sim.simx_opmode_blocking
+            )
 
-        _, xyz = vrep.simxGetObjectPosition(
+        _, xyz = sim.simxGetObjectPosition(
             self.clientID,
             self.misc_handles[name],
             -1,  # get absolute, not relative position
-            vrep.simx_opmode_blocking)
+            sim.simx_opmode_blocking,
+        )
         return xyz
 
     def set_xyz(self, name, xyz):
@@ -334,14 +323,14 @@ class VREP(Interface):
         if self.misc_handles.get(name, None) is None:
             # if we haven't retrieved the handle previously
             # get the handle and set up streaming
-            _, self.misc_handles[name] = \
-                vrep.simxGetObjectHandle(self.clientID,
-                                         name,
-                                         vrep.simx_opmode_blocking)
+            _, self.misc_handles[name] = sim.simxGetObjectHandle(
+                self.clientID, name, sim.simx_opmode_blocking
+            )
 
-        vrep.simxSetObjectPosition(
+        sim.simxSetObjectPosition(
             self.clientID,
             self.misc_handles[name],
             -1,  # set absolute, not relative position
             xyz,
-            vrep.simx_opmode_blocking)
+            sim.simx_opmode_blocking,
+        )

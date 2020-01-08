@@ -1,26 +1,35 @@
 """
-Move the UR5 VREP arm to a target position.
+Move the UR5 CoppeliaSim arm to a target position.
 The simulation ends after 1500 time steps, and the
 trajectory of the end-effector is plotted in 3D.
 """
 import numpy as np
 import traceback
 
-# from abr_control.arms import ur5 as arm
-from abr_control.arms import jaco2 as arm
+from abr_control.arms import ur5 as arm
+# from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onejoint as arm
-from abr_control.controllers import Sliding
-from abr_control.interfaces import VREP
+from abr_control.controllers import OSC, Damping
+from abr_control.interfaces import CoppeliaSim
+from abr_control.utils import transformations
+
 
 # initialize our robot config
 robot_config = arm.Config()
 
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
 # instantiate controller
-# NOTE: These values are non-optimal
-ctrlr = Sliding(robot_config, kd=10.0, lamb=30.00)
+ctrlr = OSC(
+    robot_config,
+    kp=200,
+    null_controllers=[damping],
+    vmax=[0.5, 0],  # [m/s, rad/s]
+    # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
+    ctrlr_dof = [True, True, True, False, False, False])
 
-# create our VREP interface
-interface = VREP(robot_config, dt=.001)
+# create our CoppeliaSim interface
+interface = CoppeliaSim(robot_config, dt=.005)
 interface.connect()
 
 # set up lists for tracking data
@@ -34,7 +43,7 @@ try:
     start = robot_config.Tx('EE', feedback['q'])
 
     # make the target offset from that start position
-    target_xyz = start + np.array([0.2, -0.2, 0.0])
+    target_xyz = start + np.array([0.2, -0.2, -0.3])
     interface.set_xyz(name='target', xyz=target_xyz)
 
     count = 0.0
@@ -43,21 +52,28 @@ try:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
 
+        target = np.hstack([
+            interface.get_xyz('target'),
+            interface.get_orientation('target')])
+
+        name = 'joint1'
+        vrep_angles = interface.get_orientation('UR5_%s' % name)
+
         # calculate the control signal
         u = ctrlr.generate(
             q=feedback['q'],
             dq=feedback['dq'],
-            target=target_xyz
+            target=target,
             )
 
-        # send forces into VREP, step the sim forward
+        # send forces into CoppeliaSim, step the sim forward
         interface.send_forces(u)
 
         # calculate end-effector position
         ee_xyz = robot_config.Tx('EE', q=feedback['q'])
         # track data
         ee_track.append(np.copy(ee_xyz))
-        target_track.append(np.copy(target_xyz))
+        target_track.append(np.copy(target[:3]))
 
         count += 1
 
@@ -65,7 +81,7 @@ except:
     print(traceback.format_exc())
 
 finally:
-    # stop and reset the VREP simulation
+    # stop and reset the CoppeliaSim simulation
     interface.disconnect()
 
     print('Simulation terminated...')

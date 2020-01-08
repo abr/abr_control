@@ -1,2 +1,1 @@
-from .vrep import VREP
-from .coppeliaSim import COPPELIASIM
+from .coppeliasim import CoppeliaSim
