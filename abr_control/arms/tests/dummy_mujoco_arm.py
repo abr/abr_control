@@ -2,8 +2,8 @@ import numpy as np
 
 
 class TwoJoint:  # pylint: disable=too-many-public-methods
-    """ A class with equationns analytically derived in (Spong et al, 2004),
-    page 209, for testing the symbolic function generation config system. """
+    """ Analytically derived kinematics and dynamics functions for a two joint arm,
+    with the first joint rotating around z and the second y. """
 
     def __init__(self, L0=0.1, L1=0.2, L2=0.4):
         self.L = [L0, L1, L2]
