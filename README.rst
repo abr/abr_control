@@ -6,11 +6,11 @@ ABR Control
 
 The ABR Control library is a python package for the control and path planning of
 robotic arms in real or simulated environments. ABR Control provides API's for the
-Mujoco, VREP, and Pygame simulation environments, and arm configuration files for
-one, two, and three-joint models, as well as the UR5 and Kinova Jaco 2 arms. Users can
-also easily extend the package to run with custom arm configurations. ABR Control
-auto-generates efficient C code for generating the control signals, or uses Mujoco's
-internal functions to carry out the calculations.
+Mujoco, CoppeliaSim (formerly known as VREP), and Pygame simulation environments, and
+arm configuration files for one, two, and three-joint models, as well as the UR5 and
+Kinova Jaco 2 arms. Users can also easily extend the package to run with custom arm
+configurations. ABR Control auto-generates efficient C code for generating the control
+signals, or uses Mujoco's internal functions to carry out the calculations.
 
 ABR also provides an interface and config available for controlling a real Jaco 2
 at the `ABR_Jaco2 <https://github.com/abr/abr_jaco2/>`_ repository.
@@ -80,7 +80,7 @@ Usage
 The ABR Control repo is comprised of three parts: 1) arms, 2) controllers, and
 3) interfaces.
 
-1a) Arms: Using VREP, Pygame, or a real arm
+1a) Arms: Using CoppeliaSim, Pygame, or a real arm
 ---------------------------------------
 All of the required information about an arm model is kept in that arm's config file.
 To use the ABR Control library with a new arm, the user must provide the transformation
@@ -169,8 +169,8 @@ In addition to filters, there is an example path planner using the dynamic movem
 primitives trajectory generation system.
 
 Finally, there is an implementation of nonlinear adaptive control in the ``signals``
-folder, as well as examples in Mujoco, PyGame and VREP showing how this class can be
-used to overcome unexpected forces acting on the arm.
+folder, as well as examples in Mujoco, PyGame, and CoppeliaSim showing how this class
+can be used to overcome unexpected forces acting on the arm.
 
 3) Interfaces
 -------------
@@ -184,10 +184,10 @@ A control loop using these three files looks like::
 
     from abr_control.arms import jaco2
     from abr_control.controllers import OSC
-    from abr_control.interfaces import VREP
+    from abr_control.interfaces import CoppeliaSim
 
     robot_config = jaco2.Config()
-    interface = VREP(robot_config)
+    interface = CoppeliaSim(robot_config)
     interface.connect()
 
     ctrlr = OSC(robot_config, kp=20,
@@ -202,7 +202,7 @@ A control loop using these three files looks like::
             q=feedback['q'],
             dq=feedback['dq'],
             target=np.hstack([target_xyz, target_orientation]))
-        interface.send_forces(u)  # send forces and step VREP sim forward
+        interface.send_forces(u)  # send forces and step CoppeliaSim sim forward
 
     interface.disconnect()
 
@@ -222,14 +222,14 @@ By default all of the PyGame examples run with the three-link MapleSim arm. You 
 also run the examples using the two-link Python arm by changing the import statement at
 the top of the example scripts.
 
-To run the VREP examples, have the most recent VREP version open. By default, the VREP
-examples all run with the UR5 or Jaco2 arm model. To change this, change which arm
-folder is imported at the top of the example script. The first time you run an example
-you will be promted to download the arm model. Simply select ``yes`` to download the
-file and the simulation will start once the download completes.
+To run the CoppeliaSim examples, have the most recent CoppeliaSim version open. By
+default, the CoppeliaSim examples all run with the UR5 or Jaco2 arm model. To change
+this, change which arm folder is imported at the top of the example script. The first
+time you run an example you will be promted to download the arm model. Simply select
+``yes`` to download the file and the simulation will start once the download completes.
 
 To run the Mujoco examples, you will be promted to download any mesh or texture files,
-if they are used in the xml config, similarly to the VREP arm model. Once the download
-completes the simulation will start. If you are using the forked Mujoco-Py repository
-(See Optional Installation section) you can exit the simulation with the ESC key and
-pause with the spacebar.
+if they are used in the xml config, similarly to the CoppeliaSim arm model. Once the
+download completes the simulation will start. If you are using the forked Mujoco-Py
+repository (See Optional Installation section) you can exit the simulation with the ESC
+key and pause with the spacebar.

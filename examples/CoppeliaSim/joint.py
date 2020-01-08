@@ -10,7 +10,7 @@ import traceback
 from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onejoint as arm
 from abr_control.controllers import Joint
-from abr_control.interfaces import VREP
+from abr_control.interfaces import CoppeliaSim
 
 
 # initialize our robot config
@@ -20,14 +20,14 @@ robot_config = arm.Config()
 ctrlr = Joint(robot_config, kp=50)
 
 # create interface and connect
-interface = VREP(robot_config=robot_config, dt=.005)
+interface = CoppeliaSim(robot_config=robot_config, dt=.005)
 interface.connect()
 
 # make the target an offset of the current configuration
 feedback = interface.get_feedback()
 target = feedback['q'] + np.ones(robot_config.N_JOINTS) * .3
 
-# For VREP files that have a shadow arm to show the target configuration
+# For CoppeliaSim files that have a shadow arm to show the target configuration
 # get joint handles for shadow
 names = ['joint%i_shadow' % ii for ii in range(robot_config.N_JOINTS)]
 joint_handles = []
@@ -55,7 +55,7 @@ try:
             target=target,
             )
 
-        # send forces into VREP, step the sim forward
+        # send forces into CoppeliaSim, step the sim forward
         interface.send_forces(u)
 
         # track joint angles

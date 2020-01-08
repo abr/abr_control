@@ -1,67 +1,58 @@
 """
-Move the UR5 VREP arm to a target position.
-The simulation ends after 1.5 simulated seconds, and the
-trajectory of the end-effector is plotted in 3D.
+Move the UR5 CoppeliaSim arm to a target position while avoiding an obstacle.
+The simulation ends after 1500 time steps, and the trajectory
+of the end-effector is plotted in 3D.
 """
 import numpy as np
-import traceback
 
-from abr_control.arms import jaco2 as arm
-from abr_control.controllers import OSC, Damping, signals
-from abr_control.interfaces import VREP
+from abr_control.arms import ur5 as arm
+# from abr_control.arms import jaco2 as arm
+from abr_control.controllers import OSC, AvoidObstacles, Damping
+from abr_control.interfaces import CoppeliaSim
 
 
-# initialize our robot config for the jaco2
+# initialize our robot config
 robot_config = arm.Config()
 
+avoid = AvoidObstacles(robot_config)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
-# instantiate controller
+# instantiate the REACH controller with obstacle avoidance
 ctrlr = OSC(
     robot_config,
     kp=200,
-    null_controllers=[damping],
+    null_controllers=[avoid, damping],
     vmax=[0.5, 0],  # [m/s, rad/s]
     # control (x, y, z) out of [x, y, z, alpha, beta, gamma]
     ctrlr_dof = [True, True, True, False, False, False])
 
-# create our adaptive controller
-adapt = signals.DynamicsAdaptation(
-    n_neurons=1000,
-    n_ensembles=5,
-    n_input=2,  # we apply adaptation on the most heavily stressed joints
-    n_output=2,
-    pes_learning_rate=5e-5,
-    intercepts_bounds=[-0.6, -0.2],
-    intercepts_mode=-0.2,
-    means=[3.14, 3.14],
-    variances=[1.57, 1.57])
-
-# create our VREP interface
-interface = VREP(robot_config, dt=.005)
+# create our CoppeliaSim interface
+interface = CoppeliaSim(robot_config, dt=.005)
 interface.connect()
-interface.send_target_angles(q=robot_config.START_ANGLES)
 
 # set up lists for tracking data
 ee_track = []
 target_track = []
+obstacle_track = []
 
-# get Jacobians to each link for calculating perturbation
-J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
-           for ii in range(robot_config.N_LINKS)]
+moving_obstacle = True
+obstacle_xyz = np.array([0.09596, -0.2661, 0.64204])
 
 
 try:
-    # get the end-effector's initial position
+    # get visual position of end point of object
     feedback = interface.get_feedback()
-    start = robot_config.Tx('EE', feedback['q'])
+    start = robot_config.Tx('EE', q=feedback['q'])
 
     # make the target offset from that start position
-    target_xyz = start + np.array([0.2, -0.2, 0.0])
+    target_xyz = start + np.array([.2, -.2, 0.0])
     interface.set_xyz(name='target', xyz=target_xyz)
+    interface.set_xyz(name='obstacle', xyz=obstacle_xyz)
 
     count = 0.0
-    while 1:
+    obs_count = 0.0
+    print('\nSimulation starting...\n')
+    while count < 1500:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
 
@@ -76,19 +67,17 @@ try:
             target=target,
             )
 
-        u_adapt = np.zeros(robot_config.N_JOINTS)
-        u_adapt[1:3] = adapt.generate(
-            input_signal=np.array(
-                [feedback['q'][1], feedback['q'][2]]),
-            training_signal=np.array(
-                [ctrlr.training_signal[1], ctrlr.training_signal[2]]))
-        u += u_adapt
+        # get obstacle position from CoppeliaSim
+        obs_x, obs_y, obs_z = interface.get_xyz('obstacle')
+        # update avoidance system about obstacle position
+        avoid.set_obstacles([[obs_x, obs_y, obs_z, 0.05]])
+        if moving_obstacle is True:
+            obs_x = .125 + .25 * np.sin(obs_count)
+            obs_count += .05
+            interface.set_xyz(name='obstacle',
+                              xyz=[obs_x, obs_y, obs_z])
 
-        # add an additional force for the controller to adapt to
-        extra_gravity = robot_config.g(feedback['q']) * 2
-        u += extra_gravity
-
-        # send forces into VREP, step the sim forward
+        # send forces into CoppeliaSim, step the sim forward
         interface.send_forces(u)
 
         # calculate end-effector position
@@ -96,21 +85,19 @@ try:
         # track data
         ee_track.append(np.copy(ee_xyz))
         target_track.append(np.copy(target[:3]))
+        obstacle_track.append(np.copy([obs_x, obs_y, obs_z]))
 
         count += 1
 
-        ee_xyz = robot_config.Tx('EE', q=feedback['q'])
-        interface.set_xyz(name='hand', xyz=ee_xyz)
-
-except:
-    print(traceback.format_exc())
-
 finally:
-    # stop and reset the VREP simulation
+    # stop and reset the CoppeliaSim simulation
     interface.disconnect()
+
+    print('Simulation terminated...')
 
     ee_track = np.array(ee_track)
     target_track = np.array(target_track)
+    obstacle_track = np.array(obstacle_track)
 
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory
@@ -129,6 +116,8 @@ finally:
         ax2.set_title('End-Effector Trajectory')
         ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
         ax2.scatter(target_track[0, 0], target_track[0, 1], target_track[0, 2],
-                 label='target', c='r')
+                    label='target', c='g')
+        ax2.plot(obstacle_track[:, 0], obstacle_track[:, 1], target_track[:, 2],
+                 label='obstacle', c='r')
         ax2.legend()
         plt.show()

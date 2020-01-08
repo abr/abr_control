@@ -10,17 +10,17 @@ import traceback
 
 from abr_control.arms import jaco2 as arm
 from abr_control.controllers import Floating
-from abr_control.interfaces import VREP
+from abr_control.interfaces import CoppeliaSim
 
 
 # initialize our robot config
 robot_config = arm.Config()
 
 # instantiate the controller
-ctrlr = Floating(robot_config, task_space=True)
+ctrlr = Floating(robot_config, dynamic=False, task_space=False)
 
-# create the VREP interface and connect up
-interface = VREP(robot_config, dt=.005)
+# create the CoppeliaSim interface and connect up
+interface = CoppeliaSim(robot_config, dt=.005)
 interface.connect()
 
 # set up arrays for tracking end-effector and target position
@@ -44,7 +44,7 @@ try:
             q=feedback['q'],
             dq=feedback['dq'])
 
-        # send forces into VREP
+        # send forces into CoppeliaSim
         interface.send_forces(u)
 
         # calculate the position of the hand

@@ -1,5 +1,5 @@
 """
-Running operational space control using VREP. The controller will
+Running operational space control using CoppeliaSim. The controller will
 move the end-effector to the target object's position and orientation.
 
 This example controls all 6 degrees of freedom (position and orientation),
@@ -11,7 +11,7 @@ import numpy as np
 
 from abr_control.arms import ur5 as arm
 from abr_control.controllers import OSC, Damping, path_planners
-from abr_control.interfaces import VREP
+from abr_control.interfaces import CoppeliaSim
 from abr_control.utils import transformations
 
 
@@ -31,11 +31,11 @@ ctrlr = OSC(
     ctrlr_dof = [True, True, True, True, True, True])
 
 # create our interface
-interface = VREP(robot_config, dt=.005)
+interface = CoppeliaSim(robot_config, dt=.005)
 interface.connect()
 
 # pregenerate our path and orientation planners
-n_timesteps = 1000
+n_timesteps = 100
 traj_planner = path_planners.SecondOrderDMP(
     error_scale=50, n_timesteps=n_timesteps)
 
