@@ -1,0 +1,69 @@
+project_name: ABR Control
+pkg_name: abr_control
+repo_name: abr/abr_control
+author_email: travis.dewolf@appliedbrainresearch.com
+description: Robotic arm control in Python
+
+copyright_start: 2017
+
+license_rst: {
+    type: nengo
+}
+
+contributing_rst: {}
+
+# contributors_rst: {}
+
+setup_cfg:
+  coverage:
+    omit_files:
+      - "abr_control/_vendor/*"
+      - "abr_control/interfaces/coppeliasim_files"
+      - "abr_control/arms/threejoint/arm_files"
+  flake8:
+    exclude:
+      - abr_control/_vendor
+      - abr_control/interfaces/coppeliasim_files
+      - abr_control/arms/threejoint/arm_files
+  pytest:
+    norecursedirs:
+      - "examples"
+      - "abr_control/_vendor"
+  pylint:
+    ignore:
+      - _vendor
+      - arm_files
+      - coppeliasim_files
+    known_third_party:
+      - mpl_toolkits
+      - nengo
+      - nengolib
+      - scipy
+
+travis_yml:
+  jobs:
+    - script: static
+    - script: test
+    - script: test-coverage
+      test_args: --plots
+  pypi_user: tbekolay
+  deploy_dists:
+      - sdist
+      - bdist_wheel
+
+ci_scripts:
+  - template: static
+    codespell_ignore_words:
+        - DOF
+        - dof
+        - hist
+    codespell_skip:
+      - arm_files
+      - coppeliasim_files
+      - _vendor
+  - template: test
+  - template: test
+    output_name: test-coverage
+    coverage: true
+
+codecov_yml: {}
