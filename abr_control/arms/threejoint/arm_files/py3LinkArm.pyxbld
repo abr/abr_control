@@ -1,0 +1,12 @@
+import numpy
+import pathlib
+
+path = str(pathlib.Path(__file__).parent.absolute())
+
+def make_ext(modname, pyxfilename):
+    from distutils.extension import Extension
+    return Extension(name=modname,
+                     sources=[pyxfilename],
+                     language='c++',
+                     include_dirs=[numpy.get_include()],
+                     extra_compile_args=['-I' + path],)
