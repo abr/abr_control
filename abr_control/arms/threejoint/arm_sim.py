@@ -1,4 +1,5 @@
 import numpy as np
+import pyximport; pyximport.install(inplace=True)
 
 from .arm_files.py3LinkArm import pySim
 
