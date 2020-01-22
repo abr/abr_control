@@ -48,7 +48,7 @@ in your anaconda environment and run::
     git clone https://github.com/studywolf/mujoco-py.git
     cd mujoco-py
     pip install -e .
-    pip install glfw=>1.8.3
+    pip install glfw>=1.8.3
     pip install requests
 
 Pygame
@@ -81,7 +81,7 @@ The ABR Control repo is comprised of three parts: 1) arms, 2) controllers, and
 3) interfaces.
 
 1a) Arms: Using CoppeliaSim, Pygame, or a real arm
----------------------------------------
+--------------------------------------------------
 All of the required information about an arm model is kept in that arm's config file.
 To use the ABR Control library with a new arm, the user must provide the transformation
 matrices (written using SymPy expressions) from the robot's origin reference frame to

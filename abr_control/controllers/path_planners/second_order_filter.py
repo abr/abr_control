@@ -45,15 +45,14 @@ class SecondOrderFilter(PathPlanner):
         within this threshold distance to target position reduce the
         filtering effects to improve convergence in practice
     """
-    def __init__(self, n_timesteps=3000, dt=0.001,
-                 zeta=2.0, w=1e4, threshold=0.02):
+
+    def __init__(self, n_timesteps=3000, dt=0.001, zeta=2.0, w=1e4, threshold=0.02):
 
         self.n_timesteps = n_timesteps
         self.dt = dt
         self.zeta = zeta
-        self.w = w/n_timesteps # gain to converge in the desired time
+        self.w = w / n_timesteps  # gain to converge in the desired time
         self.threshold = threshold
-
 
     def generate_path(self, position, target_position, velocity=None, plot=False):
         """
@@ -96,7 +95,6 @@ class SecondOrderFilter(PathPlanner):
         self.velocity_path = np.array(self.velocity_path)
         return self.position_path, self.velocity_path
 
-
     def _step(self, position, velocity, target_position):
         """ Calculates the next state given the current state and
         system dynamics' parameters.
@@ -118,9 +116,7 @@ class SecondOrderFilter(PathPlanner):
             # short distances
             w *= 3
 
-        accel = (w**2 * target_position
-                 - velocity * self.zeta * w
-                 - position * w**2)
+        accel = w ** 2 * target_position - velocity * self.zeta * w - position * w ** 2
         velocity = velocity + accel * self.dt
         position = position + velocity * self.dt
 

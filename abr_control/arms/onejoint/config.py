@@ -30,70 +30,89 @@ class Config(BaseConfig):
     def __init__(self, **kwargs):
 
         super(Config, self).__init__(
-            N_JOINTS=1, N_LINKS=1, ROBOT_NAME='onelink', **kwargs)
+            N_JOINTS=1, N_LINKS=1, ROBOT_NAME="onelink", **kwargs
+        )
 
         self._T = {}  # dictionary for storing calculated transforms
 
-        self.JOINT_NAMES = ['joint0']
-        self.START_ANGLES = np.array([np.pi/2.0])
+        self.JOINT_NAMES = ["joint0"]
+        self.START_ANGLES = np.array([np.pi / 2.0])
 
         # create the inertia matrices for each link
-        self._M_LINKS.append(np.diag([1.0, 1.0, 1.0,
-                                      0.02, 0.02, 0.02]))  # link0
+        self._M_LINKS.append(np.diag([1.0, 1.0, 1.0, 0.02, 0.02, 0.02]))  # link0
 
         # the joints don't weigh anything
         self._M_JOINTS = [sp.zeros(6, 6) for ii in range(self.N_JOINTS)]
 
         # segment lengths associated with each joint
-        self.L = np.array([
-            [0.0, 0.0, 0.05],  # from origin to l0 COM
-            [0.0, 0.0, 0.05],  # from l0 COM to j0
-            [0.22, 0.0, 0.0],  # from j0 to l1 COM
-            [0.0, 0.0, .15]])  # from l1 COM to EE
+        self.L = np.array(
+            [
+                [0.0, 0.0, 0.05],  # from origin to l0 COM
+                [0.0, 0.0, 0.05],  # from l0 COM to j0
+                [0.22, 0.0, 0.0],  # from j0 to l1 COM
+                [0.0, 0.0, 0.15],
+            ]
+        )  # from l1 COM to EE
 
         # ---- Transform Matrices ----
 
         # Transform matrix : origin -> link 0
         # account for axes change and offsets
-        self.Torgl0 = sp.Matrix([
-            [1, 0, 0, self.L[0, 0]],
-            [0, 1, 0, self.L[0, 1]],
-            [0, 0, 1, self.L[0, 2]],
-            [0, 0, 0, 1]])
+        self.Torgl0 = sp.Matrix(
+            [
+                [1, 0, 0, self.L[0, 0]],
+                [0, 1, 0, self.L[0, 1]],
+                [0, 0, 1, self.L[0, 2]],
+                [0, 0, 0, 1],
+            ]
+        )
 
         # Transform matrix : link 0 -> joint 0
         # account for axes change and offsets
-        self.Tl0j0 = sp.Matrix([
-            [1, 0, 0, self.L[1, 0]],
-            [0, 0, -1, self.L[1, 1]],
-            [0, 1, 0, self.L[1, 2]],
-            [0, 0, 0, 1]])
+        self.Tl0j0 = sp.Matrix(
+            [
+                [1, 0, 0, self.L[1, 0]],
+                [0, 0, -1, self.L[1, 1]],
+                [0, 1, 0, self.L[1, 2]],
+                [0, 0, 0, 1],
+            ]
+        )
 
         # Transform matrix : joint 0 -> link 1
         # account for rotation due to q
-        self.Tj0l1a = sp.Matrix([
-            [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0, 0],
-            [sp.sin(self.q[0]), sp.cos(self.q[0]), 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1]])
+        self.Tj0l1a = sp.Matrix(
+            [
+                [sp.cos(self.q[0]), -sp.sin(self.q[0]), 0, 0],
+                [sp.sin(self.q[0]), sp.cos(self.q[0]), 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+            ]
+        )
         # account for change of axes and offsets
-        self.Tj0l1b = sp.Matrix([
-            [0, 0, 1, self.L[2, 0]],
-            [0, 1, 0, self.L[2, 1]],
-            [-1, 0, 0, self.L[2, 2]],
-            [0, 0, 0, 1]])
+        self.Tj0l1b = sp.Matrix(
+            [
+                [0, 0, 1, self.L[2, 0]],
+                [0, 1, 0, self.L[2, 1]],
+                [-1, 0, 0, self.L[2, 2]],
+                [0, 0, 0, 1],
+            ]
+        )
         self.Tj0l1 = self.Tj0l1a * self.Tj0l1b
 
         # Transform matrix : link 1 -> end-effector
-        self.Tl1ee = sp.Matrix([
-            [1, 0, 0, self.L[3, 0]],
-            [0, 1, 0, self.L[3, 1]],
-            [0, 0, 1, self.L[3, 2]],
-            [0, 0, 0, 1]])
+        self.Tl1ee = sp.Matrix(
+            [
+                [1, 0, 0, self.L[3, 0]],
+                [0, 1, 0, self.L[3, 1]],
+                [0, 0, 1, self.L[3, 2]],
+                [0, 0, 0, 1],
+            ]
+        )
 
         # orientation part of the Jacobian (compensating for angular velocity)
         self.J_orientation = [
-            self._calc_T('joint0')[:3, :3] * self._KZ]  # joint 0 orientation
+            self._calc_T("joint0")[:3, :3] * self._KZ
+        ]  # joint 0 orientation
 
     def _calc_T(self, name):  # noqa C907
         """ Uses Sympy to generate the transform for a joint or link
@@ -103,16 +122,16 @@ class Config(BaseConfig):
         """
 
         if self._T.get(name, None) is None:
-            if name == 'link0':
+            if name == "link0":
                 self._T[name] = self.Torgl0
-            elif name == 'joint0':
-                self._T[name] = self._calc_T('link0') * self.Tl0j0
-            elif name == 'link1':
-                self._T[name] = self._calc_T('joint0') * self.Tj0l1
-            elif name == 'EE':
-                self._T[name] = self._calc_T('link1') * self.Tl1ee
+            elif name == "joint0":
+                self._T[name] = self._calc_T("link0") * self.Tl0j0
+            elif name == "link1":
+                self._T[name] = self._calc_T("joint0") * self.Tj0l1
+            elif name == "EE":
+                self._T[name] = self._calc_T("link1") * self.Tl1ee
 
             else:
-                raise Exception('Invalid transformation name: %s' % name)
+                raise Exception("Invalid transformation name: %s" % name)
 
         return self._T[name]

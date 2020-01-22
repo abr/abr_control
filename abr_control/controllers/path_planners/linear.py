@@ -17,9 +17,11 @@ class Linear(PathPlanner):
     dt: float, optional (Default: 0.001)
         the time step for calculating desired velocities [seconds]
     """
+
     def __init__(self, n_timesteps=None, dx=None, dt=0.001):
-        assert ((n_timesteps is None and dx is not None) or
-                (dx is None and n_timesteps is not None))
+        assert (n_timesteps is None and dx is not None) or (
+            dx is None and n_timesteps is not None
+        )
 
         self.n_timesteps = n_timesteps
         self.dx = dx
@@ -45,9 +47,10 @@ class Linear(PathPlanner):
             for ii in range(n_states):
                 # calculate target states
                 self.position_path[:, ii] = np.linspace(
-                    position[ii], target_position[ii], self.n_timesteps)
+                    position[ii], target_position[ii], self.n_timesteps
+                )
         else:
-            distance = (target_position - position)
+            distance = target_position - position
             norm_distance = np.linalg.norm(distance)
             step = distance / norm_distance * self.dx
 
@@ -60,12 +63,12 @@ class Linear(PathPlanner):
                 # calculate target states
                 if abs(step[ii]) > 1e-5:
                     self.position_path[:, ii] = np.arange(
-                        position[ii], target_position[ii], step[ii])
+                        position[ii], target_position[ii], step[ii]
+                    )
 
         for ii in range(n_states):
             # calculate target velocities
-            self.velocity_path[:-1, ii] = (
-                np.diff(self.position_path[:, ii]) / self.dt)
+            self.velocity_path[:-1, ii] = np.diff(self.position_path[:, ii]) / self.dt
 
         # reset trajectory index
         self.n = 0

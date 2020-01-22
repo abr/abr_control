@@ -20,7 +20,7 @@ robot_config = arm.Config()
 ctrlr = Floating(robot_config, dynamic=False, task_space=False)
 
 # create the CoppeliaSim interface and connect up
-interface = CoppeliaSim(robot_config, dt=.005)
+interface = CoppeliaSim(robot_config, dt=0.005)
 interface.connect()
 
 # set up arrays for tracking end-effector and target position
@@ -31,27 +31,25 @@ q_track = []
 try:
     # get the end-effector's initial position
     feedback = interface.get_feedback()
-    start = robot_config.Tx('EE', q=feedback['q'])
+    start = robot_config.Tx("EE", q=feedback["q"])
 
-    print('\nSimulation starting...\n')
+    print("\nSimulation starting...\n")
 
     while 1:
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
 
         # calculate the control signal
-        u = ctrlr.generate(
-            q=feedback['q'],
-            dq=feedback['dq'])
+        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"])
 
         # send forces into CoppeliaSim
         interface.send_forces(u)
 
         # calculate the position of the hand
-        hand_xyz = robot_config.Tx('EE', q=feedback['q'])
+        hand_xyz = robot_config.Tx("EE", q=feedback["q"])
         # track end effector position
         ee_track.append(np.copy(hand_xyz))
-        q_track.append(np.copy(feedback['q']))
+        q_track.append(np.copy(feedback["q"]))
 
 except:
     print(traceback.format_exc())
@@ -60,7 +58,7 @@ finally:
     # close the connection to the arm
     interface.disconnect()
 
-    print('Simulation terminated...')
+    print("Simulation terminated...")
 
     ee_track = np.array(ee_track)
 
@@ -69,16 +67,16 @@ finally:
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
-        fig = plt.figure(figsize=(8,12))
+        fig = plt.figure(figsize=(8, 12))
         ax1 = fig.add_subplot(211)
-        ax1.set_title('Joint Angles')
-        ax1.set_ylabel('Angle (rad)')
-        ax1.set_xlabel('Time (ms)')
+        ax1.set_title("Joint Angles")
+        ax1.set_ylabel("Angle (rad)")
+        ax1.set_xlabel("Time (ms)")
         ax1.plot(q_track)
         ax1.legend()
 
-        ax2 = fig.add_subplot(212, projection='3d')
-        ax2.set_title('End-Effector Trajectory')
-        ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
+        ax2 = fig.add_subplot(212, projection="3d")
+        ax2.set_title("End-Effector Trajectory")
+        ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label="ee_xyz")
         ax2.legend()
         plt.show()

@@ -2,6 +2,7 @@ import numpy as np
 
 from .controller import Controller
 
+
 class Damping(Controller):
     """ Base class for common null space controllers.
 

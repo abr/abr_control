@@ -19,12 +19,12 @@ from abr_control.utils import transformations
 if len(sys.argv) > 1:
     arm_model = sys.argv[1]
 else:
-    arm_model = 'jaco2'
+    arm_model = "jaco2"
 # initialize our robot config
 robot_config = arm(arm_model)
 
 # create the Mujoco interface and connect up
-interface = Mujoco(robot_config, dt=.001)
+interface = Mujoco(robot_config, dt=0.001)
 interface.connect()
 interface.send_target_angles(robot_config.START_ANGLES)
 
@@ -39,9 +39,9 @@ q_track = []
 try:
     # get the end-effector's initial position
     feedback = interface.get_feedback()
-    start = robot_config.Tx('EE', q=feedback['q'])
+    start = robot_config.Tx("EE", q=feedback["q"])
 
-    print('\nSimulation starting...\n')
+    print("\nSimulation starting...\n")
 
     while 1:
         if interface.viewer.exit:
@@ -51,9 +51,7 @@ try:
         feedback = interface.get_feedback()
 
         # calculate the control signal
-        u = ctrlr.generate(
-            q=feedback['q'],
-            dq=feedback['dq'])
+        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"])
 
         # add gripper forces
         u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
@@ -62,10 +60,10 @@ try:
         interface.send_forces(u)
 
         # calculate the position of the hand
-        hand_xyz = robot_config.Tx('EE', q=feedback['q'])
+        hand_xyz = robot_config.Tx("EE", q=feedback["q"])
         # track end effector position
         ee_track.append(np.copy(hand_xyz))
-        q_track.append(np.copy(feedback['q']))
+        q_track.append(np.copy(feedback["q"]))
 
 except:
     print(traceback.format_exc())
@@ -74,7 +72,7 @@ finally:
     # close the connection to the arm
     interface.disconnect()
 
-    print('Simulation terminated...')
+    print("Simulation terminated...")
 
     ee_track = np.array(ee_track)
 
@@ -83,16 +81,16 @@ finally:
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
-        fig = plt.figure(figsize=(8,12))
+        fig = plt.figure(figsize=(8, 12))
         ax1 = fig.add_subplot(211)
-        ax1.set_title('Joint Angles')
-        ax1.set_ylabel('Angle (rad)')
-        ax1.set_xlabel('Time (ms)')
+        ax1.set_title("Joint Angles")
+        ax1.set_ylabel("Angle (rad)")
+        ax1.set_xlabel("Time (ms)")
         ax1.plot(q_track)
         ax1.legend()
 
-        ax2 = fig.add_subplot(212, projection='3d')
-        ax2.set_title('End-Effector Trajectory')
-        ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
+        ax2 = fig.add_subplot(212, projection="3d")
+        ax2.set_title("End-Effector Trajectory")
+        ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label="ee_xyz")
         ax2.legend()
         plt.show()

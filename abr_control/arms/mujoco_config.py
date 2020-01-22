@@ -7,13 +7,14 @@ import mujoco_py as mjp
 from abr_control.utils import download_meshes
 
 
-class MujocoConfig():
+class MujocoConfig:
     """ A wrapper on the Mujoco simulator to generate all the kinematics and
     dynamics calculations necessary for controllers.
     """
 
-    def __init__(self, xml_file, folder=None, use_sim_state=False,
-                 force_download=False):
+    def __init__(
+        self, xml_file, folder=None, use_sim_state=False, force_download=False
+    ):
         """ Loads the Mujoco model from the specified xml file
 
         Parameters
@@ -40,18 +41,17 @@ class MujocoConfig():
         force_download: boolean, Optional (Default: False)
             True to force downloading the mesh and texture files, useful when new files
             are added that may be missing.
-            False: if the meshes folder is missing it will ask the user whether they want
-            to download them
+            False: if the meshes folder is missing it will ask the user whether they
+            want to download them
         """
 
         if folder is None:
-            arm_dir = xml_file.split('_')[0]
+            arm_dir = xml_file.split("_")[0]
             current_dir = os.path.dirname(__file__)
-            self.xml_file = os.path.join(
-                current_dir, arm_dir, '%s.xml' % xml_file)
-            self.xml_dir = '%s/%s' % (current_dir, arm_dir)
+            self.xml_file = os.path.join(current_dir, arm_dir, "%s.xml" % xml_file)
+            self.xml_dir = "%s/%s" % (current_dir, arm_dir)
         else:
-            self.xml_dir = '%s' % (folder)
+            self.xml_dir = "%s" % (folder)
             self.xml_file = os.path.join(self.xml_dir, xml_file)
 
         self.N_GRIPPEPR_JOINTS = 0
@@ -59,39 +59,39 @@ class MujocoConfig():
         # get access to some of our custom arm parameters from the xml definition
         tree = ElementTree.parse(self.xml_file)
         root = tree.getroot()
-        for custom in root.findall('custom/numeric'):
-            name = custom.get('name')
-            if name == 'START_ANGLES':
-                START_ANGLES = custom.get('data').split(' ')
-                self.START_ANGLES = np.array(
-                    [float(angle) for angle in START_ANGLES])
-            elif name == 'N_GRIPPER_JOINTS':
-                self.N_GRIPPER_JOINTS = int(custom.get('data'))
+        for custom in root.findall("custom/numeric"):
+            name = custom.get("name")
+            if name == "START_ANGLES":
+                START_ANGLES = custom.get("data").split(" ")
+                self.START_ANGLES = np.array([float(angle) for angle in START_ANGLES])
+            elif name == "N_GRIPPER_JOINTS":
+                self.N_GRIPPER_JOINTS = int(custom.get("data"))
 
         # get the location of our mesh files
-        for custom in root.findall('custom/text'):
-            name = custom.get('name')
-            if name == 'google_id':
-                self.google_id = custom.get('data')
+        for custom in root.findall("custom/text"):
+            name = custom.get("name")
+            if name == "google_id":
+                self.google_id = custom.get("data")
 
         # check if the user has downloaded the required mesh files
         # if not prompt them to do so
-        if self.google_id != 'None':
-            # get a list of expected files so we can check if they all have been downloaded
+        if self.google_id != "None":
+            # get list of expected files to check if all have been downloaded
             files = []
-            for asset in root.findall('asset/mesh'):
-                files.append(asset.get('file'))
+            for asset in root.findall("asset/mesh"):
+                files.append(asset.get("file"))
 
-            for asset in root.findall('asset/texture'):
+            for asset in root.findall("asset/texture"):
                 # assuming that texture are placed in the meshes folder
-                files.append(asset.get('file').split('/')[1])
+                files.append(asset.get("file").split("/")[1])
 
             # check if our mesh folder exists, then check we have all the files
             download_meshes.check_and_download(
-                name=self.xml_dir + '/meshes',
+                name=self.xml_dir + "/meshes",
                 google_id=self.google_id,
                 force_download=force_download,
-                files=files)
+                files=files,
+            )
 
         self.model = mjp.load_model_from_path(self.xml_file)
         self.use_sim_state = use_sim_state
@@ -124,31 +124,33 @@ class MujocoConfig():
         # number of joints in the robot arm
         self.N_JOINTS = len(self.joint_pos_addrs)
         # number of joints in the Mujoco simulation
-        N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp('EE')) / 3)
+        N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE")) / 3)
 
         # need to calculate the joint_dyn_addrs indices in flat vectors returned
         # for the Jacobian
         self.jac_indices = np.hstack(
             # 6 because position and rotation Jacobians are 3 x N_JOINTS
-            [self.joint_dyn_addrs + (ii * N_ALL_JOINTS) for ii in range(3)])
+            [self.joint_dyn_addrs + (ii * N_ALL_JOINTS) for ii in range(3)]
+        )
 
         # for the inertia matrix
-        self.M_indices = [ii * N_ALL_JOINTS + jj
-                          for jj in self.joint_dyn_addrs
-                          for ii in self.joint_dyn_addrs]
+        self.M_indices = [
+            ii * N_ALL_JOINTS + jj
+            for jj in self.joint_dyn_addrs
+            for ii in self.joint_dyn_addrs
+        ]
 
         # a place to store data returned from Mujoco
         self._g = np.zeros(self.N_JOINTS)
         self._J3NP = np.zeros(3 * N_ALL_JOINTS)
         self._J3NR = np.zeros(3 * N_ALL_JOINTS)
         self._J6N = np.zeros((6, self.N_JOINTS))
-        self._MNN_vector = np.zeros(N_ALL_JOINTS**2)
-        self._MNN = np.zeros(self.N_JOINTS**2)
+        self._MNN_vector = np.zeros(N_ALL_JOINTS ** 2)
+        self._MNN = np.zeros(self.N_JOINTS ** 2)
         self._R9 = np.zeros(9)
         self._R = np.zeros((3, 3))
         self._x = np.ones(4)
         self.N_ALL_JOINTS = N_ALL_JOINTS
-
 
     def _load_state(self, q, dq=None, u=None):
         """ Change the current joint angles
@@ -179,7 +181,6 @@ class MujocoConfig():
 
         return old_q, old_dq, old_u
 
-
     def g(self, q=None):
         """ Returns qfrc_bias variable, which stores the effects of Coriolis,
         centrifugal, and gravitational forces
@@ -202,7 +203,6 @@ class MujocoConfig():
 
         return g
 
-
     def dJ(self, name, q=None, dq=None, x=None):
         """ Returns the derivative of the Jacobian wrt to time
 
@@ -224,8 +224,7 @@ class MujocoConfig():
         # general case, check differences.cpp'
         raise NotImplementedError
 
-
-    def J(self, name, q=None, x=None, object_type='body'):
+    def J(self, name, q=None, x=None, object_type="body"):
         """ Returns the Jacobian for the specified Mujoco object
 
         Parameters
@@ -240,25 +239,30 @@ class MujocoConfig():
             options: body, geom, site
         """
         if x is not None and not np.allclose(x, 0):
-            raise Exception('x offset currently not supported, set to None')
+            raise Exception("x offset currently not supported, set to None")
 
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
-        if object_type == 'body':
+        if object_type == "body":
             # TODO: test if using this function is faster than the old way
             # NOTE: for bodies, the Jacobian for the COM is returned
-            mjp.cymj._mj_jacBodyCom(self.model, self.sim.data, self._J3NP, self._J3NR,
-                                    self.model.body_name2id(name))
+            mjp.cymj._mj_jacBodyCom(
+                self.model,
+                self.sim.data,
+                self._J3NP,
+                self._J3NR,
+                self.model.body_name2id(name),
+            )
         else:
-            if object_type == 'geom':
+            if object_type == "geom":
                 jacp = self.sim.data.get_geom_jacp
                 jacr = self.sim.data.get_geom_jacr
-            elif object_type == 'site':
+            elif object_type == "site":
                 jacp = self.sim.data.get_site_jacp
                 jacr = self.sim.data.get_site_jacr
             else:
-                raise Exception('Invalid object type specified: ', object_type)
+                raise Exception("Invalid object type specified: ", object_type)
 
             jacp(name, self._J3NP)[self.jac_indices]  # pylint: disable=W0106
             jacr(name, self._J3NR)[self.jac_indices]  # pylint: disable=W0106
@@ -272,7 +276,6 @@ class MujocoConfig():
             self._load_state(old_q, old_dq, old_u)
 
         return np.copy(self._J6N)
-
 
     def M(self, q=None):
         """ Returns the inertia matrix in task space
@@ -297,7 +300,6 @@ class MujocoConfig():
 
         return np.copy(M)
 
-
     def R(self, name, q=None):
         """ Returns the rotation matrix of the specified body
 
@@ -312,15 +314,13 @@ class MujocoConfig():
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
-        mjp.cymj._mju_quat2Mat(
-            self._R9, self.sim.data.get_body_xquat(name))
+        mjp.cymj._mju_quat2Mat(self._R9, self.sim.data.get_body_xquat(name))
         self._R = self._R9.reshape((3, 3))
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
 
         return self._R
-
 
     def quaternion(self, name, q=None):
         """ Returns the quaternion of the specified body
@@ -343,7 +343,6 @@ class MujocoConfig():
 
         return quaternion
 
-
     def C(self, q=None, dq=None):
         """ NOTE: The Coriolis and centrifugal effects (and gravity) are
         already accounted for by Mujoco in the qfrc_bias variable. There's
@@ -352,9 +351,9 @@ class MujocoConfig():
         return an error instead of qfrc_bias again.
         """
         raise NotImplementedError(
-            'Coriolis and centrifugal effects already accounted '
-            + 'for in the term return by the gravity function.')
-
+            "Coriolis and centrifugal effects already accounted "
+            + "for in the term return by the gravity function."
+        )
 
     def T(self, name, q=None, x=None):
         """ Get the transform matrix of the specified body.
@@ -371,8 +370,7 @@ class MujocoConfig():
         # TODO if ever required
         raise NotImplementedError
 
-
-    def Tx(self, name, q=None, x=None, object_type='body'):
+    def Tx(self, name, q=None, x=None, object_type="body"):
         """ Returns the Cartesian coordinates of the specified Mujoco body
 
         Parameters
@@ -387,33 +385,32 @@ class MujocoConfig():
             options: body, geom, site, camera, light, mocap
         """
         if x is not None and not np.allclose(x, 0):
-            raise Exception('x offset currently not supported: ', x)
+            raise Exception("x offset currently not supported: ", x)
 
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
-        if object_type == 'body':
+        if object_type == "body":
             Tx = np.copy(self.sim.data.get_body_xpos(name))
-        elif object_type == 'geom':
+        elif object_type == "geom":
             Tx = np.copy(self.sim.data.get_geom_xpos(name))
-        elif object_type == 'joint':
+        elif object_type == "joint":
             Tx = np.copy(self.sim.data.get_joint_xanchor(name))
-        elif object_type == 'site':
+        elif object_type == "site":
             Tx = np.copy(self.sim.data.get_site_xpos(name))
-        elif object_type == 'camera':
+        elif object_type == "camera":
             Tx = np.copy(self.sim.data.get_cam_xpos(name))
-        elif object_type == 'light':
+        elif object_type == "light":
             Tx = np.copy(self.sim.data.get_light_xpos(name))
-        elif object_type == 'mocap':
+        elif object_type == "mocap":
             Tx = np.copy(self.sim.data.get_mocap_pos(name))
         else:
-            raise Exception('Invalid object type specified: ', object_type)
+            raise Exception("Invalid object type specified: ", object_type)
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
 
         return Tx
-
 
     def T_inv(self, name, q=None, x=None):
         """  Get the inverse transform matrix of the specified body.

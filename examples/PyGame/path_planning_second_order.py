@@ -31,9 +31,13 @@ arm_sim = arm.ArmSim(robot_config)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
-            # control (gamma) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [True, True, False, False, False, False])
+ctrlr = OSC(
+    robot_config,
+    kp=200,
+    null_controllers=[damping],
+    # control (gamma) out of [x, y, z, alpha, beta, gamma]
+    ctrlr_dof=[True, True, False, False, False, False],
+)
 
 # create our path planner
 params = {}
@@ -42,9 +46,9 @@ if use_wall_clock:
     time_elapsed = np.copy(run_time)
     count = 0
 else:
-    params['error_scale'] = 50
-    params['n_timesteps'] = 500  # time steps each trajectory lasts
-    count = np.copy(params['n_timesteps'])
+    params["error_scale"] = 50
+    params["n_timesteps"] = 500  # time steps each trajectory lasts
+    count = np.copy(params["n_timesteps"])
     time_elapsed = 0.0
 path_planner = path_planners.SecondOrderDMP(**params)
 
@@ -53,39 +57,41 @@ interface = PyGame(robot_config, arm_sim, dt=0.001)
 interface.connect()
 
 try:
-    print('\nSimulation starting...')
-    print('Click to move the target.\n')
+    print("\nSimulation starting...")
+    print("Click to move the target.\n")
 
     while 1:
         start = timeit.default_timer()
         # get arm feedback
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('EE', feedback['q'])
+        hand_xyz = robot_config.Tx("EE", feedback["q"])
 
         if use_wall_clock:
             # either update target every 1s
             update_target = time_elapsed >= run_time
         else:
             # or update target when trajectory is done
-            update_target = (count == params['n_timesteps'])
+            update_target = count == params["n_timesteps"]
 
         if update_target:
             count = 0
             time_elapsed = 0.0
-            target_xyz = (np.array([
-                np.random.random() * 2 - 1,
-                np.random.random() * 2 + 1,
-                0]))
+            target_xyz = np.array(
+                [np.random.random() * 2 - 1, np.random.random() * 2 + 1, 0]
+            )
             # update the position of the target
             interface.set_target(target_xyz)
 
             pos_path, vel_path = path_planner.generate_path(
-                position=hand_xyz, target_position=target_xyz, plot=False)
+                position=hand_xyz, target_position=target_xyz, plot=False
+            )
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
-                    pregenerated_path=pos_path, time_limit=run_time)
+                    pregenerated_path=pos_path, time_limit=run_time
+                )
                 vel_path = path_planner.convert_to_time(
-                    pregenerated_path=vel_path, time_limit=run_time)
+                    pregenerated_path=vel_path, time_limit=run_time
+                )
 
         # get next target along trajectory
         if use_wall_clock:
@@ -96,11 +102,11 @@ try:
 
         # generate an operational space control signal
         u = ctrlr.generate(
-            q=feedback['q'],
-            dq=feedback['dq'],
+            q=feedback["q"],
+            dq=feedback["dq"],
             target=np.hstack((target, np.zeros(3))),
             target_velocity=np.hstack((target_velocity, np.zeros(3))),
-            )
+        )
 
         # apply the control signal, step the sim forward
         interface.send_forces(u, update_display=(count % 20 == 0))
@@ -112,4 +118,4 @@ finally:
     # stop and reset the simulation
     interface.disconnect()
 
-    print('Simulation terminated...')
+    print("Simulation terminated...")

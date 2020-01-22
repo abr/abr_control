@@ -5,7 +5,7 @@ import nengo
 from abr_control._vendor.nengolib.stats import ScatteredHypersphere, spherical_transform
 
 
-class DynamicsAdaptation():
+class DynamicsAdaptation:
     """ An implementation of nonlinear dynamics adaptation using Nengo,
     as described in (DeWolf, Stewart, Slotine, and Eliasmith, 2016)
 
@@ -50,12 +50,25 @@ class DynamicsAdaptation():
         range for non-spherical, or 0 to 1 range for spherical
     """
 
-    def __init__(self, n_input, n_output, n_neurons=1000, n_ensembles=1,
-                 seed=None, pes_learning_rate=1e-6, intercepts=None,
-                 weights=None, encoders=None, spherical=False,
-                 means=None, variances=None,
-                 tau_input=0.012, tau_training=0.012, tau_output=0.2,
-                 **kwargs):
+    def __init__(
+        self,
+        n_input,
+        n_output,
+        n_neurons=1000,
+        n_ensembles=1,
+        seed=None,
+        pes_learning_rate=1e-6,
+        intercepts=None,
+        weights=None,
+        encoders=None,
+        spherical=False,
+        means=None,
+        variances=None,
+        tau_input=0.012,
+        tau_training=0.012,
+        tau_output=0.2,
+        **kwargs
+    ):
 
         self.n_neurons = n_neurons
         self.n_ensembles = n_ensembles
@@ -76,7 +89,7 @@ class DynamicsAdaptation():
         self.tau_input = 0.012  # on input connection
         self.tau_training = 0.012  # on the training signal
         self.tau_output = 0.2  # on the output from the adaptive ensemble
-        #NOTE: the time constant on the neural activity used in the learning
+        # NOTE: the time constant on the neural activity used in the learning
         # connection is the default 0.005, and can be set by specifying the
         # pre_synapse parameter inside the PES rule instantiation
 
@@ -89,13 +102,14 @@ class DynamicsAdaptation():
             # probability of a neuron firing has the probability density function given
             # by rng.triangular(left, mode, right, size=n)
             triangular = np.random.triangular(
-                left=0.35, mode=0.45, right=0.55, size=n_neurons*n_ensembles)
+                left=0.35, mode=0.45, right=0.55, size=n_neurons * n_ensembles
+            )
             intercepts = nengo.dists.CosineSimilarity(n_input + 2).ppf(1 - triangular)
             intercepts = intercepts.reshape((n_ensembles, n_neurons))
 
         if weights is None:
             weights = np.zeros((self.n_ensembles, n_output, self.n_neurons))
-            print('Initializing connection weights to all zeros')
+            print("Initializing connection weights to all zeros")
 
         if encoders is None:
             np.random.seed = self.seed
@@ -104,9 +118,11 @@ class DynamicsAdaptation():
                 encoders_dist = ScatteredHypersphere(surface=True)
             except ImportError:
                 encoders_dist = nengo.Default
-                print('NengoLib not installed, encoder placement will ' +
-                      'be sub-optimal.')
-            encoders = encoders_dist.sample(n_neurons*n_ensembles, n_input)
+                print(
+                    "NengoLib not installed, encoder placement will "
+                    + "be sub-optimal."
+                )
+            encoders = encoders_dist.sample(n_neurons * n_ensembles, n_input)
             encoders = encoders.reshape(n_ensembles, n_neurons, n_input)
 
         self.input_signal = np.zeros(n_input)
@@ -120,16 +136,18 @@ class DynamicsAdaptation():
 
             def input_signals_func(t):
                 return self.input_signal
+
             input_signals = nengo.Node(input_signals_func, size_out=n_input)
 
             def training_signals_func(t):
                 return -self.training_signal
-            training_signals = nengo.Node(
-                training_signals_func, size_out=n_output)
+
+            training_signals = nengo.Node(training_signals_func, size_out=n_output)
 
             # make the adaptive population output accessible
             def output_func(t, x):
                 self.output = np.copy(x)
+
             output = nengo.Node(output_func, size_in=n_output, size_out=0)
 
             self.adapt_ens = []
@@ -142,14 +160,14 @@ class DynamicsAdaptation():
                         intercepts=intercepts[ii],
                         radius=np.sqrt(n_input),
                         encoders=encoders[ii],
-                        **kwargs))
+                        **kwargs
+                    )
+                )
 
                 # hook up input signal to adaptive population to provide context
                 nengo.Connection(
-                    input_signals,
-                    self.adapt_ens[ii],
-                    synapse=self.tau_input,
-                    )
+                    input_signals, self.adapt_ens[ii], synapse=self.tau_input,
+                )
 
                 self.conn_learn.append(
                     nengo.Connection(
@@ -158,17 +176,18 @@ class DynamicsAdaptation():
                         learning_rule_type=nengo.PES(pes_learning_rate),
                         transform=weights[ii],
                         synapse=self.tau_output,
-                        )
                     )
+                )
 
                 # hook up the training signal to the learning rule
                 nengo.Connection(
-                    training_signals, self.conn_learn[ii].learning_rule,
-                    synapse=self.tau_training)
+                    training_signals,
+                    self.conn_learn[ii].learning_rule,
+                    synapse=self.tau_training,
+                )
 
         nengo.rc.set("decoder_cache", "enabled", "False")
-        self.sim = nengo.Simulator(self.nengo_model, dt=.001)
-
+        self.sim = nengo.Simulator(self.nengo_model, dt=0.001)
 
     def generate(self, input_signal, training_signal):
         """ Generates the control signal
@@ -191,13 +210,12 @@ class DynamicsAdaptation():
         self.training_signal = training_signal
 
         # run the simulation t generate the adaptive signal
-        self.sim.run(time_in_seconds=.001, progress_bar=False)
+        self.sim.run(time_in_seconds=0.001, progress_bar=False)
 
         return self.output
 
-
     def scale_inputs(self, input_signal):
-        '''
+        """
         Currently set to accept joint position and velocities as time
         x dimension arrays, and returns them scaled based on the means and
         variances set on instantiation
@@ -211,19 +229,19 @@ class DynamicsAdaptation():
         The reason we do a shift by the means is to try and center the majority
         of our expected input values in our scaling range, so when we stretch
         them by variances they encompass more of our input range.
-        '''
+        """
         scaled_input = (input_signal - self.means) / self.variances
 
         if self.spherical:
             # put into the 0-1 range
-            scaled_input = scaled_input / 2 + .5
+            scaled_input = scaled_input / 2 + 0.5
             # project onto unit hypersphere in larger state space
             scaled_input = scaled_input.flatten()
             scaled_input = spherical_transform(
-                scaled_input.reshape(1, len(scaled_input)))
+                scaled_input.reshape(1, len(scaled_input))
+            )
 
         return scaled_input
-
 
     def get_weights(self):
         """ Save the current weights to the specified test_name folder
@@ -235,5 +253,7 @@ class DynamicsAdaptation():
         folder and file respectively
         """
 
-        return [self.sim.signals[self.sim.model.sig[conn]['weights']]
-                for conn in self.conn_learn]
+        return [
+            self.sim.signals[self.sim.model.sig[conn]["weights"]]
+            for conn in self.conn_learn
+        ]

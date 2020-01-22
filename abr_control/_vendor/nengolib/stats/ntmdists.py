@@ -87,10 +87,10 @@ def spherical_transform(samples):
 
     # inverse transform method (section 1.5.2)
     for j in range(d):
-        coords[:, j] = SphericalCoords(d-j).ppf(samples[:, j])
+        coords[:, j] = SphericalCoords(d - j).ppf(samples[:, j])
 
     # spherical coordinate transform
-    mapped = np.ones((n, d+1))
+    mapped = np.ones((n, d + 1))
     i = np.ones(d)
     i[-1] = 2.0
     s = np.sin(i[None, :] * np.pi * coords)
@@ -160,20 +160,19 @@ class SphericalCoords(Distribution):
 
     def pdf(self, x):
         """Evaluates the PDF along the values ``x``."""
-        return (np.pi * np.sin(np.pi * x) ** (self.m-1) /
-                beta(self.m / 2., .5))
+        return np.pi * np.sin(np.pi * x) ** (self.m - 1) / beta(self.m / 2.0, 0.5)
 
     def cdf(self, x):
         """Evaluates the CDF along the values ``x``."""
-        y = .5 * betainc(self.m / 2., .5, np.sin(np.pi * x) ** 2)
-        return np.where(x < .5, y, 1 - y)
+        y = 0.5 * betainc(self.m / 2.0, 0.5, np.sin(np.pi * x) ** 2)
+        return np.where(x < 0.5, y, 1 - y)
 
     def ppf(self, y):
         """Evaluates the inverse CDF along the values ``x``."""
-        y_reflect = np.where(y < .5, y, 1 - y)
-        z_sq = betaincinv(self.m / 2., .5, 2 * y_reflect)
+        y_reflect = np.where(y < 0.5, y, 1 - y)
+        z_sq = betaincinv(self.m / 2.0, 0.5, 2 * y_reflect)
         x = np.arcsin(np.sqrt(z_sq)) / np.pi
-        return np.where(y < .5, x, 1 - x)
+        return np.where(y < 0.5, x, 1 - x)
 
 
 def _rd_generate(n, d, seed=0.5):
@@ -184,18 +183,18 @@ def _rd_generate(n, d, seed=0.5):
         """Newton-Raphson-Method to calculate g = phi_d."""
         x = 1.0
         for _ in range(n_iter):
-            x -= (x**(d + 1) - x - 1) / ((d + 1) * x**d - 1)
+            x -= (x ** (d + 1) - x - 1) / ((d + 1) * x ** d - 1)
         return x
 
     g = gamma(d)
     alpha = np.zeros(d)
     for j in range(d):
-        alpha[j] = (1/g) ** (j + 1) % 1
+        alpha[j] = (1 / g) ** (j + 1) % 1
 
     z = np.zeros((n, d))
     z[0] = (seed + alpha) % 1
     for i in range(1, n):
-        z[i] = (z[i-1] + alpha) % 1
+        z[i] = (z[i - 1] + alpha) % 1
 
     return z
 
@@ -240,7 +239,7 @@ class Rd(Distribution):
         """Samples ``n`` points in ``d`` dimensions."""
         if d == 1:
             # Tile the points optimally. TODO: refactor
-            return np.linspace(1./n, 1, n)[:, None]
+            return np.linspace(1.0 / n, 1, n)[:, None]
         if d is None or not isinstance(d, (int, np.integer)) or d < 1:
             # TODO: this should be raised when the ensemble is created
             raise ValueError("d (%d) must be positive integer" % d)
@@ -307,7 +306,11 @@ class ScatteredCube(Distribution):
 
     def __repr__(self):
         return "%s(low=%r, high=%r, base=%r)" % (
-            type(self).__name__, self.low, self.high, self.base)
+            type(self).__name__,
+            self.low,
+            self.high,
+            self.base,
+        )
 
     def sample(self, n, d=1, rng=np.random):
         """Samples ``n`` points in ``d`` dimensions."""
@@ -402,7 +405,10 @@ class ScatteredHypersphere(UniformHypersphere):
 
     def __repr__(self):
         return "%s(surface=%r, base=%r)" % (
-            type(self).__name__, self.surface, self.base)
+            type(self).__name__,
+            self.surface,
+            self.base,
+        )
 
     def sample(self, n, d=1, rng=np.random):
         """Samples ``n`` points in ``d`` dimensions."""
@@ -410,11 +416,11 @@ class ScatteredHypersphere(UniformHypersphere):
             return super(ScatteredHypersphere, self).sample(n, d, rng)
 
         if self.surface:
-            samples = self.base.sample(n, d-1, rng)
-            radius = 1.
+            samples = self.base.sample(n, d - 1, rng)
+            radius = 1.0
         else:
             samples = self.base.sample(n, d, rng)
-            samples, radius = samples[:, :-1], samples[:, -1:] ** (1. / d)
+            samples, radius = samples[:, :-1], samples[:, -1:] ** (1.0 / d)
 
         mapped = spherical_transform(samples)
 

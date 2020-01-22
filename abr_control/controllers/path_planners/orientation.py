@@ -20,6 +20,7 @@ class Orientation(PathPlanner):
         the cumulative step size to take from 0 (start orientation) to
         1 (target orientation)
     """
+
     def __init__(self, n_timesteps=None, timesteps=None):
         assert n_timesteps is None or timesteps is None
 
@@ -32,7 +33,6 @@ class Orientation(PathPlanner):
             self.n_timesteps = len(timesteps)
 
         self.n = 0
-
 
     def generate_path(self, orientation, target_orientation, plot=False):
         """ Generates a linear trajectory to the target
@@ -53,32 +53,34 @@ class Orientation(PathPlanner):
         """
         if len(orientation) == 3:
             raise ValueError(
-                '\n----------------------------------------------\n'
-                + 'A quaternion is required as input for the orientation '
-                + 'path planner. To convert your '
-                + 'Euler angles into a quaternion run...\n\n'
-                + 'from abr_control.utils import transformations\n'
-                + 'quaternion = transformation.quaternion_from_euler(a, b, g)\n'
-                + '----------------------------------------------')
+                "\n----------------------------------------------\n"
+                + "A quaternion is required as input for the orientation "
+                + "path planner. To convert your "
+                + "Euler angles into a quaternion run...\n\n"
+                + "from abr_control.utils import transformations\n"
+                + "quaternion = transformation.quaternion_from_euler(a, b, g)\n"
+                + "----------------------------------------------"
+            )
 
         # stores the target Euler angles of the trajectory
         self.orientation_path = np.zeros((self.n_timesteps, 3))
         self.target_angles = transformations.euler_from_quaternion(
-            target_orientation, axes='rxyz')
+            target_orientation, axes="rxyz"
+        )
 
         for ii in range(self.n_timesteps):
             quat = self._step(
-                orientation=orientation,
-                target_orientation=target_orientation)
+                orientation=orientation, target_orientation=target_orientation
+            )
             self.orientation_path[ii] = transformations.euler_from_quaternion(
-                quat, axes='rxyz')
+                quat, axes="rxyz"
+            )
 
         self.n = 0
         if plot:
             self._plot()
 
         return self.orientation_path
-
 
     def _step(self, orientation, target_orientation):
         """ Calculates the next step along the planned trajectory
@@ -91,12 +93,11 @@ class Orientation(PathPlanner):
             the target orientation as a quaternion
         """
         orientation = transformations.quaternion_slerp(
-            quat0=orientation, quat1=target_orientation,
-            fraction=self.timesteps[self.n])
+            quat0=orientation, quat1=target_orientation, fraction=self.timesteps[self.n]
+        )
 
-        self.n = min(self.n+1, self.n_timesteps-1)
+        self.n = min(self.n + 1, self.n_timesteps - 1)
         return orientation
-
 
     def next(self):
         """ Returns the next step along the planned trajectory
@@ -104,13 +105,13 @@ class Orientation(PathPlanner):
         NOTE: only orientation is returned, no target velocity
         """
         orientation = self.orientation_path[self.n]
-        self.n = min(self.n+1, self.n_timesteps-1)
+        self.n = min(self.n + 1, self.n_timesteps - 1)
 
         return orientation
 
-
-    def match_position_path(self, orientation, target_orientation,
-                            position_path, plot=False):
+    def match_position_path(
+        self, orientation, target_orientation, position_path, plot=False
+    ):
         """ Generates orientation trajectory with the same profile as the path
         generated for position
 
@@ -129,31 +130,33 @@ class Orientation(PathPlanner):
         """
 
         error = []
-        dist = np.sqrt(np.sum((position_path[-1] - position_path[0])**2))
+        dist = np.sqrt(np.sum((position_path[-1] - position_path[0]) ** 2))
         for ee in position_path:
-            error.append(np.sqrt(np.sum((position_path[-1] - ee)**2)))
+            error.append(np.sqrt(np.sum((position_path[-1] - ee) ** 2)))
         error /= dist
         error = 1 - error
 
         self.timesteps = error
         self.n_timesteps = len(self.timesteps)
         self.orientation_path = self.generate_path(
-            orientation=orientation, target_orientation=target_orientation,
-            plot=plot)
+            orientation=orientation, target_orientation=target_orientation, plot=plot
+        )
 
         return self.orientation_path
-
 
     def _plot(self):
         """ Plot the generated trajectory
         """
         plt.figure()
         for ii, path in enumerate(self.orientation_path.T):
-            plt.plot(path, lw=2, label='Trajectory')
+            plt.plot(path, lw=2, label="Trajectory")
             plt.plot(
-                np.ones(path.shape) * self.target_angles[ii], '--',
-                lw=2, label='Target angles')
-        plt.xlabel('Radians')
-        plt.ylabel('Time step')
+                np.ones(path.shape) * self.target_angles[ii],
+                "--",
+                lw=2,
+                label="Target angles",
+            )
+        plt.xlabel("Radians")
+        plt.ylabel("Time step")
         plt.legend()
         plt.show()

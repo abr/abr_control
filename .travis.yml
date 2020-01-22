@@ -23,9 +23,6 @@ jobs:
       SCRIPT="static"
   -
     env:
-      SCRIPT="test"
-  -
-    env:
       SCRIPT="test-coverage"
       TEST_ARGS="--plots"
   - stage: deploy

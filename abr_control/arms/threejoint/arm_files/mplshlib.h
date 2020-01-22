@@ -394,7 +394,7 @@ typedef struct _MKernelVectorDesc {
     /* settings */
     ALGEB (M_DECL *kernelopts) MPL_P(( char *option, ALGEB value ));
 
-    /* Numeric Arithmetics */
+    /* Numeric Arithmetic */
     ALGEB  (M_DECL *numericAdd) MPL_P(( ALGEB a, ALGEB b ));
     ALGEB  (M_DECL *numericSubtract) MPL_P(( ALGEB a, ALGEB b ));
     ALGEB  (M_DECL *numericMultiply) MPL_P(( ALGEB a, ALGEB b ));

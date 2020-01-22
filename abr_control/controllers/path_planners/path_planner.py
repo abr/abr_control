@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 import scipy.interpolate
 
+
 class PathPlanner:
     """ Base class for path planners.
     """
@@ -13,7 +14,6 @@ class PathPlanner:
         results and returning self.position_path and self.velocity_path
         """
         raise NotImplementedError
-
 
     def convert_to_time(self, path, time_length):
         """ Accepts a pregenerated path from current state to target and
@@ -34,21 +34,20 @@ class PathPlanner:
         times = np.linspace(0, time_length, self.n_timesteps)
         path_func = []
         for dim in range(n_states):
-            path_func.append(scipy.interpolate.interp1d(
-                times, np.asarray(path)[:, dim]))
+            path_func.append(
+                scipy.interpolate.interp1d(times, np.asarray(path)[:, dim])
+            )
 
         return path_func
-
 
     def next(self):
         """ Returns the next target from the generated path
         """
         position = self.position_path[self.n]  # pylint: disable=E0203
         velocity = self.velocity_path[self.n]  # pylint: disable=E0203
-        self.n = min(self.n+1, self.n_timesteps - 1)
+        self.n = min(self.n + 1, self.n_timesteps - 1)
 
         return position, velocity
-
 
     def _plot(self, target_position):
         """ Plot the generated trajectory
@@ -62,24 +61,32 @@ class PathPlanner:
 
         plt.figure()
         plt.subplot(2, 1, 1)
-        plt.plot(np.ones((self.n_timesteps, n_states))
-                 * np.arange(self.n_timesteps)[:, None],
-                 self.position_path)
+        plt.plot(
+            np.ones((self.n_timesteps, n_states))
+            * np.arange(self.n_timesteps)[:, None],
+            self.position_path,
+        )
         plt.gca().set_prop_cycle(None)
         plt.plot(
             np.ones((self.n_timesteps, n_states))
             * np.arange(self.n_timesteps)[:, None],
             np.ones((self.n_timesteps, n_states)) * target_position,
-            '--')
-        plt.legend(['%i' % ii for ii in range(n_states)]
-                   + ['%i_target' % ii for ii in range(n_states)])
-        plt.title('Trajectory positions')
+            "--",
+        )
+        plt.legend(
+            ["%i" % ii for ii in range(n_states)]
+            + ["%i_target" % ii for ii in range(n_states)]
+        )
+        plt.title("Trajectory positions")
 
         plt.subplot(2, 1, 2)
-        plt.plot(np.ones((self.n_timesteps, n_states))
-                 * np.arange(self.n_timesteps)[:, None], self.velocity_path)
-        plt.legend(['d%i' % ii for ii in range(n_states)])
-        plt.title('Trajectory velocities')
+        plt.plot(
+            np.ones((self.n_timesteps, n_states))
+            * np.arange(self.n_timesteps)[:, None],
+            self.velocity_path,
+        )
+        plt.legend(["d%i" % ii for ii in range(n_states)])
+        plt.title("Trajectory velocities")
         plt.tight_layout()
 
         plt.show()

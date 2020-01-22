@@ -16,17 +16,18 @@ robot_config = arm.Config()
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create opreational space controller
-ctrlr_dof=np.array([True, False, False, True, True, True])
+ctrlr_dof = np.array([True, False, False, True, True, True])
 ctrlr = OSC(
     robot_config,
     kp=200,
     null_controllers=[damping],
     vmax=[10, 10],  # [m/s, rad/s]
     # control (x, alpha, beta, gamma) out of [x, y, z, alpha, beta, gamma]
-    ctrlr_dof=ctrlr_dof)
+    ctrlr_dof=ctrlr_dof,
+)
 
 # create our interface
-interface = CoppeliaSim(robot_config, dt=.005)
+interface = CoppeliaSim(robot_config, dt=0.005)
 interface.connect()
 
 # set up lists for tracking data
@@ -38,40 +39,39 @@ target_angles_track = []
 
 try:
     count = 0
-    print('\nSimulation starting...\n')
+    print("\nSimulation starting...\n")
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('EE', feedback['q'])
+        hand_xyz = robot_config.Tx("EE", feedback["q"])
 
-        target = np.hstack([
-            interface.get_xyz('target'),
-            interface.get_orientation('target')])
+        target = np.hstack(
+            [interface.get_xyz("target"), interface.get_orientation("target")]
+        )
 
-        u = ctrlr.generate(
-            q=feedback['q'],
-            dq=feedback['dq'],
-            target=target,
-            )
+        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)
 
         # track data
         ee_track.append(np.copy(hand_xyz))
-        ee_angles_track.append(transformations.euler_from_matrix(
-            robot_config.R('EE', feedback['q']), axes='rxyz'))
+        ee_angles_track.append(
+            transformations.euler_from_matrix(
+                robot_config.R("EE", feedback["q"]), axes="rxyz"
+            )
+        )
         tmp_target = np.copy(hand_xyz[:3])
         tmp_target[ctrlr_dof[:3]] = np.copy(target[:3][ctrlr_dof[:3]])
-        target_track.append(tmp_target)#np.copy(target[:3]))
-        target_angles_track.append(interface.get_orientation('target'))
+        target_track.append(tmp_target)  # np.copy(target[:3]))
+        target_angles_track.append(interface.get_orientation("target"))
         count += 1
 
 finally:
     # stop and reset the simulation
     interface.disconnect()
 
-    print('Simulation terminated...')
+    print("Simulation terminated...")
 
     ee_track = np.array(ee_track)
     ee_angles_track = np.array(ee_angles_track)
@@ -83,24 +83,30 @@ finally:
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
-        fig = plt.figure(figsize=(8,12))
+        fig = plt.figure(figsize=(8, 12))
         ax1 = fig.add_subplot(311)
-        ax1.set_ylabel('3D position (m)')
+        ax1.set_ylabel("3D position (m)")
         ax1.plot(ee_track)
-        ax1.plot(target_track, '--')
+        ax1.plot(target_track, "--")
 
         ax2 = fig.add_subplot(312)
         ax2.plot(ee_angles_track)
-        ax2.plot(target_angles_track, '--')
-        ax2.set_ylabel('3D orientation (rad)')
-        ax2.set_xlabel('Time (s)')
+        ax2.plot(target_angles_track, "--")
+        ax2.set_ylabel("3D orientation (rad)")
+        ax2.set_xlabel("Time (s)")
 
-        ax3 = fig.add_subplot(313, projection='3d')
-        ax3.set_title('End-Effector Trajectory')
-        ax3.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label='ee_xyz')
-        ax3.scatter(ee_track[-1, 0], ee_track[-1, 1], ee_track[-1, 2],
-                    label='final_loc', c='r')
-        ax3.scatter(target_track[-1, 0], target_track[-1, 1], target_track[-1, 2],
-                    label='target', c='g')
+        ax3 = fig.add_subplot(313, projection="3d")
+        ax3.set_title("End-Effector Trajectory")
+        ax3.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label="ee_xyz")
+        ax3.scatter(
+            ee_track[-1, 0], ee_track[-1, 1], ee_track[-1, 2], label="final_loc", c="r"
+        )
+        ax3.scatter(
+            target_track[-1, 0],
+            target_track[-1, 1],
+            target_track[-1, 2],
+            label="target",
+            c="g",
+        )
         ax3.legend()
         plt.show()

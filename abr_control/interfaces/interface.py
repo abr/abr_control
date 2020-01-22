@@ -45,7 +45,6 @@ class Interface:
 
         raise NotImplementedError
 
-
     def get_feedback(self):
         """ Returns a dictionary of the relevant feedback
 

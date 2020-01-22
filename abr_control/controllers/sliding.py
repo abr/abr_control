@@ -21,9 +21,8 @@ class Sliding(Controller):
         if False control assumed to be entirely in joint space
 
     """
-    def __init__(self, robot_config,
-                 kd=160.0, lamb=30.0,
-                 cartesian=True):
+
+    def __init__(self, robot_config, kd=160.0, lamb=30.0, cartesian=True):
 
         super(Sliding, self).__init__(robot_config)
 
@@ -31,9 +30,16 @@ class Sliding(Controller):
         self.lamb = lamb
         self.cartesian = cartesian
 
-    def generate(self, q, dq,
-                 target, target_velocity=0, target_acc=0,
-                 ref_frame='EE', offset=None):
+    def generate(
+        self,
+        q,
+        dq,
+        target,
+        target_velocity=0,
+        target_acc=0,
+        ref_frame="EE",
+        offset=None,
+    ):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -65,13 +71,11 @@ class Sliding(Controller):
             J_inv = np.linalg.pinv(J)
             dJ = self.robot_config.dJ(ref_frame, q, dq, x=offset)[:3]
 
-            dq_ref = np.dot(
-                J_inv,
-                target_velocity + self.lamb * (target - xyz))
+            dq_ref = np.dot(J_inv, target_velocity + self.lamb * (target - xyz))
             ddq_ref = np.dot(
                 J_inv,
-                target_acc + self.lamb * (target_velocity - dxyz) -
-                np.dot(dJ, dq_ref))
+                target_acc + self.lamb * (target_velocity - dxyz) - np.dot(dJ, dq_ref),
+            )
         else:
             q_tilde = q - target
             dq_tilde = dq - target_velocity
