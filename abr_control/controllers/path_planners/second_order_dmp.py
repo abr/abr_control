@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 try:
     import pydmps
 except ImportError:
-    print('\npydmps library required, see github.com/studywolf/pydmps\n')
+    print("\npydmps library required, see github.com/studywolf/pydmps\n")
 
 from .path_planner import PathPlanner
 
@@ -39,16 +39,17 @@ class SecondOrderDMP(PathPlanner):
         the scaling factor to apply to the error term, increasing error passed
         1 will increase the speed of motion
     """
+
     def __init__(self, n_timesteps=3000, error_scale=1):
         self.n_timesteps = n_timesteps
         self.error_scale = error_scale
 
         # create a dmp for a straight reach with a bell shaped velocity profile
-        x = np.linspace(0, np.pi*2, 100)
+        x = np.linspace(0, np.pi * 2, 100)
         a = 1  # amplitude
         b = np.pi  # center
         c = 1  # std deviation
-        g = a * np.exp(-(x-b)**2/(2*c)**2)
+        g = a * np.exp(-((x - b) ** 2) / (2 * c) ** 2)
         g /= np.sum(g)  # normalize
         # integrate desired velocities to get desired positions over time
         y_des = np.cumsum(g)
@@ -60,7 +61,6 @@ class SecondOrderDMP(PathPlanner):
         dt = 1 / n_timesteps
         self.dmps = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=dt)
         self.dmps.imitate_path(y_des)
-
 
     def generate_path(self, position, target_position, plot=False):
         """
@@ -79,19 +79,21 @@ class SecondOrderDMP(PathPlanner):
         self.reset(target_position=target_position, position=position)
 
         self.position_path, self.velocity_path, _ = self.dmps.rollout(
-            timesteps=self.n_timesteps)
-        self.position_path = np.array([traj + self.origin for traj in self.position_path])
+            timesteps=self.n_timesteps
+        )
+        self.position_path = np.array(
+            [traj + self.origin for traj in self.position_path]
+        )
 
         # reset trajectory index
         self.n = 0
 
         if plot:
             plt.plot(self.position_path)
-            plt.legend(['X', 'Y', 'Z'])
+            plt.legend(["X", "Y", "Z"])
             plt.show()
 
         return self.position_path, self.velocity_path
-
 
     def reset(self, target_position, position):
         """
@@ -107,7 +109,6 @@ class SecondOrderDMP(PathPlanner):
         self.origin = position
         self.dmps.reset_state()
         self.dmps.goal = target_position - self.origin
-
 
     def _step(self, error=None):
         """

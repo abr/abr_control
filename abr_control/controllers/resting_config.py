@@ -2,6 +2,7 @@ import numpy as np
 
 from .controller import Controller
 
+
 class RestingConfig(Controller):
     """ Move the arm towards a set of 'resting state' joint angles
 
@@ -34,11 +35,8 @@ class RestingConfig(Controller):
         q_des = np.zeros(len(q))
         dq_des = np.zeros(len(q))
         q_des[self.rest_indices] = (
-            (self.rest_angles[self.rest_indices]
-             - q[self.rest_indices]
-             + np.pi)
-            % (np.pi * 2)
-            - np.pi)
+            self.rest_angles[self.rest_indices] - q[self.rest_indices] + np.pi
+        ) % (np.pi * 2) - np.pi
         dq_des[self.rest_indices] = dq[self.rest_indices]
 
         # calculate joint space inertia matrix

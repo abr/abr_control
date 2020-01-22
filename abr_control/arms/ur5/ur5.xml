@@ -1,5 +1,3 @@
-<!-- Download stl files -->
-<!-- and place them in a meshes folder in this directory -->
 <!-- NOTE: the joint limits and references have not been set. If using -->
 <!-- this to control a real ur5, make sure they align with the values -->
 <!-- used in the real arm firmware -->

@@ -16,6 +16,7 @@ import timeit
 import numpy as np
 
 from abr_control.arms import threejoint as arm
+
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
 from abr_control.controllers import OSC, Damping, path_planners
@@ -34,59 +35,65 @@ arm_sim = arm.ArmSim(robot_config)
 # damp the movements of the arm
 damping = Damping(robot_config, kv=10)
 # create an operational space controller
-ctrlr = OSC(robot_config, kp=200, null_controllers=[damping],
-            # control (gamma) out of [x, y, z, alpha, beta, gamma]
-            ctrlr_dof = [True, True, False, False, False, False])
+ctrlr = OSC(
+    robot_config,
+    kp=200,
+    null_controllers=[damping],
+    # control (gamma) out of [x, y, z, alpha, beta, gamma]
+    ctrlr_dof=[True, True, False, False, False, False],
+)
 
 # create our path planner
-params = {'n_timesteps': 500}
+params = {"n_timesteps": 500}
 if use_wall_clock:
     run_time = 1  # wall clock time to run each trajectory for
     time_elapsed = np.copy(run_time)
     count = 0
 else:
-    count = np.copy(params['n_timesteps'])
+    count = np.copy(params["n_timesteps"])
     time_elapsed = 0.0
 path_planner = path_planners.Linear(**params)
 
 # create our interface
-interface = PyGame(robot_config, arm_sim, dt=.001)
+interface = PyGame(robot_config, arm_sim, dt=0.001)
 interface.connect()
 
 try:
-    print('\nSimulation starting...')
-    print('Click to move the target.\n')
+    print("\nSimulation starting...")
+    print("Click to move the target.\n")
 
     while 1:
         start = timeit.default_timer()
         # get arm feedback
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('EE', feedback['q'])
+        hand_xyz = robot_config.Tx("EE", feedback["q"])
 
         if use_wall_clock:
             # either update target every 1s
             update_target = time_elapsed >= run_time
         else:
             # or update target when trajectory is done
-            update_target = (count == params['n_timesteps'])
+            update_target = count == params["n_timesteps"]
 
         if update_target:
             count = 0
             time_elapsed = 0.0
-            target_xyz = np.array([
-                np.random.random() * 2 - 1,
-                np.random.random() * 2 + 1,
-                0])
+            target_xyz = np.array(
+                [np.random.random() * 2 - 1, np.random.random() * 2 + 1, 0]
+            )
             # update the position of the target
             interface.set_target(target_xyz)
 
             pos_path, vel_path = path_planner.generate_path(
-                position=hand_xyz, target_position=target_xyz, plot=False)
+                position=hand_xyz, target_position=target_xyz, plot=False
+            )
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
-                    path=pos_path, time_length=run_time)
+                    path=pos_path, time_length=run_time
+                )
                 vel_path = path_planner.convert_to_time(
-                    path=vel_path, time_length=run_time)
+                    path=vel_path, time_length=run_time
+                )
 
         # get next target along trajectory
         if use_wall_clock:
@@ -95,18 +102,16 @@ try:
         else:
             target, target_velocity = path_planner.next()
 
-
         # generate an operational space control signal
         u = ctrlr.generate(
-            q=feedback['q'],
-            dq=feedback['dq'],
+            q=feedback["q"],
+            dq=feedback["dq"],
             target=np.hstack([target, np.zeros(3)]),
             target_velocity=np.hstack([target_velocity, np.zeros(3)]),
-            )
+        )
 
         # apply the control signal, step the sim forward
-        interface.send_forces(
-            u, update_display=True if count % 20 == 0 else False)
+        interface.send_forces(u, update_display=True if count % 20 == 0 else False)
 
         count += 1
         time_elapsed += timeit.default_timer() - start
@@ -115,4 +120,4 @@ finally:
     # stop and reset the simulation
     interface.disconnect()
 
-    print('Simulation terminated...')
+    print("Simulation terminated...")

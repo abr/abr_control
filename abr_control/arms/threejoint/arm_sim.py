@@ -1,10 +1,12 @@
 import numpy as np
-import pyximport; pyximport.install(inplace=True)
+import pyximport
 
-from .arm_files.py3LinkArm import pySim
+pyximport.install(inplace=True)
+
+from .arm_files.py3LinkArm import pySim  # pylint: disable=C0413
 
 
-class ArmSim():
+class ArmSim:
     """ An interface for the three-link MapleSim model
 
     An interface for the three-link MapleSim model that has been exported
@@ -23,7 +25,7 @@ class ArmSim():
         start joint velocity [radians/second]
     """
 
-    def __init__(self, robot_config, dt=.001, q_init=None, dq_init=None):
+    def __init__(self, robot_config, dt=0.001, q_init=None, dq_init=None):
 
         self.robot_config = robot_config
 
@@ -31,7 +33,7 @@ class ArmSim():
         self.q = np.zeros(self.robot_config.N_JOINTS)
         self.dq = np.zeros(self.robot_config.N_JOINTS)
 
-        self.init_state = np.zeros(self.robot_config.N_JOINTS*2)
+        self.init_state = np.zeros(self.robot_config.N_JOINTS * 2)
         if q_init is None:
             self.init_state[::2] = self.robot_config.START_ANGLES
         else:
@@ -53,14 +55,14 @@ class ArmSim():
         self.sim = pySim(dt=1e-5)
 
         self.reset()
-        print('Connected to MapleSim model')
+        print("Connected to MapleSim model")
 
     def disconnect(self):
         """ Reset the simulation and close PyGame display.
         """
 
         self.reset()
-        print('MapleSim connection closed...')
+        print("MapleSim connection closed...")
 
     def reset(self):
         """ Resets the state of the arm to starting conditions.
@@ -87,32 +89,35 @@ class ArmSim():
         dt = self.dt if dt is None else dt
         # clip the torque signal to prevent seg faults
         u = np.minimum(
-            np.maximum(-1 * np.array(u, dtype='float'), -self.torque_limit),
-            self.torque_limit)
+            np.maximum(-1 * np.array(u, dtype="float"), -self.torque_limit),
+            self.torque_limit,
+        )
 
-        for _ in range(int(np.ceil(dt/1e-5))):
+        for _ in range(int(np.ceil(dt / 1e-5))):
             self.sim.step(self.state, u)
         self._update_state()
 
     def get_feedback(self):
         """ Return a dictionary of information needed by the controller. """
 
-        return {'q': self.q,
-                'dq': self.dq}
+        return {"q": self.q, "dq": self.dq}
 
     def get_xyz(self, name):
         """ Not available in the MapleSim Interface"""
 
-        raise NotImplementedError("Not an available method" +
-                                  "in the MapleSim interface")
+        raise NotImplementedError(
+            "Not an available method" + "in the MapleSim interface"
+        )
 
     def _position(self):
         """Compute x,y position of the hand
         """
 
-        xy = [self.robot_config.Tx('joint%i' % ii, q=self.q)
-              for ii in range(self.robot_config.N_JOINTS)]
-        xy = np.vstack([xy, self.robot_config.Tx('EE', q=self.q)])
+        xy = [
+            self.robot_config.Tx("joint%i" % ii, q=self.q)
+            for ii in range(self.robot_config.N_JOINTS)
+        ]
+        xy = np.vstack([xy, self.robot_config.Tx("EE", q=self.q)])
         self.joints_x = xy[:, 0]
         self.joints_y = xy[:, 1]
         return np.array([self.joints_x, self.joints_y])

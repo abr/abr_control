@@ -31,8 +31,15 @@ class AvoidJointLimits(Controller):
     NOTE: use None as a placeholder for joints that have no limits
     """
 
-    def __init__(self, robot_config, min_joint_angles, max_joint_angles,
-                 max_torque=None, cross_zero=None, gradient=None):
+    def __init__(
+        self,
+        robot_config,
+        min_joint_angles,
+        max_joint_angles,
+        max_torque=None,
+        cross_zero=None,
+        gradient=None,
+    ):
         super(AvoidJointLimits, self).__init__(robot_config)
 
         # shift limits to -pi to pi range
@@ -43,10 +50,10 @@ class AvoidJointLimits(Controller):
                 max_joint_angles[ii] = max_joint_angles[ii] - np.pi
 
         if cross_zero is None:
-            cross_zero = [False,] * robot_config.N_JOINTS
+            cross_zero = [False] * robot_config.N_JOINTS
         self.cross_zero = np.array(cross_zero)
         if gradient is None:
-            gradient = [False,] * robot_config.N_JOINTS
+            gradient = [False] * robot_config.N_JOINTS
         self.gradient = np.array(gradient)
 
         self.min_joint_angles = np.asarray(min_joint_angles)
@@ -58,16 +65,20 @@ class AvoidJointLimits(Controller):
         self.max_joint_angles[cross_zero] = temp_min[cross_zero]
         self.min_joint_angles[cross_zero] = temp_max[cross_zero]
 
-        if (self.max_joint_angles.shape[0] != robot_config.N_JOINTS or
-                self.min_joint_angles.shape[0] != robot_config.N_JOINTS):
-            raise Exception('joint angles vector incorrect size')
+        if (
+            self.max_joint_angles.shape[0] != robot_config.N_JOINTS
+            or self.min_joint_angles.shape[0] != robot_config.N_JOINTS
+        ):
+            raise Exception("joint angles vector incorrect size")
         # find where there aren't limits
         self.no_limits_min = np.isnan(self.min_joint_angles)
         self.no_limits_max = np.isnan(self.max_joint_angles)
 
-        self.max_torque = (np.ones(robot_config.N_JOINTS)
-                           if max_torque is None else np.asarray(max_torque))
-
+        self.max_torque = (
+            np.ones(robot_config.N_JOINTS)
+            if max_torque is None
+            else np.asarray(max_torque)
+        )
 
     def generate(self, q, dq):
         """ Generates the control signal
@@ -80,10 +91,12 @@ class AvoidJointLimits(Controller):
         q = q - (np.ones(len(q)) * np.pi)  # shift to -pi to pi range
 
         # determines which direction to push based on what limit is closer
-        closer_to_min_index = (
-            abs(q - self.min_joint_angles) >= abs(q - self.max_joint_angles))
-        closer_to_max_index = (
-            abs(q - self.min_joint_angles) <= abs(q - self.max_joint_angles))
+        closer_to_min_index = abs(q - self.min_joint_angles) >= abs(
+            q - self.max_joint_angles
+        )
+        closer_to_max_index = abs(q - self.min_joint_angles) <= abs(
+            q - self.max_joint_angles
+        )
 
         # initialize arrays
         avoid_min = np.zeros(self.robot_config.N_JOINTS)
@@ -93,13 +106,13 @@ class AvoidJointLimits(Controller):
         # approaches limit and max force if user wants a gradient
         # force field instead of hard stop
         avoid_min[self.gradient] = np.minimum(
-            np.exp(1.0/(q[self.gradient] -
-                        self.min_joint_angles[self.gradient])),
-            self.max_torque[self.gradient])
+            np.exp(1.0 / (q[self.gradient] - self.min_joint_angles[self.gradient])),
+            self.max_torque[self.gradient],
+        )
         avoid_max[self.gradient] = -np.minimum(
-            np.exp(-1.0/(q[self.gradient] -
-                         self.max_joint_angles[self.gradient])),
-            self.max_torque[self.gradient])
+            np.exp(-1.0 / (q[self.gradient] - self.max_joint_angles[self.gradient])),
+            self.max_torque[self.gradient],
+        )
 
         # if passed limit set max torque
         min_index = (q - self.min_joint_angles) < 0
@@ -109,16 +122,16 @@ class AvoidJointLimits(Controller):
         # Only affects joints who's working area crosses the 0-2pi threshold
         # check if in negative half of working area
         min_index[self.cross_zero] = (
-            min_index[self.cross_zero] * (
-                (q[self.cross_zero] -
-                 self.max_joint_angles[self.cross_zero]) > 0) *
-            closer_to_max_index[self.cross_zero])
+            min_index[self.cross_zero]
+            * ((q[self.cross_zero] - self.max_joint_angles[self.cross_zero]) > 0)
+            * closer_to_max_index[self.cross_zero]
+        )
         # check if in positive half of working area
         max_index[self.cross_zero] = (
-            max_index[self.cross_zero] * (
-                (q[self.cross_zero] -
-                 self.min_joint_angles[self.cross_zero]) < 0) *
-            closer_to_min_index[self.cross_zero])
+            max_index[self.cross_zero]
+            * ((q[self.cross_zero] - self.min_joint_angles[self.cross_zero]) < 0)
+            * closer_to_min_index[self.cross_zero]
+        )
 
         avoid_min[min_index] = self.max_torque[min_index]
         avoid_min[self.no_limits_min] = 0.0

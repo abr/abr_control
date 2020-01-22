@@ -24,7 +24,6 @@ class Floating(Controller):
         self.dynamic = dynamic
         self.task_space = task_space
 
-
     def generate(self, q, dq=None):
         """ Generates the control signal to compensate for gravity
         Parameters
@@ -39,7 +38,7 @@ class Floating(Controller):
 
         if self.task_space:
             # get the Jacobian
-            J = self.robot_config.J('EE', q)[:3]
+            J = self.robot_config.J("EE", q)[:3]
 
             # calculate the inertia matrix in joint space
             M = self.robot_config.M(q)

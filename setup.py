@@ -41,7 +41,7 @@ install_req = [
 docs_req = []
 optional_req = []
 tests_req = [
-    "pytest>=4.3.0",
+    "pytest>=4.4.0",
     "pytest-xdist>=1.26.0",
     "pytest-cov>=2.6.0",
     "pytest-plt",

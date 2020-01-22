@@ -4,6 +4,7 @@ from abr_control.utils import transformations
 
 from .controller import Controller
 
+
 class OSC(Controller):
     """ Implements an operational space controller (OSC)
 
@@ -45,9 +46,21 @@ class OSC(Controller):
     integrated_error: float list, optional (Default: None)
         task-space integrated error term
     """
-    def __init__(self, robot_config, kp=1, ko=None, kv=None, ki=0,
-                 vmax=None, ctrlr_dof=None, null_controllers=None,
-                 use_g=True, use_C=False, orientation_algorithm=0):
+
+    def __init__(
+        self,
+        robot_config,
+        kp=1,
+        ko=None,
+        kv=None,
+        ki=0,
+        vmax=None,
+        ctrlr_dof=None,
+        null_controllers=None,
+        use_g=True,
+        use_C=False,
+        orientation_algorithm=0,
+    ):
 
         super(OSC, self).__init__(robot_config)
 
@@ -55,7 +68,7 @@ class OSC(Controller):
         self.ko = kp if ko is None else ko
         # TODO: find the appropriate default critical damping value
         # when using different position and orientation gains
-        self.kv = np.sqrt(self.kp+self.ko) if kv is None else kv
+        self.kv = np.sqrt(self.kp + self.ko) if kv is None else kv
         self.ki = ki
         self.null_controllers = null_controllers
         self.use_g = use_g
@@ -70,21 +83,26 @@ class OSC(Controller):
         self.ctrlr_dof = np.copy(ctrlr_dof)
         self.n_ctrlr_dof = np.sum(self.ctrlr_dof)
 
-        self.task_space_gains = np.array([self.kp,]*3 + [self.ko,]*3)
+        self.task_space_gains = np.array([self.kp] * 3 + [self.ko] * 3)
         self.lamb = self.task_space_gains / self.kv
 
         try:
             if self.n_ctrlr_dof > robot_config.N_JOINTS:
-                print('\nRobot has fewer DOF (%i) than the specified number of ' %
-                      robot_config.N_JOINTS + 'space dimensions to control (%i). ' %
-                      self.n_ctrlr_dof + 'Poor performance may result.\n')
+                print(
+                    "\nRobot has fewer DOF (%i) than the specified number of "
+                    % robot_config.N_JOINTS
+                    + "space dimensions to control (%i). " % self.n_ctrlr_dof
+                    + "Poor performance may result.\n"
+                )
         except AttributeError as e:
-            print('\n********************************************************\n'
-                  + 'If using Mujoco you will need to instantiate and connect\n'
-                  + 'to the interface to gain access to parameters required\n'
-                  + 'for this controller\n')
+            print(
+                "\n********************************************************\n"
+                + "If using Mujoco you will need to instantiate and connect\n"
+                + "to the interface to gain access to parameters required\n"
+                + "for this controller\n"
+            )
             print(e)
-            print('********************************************************\n')
+            print("********************************************************\n")
         self.vmax = vmax
         if vmax is not None:
             # precalculate gains used in velocity limiting
@@ -95,7 +113,6 @@ class OSC(Controller):
 
         self.ZEROS_SIX = np.zeros(6)
         self.IDENTITY_N_JOINTS = np.eye(self.robot_config.N_JOINTS)
-
 
     def _Mx(self, M, J, threshold=1e-3):
         """ Generate the task-space inertia matrix
@@ -122,10 +139,9 @@ class OSC(Controller):
         else:
             # using the rcond to set singular values < thresh to 0
             # singular values < (rcond * max(singular_values)) set to 0
-            Mx = np.linalg.pinv(Mx_inv, rcond=threshold*.1)
+            Mx = np.linalg.pinv(Mx_inv, rcond=threshold * 0.1)
 
         return Mx, M_inv
-
 
     def _calc_orientation_forces(self, target_abg, q):
         """ Calculate the desired Euler angle forces to apply to the arm to
@@ -144,32 +160,38 @@ class OSC(Controller):
             # transform the orientation target into a quaternion
             q_d = transformations.unit_vector(
                 transformations.quaternion_from_euler(
-                    target_abg[0], target_abg[1], target_abg[2], axes='rxyz'))
+                    target_abg[0], target_abg[1], target_abg[2], axes="rxyz"
+                )
+            )
             # get the quaternion for the end effector
-            q_e = self.robot_config.quaternion('EE', q=q)
+            q_e = self.robot_config.quaternion("EE", q=q)
             q_r = transformations.quaternion_multiply(
-                q_d, transformations.quaternion_conjugate(q_e))
+                q_d, transformations.quaternion_conjugate(q_e)
+            )
             u_task_orientation = -q_r[1:] * np.sign(q_r[0])
 
         elif self.orientation_algorithm == 1:
             # From (Caccavale et al, 1997) Section IV Quaternion feedback
             # get rotation matrix for the end effector orientation
-            R_e = self.robot_config.R('EE', q)
+            R_e = self.robot_config.R("EE", q)
             # get rotation matrix for the target orientation
             R_d = transformations.euler_matrix(
-                target_abg[0], target_abg[1], target_abg[2],
-                axes='rxyz')[:3, :3]
+                target_abg[0], target_abg[1], target_abg[2], axes="rxyz"
+            )[:3, :3]
             R_ed = np.dot(R_e.T, R_d)  # eq 24
             q_ed = transformations.unit_vector(
-                transformations.quaternion_from_matrix(R_ed))
+                transformations.quaternion_from_matrix(R_ed)
+            )
             u_task_orientation = -1 * np.dot(R_e, q_ed[1:])  # eq 34
 
         else:
-            raise Exception('Invalid algorithm number %i for calculating ' %
-                            self.orientation_algorithm+ 'orientation error')
+            raise Exception(
+                "Invalid algorithm number %i for calculating "
+                % self.orientation_algorithm
+                + "orientation error"
+            )
 
         return u_task_orientation
-
 
     def _velocity_limiting(self, u_task):
         """ Scale the control signal such that the arm isn't driven to move
@@ -190,9 +212,9 @@ class OSC(Controller):
 
         return self.kv * scale * self.lamb * u_task
 
-
-    def generate(self, q, dq, target, target_velocity=None,
-                 ref_frame='EE', xyz_offset=None):
+    def generate(
+        self, q, dq, target, target_velocity=None, ref_frame="EE", xyz_offset=None
+    ):
         """ Generates the control signal to move the EE to a target
 
         Parameters
@@ -289,7 +311,7 @@ class OSC(Controller):
                 u_null = null_controller.generate(q, dq)
                 # calculate null space filter
                 Jbar = np.dot(M_inv, np.dot(J.T, Mx))
-                null_filter = (self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T))
+                null_filter = self.IDENTITY_N_JOINTS - np.dot(J.T, Jbar.T)
                 # add in filtered null space control signal
                 u += np.dot(null_filter, u_null)
 

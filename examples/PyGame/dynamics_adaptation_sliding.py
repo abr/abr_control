@@ -7,10 +7,12 @@ To turn adaptation on or off, press the spacebar.
 """
 import numpy as np
 from os import environ
-environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
+environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 
 from abr_control.arms import threejoint as arm
+
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
 from abr_control.controllers import Sliding, signals
@@ -30,8 +32,8 @@ adapt = signals.DynamicsAdaptation(
     n_output=robot_config.N_JOINTS,
     pes_learning_rate=3e-3,
     means=[0, 0, 0],
-    variances=[2*np.pi, 2*np.pi, 2*np.pi],
-    )
+    variances=[2 * np.pi, 2 * np.pi, 2 * np.pi],
+)
 
 
 def on_click(self, mouse_x, mouse_y):
@@ -42,53 +44,49 @@ def on_click(self, mouse_x, mouse_y):
 def on_keypress(self, key):
     if key == pygame.K_SPACE:
         self.adaptation = not self.adaptation
-        print('adaptation: ', self.adaptation)
+        print("adaptation: ", self.adaptation)
+
 
 # create our interface
-interface = PyGame(robot_config, arm_sim,
-                   on_click=on_click,
-                   on_keypress=on_keypress)
+interface = PyGame(robot_config, arm_sim, on_click=on_click, on_keypress=on_keypress)
 interface.connect()
 interface.adaptation = False  # set adaptation False to start
 
 # create a target
 feedback = interface.get_feedback()
-target_xyz = robot_config.Tx('EE', feedback['q'])
+target_xyz = robot_config.Tx("EE", feedback["q"])
 interface.set_target(target_xyz)
 
 # get Jacobians to each link for calculating perturbation
-J_links = [robot_config._calc_J('link%s' % ii, x=[0, 0, 0])
-           for ii in range(robot_config.N_LINKS)]
+J_links = [
+    robot_config._calc_J("link%s" % ii, x=[0, 0, 0])
+    for ii in range(robot_config.N_LINKS)
+]
 
 
 try:
-    print('\nSimulation starting...')
-    print('Click to move the target.')
-    print('Press space to turn on adaptation.\n')
+    print("\nSimulation starting...")
+    print("Click to move the target.")
+    print("Press space to turn on adaptation.\n")
 
     count = 0
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
-        hand_xyz = robot_config.Tx('EE', feedback['q'])
+        hand_xyz = robot_config.Tx("EE", feedback["q"])
 
         # generate an operational space control signal
-        u = ctrlr.generate(
-            q=feedback['q'],
-            dq=feedback['dq'],
-            target=target_xyz)
+        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target_xyz)
 
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:
-            sig = adapt.generate(
-                input_signal = feedback['q'],
-                training_signal=-ctrlr.s)
+            sig = adapt.generate(input_signal=feedback["q"], training_signal=-ctrlr.s)
             u += sig
 
         fake_gravity = np.array([[0, -9.81, 0, 0, 0, 0]]).T * 10.0
         g = np.zeros((robot_config.N_JOINTS, 1))
         for ii in range(robot_config.N_LINKS):
-            pars = tuple(feedback['q']) + tuple([0, 0, 0])
+            pars = tuple(feedback["q"]) + tuple([0, 0, 0])
             g += np.dot(J_links[ii](*pars).T, fake_gravity)
         u += g.squeeze()
 
@@ -98,8 +96,7 @@ try:
         interface.set_target(target_xyz)
 
         # apply the control signal, step the sim forward
-        interface.send_forces(
-            u, update_display=True if count % 20 == 0 else False)
+        interface.send_forces(u, update_display=True if count % 20 == 0 else False)
 
         count += 1
 
@@ -107,4 +104,4 @@ finally:
     # stop and reset the simulation
     interface.disconnect()
 
-    print('Simulation terminated...')
+    print("Simulation terminated...")

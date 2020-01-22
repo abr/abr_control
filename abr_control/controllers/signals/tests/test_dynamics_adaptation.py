@@ -8,6 +8,7 @@ from abr_control.controllers import signals
 from abr_control.controllers.signals import DynamicsAdaptation
 from abr_control._vendor.nengolib.stats import ScatteredHypersphere
 
+
 def test_scaling():
     robot_config = ur5.Config(use_cython=True)
 
@@ -23,12 +24,11 @@ def test_scaling():
             means=means,
             variances=variances,
             spherical=False,
-            )
+        )
 
         unscaled = np.random.random(robot_config.N_JOINTS) * 50 + 25
         scaled = adapt.scale_inputs(unscaled)
         assert np.all(-1 < scaled) and np.all(scaled < 1)
-
 
         # test spherical conversion
         adapt = DynamicsAdaptation(
@@ -37,7 +37,7 @@ def test_scaling():
             means=means,
             variances=variances,
             spherical=True,
-            )
+        )
 
         unscaled = np.random.random(robot_config.N_JOINTS) * 50 + 25
         scaled = adapt.scale_inputs(unscaled)

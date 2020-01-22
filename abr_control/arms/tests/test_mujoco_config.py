@@ -1,10 +1,12 @@
 import numpy as np
 import pytest
 
-from abr_control.arms.mujoco_config import MujocoConfig as arm
-from abr_control.interfaces.mujoco import Mujoco
+pytest.importorskip("mujoco")
 
-from .dummy_mujoco_arm import TwoJoint
+from abr_control.arms.mujoco_config import MujocoConfig as arm  # pylint: disable=C0413
+from abr_control.interfaces.mujoco import Mujoco  # pylint: disable=C0413
+
+from .dummy_mujoco_arm import TwoJoint  # pylint: disable=C0413
 
 
 # TODO
@@ -53,71 +55,25 @@ def test_J():
 
 
 # def test_M(plt):
-#     test_arm = TwoJoint()
+#     test_arm = TwoJoint(L0=0.2, L1=0.4)
 #     robot_config = arm("twojoint")
-#     interface = Mujoco(robot_config=robot_config , visualize=False)
+#     interface = Mujoco(robot_config=robot_config, visualize=False)
 #     interface.connect()
 #
-#     muj_Mi = robot_config.sim.model.body_inertia
+#     muj_I = robot_config.sim.model.body_inertia
 #     muj_m = robot_config.sim.model.body_mass
 #     link1 = robot_config.sim.model.body_name2id("link1")
 #     link2 = robot_config.sim.model.body_name2id("link2")
 #
-#     test_Mi = np.asarray(test_arm.M_LINKS)[:, 3:, 3:]
-#     test_m = np.asarray(test_arm.M_LINKS)[:, :3, :3]
+#     test_I = np.vstack([np.diag(I) for I in np.asarray(test_arm.M_LINKS)[:, 3:, 3:]])
+#     test_m = np.asarray(test_arm.M_LINKS)[:, 0, 0]
 #
 #     # check inertias
-#     assert np.allclose(muj_Mi[link1], np.diag(test_Mi[1]), atol=1e-5)
-#     assert np.allclose(muj_Mi[link2], np.diag(test_Mi[2]), atol=1e-5)
+#     assert np.allclose(muj_I[link1], test_I[1], atol=1e-5)
+#     assert np.allclose(muj_I[link2], test_I[2], atol=1e-5)
 #     # check masses
-#     assert np.allclose(muj_m[link1], np.diag(test_m[1])[0], atol=1e-5)
-#     assert np.allclose(muj_m[link2], np.diag(test_m[2])[0], atol=1e-5)
-#     # check our diag masses match
-#     assert np.allclose(np.mean(np.diag(test_m[1])), np.diag(test_m[1])[0], atol=1e-5)
-#     assert np.allclose(np.mean(np.diag(test_m[2])), np.diag(test_m[1])[2], atol=1e-5)
-#
-#     # create the inertia matrices for each link using the above information for Mujoco
-#     muj_M1 = np.diag(
-#         [
-#             muj_m[link1],
-#             muj_m[link1],
-#             muj_m[link1],
-#             muj_Mi[link1][0],
-#             muj_Mi[link1][1],
-#             muj_Mi[link1][2],
-#         ]
-#     )
-#     muj_M2 = np.diag(
-#         [
-#             muj_m[link2],
-#             muj_m[link2],
-#             muj_m[link2],
-#             muj_Mi[link2][0],
-#             muj_Mi[link2][1],
-#             muj_Mi[link2][2],
-#         ]
-#     )
-#
-#     # print('muj M1: \n', muj_M1)
-#     # print('muj M2: \n', muj_M2)
-#
-#     # get the test inertia matrices, at this point they have passed the assertion
-#     test_M1 = test_arm.M_LINKS[1]
-#     test_M2 = test_arm.M_LINKS[2]
-#
-#     # print('test M1: \n', test_M1)
-#     # print('test M2: \n', test_M2)
-#
-#     # store data for visual comparison when debugging
-#     plot = True
-#     obj_type = "geom"
-#     q1s = []
-#     mujs = []
-#     mines = []
-#     if plot:
-#         a = [0, 0, 0, 0]
-#         for ii in range(4):
-#             a[ii] = plt.subplot(4, 1, ii + 1)
+#     assert np.allclose(muj_m[link1], test_m[1], atol=1e-5)
+#     assert np.allclose(muj_m[link2], test_m[2], atol=1e-5)
 #
 #     q_vals = np.linspace(0, 2 * np.pi, 50)
 #     for q0 in q_vals:
@@ -130,33 +86,74 @@ def test_J():
 #             muj_J1 = robot_config.J("link1", q)
 #             muj_J2 = robot_config.J("link2", q)
 #
-#             # print('muj-COMJ1\n', robot_config.sim.data.get_body_jacbodycom)
-#
 #             test_J1 = test_arm.J_link1(q)
 #             test_J2 = test_arm.J_link2(q)
-#
-#             # print('sim ipos: ', robot_config.sim.model.body_ipos)
-#             # print('sim iquat: ', robot_config.sim.model.body_iquat)
-#             # print('body simple: ', robot_config.sim.model.body_simple)
-#             # print('body sameframe: ', robot_config.sim.model.body_sameframe)
-#
-#             print("muj-J2\n", muj_J2)
-#             print("test-J2\n", test_J2)
 #
 #             assert np.allclose(muj_J1, test_J1)
 #             assert np.allclose(muj_J2, test_J2)
 #
 #             muj_M = robot_config.M(q)
 #
-#             test_Mx1 = np.dot(muj_J1.T, np.dot(muj_M1, muj_J1))
-#             test_Mx2 = np.dot(muj_J2.T, np.dot(muj_M2, muj_J2))
+#             # following the formulas from Todorov's Featherstone slide 4
+#             print(muj_I)
+#             Ic1 = np.diag(muj_I[link1])
+#             Ic2 = np.diag(muj_I[link2])
+#
+#             print("Ic1: \n", Ic1)
+#             print("Ic2: \n", Ic2)
+#
+#             # c1 = robot_config.Tx('link1', q=q)
+#             # c2 = robot_config.Tx('link2', q=q)
+#             c1 = robot_config.sim.model.body_ipos[link1]
+#             c2 = robot_config.sim.model.body_ipos[link2]
+#
+#             print("simple1: ", robot_config.sim.model.body_simple[link1])
+#             print("simple2: ", robot_config.sim.model.body_simple[link2])
+#             print("sameframe1: ", robot_config.sim.model.body_sameframe[link1])
+#             print("sameframe2: ", robot_config.sim.model.body_sameframe[link2])
+#             print("pos1: ", robot_config.sim.model.body_pos[link1])
+#             print("pos2: ", robot_config.sim.model.body_pos[link2])
+#             print("quat1: ", robot_config.sim.model.body_quat[link1])
+#             print("quat2: ", robot_config.sim.model.body_quat[link2])
+#             print("ipos1: ", robot_config.sim.model.body_ipos[link1])
+#             print("ipos2: ", robot_config.sim.model.body_ipos[link2])
+#             print("iquat1: ", robot_config.sim.model.body_iquat[link1])
+#             print("iquat2: ", robot_config.sim.model.body_iquat[link2])
+#
+#             # function to generate a matrix such that
+#             # np.dot(tilde(x), y) = np.cross(x, y)
+#             tilde = lambda x: np.array(
+#                 [[0, -x[2], x[1]], [x[2], 0, -x[0]], [-x[1], x[0], 0]]
+#             )
+#             Io1 = Ic1 - muj_m[link1] * np.dot(tilde(c1), tilde(c1))
+#             Io2 = Ic2 - muj_m[link2] * np.dot(tilde(c2), tilde(c2))
+#
+#             def gen_Io_tilde(Io, m, c_tilde):
+#                 Io_tilde = np.zeros((6, 6))
+#                 Io_tilde[:3, :3] = Io
+#                 Io_tilde[:3, 3:] = m * c_tilde
+#                 Io_tilde[3:, :3] = m * c_tilde.T
+#                 Io_tilde[3:, 3:] = m * np.eye(3)
+#                 return Io_tilde
+#
+#             Io_tilde1 = gen_Io_tilde(Io1, muj_m[link1], tilde(c1))
+#             Io_tilde2 = gen_Io_tilde(Io2, muj_m[link2], tilde(c2))
+#
+#             print("Io_tilde1: ", Io_tilde1)
+#             print("J1: ", muj_J1)
+#             print("J2: ", muj_J2)
+#
+#             test_Mx1 = np.dot(muj_J1.T, np.dot(Io_tilde1, muj_J1))
+#             test_Mx2 = np.dot(muj_J2.T, np.dot(Io_tilde2, muj_J2))
+#
+#             print("test_Mx1: ", test_Mx1)
+#             print("test_Mx2: ", test_Mx2)
 #
 #             test_Mx = test_Mx1 + test_Mx2
 #
 #             print("muj: ", [float("%0.5f" % val) for val in muj_M.flatten()])
 #             print("test: ", [float("%0.5f" % val) for val in test_Mx.flatten()])
 #
-#             # if not plot:
 #             assert np.allclose(muj_M, test_Mx)
 
 
