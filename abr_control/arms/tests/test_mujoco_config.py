@@ -100,11 +100,6 @@ def test_M(plt):
             print('Ic1: \n', Ic1)
             print('Ic2: \n', Ic2)
 
-            tilde = lambda x: np.array([
-                [0, -x[2], x[1]],
-                [x[2], 0, -x[0]],
-                [-x[1], x[0], 0]
-            ])
             # c1 = robot_config.Tx('link1', q=q)
             # c2 = robot_config.Tx('link2', q=q)
             c1 = robot_config.sim.model.body_ipos[link1]
@@ -122,16 +117,22 @@ def test_M(plt):
             print('ipos2: ', robot_config.sim.model.body_ipos[link2])
             print('iquat1: ', robot_config.sim.model.body_iquat[link1])
             print('iquat2: ', robot_config.sim.model.body_iquat[link2])
-            # return
 
+            # function to generate a matrix such that
+            # np.dot(tilde(x), y) = np.cross(x, y)
+            tilde = lambda x: np.array([
+                [0, -x[2], x[1]],
+                [x[2], 0, -x[0]],
+                [-x[1], x[0], 0]
+            ])
             Io1 = Ic1 - muj_m[link1] * np.dot(tilde(c1), tilde(c1))
             Io2 = Ic2 - muj_m[link2] * np.dot(tilde(c2), tilde(c2))
 
             def gen_Io_tilde(Io, m, c_tilde):
                 Io_tilde = np.zeros((6, 6))
                 Io_tilde[:3, :3] = Io
-                Io_tilde[:3, 3:] = m * c_tilde.T
-                Io_tilde[3:, :3] = m * c_tilde
+                Io_tilde[:3, 3:] = m * c_tilde
+                Io_tilde[3:, :3] = m * c_tilde.T
                 Io_tilde[3:, 3:] = m * np.eye(3)
                 return Io_tilde
             Io_tilde1 = gen_Io_tilde(Io1, muj_m[link1], tilde(c1))
@@ -143,6 +144,9 @@ def test_M(plt):
 
             test_Mx1 = np.dot(muj_J1.T, np.dot(Io_tilde1, muj_J1))
             test_Mx2 = np.dot(muj_J2.T, np.dot(Io_tilde2, muj_J2))
+
+            print('test_Mx1: ', test_Mx1)
+            print('test_Mx2: ', test_Mx2)
 
             test_Mx = test_Mx1 + test_Mx2
 
