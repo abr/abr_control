@@ -12,9 +12,7 @@ class MujocoConfig:
     dynamics calculations necessary for controllers.
     """
 
-    def __init__(
-        self, xml_file, folder=None, use_sim_state=False, force_download=False
-    ):
+    def __init__(self, xml_file, folder=None, use_sim_state=True, force_download=False):
         """ Loads the Mujoco model from the specified xml file
 
         Parameters
@@ -33,7 +31,7 @@ class MujocoConfig:
         folder: string, Optional (Default: None)
             specifies what folder to find the xml_file, if None specified will
             checking in abr_control/arms/xml_file (see above for xml_file)
-        use_sim_state: Boolean, optional (Default: False)
+        use_sim_state: Boolean, optional (Default: True)
             If set true, the q and dq values passed in to the functions are
             ignored, and the current state of the simulator is used to
             calculate all functions. Can speed up simulation by not resetting

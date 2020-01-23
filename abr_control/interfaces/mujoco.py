@@ -176,8 +176,6 @@ class Mujoco(Interface):
         self.sim.step()
 
         # Update position of hand object
-        # NOTE: contact exclude tags must be included in the XML file
-        # for the hand and target with all robot bodies to prevent collisions
         hand_xyz = self.robot_config.Tx(name="EE")
         self.set_mocap_xyz("hand", hand_xyz)
 

@@ -29,7 +29,7 @@ interface.connect()
 interface.send_target_angles(robot_config.START_ANGLES)
 
 # instantiate the controller
-ctrlr = Floating(robot_config, task_space=True, dynamic=True)
+ctrlr = Floating(robot_config, task_space=False, dynamic=True)
 
 # set up arrays for tracking end-effector and target position
 ee_track = []
