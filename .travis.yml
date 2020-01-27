@@ -34,7 +34,7 @@ jobs:
         server: https://test.pypi.org/legacy/
         user: tbekolay
         password: $PYPI_TOKEN
-        distributions: "sdist bdist_wheel "
+        distributions: "sdistbdist_wheel"
         on:
           all_branches: true
           condition: $TRAVIS_BRANCH =~ ^release-candidate-*
@@ -42,7 +42,7 @@ jobs:
       - provider: pypi
         user: tbekolay
         password: $PYPI_TOKEN
-        distributions: "sdist bdist_wheel "
+        distributions: "sdistbdist_wheel"
         on:
           all_branches: true
           condition: $TRAVIS_TAG =~ ^v[0-9]*
