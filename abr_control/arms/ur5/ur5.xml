@@ -1,6 +1,12 @@
 <!-- NOTE: the joint limits and references have not been set. If using -->
 <!-- this to control a real ur5, make sure they align with the values -->
 <!-- used in the real arm firmware -->
+<!-- Masses and center-of-masses taken from: www.universal-robots.com/
+        how-tos-and-faqs/faq/ur-faq/
+        parameters-for-calculations-of-kinematics-and-dynamics-45257/ -->
+<!-- Principle moments of inertia not provided, set all to 0.1. -->
+<!-- Inertia parameters provided at link below, not sure of accuracy so not used:
+        http://hades.mech.northwestern.edu/images/4/49/UR5-URDF.pdf -->
 <mujoco model="ur5">
     <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
 
