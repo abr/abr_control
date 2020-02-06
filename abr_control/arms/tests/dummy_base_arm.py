@@ -388,11 +388,12 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
         m11 = (
             m1 * lc1 ** 2
             + m2
-            * (L[1] ** 2 + lc2 ** 2 + 2 * L[1] * lc2 * np.cos(q[1]))  # 2*L[1]*lc2**2 +
+            * (L[1] ** 2 + lc2 ** 2 + 2 * L[1] * lc2 * np.cos(q[1])) # 2*L[1]*lc2**2 +
             + i1
             + i2
         )
-        m12 = m21 = m2 * (lc2 ** 2 + L[1] * lc2 * np.cos(q[1])) + i2
+        m12 = m2 * (lc2 ** 2 + L[1] * lc2 * np.cos(q[1])) + i2
+        m21 = m12
         m22 = m2 * lc2 ** 2 + i2
         return np.array([[m11, m12], [m21, m22]])
 

@@ -127,6 +127,9 @@ class Config(BaseConfig):
             self._calc_T('joint0')[:3, :3] * self._KZ,  # joint 0 orientation
             self._calc_T('joint1')[:3, :3] * self._KZ]  # joint 1 orientation
 
+        # joint motion subspace for calculation of spatial joint space inertia tensor
+        self.S = [self.Srev_z, self.Srev_z]
+
     def _calc_T(self, name):
         """ Uses Sympy to generate the transform for a joint or link
 

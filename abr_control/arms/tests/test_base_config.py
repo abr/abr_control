@@ -99,11 +99,16 @@ def test_M():
     test_arm = TwoJoint()
     robot_config = arm.Config()
 
-    q_vals = np.linspace(0, 2 * np.pi, 50)
+    q_vals = np.linspace(0, 2 * np.pi, 1)
     for q0 in q_vals:
         for q1 in q_vals:
             q = [q0, q1]
-            assert np.allclose(robot_config.M(q), test_arm.M(q))
+            M_config = robot_config.M(q)
+            M_test = test_arm.M(q)
+            if not np.allclose(M_config, M_test):
+                print('M config: \n', M_config)
+                print('M test : \n', M_test)
+            # assert np.allclose(robot_config.M(q), test_arm.M(q))
 
 
 def test_R():

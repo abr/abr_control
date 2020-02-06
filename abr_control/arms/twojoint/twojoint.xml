@@ -5,31 +5,16 @@
         <text name="google_id" data="None"/>
     </custom>
 
-    <contact>
-        <exclude body1="hand" body2="EE"/>
-        <exclude body1="hand" body2="base_link"/>
-        <exclude body1="hand" body2="link1"/>
-        <exclude body1="hand" body2="link2"/>
-
-        <exclude body1="target" body2="EE"/>
-        <exclude body1="target" body2="base_link"/>
-        <exclude body1="target" body2="link1"/>
-        <exclude body1="target" body2="link2"/>
-    </contact>
-
     <worldbody>
         <body name="hand" pos="0 0 0" mocap="true">
-            <geom type="box" size=".02 .04 .06" rgba="0 .9 0 .5" contype="2"/>
-            <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
+            <geom type="box" size=".02 .04 .06" rgba="0 .9 0 .5" contype="1" conaffinity="1"/>
         </body>
         <body name="target" pos="0 0 0" mocap="true">
-            <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
-            <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
+            <geom type="sphere" size="0.05" rgba=".9 0 0 .5" contype="2" conaffinity="2"/>
         </body>
 
         <body name="floor" pos="0 0 0" mocap="true">
-            <geom type="box" size="1 1 0.001" rgba="0.99 0.99 0.99 1" contype="2"/>
-            <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
+            <geom type="box" size="1 1 0.001" rgba="0.99 0.99 0.99 1"/>
         </body>
 
         <light pos="0 1 1" dir="0 -1 -1" diffuse="1 1 1"/>
@@ -40,16 +25,16 @@
 
             <body name="link1" pos="0 0 0.05">
                 <joint name='joint0' pos="0 0 0" axis="0 0 1"/>
-                <inertial pos="0 0 0.1" mass="2" diaginertia="0.3 0.2 0.1" />
-                <geom name="link1" type="cylinder" pos="0 0 0.1" size="0.025 0.1" rgba="0 1 0 0.9"/>
+                <inertial pos="0 0.1 0" mass="2" diaginertia="0.3 0.2 0.1" />
+                <geom name="link1" type="cylinder" euler="90 0 0" pos="0 0.1 0" size="0.025 0.1" rgba="0 1 0 0.9"/>
 
-                <body name="link2" pos="0 0 0.2">
-                    <joint name='joint1' pos="0 0 0" axis="0 1 0"/>
-                    <inertial pos="0 0 0.2" mass="2" diaginertia="0.1 0.2 0.3" />
-                    <geom name="link2" type="cylinder" pos="0 0 0.2" size="0.025 0.2" rgba="1 1 0 0.9"/>
+                <body name="link2" pos="0 0.2 0">
+                    <joint name='joint1' pos="0 0 0" axis="0 0 1"/>
+                    <inertial pos="0 0.1 0" mass="2" diaginertia="0.1 0.2 0.3" />
+                    <geom name="link2" type="cylinder" euler="90 0 0" pos="0 0.1 0" size="0.025 0.1" rgba="1 1 0 0.9"/>
 
-                    <body name="EE" pos="0 0 .4">
-                        <inertial pos="0 0 0" mass="0" diaginertia="0.0 0.0 0.0" />
+                    <body name="EE" pos="0 0.2 0">
+                        <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
                     </body>
 
                 </body>

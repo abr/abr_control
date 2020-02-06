@@ -16,7 +16,7 @@ import mujoco_py as mjp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from abr_control.controllers import OSC
+from abr_control.controllers import OSC, Damping
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.arms.mujoco_config import MujocoConfig
 
@@ -53,12 +53,17 @@ interface = Mujoco(robot_config, dt=dt)
 interface.connect()
 interface.send_target_angles(robot_config.START_ANGLES)
 
-ctrlr = OSC(robot_config, kp=10, kv=5,
-            ctrlr_dof=ctrlr_dof)
+# damp the movements of the arm
+damping = Damping(robot_config, kv=10)
+ctrlr = OSC(
+    robot_config,
+    kp=50,
+    ctrlr_dof=ctrlr_dof,
+    null_controllers=[damping])
 
 interface.send_target_angles(np.ones(N_JOINTS))
 
-target = np.array([0.1, 0.1, 0.3, 0, 0, 0])
+target = np.array([0.2, -0.2, 0.125, 0, 0, 0])
 interface.set_mocap_xyz('target', target[:3])
 
 interface.set_mocap_xyz('hand', np.array([.2, .4, 1]))
@@ -89,7 +94,7 @@ try:
                          * np.sign(np.random.uniform(-1, 1)))
             target[1] = (np.random.uniform(0.2, 0.25)
                          * np.sign(np.random.uniform(-1, 1)))
-            target[2] = np.random.uniform(0.4, 0.5)
+            target[2] = 0.125
             interface.set_mocap_xyz('target', target[:3])
 
         q_track.append(feedback['q'])

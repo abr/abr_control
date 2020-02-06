@@ -43,7 +43,7 @@ green = [0, 0.9, 0, 0.5]
 red = [0.9, 0, 0, 0.5]
 
 def gen_target(interface):
-    target_xyz = (np.random.rand(3) + np.array([-0.5, -0.5, 0.5])) * np.array([1, 1, .5])
+    target_xyz = (np.random.rand(3) + np.array([-0.5, -0.5, 0.75])) * np.array([1, 1, .5])
     interface.set_mocap_xyz(name='target', xyz=target_xyz)
 
 try:

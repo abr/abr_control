@@ -97,7 +97,13 @@ class BaseConfig():
         self._Tx = {}
         self._T_func = {}
 
+        self._KX = sp.Matrix([0, 1, 0])
+        self._KY = sp.Matrix([0, 1, 0])
         self._KZ = sp.Matrix([0, 0, 1])
+
+        self.Srev_x = sp.Matrix([1, 0, 0, 0, 0, 0])
+        self.Srev_y = sp.Matrix([0, 1, 0, 0, 0, 0])
+        self.Srev_z = sp.Matrix([0, 0, 1, 0, 0, 0])
 
         # inertia matrix lists, to be filled out by subclasses
         self._M_LINKS = []
@@ -280,8 +286,8 @@ class BaseConfig():
         """
 
         # check for function in dictionary
-        if self._M is None:
-            self._M = self._calc_M()
+        # if self._M is None:
+        self._M = self._calc_M()
         parameters = tuple(q)
         return np.array(self._M(*parameters), dtype='float32')
 
@@ -632,30 +638,89 @@ class BaseConfig():
         M_func = None
 
         # check to see if we have our inertia matrix saved in file
-        M, M_func = self._load_from_file('M', lambdify)
+        # M, M_func = self._load_from_file('M', lambdify)
 
         if M is None and M_func is None:
             # if no saved file was loaded, generate function
             print('Generating inertia matrix function')
 
             # get the Jacobians for each link's COM
-            J_links = [self._calc_J('link%s' % ii, x=self.x_zeros,
-                                    lambdify=False)
-                       for ii in range(self.N_LINKS)]
-            J_joints = [self._calc_J('joint%s' % ii, x=self.x_zeros,
-                                     lambdify=False)
-                        for ii in range(self.N_JOINTS)]
+            # J_links = [self._calc_J('link%s' % ii, x=self.x_zeros,
+            #                         lambdify=False)
+            #            for ii in range(self.N_LINKS)]
+            # J_joints = [self._calc_J('joint%s' % ii, x=self.x_zeros,
+            #                          lambdify=False)
+            #             for ii in range(self.N_JOINTS)]
+            #
+            # # sum together the effects of each arm segment's inertia
+            # M = sp.zeros(self.N_JOINTS)
+            # for ii in range(self.N_LINKS):
+            #     # transform each inertia matrix into joint space
+            #     M += (J_links[ii].T * self._M_LINKS[ii] * J_links[ii])
+            # # sum together the effects of each joint's inertia on each motor
+            # for ii in range(self.N_JOINTS):
+            #     # transform each inertia matrix into joint space
+            #     M += (J_joints[ii].T * self._M_JOINTS[ii] * J_joints[ii])
+            # M = sp.Matrix(M)
 
-            # sum together the effects of each arm segment's inertia
-            M = sp.zeros(self.N_JOINTS)
-            for ii in range(self.N_LINKS):
-                # transform each inertia matrix into joint space
-                M += (J_links[ii].T * self._M_LINKS[ii] * J_links[ii])
-            # sum together the effects of each joint's inertia on each motor
-            for ii in range(self.N_JOINTS):
-                # transform each inertia matrix into joint space
-                M += (J_joints[ii].T * self._M_JOINTS[ii] * J_joints[ii])
-            M = sp.Matrix(M)
+            # use the composite rigid body algorithm to calculate
+            # the joint space inertia matrix (Featherstone, 2008)
+            M = sp.zeros(self.N_JOINTS, self.N_JOINTS)
+
+            def tilde(r):
+                """ Put vector into cross product matrix """
+                return sp.Matrix([[0, -r[2], -r[1]],
+                                  [r[2], 0, -r[0]],
+                                  [-r[1], r[0], 0]])
+
+            def spatial_inertia_tensor(M, r):
+                """ Generate the spatial vector algebra form of the inertia matrix
+                from the COM inertia matrix and homogeneous coordinate transform """
+                I = sp.zeros(6, 6)
+                m = M[0, 0]  # mass of the link
+                I[:3, :3] = M[3:, 3:] - m * tilde(r) * tilde(r)
+                I[:3, 3:] = m * tilde(r)
+                I[3:, :3] = m * tilde(r).T
+                I[3:, 3:] = m * sp.eye(3)
+                return I
+
+            def plucker_transform(R, r):
+                """ Rework from homogeneous coordinate transform matrix to Plucker
+                transform matrix form """
+                X = sp.zeros(6, 6)
+                X[:3, :3] = R
+                X[3:, 3:] = R
+                X[3:, :3] = -R * tilde(r)
+                return X
+
+            # calculate the Plucker inertia matrix for the COM of each link,
+            # transformed to that link's joint. initialize Ic with these matrices,
+            # where Ic will be the inertia of the subtree rooted at each link
+            Ic = [spatial_inertia_tensor(
+                M=self._M_LINKS[ii],
+                r=self.L[ii*2])
+                for ii in range(1, self.N_LINKS)]
+
+            # calculate the Plucker transform matrices for each joint
+            X = [plucker_transform(
+                R=eval('self.Tj%il%ia' % (ii, ii+1))[:3, :3],
+                r=self.L[(ii+1)*2]) for ii in range(0, self.N_JOINTS)]
+
+            # work backwards from end-effector to base to calculate effects of inertia
+            for ii in range(self.N_JOINTS-1, -1, -1):
+                if ii - 1 > -1:
+                    Ic[ii-1] += X[ii].T * Ic[ii] * X[ii]
+
+                F = Ic[ii] * self.S[ii]
+
+                # if ii == 0:
+
+                M[ii, ii] = self.S[ii].T * F
+                for jj in range(ii, 0, -1):
+                    F = X[jj].T * F
+                    kk = jj - 1
+                    M[ii, kk] = F.T * self.S[kk]
+                    M[kk, ii] = self.S[kk].T * F
 
             # save to file
             abr_control.utils.os_utils.makedirs(
@@ -673,7 +738,6 @@ class BaseConfig():
                 parameters=self.q)
         return M_func
 
-
     def _calc_R(self, name, lambdify=True):
         """ Uses Sympy to generate the rotation matrix for a joint or link
 
@@ -690,7 +754,7 @@ class BaseConfig():
         filename = name + '_R'
 
         # check to see if we have the rotation matrix saved in file
-        R, R_func = self._load_from_file(filename, lambdify=True)
+        R, R_func = self._load_from_file(filename, lambdify)
 
         if R is None and R_func is None:
             # if no saved file was loaded, generate function
@@ -703,6 +767,10 @@ class BaseConfig():
             cloudpickle.dump(sp.Matrix(R), open(
                 '%s/%s/%s' % (self.config_folder, filename, filename),
                 'wb'))
+
+        if lambdify is False:
+            # if should return expression not function
+            return R
 
         if R_func is None:
             R_func = self._generate_and_save_function(

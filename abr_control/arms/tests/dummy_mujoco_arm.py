@@ -5,7 +5,7 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
     """ Analytically derived kinematics and dynamics functions for a two joint arm,
     with the first joint rotating around z and the second y. """
 
-    def __init__(self, L0=0.1, L1=0.2, L2=0.4):
+    def __init__(self, L0=0.1, L1=0.2, L2=0.2):
         self.N_JOINTS = 2
         self.L = [L0, L1, L2]
         self.m = [0.0, 2.0, 2.0]
@@ -82,14 +82,20 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
 
     def Tx_link1(self, q):
         """ Returns the position of COM of link 1 """
-        return np.array([0, 0, self.L[0] + self.L[1] / 2])
+        c0 = np.cos(q[0])
+        s0 = np.sin(q[0])
+        l1c = self.L[1] / 2
+        return np.array([s0 * l1c, c0 * l1c, self.L[0]])
 
     # def T_inv_link1(self, q):
     #     """ Returns the inverse transform matrix for the COM of link 0 """
 
     def J_link1(self, q):
         """ Returns the Jacobian of the COM of link 1 """
-        return np.array([[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [1, 0]])
+        c0 = np.cos(q[0])
+        s0 = np.sin(q[0])
+        l1c = self.L[1] / 2
+        return np.array([[-c0 * l1c, 0], [-s0 * l1c, 0], [0, 0], [0, 0], [0, 0], [1, 0]])
 
     # def dJ_link1(self, q, dq):
     #     """ Returns the derivative of the Jacobian of link 1 """
@@ -99,7 +105,7 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
 
     def Tx_joint1(self, q):
         """ Returns the position of joint 1 """
-        return np.array([0, 0, self.L[0] + self.L[1]])
+        return np.array([-np.sin(q[0]) * self.L[1], np.cos(q[0]) * self.L[1], self.L[0]])
 
     # def T_inv_joint1(self, q):
     #     """ Returns the inverse transform matrix for the COM of link 0 """
@@ -112,18 +118,20 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
         """ Returns rotation matrix for the COM of link 2 """
         c1 = np.cos(q[1])
         s1 = np.sin(q[1])
-        R21 = np.array([[c1, 0, s1], [0, 1, 0], [-s1, 0, c1]])
+        R21 = np.array([[c1, -s1, 0], [s1, c1, 0], [0, 0, 1]])
         return np.dot(self.R_link1(q), R21)
 
     def Tx_link2(self, q):
         """ Returns the position of the COM of link 2 """
-        c = np.cos(q)
-        s = np.sin(q)
+        c0 = np.cos(q[0])
+        s0 = np.sin(q[0])
+        c01 = np.cos(q[0] + q[1])
+        s01 = np.sin(q[0] + q[1])
         return np.array(
             [
-                c[0] * s[1] * self.L[2] / 2,
-                s[0] * s[1] * self.L[2] / 2,
-                c[1] * self.L[2] / 2 + self.L[1] + self.L[0],
+                -s0 * self.L[1] - s01 * self.L[2] / 2,
+                c0 * self.L[1] + c01 * self.L[2] / 2,
+                self.L[0],
             ]
         )
 
@@ -154,13 +162,15 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
 
     def Tx_EE(self, q):
         """ Returns the position of the end effector """
-        c = np.cos(q)
-        s = np.sin(q)
+        c0 = np.cos(q[0])
+        s0 = np.sin(q[0])
+        c01 = np.cos(q[0] + q[1])
+        s01 = np.sin(q[0] + q[1])
         return np.array(
             [
-                c[0] * s[1] * self.L[2],
-                s[0] * s[1] * self.L[2],
-                c[1] * self.L[2] + self.L[1] + self.L[0],
+                -s0 * self.L[1] - s01 * self.L[2],
+                c0 * self.L[1] + c01 * self.L[2],
+                self.L[0],
             ]
         )
 
@@ -188,18 +198,16 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
     def M(self, q):
         """ Returns the inertia matrix in joint space calculated using the
         composite rigid body (CRB) algorithm, from Featherstone, 2008, Ch 6 """
-
-        S0 = np.array([0, 0, 1, 0, 0, 0])  # joint 0 motion subspace
-        S1 = np.array([0, 1, 0, 0, 0, 0])  # joint 1 motion subspace
-        S = [S0, S1]
-
         H = np.zeros((self.N_JOINTS, self.N_JOINTS))  # initialize inertia matrix
+
+        S = np.array([
+            [0, 0, 1, 0, 0, 0],  # joint 0 motion subspace
+            [0, 1, 0, 0, 0, 0],  # joint 1 motion subspace
+        ])
 
         # Ic is the inertia of subtrees starting at each joint. This changes based on
         # configuration, start with each link's spatial inertia tensor.
-        Ic = np.zeros((self.N_JOINTS, 6, 6))
-        for ii in range(0, self.N_JOINTS):
-            Ic[ii] = self.I[ii]
+        Ic = np.array([self.I[ii] for ii in range(self.N_JOINTS)])
 
         # rotation matrix of joint 0 (around z axis)
         R1 = np.array([[np.cos(q[0]), np.sin(q[0]), 0],
@@ -216,21 +224,23 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
             X[3:, 3:] = R
             X[3:, :3] = -np.dot(R, self.tilde(c))
             return X
-        X10 = plucker_transform(R1, self.r10)
-        X21 = plucker_transform(R2, self.r21)
-        X = [X10, X21]
+        X = [plucker_transform(R1, self.r10), plucker_transform(R2, self.r21)]
 
         for ii in range(self.N_JOINTS-1, -1, -1):
             if ii - 1 > -1:
                 Ic[ii-1] += np.dot(X[ii].T, np.dot(Ic[ii], X[ii]))
 
             F = np.dot(Ic[ii], S[ii])
+
+            # if ii == 0:
             H[ii, ii] = np.dot(S[ii].T, F)
             for jj in range(ii, 0, -1):
                 F = np.dot(X[jj].T, F)
                 kk = jj - 1
                 H[ii, kk] = np.dot(F.T, S[kk])
                 H[kk, ii] = H[ii, kk].T
+
+
         return H
 
     def g(self, q):
@@ -239,15 +249,6 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
 
         return g
 
-    def C(self, q, dq):
-        """ Returns the partial centrifugal and Coriolis effects
-        where np.dot(C, dq) is the full term """
-        m2 = self.M_LINKS[2][0, 0]
-        return (
-            m2
-            * self.L[1]
-            * self.L[2]
-            / 2.0
-            * np.sin(q[1])
-            * np.array([[-dq[1], -dq[1] - dq[0]], [dq[0], 0]])
-        )
+    # def C(self, q, dq):
+    #     """ Returns the partial centrifugal and Coriolis effects
+    #     where np.dot(C, dq) is the full term """
