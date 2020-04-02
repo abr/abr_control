@@ -65,7 +65,8 @@ class MujocoConfig:
             elif name == "N_GRIPPER_JOINTS":
                 self.N_GRIPPER_JOINTS = int(custom.get("data"))
 
-        # get the location of our mesh files
+        # check for google_id specifying download location of robot mesh files
+        self.google_id = None
         for custom in root.findall("custom/text"):
             name = custom.get("name")
             if name == "google_id":
@@ -73,7 +74,7 @@ class MujocoConfig:
 
         # check if the user has downloaded the required mesh files
         # if not prompt them to do so
-        if self.google_id != "None":
+        if self.google_id is not None:
             # get list of expected files to check if all have been downloaded
             files = []
             for asset in root.findall("asset/mesh"):

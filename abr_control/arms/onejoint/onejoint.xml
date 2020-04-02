@@ -2,7 +2,6 @@
 
     <custom>
         <numeric name="START_ANGLES" data="0.0"/>
-        <text name="google_id" data="None"/>
     </custom>
 
     <contact>
