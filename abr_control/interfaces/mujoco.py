@@ -20,9 +20,13 @@ class Mujoco(Interface):
         simulation time step in seconds
     visualize: boolean, optional (Default: True)
         turns visualization on or off
+    create_offscreen_rendercontext: boolean, optional (Default: True)
+        create the offscreen rendercontext behind the main visualizer
+        (helpful for rendering images from other cameras without displaying them)
     """
 
-    def __init__(self, robot_config, dt=0.001, visualize=True):
+    def __init__(self, robot_config, dt=0.001, visualize=True,
+                 create_offscreen_rendercontext=False):
 
         super(Mujoco, self).__init__(robot_config)
 
@@ -35,6 +39,8 @@ class Mujoco(Interface):
 
         # turns the visualization on or off
         self.visualize = visualize
+        # if we want the offscreen render context
+        self.create_offscreen_rendercontext = create_offscreen_rendercontext
 
     def connect(self, camera_id=-1):
         """
@@ -96,6 +102,11 @@ class Mujoco(Interface):
         self.robot_config._connect(
             self.sim, self.joint_pos_addrs, self.joint_vel_addrs, self.joint_dyn_addrs
         )
+
+        # if we want to use the offscreen render context create it before the
+        # viewer so the corresponding window is behind the viewer
+        if self.create_offscreen_rendercontext:
+            self.offscreen = mjp.MjRenderContextOffscreen(self.sim, 0)
 
         # create the visualizer
         if self.visualize:
