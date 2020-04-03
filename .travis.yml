@@ -34,17 +34,18 @@ jobs:
         server: https://test.pypi.org/legacy/
         user: tbekolay
         password: $PYPI_TOKEN
-        distributions: "sdistbdist_wheel"
+        distributions: "sdist bdist_wheel "
         on:
           all_branches: true
+          tags: false
           condition: $TRAVIS_BRANCH =~ ^release-candidate-*
-          condition: $TRAVIS_TAG = ""
       - provider: pypi
         user: tbekolay
         password: $PYPI_TOKEN
-        distributions: "sdistbdist_wheel"
+        distributions: "sdist bdist_wheel "
         on:
           all_branches: true
+          tags: true
           condition: $TRAVIS_TAG =~ ^v[0-9]*
 
 before_install:
@@ -65,7 +66,7 @@ before_install:
   - if [[ "$TRAVIS_PYTHON_VERSION" < "3.6" ]]; then
         echo "Skipping bones-check because Python $TRAVIS_PYTHON_VERSION < 3.6";
     else
-        bones-check;
+        bones-check --verbose;
     fi
   # display environment info
   - pip freeze
