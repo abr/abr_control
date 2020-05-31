@@ -20,13 +20,18 @@ class Mujoco(Interface):
         simulation time step in seconds
     visualize: boolean, optional (Default: True)
         turns visualization on or off
-    create_offscreen_rendercontext: boolean, optional (Default: True)
+    create_offscreen_rendercontext: boolean, optional (Default: False)
         create the offscreen rendercontext behind the main visualizer
         (helpful for rendering images from other cameras without displaying them)
     """
 
-    def __init__(self, robot_config, dt=0.001, visualize=True,
-                 create_offscreen_rendercontext=False):
+    def __init__(
+        self,
+        robot_config,
+        dt=0.001,
+        visualize=True,
+        create_offscreen_rendercontext=False,
+    ):
 
         super(Mujoco, self).__init__(robot_config)
 
@@ -42,11 +47,12 @@ class Mujoco(Interface):
         # if we want the offscreen render context
         self.create_offscreen_rendercontext = create_offscreen_rendercontext
 
-    def connect(self, camera_id=-1):
+    def connect(self, joint_names=None, camera_id=-1):
         """
-        NOTE: currently it is assumed that all joints are on the robot
-        i.e. there are no bodies with freejoints elsewhere in the XML
-
+        joint_names: list, optional (Default: None)
+            list of joint names to send control signal to and get feedback from
+            if None, the joints in the kinematic tree connecting the end-effector
+            to the world are used
         camera_id: int, optional (Default: -1)
             the id of the camera to use for the visualization
         """
@@ -55,27 +61,11 @@ class Mujoco(Interface):
         model = self.sim.model
         self.model = model
 
-        # get the kinematic tree for the arm
-        joint_ids = []
-        joint_names = []
-        body_id = model.body_name2id("EE")
-        # start with the end-effector (EE) and work back to the world body
-        while model.body_parentid[body_id] != 0:
-            jntadrs_start = model.body_jntadr[body_id]
-            tmp_ids = []
-            tmp_names = []
-            for ii in range(model.body_jntnum[body_id]):
-                tmp_ids.append(jntadrs_start + ii)
-                tmp_names.append(model.joint_id2name(tmp_ids[-1]))
-            joint_ids += tmp_ids[::-1]
-            joint_names += tmp_names[::-1]
-            body_id = model.body_parentid[body_id]
-        # flip the list so it starts with the base of the arm / first joint
-        joint_names = joint_names[::-1]
-        joint_ids = np.array(joint_ids[::-1])
-
+        if joint_names is None:
+            joint_ids, joint_names = self.get_joints_in_ee_kinematic_tree()
+        else:
+            joint_ids = [model.joint_name2id(name) for name in joint_names]
         self.joint_pos_addrs = [model.get_joint_qpos_addr(name) for name in joint_names]
-
         self.joint_vel_addrs = [model.get_joint_qvel_addr(name) for name in joint_names]
 
         # Need to also get the joint rows of the Jacobian, inertia matrix, and
@@ -122,6 +112,31 @@ class Mujoco(Interface):
         """ Stop and reset the simulation. """
         # nothing to do to close a MuJoCo session
         print("MuJoCO session closed...")
+
+    def get_joints_in_ee_kinematic_tree(self):
+        """ Get the names and ids of joints connecting the end-effector to the world
+        """
+        model = self.sim.model
+        # get the kinematic tree for the arm
+        joint_ids = []
+        joint_names = []
+        body_id = model.body_name2id("EE")
+        # start with the end-effector (EE) and work back to the world body
+        while model.body_parentid[body_id] != 0:
+            jntadrs_start = model.body_jntadr[body_id]
+            tmp_ids = []
+            tmp_names = []
+            for ii in range(model.body_jntnum[body_id]):
+                tmp_ids.append(jntadrs_start + ii)
+                tmp_names.append(model.joint_id2name(tmp_ids[-1]))
+            joint_ids += tmp_ids[::-1]
+            joint_names += tmp_names[::-1]
+            body_id = model.body_parentid[body_id]
+        # flip the list so it starts with the base of the arm / first joint
+        joint_names = joint_names[::-1]
+        joint_ids = np.array(joint_ids[::-1])
+
+        return joint_ids, joint_names
 
     def get_orientation(self, name, object_type="body"):
         """ Returns the orientation of an object as the [w x y z] quaternion [radians]

@@ -160,7 +160,7 @@ class DynamicsAdaptation:
                         intercepts=intercepts[ii],
                         radius=np.sqrt(n_input),
                         encoders=encoders[ii],
-                        **kwargs
+                        **kwargs,
                     )
                 )
 
