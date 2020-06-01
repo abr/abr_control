@@ -25,8 +25,13 @@ class Mujoco(Interface):
         (helpful for rendering images from other cameras without displaying them)
     """
 
-    def __init__(self, robot_config, dt=0.001, visualize=True,
-                 create_offscreen_rendercontext=False):
+    def __init__(
+        self,
+        robot_config,
+        dt=0.001,
+        visualize=True,
+        create_offscreen_rendercontext=False,
+    ):
 
         super(Mujoco, self).__init__(robot_config)
 
