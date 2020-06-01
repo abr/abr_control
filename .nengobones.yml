@@ -57,6 +57,7 @@ setup_cfg:
     ignore:
       - C901
       - E402
+      - E722
   pytest:
     norecursedirs:
       - examples
@@ -74,6 +75,8 @@ setup_cfg:
       - C0114
       - too-many-blank-lines
       - W504
+      - W0621
+      - W0702
     known_third_party:
       - mpl_toolkits
       - nengo
