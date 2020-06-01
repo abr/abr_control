@@ -118,7 +118,7 @@ be turned off on instantiation::
 Below are results from running the operational space controller with different
 controllers with ``use_cython=True`` and ``False``.
 
-.. image:: examples/timing.png
+.. image:: docs/examples/timing.png
 
 1b) Arms: Using Mujoco
 ----------------------
