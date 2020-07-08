@@ -2,6 +2,7 @@
 the timesteps (user defined profile) or n_timesteps (linear profile) passed in
 """
 import numpy as np
+import math
 
 import matplotlib.pyplot as plt
 
@@ -21,8 +22,9 @@ class Orientation(PathPlanner):
         1 (target orientation)
     """
 
-    def __init__(self, n_timesteps=None, timesteps=None):
-        assert n_timesteps is None or timesteps is None
+    def __init__(self, n_timesteps=None, timesteps=None, axes='rxyz'):
+        # assert n_timesteps is None or timesteps is None
+        self.axes = axes
 
         if n_timesteps is not None:
             self.n_timesteps = n_timesteps
@@ -34,7 +36,7 @@ class Orientation(PathPlanner):
 
         self.n = 0
 
-    def generate_path(self, orientation, target_orientation, plot=False):
+    def generate_path(self, orientation, target_orientation, dr=None, plot=False):
         """ Generates a linear trajectory to the target
 
         Accepts orientations as quaternions and returns an array of orientations
@@ -62,25 +64,66 @@ class Orientation(PathPlanner):
                 + "----------------------------------------------"
             )
 
+        print('or:', orientation)
+        print('tar:', target_orientation)
+        self.target_angles = transformations.euler_from_quaternion(
+            target_orientation, axes=self.axes
+        )
+
+        if dr is not None:
+            # angle between two quaternions
+            # https://www.mathworks.com/matlabcentral/answers/476474-how-to-find-the-angle-between-two-quaternions
+            # q12 = transformations.quaternion_multiply(np.conj(orientation), target_orientation)
+            q12 = transformations.quaternion_multiply(orientation, np.conj(target_orientation))
+            angle_diff = 2 * math.atan2(np.linalg.norm(q12[1:]), q12[0])
+            if angle_diff > np.pi:
+                angle_diff = 2*np.pi - angle_diff
+
+            print('angle_diff: ', angle_diff)
+            self.n_timesteps = int(angle_diff / dr)
+            # self.n_timesteps = angle_diff/dr
+            print(self.n_timesteps)
+            print('%i steps to cover %f rad in %f sized steps' % (self.n_timesteps, angle_diff, dr))
+            self.timesteps = np.linspace(0, 1, self.n_timesteps)
+
         # stores the target Euler angles of the trajectory
         self.orientation_path = np.zeros((self.n_timesteps, 3))
-        self.target_angles = transformations.euler_from_quaternion(
-            target_orientation, axes="rxyz"
-        )
 
         for ii in range(self.n_timesteps):
             quat = self._step(
                 orientation=orientation, target_orientation=target_orientation
             )
             self.orientation_path[ii] = transformations.euler_from_quaternion(
-                quat, axes="rxyz"
+                quat, axes=self.axes
             )
+        if self.n_timesteps == 0:
+            self.orientation_path = [transformations.euler_from_quaternion(
+                    target_orientation, axes=self.axes)]
 
         self.n = 0
+
         if plot:
             self._plot()
 
         return self.orientation_path
+
+    def _const_step(self, orientation, target_orientation):
+        """ Calculates the next step along the planned trajectory
+
+        PARAMETERS
+        ----------
+        orientation: list of 4 floats
+            the starting orientation as a quaternion
+        target_orientation: list of 4 floats
+            the target orientation as a quaternion
+        """
+        orientation = transformations.quaternion_slerp(
+            quat0=orientation, quat1=target_orientation, fraction=self.timesteps[self.n]
+        )
+
+        self.n = min(self.n + 1, self.n_timesteps - 1)
+        return orientation
+
 
     def _step(self, orientation, target_orientation):
         """ Calculates the next step along the planned trajectory
@@ -160,3 +203,5 @@ class Orientation(PathPlanner):
         plt.ylabel("Time step")
         plt.legend()
         plt.show()
+
+
