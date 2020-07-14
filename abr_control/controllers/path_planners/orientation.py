@@ -74,13 +74,22 @@ class Orientation(PathPlanner):
             # angle between two quaternions
             # https://www.mathworks.com/matlabcentral/answers/476474-how-to-find-the-angle-between-two-quaternions
             # q12 = transformations.quaternion_multiply(np.conj(orientation), target_orientation)
-            q12 = transformations.quaternion_multiply(orientation, np.conj(target_orientation))
-            angle_diff = 2 * math.atan2(np.linalg.norm(q12[1:]), q12[0])
+            # q12 = transformations.quaternion_multiply(orientation, np.conj(target_orientation))
+            # angle_diff = 2 * math.atan2(np.linalg.norm(q12[1:]), q12[0])
+
+            # https://www.researchgate.net/post/How_do_I_calculate_the_smallest_angle_between_two_quaternions
+            # answer by luiz alberto radavelli
+            angle_diff = 2 * np.arccos(np.dot(target_orientation, orientation)
+                    /(np.linalg.norm(orientation)*np.linalg.norm(target_orientation)))
+
             if angle_diff > np.pi:
-                angle_diff = 2*np.pi - angle_diff
+                min_angle_diff = 2*np.pi - angle_diff
+            else:
+                min_angle_diff = angle_diff
 
             print('angle_diff: ', angle_diff)
-            self.n_timesteps = int(angle_diff / dr)
+            print('min angle diff: ', min_angle_diff)
+            self.n_timesteps = int(min_angle_diff / dr)
             # self.n_timesteps = angle_diff/dr
             print(self.n_timesteps)
             print('%i steps to cover %f rad in %f sized steps' % (self.n_timesteps, angle_diff, dr))
@@ -97,8 +106,9 @@ class Orientation(PathPlanner):
                 quat, axes=self.axes
             )
         if self.n_timesteps == 0:
-            self.orientation_path = [transformations.euler_from_quaternion(
-                    target_orientation, axes=self.axes)]
+            print('with the set step size, we reach the target in 1 step')
+            self.orientation_path = np.array([transformations.euler_from_quaternion(
+                    target_orientation, axes=self.axes)])
 
         self.n = 0
 
