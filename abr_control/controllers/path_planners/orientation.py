@@ -64,8 +64,6 @@ class Orientation(PathPlanner):
                 + "----------------------------------------------"
             )
 
-        print('or:', orientation)
-        print('tar:', target_orientation)
         self.target_angles = transformations.euler_from_quaternion(
             target_orientation, axes=self.axes
         )
@@ -87,11 +85,8 @@ class Orientation(PathPlanner):
             else:
                 min_angle_diff = angle_diff
 
-            print('angle_diff: ', angle_diff)
-            print('min angle diff: ', min_angle_diff)
             self.n_timesteps = int(min_angle_diff / dr)
             # self.n_timesteps = angle_diff/dr
-            print(self.n_timesteps)
             print('%i steps to cover %f rad in %f sized steps' % (self.n_timesteps, angle_diff, dr))
             self.timesteps = np.linspace(0, 1, self.n_timesteps)
 

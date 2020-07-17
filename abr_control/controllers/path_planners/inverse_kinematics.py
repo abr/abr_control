@@ -85,10 +85,10 @@ class InverseKinematics:
         q = np.copy(position)
         for ii in range(n_timesteps):
             J = self.robot_config.J("EE", q=q)
-            T = self.robot_config.T("EE", q=q)
-            ee_track.append(T[:3, 3])
+            Tx = self.robot_config.Tx("EE", q=q)
+            ee_track.append(Tx)
 
-            dx = target_position[:3] - T[:3, 3]
+            dx = target_position[:3] - Tx
 
             Qe = self.robot_config.quaternion("EE", q=q)
             # Method 4

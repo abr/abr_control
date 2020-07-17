@@ -25,7 +25,7 @@ arm_sim = arm.ArmSim(robot_config)
 
 if use_force_control:
     # create an operational space controller
-    ctrlr = Joint(robot_config, kp=100, kv=30)
+    ctrlr = Joint(robot_config, kp=300, kv=20)
 
 # create our path planner
 n_timesteps = 2000
@@ -61,22 +61,21 @@ try:
             path_planner.generate_path(
                 position=feedback["q"],
                 target_position=np.hstack([target_xyz, target_orientation]),
-                method=1,
+                method=3,
                 dt=0.005,
                 n_timesteps=n_timesteps,
                 plot=False,
             )
 
         # returns desired [position, velocity]
-        target = path_planner.next()
+        target, _ = path_planner.next()
 
         if use_force_control:
             # generate an operational space control signal
             u = ctrlr.generate(
                 q=feedback["q"],
                 dq=feedback["dq"],
-                target=target[0],
-                target_velocity=target[1],
+                target=target,
             )
 
             # apply the control signal, step the sim forward
