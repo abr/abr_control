@@ -89,7 +89,7 @@ class SecondOrderFilter(PathPlanner):
         self.n = 0
 
         if plot:
-            self.plot(target_position)
+            self._plot(target_position)
 
         self.position_path = np.array(self.position_path)
         self.velocity_path = np.array(self.velocity_path)

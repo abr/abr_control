@@ -58,7 +58,7 @@ class SecondOrderDMP(PathPlanner):
 
         # we can control the DMP rollout speed with the time step size
         # the DMP will reach the target in 1s of sim time
-        dt = 1 / n_timesteps
+        dt = 1.2927 / n_timesteps
         self.dmps = pydmps.DMPs_discrete(n_dmps=3, n_bfs=50, dt=dt)
         self.dmps.imitate_path(y_des)
 
@@ -89,8 +89,12 @@ class SecondOrderDMP(PathPlanner):
         self.n = 0
 
         if plot:
+            plt.figure()
             plt.plot(self.position_path)
             plt.legend(["X", "Y", "Z"])
+            plt.figure()
+            plt.plot(self.velocity_path)
+            plt.legend(["DX", "DY", "DZ"])
             plt.show()
 
         return self.position_path, self.velocity_path
