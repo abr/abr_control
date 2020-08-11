@@ -6,7 +6,10 @@ from .controller import Controller
 
 
 class OSC(Controller):
-    """ Implements an operational space controller (OSC)
+    """ Implements an operational space controller (OSC). Based on
+    [Khatib, Oussama. "A unified approach for motion and force control of robot
+    manipulators: The operational space formulation." IEEE Journal on Robotics and
+    Automation 3.1 (1987): 43-53.]
 
     Parameters
     ----------

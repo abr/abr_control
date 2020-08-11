@@ -4,8 +4,9 @@ from .controller import Controller
 
 
 class Sliding(Controller):
-    """ Implements sliding control based on the description
-    in (Slotine, 1987), default parameters from paper.
+    """ Implements sliding control based on the description in
+    [Slotine, Jean-Jacques E., and Weiping Li. "On the adaptive control of robot
+    manipulators." The international journal of robotics research 6.3 (1987): 49-59.]
 
     Parameters
     ----------
