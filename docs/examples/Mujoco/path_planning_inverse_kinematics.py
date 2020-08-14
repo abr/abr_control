@@ -5,7 +5,7 @@ a trajectory in joint space that moves the end effector in a straight line
 to the target, which changes every n time steps.
 """
 import numpy as np
-import sys
+import glfw
 
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.arms.mujoco_config import MujocoConfig as arm

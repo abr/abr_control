@@ -46,8 +46,9 @@ class PathPlanner:
         position = self.position_path[self.n]  # pylint: disable=E0203
         velocity = self.velocity_path[self.n]  # pylint: disable=E0203
         self.n = min(self.n + 1, self.n_timesteps - 1)
-        # some path planner may not end with zero target velocity depending on their parameters
-        # this will assure that you have zero target velocity when the filter is positionally at the final target
+        # some path planner may not end with zero target velocity depending on
+        # their parameters this will assure that you have zero target velocity
+        # when the filter is positionally at the final target
         if self.n == self.n_timesteps - 1:
             velocity = np.zeros(3)
 
