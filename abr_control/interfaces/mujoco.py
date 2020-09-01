@@ -47,7 +47,7 @@ class Mujoco(Interface):
         # if we want the offscreen render context
         self.create_offscreen_rendercontext = create_offscreen_rendercontext
 
-    def connect(self, joint_names=None, camera_id=-1):
+    def connect(self, joint_names=None, camera_id=-1, **kwargs):
         """
         joint_names: list, optional (Default: None)
             list of joint names to send control signal to and get feedback from
@@ -100,7 +100,7 @@ class Mujoco(Interface):
 
         # create the visualizer
         if self.visualize:
-            self.viewer = mjp.MjViewer(self.sim)
+            self.viewer = mjp.MjViewer(self.sim, **kwargs)
             # if specified, set the camera
             if camera_id > -1:
                 self.viewer.cam.type = const.CAMERA_FIXED
