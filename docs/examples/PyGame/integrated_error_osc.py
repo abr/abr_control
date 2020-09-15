@@ -69,7 +69,11 @@ try:
 
         target = np.hstack([target_xyz, target_angles])
         # generate an operational space control signal
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         fake_gravity = np.array([[0, -9.81, 0, 0, 0, 0]]).T * 10.0
         g = np.zeros((robot_config.N_JOINTS, 1))

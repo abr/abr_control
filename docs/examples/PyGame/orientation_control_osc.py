@@ -74,7 +74,11 @@ try:
         hand_xyz = robot_config.Tx("EE", feedback["q"])
 
         target = np.hstack([np.zeros(3), interface.target_angles])
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # apply the control signal, step the sim forward
         interface.send_forces(u, update_display=(count % 20 == 0))

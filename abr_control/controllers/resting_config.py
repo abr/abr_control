@@ -4,7 +4,7 @@ from .controller import Controller
 
 
 class RestingConfig(Controller):
-    """ Move the arm towards a set of 'resting state' joint angles
+    """Move the arm towards a set of 'resting state' joint angles
 
     Parameters
     ----------
@@ -22,7 +22,7 @@ class RestingConfig(Controller):
         self.kv = np.sqrt(kp) if kv is None else kv
 
     def generate(self, q, dq):
-        """ Generates the control signal
+        """Generates the control signal
 
         q: np.array
           the current joint angles [radians]

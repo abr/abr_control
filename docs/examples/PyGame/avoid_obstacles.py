@@ -60,7 +60,11 @@ try:
 
         target = np.hstack([target_xyz, target_angles])
         # generate an operational space control signal
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # add in obstacle avoidance
         obs_xy = interface.get_mousexy()

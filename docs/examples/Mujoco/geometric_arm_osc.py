@@ -78,7 +78,10 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx(link_name)
         u = ctrlr.generate(
-            q=feedback["q"], dq=feedback["dq"], target=target, ref_frame=link_name,
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+            ref_frame=link_name,
         )
         interface.send_forces(u)
 

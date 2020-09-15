@@ -87,7 +87,11 @@ try:
         hand_xyz = robot_config.Tx("EE", feedback["q"])
 
         target = np.hstack([target_xyz, interface.target_angles])
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         new_target = interface.get_mousexy()
         if new_target is not None:

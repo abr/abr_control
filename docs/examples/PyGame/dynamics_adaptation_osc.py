@@ -86,7 +86,11 @@ try:
 
         target = np.hstack([target_xyz, target_angles])
         # generate an operational space control signal
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # if adaptation is on (toggled with space bar)
         if interface.adaptation:

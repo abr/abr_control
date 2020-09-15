@@ -9,7 +9,7 @@ from .interface import Interface
 
 
 class Mujoco(Interface):
-    """ An interface for MuJoCo using the mujoco-py package.
+    """An interface for MuJoCo using the mujoco-py package.
 
     Parameters
     ----------
@@ -114,8 +114,7 @@ class Mujoco(Interface):
         print("MuJoCO session closed...")
 
     def get_joints_in_ee_kinematic_tree(self):
-        """ Get the names and ids of joints connecting the end-effector to the world
-        """
+        """Get the names and ids of joints connecting the end-effector to the world"""
         model = self.sim.model
         # get the kinematic tree for the arm
         joint_ids = []
@@ -139,7 +138,7 @@ class Mujoco(Interface):
         return joint_ids, joint_names
 
     def get_orientation(self, name, object_type="body"):
-        """ Returns the orientation of an object as the [w x y z] quaternion [radians]
+        """Returns the orientation of an object as the [w x y z] quaternion [radians]
 
         Parameters
         ----------
@@ -166,7 +165,7 @@ class Mujoco(Interface):
         return np.copy(quat)
 
     def set_mocap_orientation(self, name, quat):
-        """ Sets the orientation of an object in the Mujoco environment
+        """Sets the orientation of an object in the Mujoco environment
 
         Sets the orientation of an object using the provided Euler angles.
         Angles must be in a relative xyz frame.
@@ -181,7 +180,7 @@ class Mujoco(Interface):
         self.sim.data.set_mocap_quat(name, quat)
 
     def send_forces(self, u, update_display=True):
-        """ Apply the specified torque to the robot joints
+        """Apply the specified torque to the robot joints
 
         Apply the specified torque to the robot joints, move the simulation
         one time step forward, and update the position of the hand object.
@@ -227,7 +226,7 @@ class Mujoco(Interface):
         self.sim.data.xfrc_applied[self.model.body_name2id(name)] = u_ext
 
     def send_target_angles(self, q):
-        """ Move the robot to the specified configuration.
+        """Move the robot to the specified configuration.
 
         Parameters
         ----------
@@ -239,7 +238,7 @@ class Mujoco(Interface):
         self.sim.forward()
 
     def set_joint_state(self, q, dq):
-        """ Move the robot to the specified configuration.
+        """Move the robot to the specified configuration.
 
         Parameters
         ----------
@@ -254,7 +253,7 @@ class Mujoco(Interface):
         self.sim.forward()
 
     def get_feedback(self):
-        """ Return a dictionary of information needed by the controller.
+        """Return a dictionary of information needed by the controller.
 
         Returns the joint angles and joint velocities in [rad] and [rad/sec],
         respectively
@@ -266,7 +265,7 @@ class Mujoco(Interface):
         return {"q": self.q, "dq": self.dq}
 
     def get_xyz(self, name, object_type="body"):
-        """ Returns the xyz position of the specified object
+        """Returns the xyz position of the specified object
 
         name: string
             name of the object you want the xyz position of
@@ -288,7 +287,7 @@ class Mujoco(Interface):
         return np.copy(xyz)
 
     def set_mocap_xyz(self, name, xyz):
-        """ Set the position of a mocap object in the Mujoco environment.
+        """Set the position of a mocap object in the Mujoco environment.
 
         name: string
             the name of the object

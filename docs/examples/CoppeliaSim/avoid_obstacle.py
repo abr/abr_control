@@ -63,7 +63,11 @@ try:
         )
 
         # calculate the control signal
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # get obstacle position from CoppeliaSim
         obs_x, obs_y, obs_z = interface.get_xyz("obstacle")  # pylint: disable=W0632

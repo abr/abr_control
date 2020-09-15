@@ -4,7 +4,7 @@ from .controller import Controller
 
 
 class AvoidObstacles(Controller):
-    """ Implements an obstacle avoidance algorithm from (Khatib, 1987).
+    """Implements an obstacle avoidance algorithm from (Khatib, 1987).
 
     Parameters
     ----------
@@ -36,7 +36,7 @@ class AvoidObstacles(Controller):
         self.obstacles = np.array(obstacles)
 
     def generate(self, q, dq=None):
-        """ Generates the control signal
+        """Generates the control signal
 
         Parameters
         ----------
@@ -120,7 +120,7 @@ class AvoidObstacles(Controller):
         return np.clip(u_psp * self.gain, -self.maximum, self.maximum)
 
     def set_obstacles(self, obstacles):
-        """ Specify the locations of the obstacles to avoid
+        """Specify the locations of the obstacles to avoid
 
         Parameters
         ----------

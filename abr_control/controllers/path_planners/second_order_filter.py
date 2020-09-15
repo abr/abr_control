@@ -96,7 +96,7 @@ class SecondOrderFilter(PathPlanner):
         return self.position_path, self.velocity_path
 
     def _step(self, position, velocity, target_position):
-        """ Calculates the next state given the current state and
+        """Calculates the next state given the current state and
         system dynamics' parameters.
 
         Parameters

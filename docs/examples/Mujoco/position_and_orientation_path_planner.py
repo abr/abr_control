@@ -115,7 +115,11 @@ try:
             ),
         )
 
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # add gripper forces
         u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))

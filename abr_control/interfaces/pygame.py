@@ -7,7 +7,7 @@ import pygame.locals  # pylint: disable=C0413
 
 
 class PyGame:
-    """ Set up the PyGame visualization window, control the simulation
+    """Set up the PyGame visualization window, control the simulation
     of the provided arm model.
 
     Parameters
@@ -92,8 +92,7 @@ class PyGame:
         self.fpsClock = pygame.time.Clock()
 
     def connect(self):
-        """ Create the PyGame display, instantiate the arm simulation.
-        """
+        """Create the PyGame display, instantiate the arm simulation."""
 
         self.arm_sim.connect()
 
@@ -106,8 +105,7 @@ class PyGame:
         print("Connected to PyGame display")
 
     def disconnect(self):
-        """ Close the PyGame display.
-        """
+        """Close the PyGame display."""
 
         pygame.quit()
         self.arm_sim.disconnect()
@@ -119,7 +117,7 @@ class PyGame:
         return self.arm_sim.get_feedback()
 
     def send_forces(self, u, dt=None, update_display=True):
-        """ Apply the specified torque to the robot
+        """Apply the specified torque to the robot
 
         Apply the specified forces to the robot, move the simulation
         one time step forward, and update the PyGame display.
@@ -138,7 +136,7 @@ class PyGame:
             self._update(self.arm_sim.q)
 
     def send_target_angles(self, q, update_display=True):
-        """ Move the robot to the specified configuration.
+        """Move the robot to the specified configuration.
          Parameters
         ----------
         q: np.array
@@ -151,7 +149,7 @@ class PyGame:
             self._update(self.arm_sim.q)
 
     def set_target(self, xyz):
-        """ Set the position of the target object.
+        """Set the position of the target object.
 
         Parameters
         ----------
@@ -162,7 +160,7 @@ class PyGame:
         self.target = xyz[:2] * np.array([1, -1]) * self.scaling_term + self.base_offset
 
     def add_circle(self, xyz, radius, color=None):
-        """ Add an obstacle to the list.
+        """Add an obstacle to the list.
 
         Parameters
         ----------
@@ -184,8 +182,7 @@ class PyGame:
         self.circles.append(circle)
 
     def get_mousexy(self):
-        """ Returns the (x,y) position of the mouse over the display.
-        """
+        """Returns the (x,y) position of the mouse over the display."""
 
         if self.mouse_x is not None and self.mouse_y is not None:
             x = (self.mouse_x - self.base_offset[0]) / self.scaling_term
@@ -199,7 +196,7 @@ class PyGame:
         raise NotImplementedError("Not an available method in the PyGame interface")
 
     def _update(self, q):
-        """ Update the arm using the provided joint angles.
+        """Update the arm using the provided joint angles.
 
         Parameters
         ----------

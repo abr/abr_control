@@ -93,7 +93,14 @@ def calc_distance(Qe, Qd):
 
 @pytest.mark.parametrize(
     "arm, orientation_algorithm",
-    ((threejoint, 0), (threejoint, 1), (ur5, 0), (ur5, 1), (jaco2, 0), (jaco2, 1),),
+    (
+        (threejoint, 0),
+        (threejoint, 1),
+        (ur5, 0),
+        (ur5, 1),
+        (jaco2, 0),
+        (jaco2, 1),
+    ),
 )
 def test_calc_orientation_forces(arm, orientation_algorithm):
     robot_config = arm.Config(use_cython=False)

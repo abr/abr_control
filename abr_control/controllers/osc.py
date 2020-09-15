@@ -6,7 +6,7 @@ from .controller import Controller
 
 
 class OSC(Controller):
-    """ Implements an operational space controller (OSC). Based on
+    """Implements an operational space controller (OSC). Based on
     [Khatib, Oussama. "A unified approach for motion and force control of robot
     manipulators: The operational space formulation." IEEE Journal on Robotics and
     Automation 3.1 (1987): 43-53.]
@@ -118,7 +118,7 @@ class OSC(Controller):
         self.IDENTITY_N_JOINTS = np.eye(self.robot_config.N_JOINTS)
 
     def _Mx(self, M, J, threshold=1e-3):
-        """ Generate the task-space inertia matrix
+        """Generate the task-space inertia matrix
 
         Parameters
         ----------
@@ -147,7 +147,7 @@ class OSC(Controller):
         return Mx, M_inv
 
     def _calc_orientation_forces(self, target_abg, q):
-        """ Calculate the desired Euler angle forces to apply to the arm to
+        """Calculate the desired Euler angle forces to apply to the arm to
         move the end-effector to the target orientation
 
         Parameters
@@ -197,7 +197,7 @@ class OSC(Controller):
         return u_task_orientation
 
     def _velocity_limiting(self, u_task):
-        """ Scale the control signal such that the arm isn't driven to move
+        """Scale the control signal such that the arm isn't driven to move
         faster in position or orientation than the specified vmax values
 
         Parameters
@@ -218,7 +218,7 @@ class OSC(Controller):
     def generate(
         self, q, dq, target, target_velocity=None, ref_frame="EE", xyz_offset=None
     ):
-        """ Generates the control signal to move the EE to a target
+        """Generates the control signal to move the EE to a target
 
         Parameters
         ----------

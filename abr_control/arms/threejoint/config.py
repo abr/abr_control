@@ -5,7 +5,7 @@ from ..base_config import BaseConfig
 
 
 class Config(BaseConfig):
-    """ Robot config file for the three joint MapleSim arm
+    """Robot config file for the three joint MapleSim arm
 
     Attributes
     ----------
@@ -195,7 +195,7 @@ class Config(BaseConfig):
         ]  # joint 2 orientation
 
     def _calc_T(self, name):
-        """ Uses Sympy to generate the transform for a joint or link
+        """Uses Sympy to generate the transform for a joint or link
 
         name : string
             name of the joint, link, or end-effector

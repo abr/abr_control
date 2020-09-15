@@ -74,7 +74,11 @@ try:
         rc_matrix = robot_config.R("EE", feedback["q"])
         rc_angles = transformations.euler_from_matrix(rc_matrix, axes="rxyz")
 
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # add gripper forces
         u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))

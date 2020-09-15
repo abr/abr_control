@@ -8,7 +8,7 @@ from ..base_config import BaseConfig
 
 
 class Config(BaseConfig):
-    """ Robot config file for the Kinova Jaco^2 V2
+    """Robot config file for the Kinova Jaco^2 V2
 
     Attributes
     ----------
@@ -312,7 +312,7 @@ class Config(BaseConfig):
         ]  # joint 5 orientation
 
     def _calc_T(self, name):  # noqa C907
-        """ Uses Sympy to generate the transform for a joint or link
+        """Uses Sympy to generate the transform for a joint or link
 
         name : string
             name of the joint, link, or end-effector

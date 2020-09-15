@@ -36,7 +36,7 @@ class Orientation(PathPlanner):
         self.n = 0
 
     def generate_path(self, orientation, target_orientation, dr=None, plot=False):
-        """ Generates a linear trajectory to the target
+        """Generates a linear trajectory to the target
 
         Accepts orientations as quaternions and returns an array of orientations
         from orientation to target orientation, based on the timesteps defined
@@ -122,7 +122,7 @@ class Orientation(PathPlanner):
         return self.orientation_path
 
     def _const_step(self, orientation, target_orientation):
-        """ Calculates the next step along the planned trajectory
+        """Calculates the next step along the planned trajectory
 
         PARAMETERS
         ----------
@@ -139,7 +139,7 @@ class Orientation(PathPlanner):
         return orientation
 
     def _step(self, orientation, target_orientation):
-        """ Calculates the next step along the planned trajectory
+        """Calculates the next step along the planned trajectory
 
         PARAMETERS
         ----------
@@ -156,7 +156,7 @@ class Orientation(PathPlanner):
         return orientation
 
     def next(self):
-        """ Returns the next step along the planned trajectory
+        """Returns the next step along the planned trajectory
 
         NOTE: only orientation is returned, no target velocity
         """
@@ -168,7 +168,7 @@ class Orientation(PathPlanner):
     def match_position_path(
         self, orientation, target_orientation, position_path, plot=False
     ):
-        """ Generates orientation trajectory with the same profile as the path
+        """Generates orientation trajectory with the same profile as the path
         generated for position
 
         Ex: if a second order filter is applied to the trajectory, the same will
@@ -201,8 +201,7 @@ class Orientation(PathPlanner):
         return self.orientation_path
 
     def _plot(self):
-        """ Plot the generated trajectory
-        """
+        """Plot the generated trajectory"""
         plt.figure()
         for ii, path in enumerate(self.orientation_path.T):
             plt.plot(path, lw=2, label="Trajectory")

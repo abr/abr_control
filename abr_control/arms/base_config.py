@@ -126,7 +126,7 @@ class BaseConfig:
         self.gravity = sp.Matrix([[0, 0, -9.81, 0, 0, 0]]).T
 
     def _generate_and_save_function(self, filename, expression, parameters):
-        """ Creates a folder, saves generated cython functions
+        """Creates a folder, saves generated cython functions
 
         Create a folder in the users cache directory, named based on a hash
         of the current robot_config subclass.
@@ -149,7 +149,7 @@ class BaseConfig:
         return function
 
     def _load_from_file(self, filename, lambdify):
-        """ Attempts to load in saved files
+        """Attempts to load in saved files
 
         Attempt to load in the specified function or expression from
         saved file, in a subfolder based on the hash of the robot_config.
@@ -207,7 +207,7 @@ class BaseConfig:
         return expression, function
 
     def g(self, q):
-        """ Loads or calculates the force of gravity in joint space
+        """Loads or calculates the force of gravity in joint space
 
         Parameters
         ----------
@@ -222,7 +222,7 @@ class BaseConfig:
         return np.array(self._g(*parameters), dtype="float32").flatten()
 
     def dJ(self, name, q, dq, x=None):
-        """ Loads or calculates the derivative of the Jacobian wrt time
+        """Loads or calculates the derivative of the Jacobian wrt time
 
         Parameters
         ----------
@@ -246,7 +246,7 @@ class BaseConfig:
         return np.array(self._dJ[funcname](*parameters), dtype="float32")
 
     def J(self, name, q, x=None):
-        """ Loads or calculates the Jacobian for a joint or link
+        """Loads or calculates the Jacobian for a joint or link
 
         Parameters
         ----------
@@ -269,7 +269,7 @@ class BaseConfig:
         return np.array(self._J[funcname](*parameters), dtype="float32")
 
     def M(self, q):
-        """ Loads or calculates the joint space inertia matrix
+        """Loads or calculates the joint space inertia matrix
 
         Parameters
         ----------
@@ -284,7 +284,7 @@ class BaseConfig:
         return np.array(self._M(*parameters), dtype="float32")
 
     def R(self, name, q):
-        """ Loads or calculates the rotation matrix
+        """Loads or calculates the rotation matrix
 
         Parameters
         ----------
@@ -301,7 +301,7 @@ class BaseConfig:
 
     # TODO: optimize this function
     def quaternion(self, name, q):
-        """ Gets orientation matrix and converts to a quaternion
+        """Gets orientation matrix and converts to a quaternion
 
         Parameters
         ----------
@@ -317,7 +317,7 @@ class BaseConfig:
         return quat
 
     def C(self, q, dq):
-        """ Loads or calculates the centrifugal and Coriolis forces matrix
+        """Loads or calculates the centrifugal and Coriolis forces matrix
         such that np.dot(C, dq) is the full term
 
         Parameters
@@ -335,7 +335,7 @@ class BaseConfig:
         return np.array(self._C(*parameters), dtype="float32")
 
     def T(self, name, q):
-        """ Loads or calculates the transformation Matrix for a joint or link
+        """Loads or calculates the transformation Matrix for a joint or link
 
         Parameters
         ----------
@@ -375,7 +375,7 @@ class BaseConfig:
         return self._T_func[name](*parameters)
 
     def Tx(self, name, q, x=None):
-        """ Loads or calculates the (x, y, z) position for a joint or link
+        """Loads or calculates the (x, y, z) position for a joint or link
 
         Parameters
         ----------
@@ -398,7 +398,7 @@ class BaseConfig:
         return self._Tx[funcname](*parameters)[:-1].flatten()
 
     def T_inv(self, name, q, x=None):
-        """ Loads or calculates the inverse transform for a joint or link
+        """Loads or calculates the inverse transform for a joint or link
 
         Parameters
         ----------
@@ -421,7 +421,7 @@ class BaseConfig:
         return self._T_inv[funcname](*parameters)
 
     def _calc_g(self, lambdify=True):
-        """ Generate the force of gravity in joint space
+        """Generate the force of gravity in joint space
 
         Uses Sympy to generate the force of gravity in joint space
 
@@ -476,7 +476,7 @@ class BaseConfig:
         return g_func
 
     def _calc_dJ(self, name, x, lambdify=True):
-        """ Generate the derivative of the Jacobian
+        """Generate the derivative of the Jacobian
 
         Uses Sympy to generate the derivative of the Jacobian
         for a joint or link with respect to time
@@ -534,7 +534,7 @@ class BaseConfig:
         return dJ_func
 
     def _calc_J(self, name, x, lambdify=True):
-        """ Uses Sympy to generate the Jacobian for a joint or link
+        """Uses Sympy to generate the Jacobian for a joint or link
 
         Parameters
         ----------
@@ -612,7 +612,7 @@ class BaseConfig:
         return J_func
 
     def _calc_M(self, lambdify=True):
-        """ Uses Sympy to generate the inertia matrix in joint space
+        """Uses Sympy to generate the inertia matrix in joint space
 
         Parameters
         ----------
@@ -667,7 +667,7 @@ class BaseConfig:
         return M_func
 
     def _calc_R(self, name, lambdify=True):
-        """ Uses Sympy to generate the rotation matrix for a joint or link
+        """Uses Sympy to generate the rotation matrix for a joint or link
 
         Parameters
         ----------
@@ -705,7 +705,7 @@ class BaseConfig:
         return R_func
 
     def _calc_C(self, lambdify=True):
-        """ Uses Sympy to generate the centrifugal and Coriolis forces
+        """Uses Sympy to generate the centrifugal and Coriolis forces
         Derivation from Robot Dynamics and Control by (Spong, Hutchinson,
         and Vidyasagar, 2004)
 
@@ -758,7 +758,7 @@ class BaseConfig:
         return C_func
 
     def _calc_T(self, name):
-        """ Uses Sympy to generate the transform for a joint or link
+        """Uses Sympy to generate the transform for a joint or link
 
         Parameters
         ----------
@@ -827,7 +827,7 @@ class BaseConfig:
         return Tx_func
 
     def _calc_T_inv(self, name, x, lambdify=True):
-        """ Return the inverse transform matrix
+        """Return the inverse transform matrix
 
         Return the inverse transform matrix, which converts from
         world coordinates into the robot's end-effector reference frame

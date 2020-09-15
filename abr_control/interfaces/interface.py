@@ -1,5 +1,5 @@
 class Interface:
-    """ Base class for interfaces
+    """Base class for interfaces
 
     The purpose of interfaces is to abstract away the API
     and overhead of connection / disconnection etc for each
@@ -21,13 +21,12 @@ class Interface:
         raise NotImplementedError
 
     def disconnect(self):
-        """ Any socket closing etc that must be done to properly shut down
-        """
+        """Any socket closing etc that must be done to properly shut down"""
 
         raise NotImplementedError
 
     def send_forces(self, u):
-        """ Applies the set of torques u to the arm. If interfacing to
+        """Applies the set of torques u to the arm. If interfacing to
         a simulation, also moves dynamics forward one time step.
 
         u : np.array
@@ -37,7 +36,7 @@ class Interface:
         raise NotImplementedError
 
     def send_target_angles(self, q):
-        """ Moves the arm to the specified joint angles
+        """Moves the arm to the specified joint angles
 
         q : numpy.array
             the target joint angles [radians]
@@ -46,7 +45,7 @@ class Interface:
         raise NotImplementedError
 
     def get_feedback(self):
-        """ Returns a dictionary of the relevant feedback
+        """Returns a dictionary of the relevant feedback
 
         Returns a dictionary of relevant feedback to the
         controller. At very least this contains q, dq.

@@ -49,7 +49,11 @@ try:
             [interface.get_xyz("target"), interface.get_orientation("target")]
         )
 
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)

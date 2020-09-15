@@ -62,7 +62,11 @@ try:
 
         target = np.hstack([target_xyz, np.zeros(3)])
         # generate an operational space control signal
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         new_target = interface.get_mousexy()
         if new_target is not None:

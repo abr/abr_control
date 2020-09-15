@@ -4,7 +4,7 @@ from .controller import Controller
 
 
 class Damping(Controller):
-    """ Base class for common null space controllers.
+    """Base class for common null space controllers.
 
     Parameters
     ----------
@@ -19,7 +19,7 @@ class Damping(Controller):
         self.kv = kv
 
     def generate(self, q, dq):
-        """ Generates the control signal
+        """Generates the control signal
 
         q : np.array
           the current joint angles [radians]

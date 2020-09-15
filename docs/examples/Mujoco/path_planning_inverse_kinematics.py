@@ -38,11 +38,13 @@ try:
 
         if count % n_timesteps == 0:
             feedback = interface.get_feedback()
-            target_xyz = np.array([
-                np.random.random() * .5 - .25,
-                np.random.random() * .5 - .25,
-                np.random.random() * .5 + .5,
-            ])
+            target_xyz = np.array(
+                [
+                    np.random.random() * 0.5 - 0.25,
+                    np.random.random() * 0.5 - 0.25,
+                    np.random.random() * 0.5 + 0.5,
+                ]
+            )
             R = robot_config.R("EE", q=feedback["q"])
             target_orientation = transformations.euler_from_matrix(R, "sxyz")
             # update the position of the target
@@ -63,7 +65,7 @@ try:
         target = path_planner.next()[0]
 
         # use position control
-        print('target angles: ', target[:robot_config.N_JOINTS])
+        print("target angles: ", target[: robot_config.N_JOINTS])
         interface.send_target_angles(target[: robot_config.N_JOINTS])
         interface.viewer.render()
 

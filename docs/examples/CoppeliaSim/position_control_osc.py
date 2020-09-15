@@ -61,7 +61,11 @@ try:
         vrep_angles = interface.get_orientation("UR5_%s" % name)
 
         # calculate the control signal
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # send forces into CoppeliaSim, step the sim forward
         interface.send_forces(u)

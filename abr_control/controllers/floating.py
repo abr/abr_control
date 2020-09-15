@@ -25,7 +25,7 @@ class Floating(Controller):
         self.task_space = task_space
 
     def generate(self, q, dq=None):
-        """ Generates the control signal to compensate for gravity
+        """Generates the control signal to compensate for gravity
         Parameters
         ----------
         q : float numpy.array

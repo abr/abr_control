@@ -6,7 +6,7 @@ from abr_control._vendor.nengolib.stats import ScatteredHypersphere, spherical_t
 
 
 class DynamicsAdaptation:
-    """ An implementation of nonlinear dynamics adaptation using Nengo,
+    """An implementation of nonlinear dynamics adaptation using Nengo,
     as described in (DeWolf, Stewart, Slotine, and Eliasmith, 2016)
 
     The model learns to account for unknown / unmodelled external or
@@ -166,7 +166,9 @@ class DynamicsAdaptation:
 
                 # hook up input signal to adaptive population to provide context
                 nengo.Connection(
-                    input_signals, self.adapt_ens[ii], synapse=self.tau_input,
+                    input_signals,
+                    self.adapt_ens[ii],
+                    synapse=self.tau_input,
                 )
 
                 self.conn_learn.append(
@@ -190,7 +192,7 @@ class DynamicsAdaptation:
         self.sim = nengo.Simulator(self.nengo_model, dt=0.001)
 
     def generate(self, input_signal, training_signal):
-        """ Generates the control signal
+        """Generates the control signal
 
         Parameters
         ----------
@@ -244,7 +246,7 @@ class DynamicsAdaptation:
         return scaled_input
 
     def get_weights(self):
-        """ Save the current weights to the specified test_name folder
+        """Save the current weights to the specified test_name folder
 
         Save weights for individual runs. A group of runs is
         classified as a session. Multiple sessions can then be used

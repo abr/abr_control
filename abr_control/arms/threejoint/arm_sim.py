@@ -7,7 +7,7 @@ from .arm_files.py3LinkArm import pySim  # pylint: disable=C0413
 
 
 class ArmSim:
-    """ An interface for the three-link MapleSim model
+    """An interface for the three-link MapleSim model
 
     An interface for the three-link MapleSim model that has been exported
     to C and turned into shared libraries using Cython.
@@ -47,8 +47,7 @@ class ArmSim:
         self.connect()
 
     def connect(self):
-        """ Creates the MapleSim model and set up PyGame.
-        """
+        """Creates the MapleSim model and set up PyGame."""
 
         # stores information returned from maplesim
         self.state = np.zeros(7)
@@ -58,21 +57,19 @@ class ArmSim:
         print("Connected to MapleSim model")
 
     def disconnect(self):
-        """ Reset the simulation and close PyGame display.
-        """
+        """Reset the simulation and close PyGame display."""
 
         self.reset()
         print("MapleSim connection closed...")
 
     def reset(self):
-        """ Resets the state of the arm to starting conditions.
-        """
+        """Resets the state of the arm to starting conditions."""
 
         self.sim.reset(self.state, self.init_state)
         self._update_state()
 
     def send_forces(self, u, dt=None):
-        """ Apply the specified forces to the robot,
+        """Apply the specified forces to the robot,
         moving the simulation one time step forward.
 
         NOTE: For this simulation, torques are clipped to 1e7
@@ -110,8 +107,7 @@ class ArmSim:
         )
 
     def _position(self):
-        """Compute x,y position of the hand
-        """
+        """Compute x,y position of the hand"""
 
         xy = [
             self.robot_config.Tx("joint%i" % ii, q=self.q)

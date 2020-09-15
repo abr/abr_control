@@ -6,17 +6,16 @@ import scipy.interpolate
 
 
 class PathPlanner:
-    """ Base class for path planners.
-    """
+    """Base class for path planners."""
 
     def generate_path(self):
-        """ This function generates the trajectory to follow, storing the
+        """This function generates the trajectory to follow, storing the
         results and returning self.position_path and self.velocity_path
         """
         raise NotImplementedError
 
     def convert_to_time(self, path, time_length):
-        """ Accepts a pregenerated path from current state to target and
+        """Accepts a pregenerated path from current state to target and
         interpolates with respect to the time_limit. The function can
         then be stepped through to reach a target within the specified time.
 
@@ -41,8 +40,7 @@ class PathPlanner:
         return path_func
 
     def next(self):
-        """ Returns the next target from the generated path
-        """
+        """Returns the next target from the generated path"""
         position = self.position_path[self.n]  # pylint: disable=E0203
         velocity = self.velocity_path[self.n]  # pylint: disable=E0203
         self.n = min(self.n + 1, self.n_timesteps - 1)
@@ -55,7 +53,7 @@ class PathPlanner:
         return position, velocity
 
     def _plot(self, target_position):
-        """ Plot the generated trajectory
+        """Plot the generated trajectory
 
         PARAMETERS
         ----------

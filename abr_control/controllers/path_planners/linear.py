@@ -4,7 +4,7 @@ from .path_planner import PathPlanner
 
 
 class Linear(PathPlanner):
-    """ Creates a linear trajectory from current to target state
+    """Creates a linear trajectory from current to target state
 
     PARAMETERS
     ----------
@@ -28,7 +28,7 @@ class Linear(PathPlanner):
         self.dt = dt
 
     def generate_path(self, position, target_position, plot=False):
-        """ Generates a linear trajectory to the target
+        """Generates a linear trajectory to the target
 
         Parameters
         ----------

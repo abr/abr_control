@@ -2,7 +2,7 @@ import os
 
 
 def makedirs(folder):
-    """ Create the folder if it does not exist
+    """Create the folder if it does not exist
 
     Checks to see if folder exists, if it does not, then
     it creates the folder and all other folders in the path required.

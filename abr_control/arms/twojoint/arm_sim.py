@@ -2,7 +2,7 @@ import numpy as np
 
 
 class ArmSim:
-    """ An interface for a Python implementation of a 2 link arm.
+    """An interface for a Python implementation of a 2 link arm.
 
     An interface for the two-link Python model arm.
 
@@ -41,16 +41,14 @@ class ArmSim:
         self.t = 0.0  # time
 
     def connect(self):
-        """ Reset the state of the system.
-        """
+        """Reset the state of the system."""
         self.reset()
         self._update_state()
         # NOTE: This is kind of a meaningless comment, not sure if worth having
         print("Connected to Python model")
 
     def disconnect(self):
-        """ Reset the simulation and close PyGame display.
-        """
+        """Reset the simulation and close PyGame display."""
 
         self.reset()
         self._update_state()
@@ -68,7 +66,7 @@ class ArmSim:
         )
 
     def send_forces(self, u, dt=None):
-        """ Apply the specified forces to the robot,
+        """Apply the specified forces to the robot,
         move the simulation one time step forward, and update
         the plot.
 
@@ -83,15 +81,13 @@ class ArmSim:
         self._step(u, dt)
 
     def reset(self):
-        """ Resets the state of the arm to starting conditions.
-        """
+        """Resets the state of the arm to starting conditions."""
 
         self.q = np.copy(self.q_init)
         self.dq = np.zeros(self.q.shape)
 
     def _position(self):
-        """ Compute x,y position of the hand
-        """
+        """Compute x,y position of the hand"""
 
         xy = [
             self.robot_config.Tx("joint%i" % ii, q=self.q)
@@ -103,7 +99,7 @@ class ArmSim:
         return np.array([self.joints_x, self.joints_y])
 
     def _step(self, u, dt=None):
-        """ Simulate the system one time step
+        """Simulate the system one time step
 
         Parameters
         ----------

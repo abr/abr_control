@@ -7,7 +7,7 @@ from .coppeliasim_files import sim
 
 
 class CoppeliaSim(Interface):
-    """ An interface for CoppeliaSim.
+    """An interface for CoppeliaSim.
 
     Implements force control using CoppeliaSim's torque-limiting method.
     Lock-steps the simulation so that it only moves forward one dt
@@ -49,7 +49,7 @@ class CoppeliaSim(Interface):
         self.blocking = sim.simx_opmode_blocking
 
     def connect(self, load_scene=True, force_download=False):
-        """ Connect to the current scene open in CoppeliaSim
+        """Connect to the current scene open in CoppeliaSim
 
         Finds the CoppeliaSim references to the joints of the robot.
         Sets the time step for simulation and put into lock-step mode.
@@ -133,7 +133,7 @@ class CoppeliaSim(Interface):
         print("CoppeliaSim connection closed...")
 
     def get_orientation(self, name):
-        """ Returns the orientation of an object in CoppeliaSim
+        """Returns the orientation of an object in CoppeliaSim
 
         the Euler angles [radians] are returned in the relative xyz frame.
         http://www.coppeliarobotics.com/helpFiles/en/eulerAngles.htm
@@ -160,7 +160,7 @@ class CoppeliaSim(Interface):
         return orientation
 
     def set_orientation(self, name, angles):
-        """ Sets the orientation of an object in CoppeliaSim
+        """Sets the orientation of an object in CoppeliaSim
 
         Sets the orientation of an object using the provided Euler angles.
         Angles must be in a relative xyz frame.
@@ -189,7 +189,7 @@ class CoppeliaSim(Interface):
         )
 
     def send_forces(self, u):
-        """ Apply the specified torque to the robot joints
+        """Apply the specified torque to the robot joints
 
         Apply the specified torque to the robot joints, move the simulation
         one time step forward, and update the position of the hand object.
@@ -246,7 +246,7 @@ class CoppeliaSim(Interface):
         self.count += self.dt
 
     def send_target_angles(self, q, joint_handles=None):
-        """ Move the robot to the specified configuration.
+        """Move the robot to the specified configuration.
 
         Parameters
         ----------
@@ -267,7 +267,7 @@ class CoppeliaSim(Interface):
             )
 
     def get_feedback(self):
-        """ Return a dictionary of information needed by the controller.
+        """Return a dictionary of information needed by the controller.
 
         Returns the joint angles and joint velocities in [rad] and [rad/sec],
         respectively
@@ -294,7 +294,7 @@ class CoppeliaSim(Interface):
         return {"q": self.q, "dq": self.dq}
 
     def get_xyz(self, name):
-        """ Returns the xyz position of the specified object
+        """Returns the xyz position of the specified object
 
         name : string
             name of the object you want the xyz position of
@@ -316,7 +316,7 @@ class CoppeliaSim(Interface):
         return xyz
 
     def set_xyz(self, name, xyz):
-        """ Set the position of an object in the environment.
+        """Set the position of an object in the environment.
 
         name : string
             the name of the object

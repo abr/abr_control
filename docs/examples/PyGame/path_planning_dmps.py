@@ -66,7 +66,11 @@ try:
 
         target = np.hstack([target_xyz, target_angles])
         # generate an operational space control signal
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         # get the next point in the target trajectory from the dmp
         target_xyz[0], target_xyz[1] = dmps.step(error=error * 1e2)[0]

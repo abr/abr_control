@@ -72,7 +72,11 @@ try:
         )
 
         # calculate the control signal
-        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target,)
+        u = ctrlr.generate(
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=target,
+        )
 
         u_adapt = np.zeros(robot_config.N_JOINTS)
         u_adapt[1:3] = adapt.generate(

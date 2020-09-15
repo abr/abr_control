@@ -70,7 +70,9 @@ try:
 
         # generate an operational space control signal
         u = ctrlr.generate(
-            q=feedback["q"], dq=feedback["dq"], target=np.hstack([target, np.zeros(3)]),
+            q=feedback["q"],
+            dq=feedback["dq"],
+            target=np.hstack([target, np.zeros(3)]),
         )
 
         # apply the control signal, step the sim forward

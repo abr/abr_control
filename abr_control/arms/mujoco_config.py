@@ -8,12 +8,12 @@ from abr_control.utils import download_meshes
 
 
 class MujocoConfig:
-    """ A wrapper on the Mujoco simulator to generate all the kinematics and
+    """A wrapper on the Mujoco simulator to generate all the kinematics and
     dynamics calculations necessary for controllers.
     """
 
     def __init__(self, xml_file, folder=None, use_sim_state=True, force_download=False):
-        """ Loads the Mujoco model from the specified xml file
+        """Loads the Mujoco model from the specified xml file
 
         Parameters
         ----------
@@ -96,7 +96,7 @@ class MujocoConfig:
         self.use_sim_state = use_sim_state
 
     def _connect(self, sim, joint_pos_addrs, joint_vel_addrs, joint_dyn_addrs):
-        """ Called by the interface once the Mujoco simulation is created,
+        """Called by the interface once the Mujoco simulation is created,
         this connects the config to the simulator so it can access the
         kinematics and dynamics information calculated by Mujoco.
 
@@ -152,7 +152,7 @@ class MujocoConfig:
         self.N_ALL_JOINTS = N_ALL_JOINTS
 
     def _load_state(self, q, dq=None, u=None):
-        """ Change the current joint angles
+        """Change the current joint angles
 
         Parameters
         ----------
@@ -181,7 +181,7 @@ class MujocoConfig:
         return old_q, old_dq, old_u
 
     def g(self, q=None):
-        """ Returns qfrc_bias variable, which stores the effects of Coriolis,
+        """Returns qfrc_bias variable, which stores the effects of Coriolis,
         centrifugal, and gravitational forces
 
         Parameters
@@ -203,7 +203,7 @@ class MujocoConfig:
         return g
 
     def dJ(self, name, q=None, dq=None, x=None):
-        """ Returns the derivative of the Jacobian wrt to time
+        """Returns the derivative of the Jacobian wrt to time
 
         Parameters
         ----------
@@ -224,7 +224,7 @@ class MujocoConfig:
         raise NotImplementedError
 
     def J(self, name, q=None, x=None, object_type="body"):
-        """ Returns the Jacobian for the specified Mujoco object
+        """Returns the Jacobian for the specified Mujoco object
 
         Parameters
         ----------
@@ -277,7 +277,7 @@ class MujocoConfig:
         return np.copy(self._J6N)
 
     def M(self, q=None):
-        """ Returns the inertia matrix in task space
+        """Returns the inertia matrix in task space
 
         Parameters
         ----------
@@ -300,7 +300,7 @@ class MujocoConfig:
         return np.copy(M)
 
     def R(self, name, q=None):
-        """ Returns the rotation matrix of the specified body
+        """Returns the rotation matrix of the specified body
 
         Parameters
         ----------
@@ -322,7 +322,7 @@ class MujocoConfig:
         return self._R
 
     def quaternion(self, name, q=None):
-        """ Returns the quaternion of the specified body
+        """Returns the quaternion of the specified body
         Parameters
         ----------
 
@@ -343,7 +343,7 @@ class MujocoConfig:
         return quaternion
 
     def C(self, q=None, dq=None):
-        """ NOTE: The Coriolis and centrifugal effects (and gravity) are
+        """NOTE: The Coriolis and centrifugal effects (and gravity) are
         already accounted for by Mujoco in the qfrc_bias variable. There's
         no easy way to separate these, so all are returned by the g function.
         To prevent accounting for these effects twice, this function will
@@ -355,7 +355,7 @@ class MujocoConfig:
         )
 
     def T(self, name, q=None, x=None):
-        """ Get the transform matrix of the specified body.
+        """Get the transform matrix of the specified body.
 
         Parameters
         ----------
@@ -370,7 +370,7 @@ class MujocoConfig:
         raise NotImplementedError
 
     def Tx(self, name, q=None, x=None, object_type="body"):
-        """ Returns the Cartesian coordinates of the specified Mujoco body
+        """Returns the Cartesian coordinates of the specified Mujoco body
 
         Parameters
         ----------
@@ -412,7 +412,7 @@ class MujocoConfig:
         return Tx
 
     def T_inv(self, name, q=None, x=None):
-        """  Get the inverse transform matrix of the specified body.
+        """Get the inverse transform matrix of the specified body.
 
         Parameters
         ----------

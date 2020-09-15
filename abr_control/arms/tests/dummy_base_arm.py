@@ -2,8 +2,8 @@ import numpy as np
 
 
 class TwoJoint:  # pylint: disable=too-many-public-methods
-    """ A class with equationns analytically derived in (Spong et al, 2004),
-    page 209, for testing the symbolic function generation config system. """
+    """A class with equationns analytically derived in (Spong et al, 2004),
+    page 209, for testing the symbolic function generation config system."""
 
     def __init__(self, L0=2.0, L1=1.2):
         self.L = [0.0, L0, L1]
@@ -401,8 +401,8 @@ class TwoJoint:  # pylint: disable=too-many-public-methods
         return np.array([0, 0])
 
     def C(self, q, dq):
-        """ Returns the partial centrifugal and Coriolis effects
-        where np.dot(C, dq) is the full term """
+        """Returns the partial centrifugal and Coriolis effects
+        where np.dot(C, dq) is the full term"""
         m2 = self.M_LINKS[2][0, 0]
         return (
             m2
