@@ -65,7 +65,7 @@ class OSC(Controller):
         orientation_algorithm=0,
     ):
 
-        super(OSC, self).__init__(robot_config)
+        super().__init__(robot_config)
 
         self.kp = kp
         self.ko = kp if ko is None else ko

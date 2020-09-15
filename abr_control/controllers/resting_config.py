@@ -14,7 +14,7 @@ class RestingConfig(Controller):
     """
 
     def __init__(self, robot_config, rest_angles, kp, kv=None):
-        super(RestingConfig, self).__init__(robot_config)
+        super().__init__(robot_config)
 
         self.rest_angles = np.asarray(rest_angles)
         self.rest_indices = [val is not None for val in rest_angles]

@@ -33,7 +33,7 @@ class Config(BaseConfig):
 
     def __init__(self, **kwargs):
 
-        super(Config, self).__init__(N_JOINTS=6, N_LINKS=7, ROBOT_NAME="ur5", **kwargs)
+        super().__init__(N_JOINTS=6, N_LINKS=7, ROBOT_NAME="ur5", **kwargs)
         self.filename = "%s/ur5.ttt" % os.path.dirname(os.path.abspath(__file__))
         self.google_id = "1EDM6H9hbFhCjcsfm0p2lQ1K55o5Yi1VV"
         self._T = {}  # dictionary for storing calculated transforms

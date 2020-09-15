@@ -26,7 +26,7 @@ class AvoidObstacles(Controller):
     def __init__(
         self, robot_config, obstacles=None, threshold=0.2, gain=1, maximum=500
     ):
-        super(AvoidObstacles, self).__init__(robot_config)
+        super().__init__(robot_config)
 
         self.threshold = threshold
         self.gain = gain

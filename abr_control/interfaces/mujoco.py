@@ -33,7 +33,7 @@ class Mujoco(Interface):
         create_offscreen_rendercontext=False,
     ):
 
-        super(Mujoco, self).__init__(robot_config)
+        super().__init__(robot_config)
 
         self.dt = dt  # time step
         self.count = 0  # keep track of how many times send forces is called

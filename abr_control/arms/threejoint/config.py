@@ -31,9 +31,7 @@ class Config(BaseConfig):
 
     def __init__(self, **kwargs):
 
-        super(Config, self).__init__(
-            N_JOINTS=3, N_LINKS=4, ROBOT_NAME="threejoint", **kwargs
-        )
+        super().__init__(N_JOINTS=3, N_LINKS=4, ROBOT_NAME="threejoint", **kwargs)
 
         self._T = {}  # dictionary for storing calculated transforms
 

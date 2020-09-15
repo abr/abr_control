@@ -14,7 +14,7 @@ class Damping(Controller):
     """
 
     def __init__(self, robot_config, kv):
-        super(Damping, self).__init__(robot_config)
+        super().__init__(robot_config)
 
         self.kv = kv
 

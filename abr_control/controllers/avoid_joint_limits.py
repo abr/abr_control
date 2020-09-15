@@ -40,7 +40,7 @@ class AvoidJointLimits(Controller):
         cross_zero=None,
         gradient=None,
     ):
-        super(AvoidJointLimits, self).__init__(robot_config)
+        super().__init__(robot_config)
 
         # shift limits to -pi to pi range
         for ii in range(0, robot_config.N_JOINTS):

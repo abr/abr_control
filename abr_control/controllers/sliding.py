@@ -25,7 +25,7 @@ class Sliding(Controller):
 
     def __init__(self, robot_config, kd=160.0, lamb=30.0, cartesian=True):
 
-        super(Sliding, self).__init__(robot_config)
+        super().__init__(robot_config)
 
         self.kd = kd
         self.lamb = lamb
