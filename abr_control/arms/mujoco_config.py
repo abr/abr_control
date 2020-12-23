@@ -120,10 +120,10 @@ class MujocoConfig:
         self.joint_vel_addrs = np.copy(joint_vel_addrs)
         self.joint_dyn_addrs = np.copy(joint_dyn_addrs)
 
-        # number of joints in the robot arm
-        self.N_JOINTS = len(self.joint_pos_addrs)
+        # number of controllable joints in the robot arm
+        self.N_JOINTS = len(self.joint_dyn_addrs)
         # number of joints in the Mujoco simulation
-        N_ALL_JOINTS = int(len(self.sim.data.get_body_jacp("EE")) / 3)
+        N_ALL_JOINTS = self.sim.model.nv
 
         # need to calculate the joint_dyn_addrs indices in flat vectors returned
         # for the Jacobian

@@ -1,0 +1,60 @@
+<mujoco model="onelink">
+
+    <custom>
+        <numeric name="START_ANGLES" data="0.0"/>
+    </custom>
+
+    <contact>
+        <exclude body1="hand" body2="EE"/>
+        <exclude body1="hand" body2="base_link"/>
+        <exclude body1="hand" body2="link1"/>
+
+        <exclude body1="target" body2="EE"/>
+        <exclude body1="target" body2="base_link"/>
+        <exclude body1="target" body2="link1"/>
+    </contact>
+
+    <worldbody>
+        <body name="hand" pos="0 0 0" mocap="true">
+            <geom type="box" size=".02 .04 .06" rgba="0 .9 0 .5" contype="2"/>
+            <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
+        </body>
+        <body name="target" pos="0 0 0" mocap="true">
+            <geom type="sphere" size="0.05" rgba=".9 0 0 .5"/>
+            <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
+        </body>
+
+        <body name="floor" pos="0 0 0" mocap="true">
+            <geom type="box" size="1 1 0.001" rgba="0.99 0.99 0.99 1" contype="2"/>
+            <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
+        </body>
+
+        <light pos="0 1 1" dir="0 -1 -1" diffuse="1 1 1"/>
+
+        <body name="base_link" pos="0 0 0.05">
+            <geom name="link0" type="cylinder" pos="0 0 0" size="0.025 0.025" rgba="0 0 1 0.9"/>
+            <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
+
+            <body name="link1" pos="0 0 0.05">
+                <joint name='joint0' type="ball" pos="0 0 0"/>
+                <inertial pos="0 0 0.1" mass="2" diaginertia="0.226891 0.226891 0.0151074" />
+                <geom name="link1" type="cylinder" pos="0 0 0.1" size="0.025 0.1" rgba="0 1 0 0.9"/>
+
+                <body name="EE" pos="0 0 .4">
+                    <inertial pos="0 0 0" mass="0" diaginertia="0 0 0" />
+                </body>
+
+            </body>
+
+        </body>
+
+    </worldbody>
+
+    <actuator>
+        <!-- the order for actuators of the ball joint is important -->
+        <motor name="joint0_motor0" joint="joint0" gear="1 0 0 0 0 0"/>
+        <motor name="joint0_motor1" joint="joint0" gear="0 1 0 0 0 0"/>
+        <motor name="joint0_motor2" joint="joint0" gear="0 0 1 0 0 0"/>
+    </actuator>
+
+</mujoco>
