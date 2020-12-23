@@ -1,3 +1,5 @@
+# TODO: set up to work with ball joints / quaternion postions
+
 import numpy as np
 
 from .controller import Controller
@@ -33,7 +35,7 @@ class RestingConfig(Controller):
         # account for going across 2*pi line when calculating
         # distance / direction
         q_des = np.zeros(len(q))
-        dq_des = np.zeros(len(q))
+        dq_des = np.zeros(len(dq))
         q_des[self.rest_indices] = (
             self.rest_angles[self.rest_indices] - q[self.rest_indices] + np.pi
         ) % (np.pi * 2) - np.pi
