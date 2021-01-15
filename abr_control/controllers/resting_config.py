@@ -1,3 +1,5 @@
+# TODO: set up to work with ball joints / quaternion postions
+
 import numpy as np
 
 from .controller import Controller
