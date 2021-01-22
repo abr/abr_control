@@ -1,11 +1,11 @@
 """ Creates a trajectory from current to target orientation based on either
 the timesteps (user defined profile) or n_timesteps (linear profile) passed in
 """
+import matplotlib.pyplot as plt
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 from abr_control.utils import transformations
+
 from .path_planner import PathPlanner
 
 

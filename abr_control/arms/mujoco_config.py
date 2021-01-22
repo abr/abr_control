@@ -1,9 +1,9 @@
+import os
 from xml.etree import ElementTree
 
-import os
+import mujoco_py as mjp
 import numpy as np
 
-import mujoco_py as mjp
 from abr_control.utils import download_meshes
 
 

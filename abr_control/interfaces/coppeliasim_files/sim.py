@@ -1,8 +1,9 @@
+import ctypes as ct
+import os
 import platform
 import struct
 import sys
-import os
-import ctypes as ct
+
 from .simConst import *
 
 # load library

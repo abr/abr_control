@@ -1,9 +1,9 @@
 import numpy as np
 
-from abr_control.utils import transformations, download_meshes
+from abr_control.utils import download_meshes, transformations
 
-from .interface import Interface
 from .coppeliasim_files import sim
+from .interface import Interface
 
 
 class CoppeliaSim(Interface):

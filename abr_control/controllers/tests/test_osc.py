@@ -1,10 +1,10 @@
-import pytest
 import timeit
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
-from abr_control.arms import twojoint, threejoint, ur5, jaco2
+from abr_control.arms import jaco2, threejoint, twojoint, ur5
 from abr_control.controllers import OSC
 from abr_control.utils import transformations
 

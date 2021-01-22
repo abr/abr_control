@@ -1,5 +1,6 @@
 # Config file for UR5 in VREP
 import os
+
 import numpy as np
 import sympy as sp
 

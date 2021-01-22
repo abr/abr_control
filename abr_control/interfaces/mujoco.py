@@ -1,8 +1,7 @@
-import numpy as np
-
 import mujoco_py as mjp
-
+import numpy as np
 from mujoco_py.generated import const
+
 from abr_control.utils import transformations
 
 from .interface import Interface

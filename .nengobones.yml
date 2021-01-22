@@ -106,3 +106,7 @@ ci_scripts:
     coverage: true
 
 codecov_yml: {}
+
+pre_commit_config_yaml: {}
+
+pyproject_toml: {}

@@ -1,9 +1,11 @@
 # Config file for Jaco 2 in VREP
 import os
+
 import numpy as np
 import sympy as sp
 
 import abr_control
+
 from ..base_config import BaseConfig
 
 

@@ -3,17 +3,14 @@ import importlib
 import os
 import sys
 
-import numpy as np
-
 import cloudpickle
-
+import numpy as np
 import sympy as sp
 from sympy.utilities.autowrap import autowrap
 
 import abr_control.utils.os_utils
-from abr_control.utils.paths import cache_dir
 from abr_control.utils import transformations
-
+from abr_control.utils.paths import cache_dir
 
 # TODO : store lambdified functions, currently running into pickling errors
 # cloudpickle, dill, and pickle all run into problems

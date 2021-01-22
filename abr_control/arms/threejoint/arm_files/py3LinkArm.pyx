@@ -1,5 +1,7 @@
 import numpy as np
+
 cimport numpy as np
+
 
 cdef extern from "threelinkarm.cpp":
     cdef cppclass Sim:

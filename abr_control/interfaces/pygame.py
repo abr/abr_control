@@ -1,5 +1,6 @@
-import numpy as np
 from os import environ  # pylint: disable=C0411
+
+import numpy as np
 
 environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame  # pylint: disable=C0413

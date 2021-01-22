@@ -1,9 +1,8 @@
 import warnings
 
 import numpy as np
-from scipy.special import beta, betainc, betaincinv
-
 from nengo.dists import Distribution, UniformHypersphere
+from scipy.special import beta, betainc, betaincinv
 
 from abr_control._vendor.nengolib.stats.ortho import random_orthogonal
 

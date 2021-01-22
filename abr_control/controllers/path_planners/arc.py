@@ -5,8 +5,9 @@ generated and they're paths are linearly combined to join the points. The shorte
 path around the circle is taken. A linear path along z is taken.
 
 """
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 from .path_planner import PathPlanner
 
 

@@ -18,8 +18,8 @@ planner. This ensures that the path will reach the desired target within the
 time_limit specified in `generate_path_function()`
 
 """
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 try:
     import pydmps

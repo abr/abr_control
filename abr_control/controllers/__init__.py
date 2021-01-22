@@ -1,5 +1,5 @@
-from .avoid_obstacles import AvoidObstacles
 from .avoid_joint_limits import AvoidJointLimits
+from .avoid_obstacles import AvoidObstacles
 from .damping import Damping
 from .floating import Floating
 from .joint import Joint

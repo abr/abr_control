@@ -1,8 +1,6 @@
 import numpy as np
-
-from scipy.linalg import svd
-
 from nengo.dists import UniformHypersphere
+from scipy.linalg import svd
 
 
 def random_orthogonal(d, rng=None):

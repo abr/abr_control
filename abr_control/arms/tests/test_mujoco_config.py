@@ -8,7 +8,6 @@ from abr_control.interfaces.mujoco import Mujoco  # pylint: disable=C0413
 
 from .dummy_mujoco_arm import TwoJoint  # pylint: disable=C0413
 
-
 # TODO
 # def test_connect
 

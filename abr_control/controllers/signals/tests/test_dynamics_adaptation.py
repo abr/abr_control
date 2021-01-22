@@ -1,12 +1,11 @@
-import pytest
-
 import nengo
 import numpy as np
+import pytest
 
+from abr_control._vendor.nengolib.stats import ScatteredHypersphere
 from abr_control.arms import ur5
 from abr_control.controllers import signals
 from abr_control.controllers.signals import DynamicsAdaptation
-from abr_control._vendor.nengolib.stats import ScatteredHypersphere
 
 
 def test_scaling():
