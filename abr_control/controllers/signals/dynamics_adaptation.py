@@ -66,7 +66,7 @@ class DynamicsAdaptation:
         tau_input=0.012,
         tau_training=0.012,
         tau_output=0.2,
-        **kwargs,
+        **kwargs
     ):
 
         self.n_neurons = n_neurons

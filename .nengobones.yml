@@ -1,6 +1,7 @@
 project_name: ABR Control
 pkg_name: abr_control
 repo_name: abr/abr_control
+min_python: 3.5
 author_email: travis.dewolf@appliedbrainresearch.com
 description: Robotic arm control in Python
 

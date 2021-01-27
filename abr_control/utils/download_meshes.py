@@ -1,7 +1,10 @@
 import os
 import zipfile
 
-import requests
+try:
+    import requests
+except:
+    print('To download mujoco stl files, you need to "pip install requests"')
 
 
 def check_and_download(name, google_id, files=None, force_download=False):

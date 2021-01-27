@@ -30,8 +30,7 @@ To install ABR Control, clone this repository and run::
     sudo apt-get install python-dev
     sudo apt-get install libfreetype6-dev
     conda activate your_environment
-    python setup.py install
-    python setup.py develop
+    pip install -e .
 
 ABR Control is tested to work on Python 3.6+, Python 2 is not supported.
 
