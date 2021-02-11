@@ -96,10 +96,10 @@ class Mujoco(Interface):
             if ii in joint_ids:
                 self.joint_dyn_addrs.append(index)
             if joint_type == 0:  # free joint
-                self.joint_dyn_addrs += [jj+index for jj in range(1, 6)]
+                self.joint_dyn_addrs += [jj + index for jj in range(1, 6)]
                 index += 6  # derivative has 6 dimensions
             elif joint_type == 1:  # ball joint
-                self.joint_dyn_addrs += [jj+index for jj in range(1, 3)]
+                self.joint_dyn_addrs += [jj + index for jj in range(1, 3)]
                 index += 3  # derivative has 3 dimension
             else:  # slide or hinge joint
                 index += 1  # derivative has 1 dimensions
