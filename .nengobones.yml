@@ -43,6 +43,13 @@ setup_py:
     - "Topic :: Scientific/Engineering :: Artificial Intelligence"
 
 setup_cfg:
+  codespell:
+    ignore_words:
+      - DOF
+      - dof
+      - hist
+      - nd
+      - compiletime
   coverage:
     omit_files:
       - "abr_control/_vendor/*"
@@ -94,13 +101,6 @@ travis_yml:
       - bdist_wheel
 
 ci_scripts:
-  - template: static
-    codespell_ignore_words:
-        - DOF
-        - dof
-        - hist
-        - nd
-        - compiletime
   - template: test
     output_name: test-coverage
     coverage: true
@@ -108,5 +108,4 @@ ci_scripts:
 codecov_yml: {}
 
 pre_commit_config_yaml: {}
-
 pyproject_toml: {}

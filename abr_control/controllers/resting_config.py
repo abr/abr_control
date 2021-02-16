@@ -1,4 +1,4 @@
-# TODO: set up to work with ball joints / quaternion postions
+# TODO: set up to work with ball joints / quaternion positions
 
 import numpy as np
 

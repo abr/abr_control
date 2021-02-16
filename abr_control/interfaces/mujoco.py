@@ -70,7 +70,7 @@ class Mujoco(Interface):
         joint_pos_addrs = []
         for elem in self.joint_pos_addrs:
             if isinstance(elem, tuple):
-                joint_pos_addrs += [ii for ii in range(elem[0], elem[1])]
+                joint_pos_addrs += list(range(elem[0], elem[1]))
             else:
                 joint_pos_addrs.append(elem)
         self.joint_pos_addrs = joint_pos_addrs
@@ -78,7 +78,7 @@ class Mujoco(Interface):
         joint_vel_addrs = []
         for elem in self.joint_vel_addrs:
             if isinstance(elem, tuple):
-                joint_vel_addrs += [ii for ii in range(elem[0], elem[1])]
+                joint_vel_addrs += list(range(elem[0], elem[1]))
             else:
                 joint_vel_addrs.append(elem)
         self.joint_vel_addrs = joint_vel_addrs

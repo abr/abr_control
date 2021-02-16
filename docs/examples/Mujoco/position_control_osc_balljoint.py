@@ -3,7 +3,6 @@ Move the jao2 Mujoco arm to a target position.
 The simulation ends after 1500 time steps, and the
 trajectory of the end-effector is plotted in 3D.
 """
-import sys
 import traceback
 import numpy as np
 import glfw
