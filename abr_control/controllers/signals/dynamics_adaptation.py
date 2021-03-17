@@ -81,8 +81,8 @@ class DynamicsAdaptation:
             variances = np.ones(means.shape)
         elif means is None and variances is not None:
             means = np.zeros(variances.shape)
-        self.means = np.asarray(means)
-        self.variances = np.asarray(variances)
+        self.means = means
+        self.variances = variances
 
         # synapse time constants
         self.tau_input = 0.012  # on input connection
@@ -203,7 +203,7 @@ class DynamicsAdaptation:
         """
 
         # if means or variances was defined, self.means is not None
-        if self.means is not None:
+        if self.means is not None or self.variances is not None:
             input_signal = self.scale_inputs(input_signal)
 
         # store local copies to feed in to the adaptive population
