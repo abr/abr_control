@@ -68,6 +68,9 @@ class DynamicsAdaptation:
         tau_output=0.2,
         **kwargs
     ):
+        # set up means and variances to be same dimensionality as original input signal
+        self.variances = np.ones(n_input) if variances is None else np.asarray(variances)
+        self.means = np.zeros(n_input) if means is None else np.asarray(means)
 
         self.n_neurons = n_neurons
         self.n_ensembles = n_ensembles
@@ -201,7 +204,6 @@ class DynamicsAdaptation:
         training_signal : numpy.array
             the learning signal to drive adaptation
         """
-
         # if means or variances was defined, self.means is not None
         if self.means is not None or self.variances is not None:
             input_signal = self.scale_inputs(input_signal)
