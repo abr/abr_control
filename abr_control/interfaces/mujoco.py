@@ -297,7 +297,7 @@ class Mujoco(Interface):
         elif object_type == "geom":
             xyz = self.sim.data.get_geom_xpos(name)
         elif object_type == "site":
-            xyz = self.sim.model.get_site_xpos(name)
+            xyz = self.sim.data.get_site_xpos(name)
         else:
             raise Exception(f"get_xyz for {object_type} object type not supported")
 
