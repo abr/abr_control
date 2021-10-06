@@ -1,7 +1,6 @@
 import numpy as np
 
 from .controller import Controller
-from abr_control.utils import transformations
 from abr_control.utils.transformations import quaternion_multiply, quaternion_conjugate
 
 
@@ -68,6 +67,7 @@ class Joint(Controller):
 
         for quat_bool in self.quaternions:
             if quat_bool:
+
                 # if the joint position is a quaternion, calculate error
                 joint_q = q[q_index:q_index+4]
                 error = quaternion_multiply(

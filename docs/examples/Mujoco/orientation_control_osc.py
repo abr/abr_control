@@ -45,7 +45,7 @@ try:
     print("\nSimulation starting...\n")
     cnt = 0
     while 1:
-        if cnt % 500 == 0:
+        if cnt % 1000 == 0:
             # generate a random target orientation
             rand_orient = transformations.random_quaternion()
             print("New target orientation: ", rand_orient)

@@ -21,9 +21,10 @@ class Orientation(PathPlanner):
         1 (target orientation)
     """
 
-    def __init__(self, n_timesteps=None, timesteps=None, axes="rxyz"):
+    def __init__(self, n_timesteps=None, timesteps=None, axes="rxyz", output_format="euler"):
         # assert n_timesteps is None or timesteps is None
         self.axes = axes
+        self.output_format = output_format
 
         if n_timesteps is not None:
             self.n_timesteps = n_timesteps
@@ -95,15 +96,19 @@ class Orientation(PathPlanner):
             self.timesteps = np.linspace(0, 1, self.n_timesteps)
 
         # stores the target Euler angles of the trajectory
-        self.orientation_path = np.zeros((self.n_timesteps, 3))
-
+        self.orientation_path = []
         for ii in range(self.n_timesteps):
             quat = self._step(
                 orientation=orientation, target_orientation=target_orientation
             )
-            self.orientation_path[ii] = transformations.euler_from_quaternion(
-                quat, axes=self.axes
-            )
+            if self.output_format == "euler":
+                target = transformations.euler_from_quaternion(quat, axes=self.axes)
+            elif self.output_format == "quaternion":
+                target = quat
+            else:
+                raise Exception("Invalid output_format: ", self.output_format)
+            self.orientation_path.append(target)
+        self.orientation_path = np.array(self.orientation_path)
         if self.n_timesteps == 0:
             print("with the set step size, we reach the target in 1 step")
             self.orientation_path = np.array(

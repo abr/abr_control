@@ -31,7 +31,7 @@ class OSC(Controller):
         [x, y, z, alpha, beta, gamma]
         NOTE: if more ctrlr_dof are specified than degrees of freedom in the
         robotic system, the controller will perform poorly
-    null_controler: Controller, optional (Default: None)
+    null_controller: Controller, optional (Default: None)
         A controller to generate a secondary control signal to be
         applied in the null space of the OSC signal (i.e. applied as much
         as possible without affecting the movement of the end-effector)

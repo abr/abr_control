@@ -32,10 +32,14 @@ class MujocoConfig:
             specifies what folder to find the xml_file, if None specified will
             checking in abr_control/arms/xml_file (see above for xml_file)
         use_sim_state: Boolean, optional (Default: True)
-            If set true, the q and dq values passed in to the functions are
+            If set False, the state information is provided by the user, which
+            is then used to calculate the corresponding dynamics values.
+            The state is then set back to the sim state prior to the user
+            provided state.
+            If set true, any q and dq values passed in to the functions are
             ignored, and the current state of the simulator is used to
-            calculate all functions. Can speed up simulation by not resetting
-            the state on every call.
+            calculate all functions. This can speed up the simulation, because
+            the step of resetting the state on every call is omitted.
         force_download: boolean, Optional (Default: False)
             True to force downloading the mesh and texture files, useful when new files
             are added that may be missing.
@@ -175,7 +179,7 @@ class MujocoConfig:
         if u is not None:
             self.sim.data.ctrl[:] = np.copy(u)
 
-        # move simulation forward to calculate new kinamtic information
+        # move simulation forward to calculate new kinematic information
         self.sim.forward()
 
         return old_q, old_dq, old_u

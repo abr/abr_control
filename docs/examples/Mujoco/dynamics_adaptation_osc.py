@@ -103,7 +103,7 @@ try:
         u += u_adapt
 
         # add an additional force for the controller to adapt to
-        extra_gravity = robot_config.g(feedback["q"]) * 2
+        extra_gravity = robot_config.g(feedback["q"]) * 4
         u += extra_gravity
 
         # add gripper forces

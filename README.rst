@@ -50,6 +50,16 @@ in your anaconda environment and run::
     pip install glfw>=1.8.3
     pip install requests
 
+Additionally, in Ubuntu 20.04 you will need::
+
+    sudo apt install libomesa6-dev
+    sudo apt install libglew-dev
+    sudo apt install patchelf
+
+and add the following line to your `~/.bashrc` file::
+
+    export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so
+
 Pygame
 ------
 If you would like to use the Pygame API, from your anaconda environment run::
