@@ -238,8 +238,23 @@ class MujocoConfig:
             options: body, geom, site
         """
         if x is not None and not np.allclose(x, 0):
-            raise Exception("x offset currently not supported, set to None")
 
+            JacP = np.zeros((3*self.N_JOINTS))
+            JacR = np.zeros((3*self.N_JOINTS))
+
+            mjp.cymj._mj_jac(
+                self.model,
+                self.sim.data,
+                self._J3NP,
+                self._J3NR,
+                x,
+                self.model.body_name2id(name)
+                )
+            # print(self._J3NP)
+            # print(self._J3NR)
+            # print(x)
+            # raise Exception("x offset currently not supported, set to None")
+            
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
@@ -366,8 +381,12 @@ class MujocoConfig:
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
         """
+
+
         # TODO if ever required
         raise NotImplementedError
+
+
 
     def Tx(self, name, q=None, x=None, object_type="body"):
         """Returns the Cartesian coordinates of the specified Mujoco body
@@ -423,5 +442,8 @@ class MujocoConfig:
             retrieved from the Mujoco simulator
         x: float numpy.array, optional (Default: None)
         """
+
+        #Try and use KDL
+
         # TODO if ever required
         raise NotImplementedError

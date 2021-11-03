@@ -303,6 +303,20 @@ class Mujoco(Interface):
 
         return np.copy(xyz)
 
+    def get_size(self, obstacle_geom_id):
+        """Returns the size of the specified geom object
+
+        name: string
+            name of the object you want the xyz position of
+        object_type: string
+            type of object you want the xyz position of
+            Can be: mocap, body, geom, site
+        """
+
+        xyz = self.sim.model.geom_size[obstacle_geom_id][0]
+
+        return np.copy(xyz)
+
     def set_mocap_xyz(self, name, xyz):
         """Set the position of a mocap object in the Mujoco environment.
 
