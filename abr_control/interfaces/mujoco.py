@@ -5,7 +5,7 @@ from mujoco_py.generated import const
 from abr_control.utils import transformations
 
 from .interface import Interface
-
+from custom_MjViewer import CustomMjViewer
 
 class Mujoco(Interface):
     """An interface for MuJoCo using the mujoco-py package.
@@ -326,3 +326,84 @@ class Mujoco(Interface):
             the [x,y,z] location of the target [meters]
         """
         self.sim.data.set_mocap_pos(name, xyz)
+
+# class CustomMujoco(Mujoco):
+
+#     def connect(self, joint_names=None, camera_id=-1, **kwargs):
+#         """
+#         joint_names: list, optional (Default: None)
+#             list of joint names to send control signal to and get feedback from
+#             if None, the joints in the kinematic tree connecting the end-effector
+#             to the world are used
+#         camera_id: int, optional (Default: -1)
+#             the id of the camera to use for the visualization
+#         """
+#         self.sim = mjp.MjSim(self.robot_config.model)
+#         self.sim.forward()  # run forward to fill in sim.data
+#         model = self.sim.model
+#         self.model = model
+
+#         if joint_names is None:
+#             joint_ids, joint_names = self.get_joints_in_ee_kinematic_tree()
+#         else:
+#             joint_ids = [model.joint_name2id(name) for name in joint_names]
+#         self.joint_pos_addrs = [model.get_joint_qpos_addr(name) for name in joint_names]
+#         self.joint_vel_addrs = [model.get_joint_qvel_addr(name) for name in joint_names]
+
+#         joint_pos_addrs = []
+#         for elem in self.joint_pos_addrs:
+#             if isinstance(elem, tuple):
+#                 joint_pos_addrs += list(range(elem[0], elem[1]))
+#             else:
+#                 joint_pos_addrs.append(elem)
+#         self.joint_pos_addrs = joint_pos_addrs
+
+#         joint_vel_addrs = []
+#         for elem in self.joint_vel_addrs:
+#             if isinstance(elem, tuple):
+#                 joint_vel_addrs += list(range(elem[0], elem[1]))
+#             else:
+#                 joint_vel_addrs.append(elem)
+#         self.joint_vel_addrs = joint_vel_addrs
+
+#         # Need to also get the joint rows of the Jacobian, inertia matrix, and
+#         # gravity vector. This is trickier because if there's a quaternion in
+#         # the joint (e.g. a free joint or a ball joint) then the joint position
+#         # address will be different than the joint Jacobian row. This is because
+#         # the quaternion joint will have a 4D position and a 3D derivative. So
+#         # we go through all the joints, and find out what type they are, then
+#         # calculate the Jacobian position based on their order and type.
+#         index = 0
+#         self.joint_dyn_addrs = []
+#         for ii, joint_type in enumerate(model.jnt_type):
+#             if ii in joint_ids:
+#                 self.joint_dyn_addrs.append(index)
+#             if joint_type == 0:  # free joint
+#                 self.joint_dyn_addrs += [jj + index for jj in range(1, 6)]
+#                 index += 6  # derivative has 6 dimensions
+#             elif joint_type == 1:  # ball joint
+#                 self.joint_dyn_addrs += [jj + index for jj in range(1, 3)]
+#                 index += 3  # derivative has 3 dimension
+#             else:  # slide or hinge joint
+#                 index += 1  # derivative has 1 dimensions
+
+#         # give the robot config access to the sim for wrapping the
+#         # forward kinematics / dynamics functions
+#         self.robot_config._connect(
+#             self.sim, self.joint_pos_addrs, self.joint_vel_addrs, self.joint_dyn_addrs
+#         )
+
+#         # if we want to use the offscreen render context create it before the
+#         # viewer so the corresponding window is behind the viewer
+#         if self.create_offscreen_rendercontext:
+#             self.offscreen = mjp.MjRenderContextOffscreen(self.sim, 0)
+
+#         # create the visualizer
+#         if self.visualize:
+#             self.viewer = CustomMjViewer(self.sim, **kwargs)
+#             # if specified, set the camera
+#             if camera_id > -1:
+#                 self.viewer.cam.type = const.CAMERA_FIXED
+#                 self.viewer.cam.fixedcamid = camera_id
+
+#         print("Custom Viewr MuJoCo session created")
