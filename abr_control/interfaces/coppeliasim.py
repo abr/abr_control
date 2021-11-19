@@ -119,7 +119,7 @@ class CoppeliaSim(Interface):
         print("Connected to CoppeliaSim remote API server")
 
     def disconnect(self):
-        """ Stop and reset the simulation. """
+        """Stop and reset the simulation."""
 
         # stop the simulation
         sim.simxStopSimulation(self.clientID, self.blocking)

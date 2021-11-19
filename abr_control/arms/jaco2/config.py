@@ -39,7 +39,7 @@ class Config(BaseConfig):
         super().__init__(
             N_JOINTS=N_JOINTS, N_LINKS=N_LINKS, ROBOT_NAME="jaco2", **kwargs
         )
-        self.filename = "%s/jaco2.ttt" % os.path.dirname(os.path.abspath(__file__))
+        self.filename = f"{os.path.dirname(os.path.abspath(__file__))}/jaco2.ttt"
         self.google_id = "1g8X7qVjAG0eHu95tcb8jhd6Twptlfb64"
 
         self._T = {}  # dictionary for storing calculated transforms
@@ -47,7 +47,7 @@ class Config(BaseConfig):
         # make config folder if it doesn't exist
         abr_control.utils.os_utils.makedirs(self.config_folder)
 
-        self.JOINT_NAMES = ["joint%i" % ii for ii in range(self.N_JOINTS)]
+        self.JOINT_NAMES = [f"joint{ii}" for ii in range(self.N_JOINTS)]
 
         # position to move to before switching to torque mode
         self.START_ANGLES = np.array([2.0, 3.14, 1.57, 4.71, 0.0, 3.04])
@@ -351,6 +351,6 @@ class Config(BaseConfig):
                 self._T[name] = self._calc_T("link6") * self.Thandcomfingers
 
             else:
-                raise Exception("Invalid transformation name: %s" % name)
+                raise Exception(f"Invalid transformation name: {name}")
 
         return self._T[name]

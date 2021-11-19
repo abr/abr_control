@@ -126,7 +126,7 @@ class Mujoco(Interface):
         print("MuJoCo session created")
 
     def disconnect(self):
-        """ Stop and reset the simulation. """
+        """Stop and reset the simulation."""
         # nothing to do to close a MuJoCo session
         print("MuJoCO session closed...")
 
@@ -177,7 +177,7 @@ class Mujoco(Interface):
             quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
         else:
             raise Exception(
-                "get_orientation for %s object type not supported" % object_type
+                f"get_orientation for {object_type} object type not supported"
             )
         return np.copy(quat)
 
@@ -299,7 +299,7 @@ class Mujoco(Interface):
         elif object_type == "site":
             xyz = self.sim.model.get_site_xpos(name)
         else:
-            raise Exception("get_xyz for %s object type not supported" % object_type)
+            raise Exception(f"get_xyz for {object_type} object type not supported")
 
         return np.copy(xyz)
 

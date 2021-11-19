@@ -71,7 +71,7 @@ elif [[ "$COMMAND" == "script" ]]; then
     git fetch origin master
     N_COMMITS=$(git rev-list --count HEAD ^origin/master)
     for ((i=0; i<N_COMMITS; i++)) do
-        git log -n 1 --skip $i --pretty=%B \
+        git log -n 1 --skip "$i" --pretty=%B \
             | grep -v '^Co-authored-by:' \
             | gitlint -vvv || STATUS=1
     done

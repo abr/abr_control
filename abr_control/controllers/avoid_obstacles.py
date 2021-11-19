@@ -60,11 +60,11 @@ class AvoidObstacles(Controller):
             # find the closest point of each link to the obstacle
             for ii in range(self.robot_config.N_JOINTS):
                 # get the start and end-points of the arm segment
-                p1 = self.robot_config.Tx("joint%i" % ii, q=q)
+                p1 = self.robot_config.Tx(f"joint{ii}", q=q)
                 if ii == self.robot_config.N_JOINTS - 1:
                     p2 = self.robot_config.Tx("EE", q=q)
                 else:
-                    p2 = self.robot_config.Tx("joint%i" % (ii + 1), q=q)
+                    p2 = self.robot_config.Tx(f"joint{ii+1}", q=q)
 
                 # calculate minimum distance from arm segment to obstacle
                 # the vector of our line
@@ -103,10 +103,10 @@ class AvoidObstacles(Controller):
                     # get offset of closest point from link's reference frame
                     # NOTE: the relevant link is i+1, because the configuration
                     # scripts are set up so link 0 is from origin to joint 0
-                    T_inv = self.robot_config.T_inv("link%i" % (ii + 1), q=q)
+                    T_inv = self.robot_config.T_inv(f"link{ii+1}", q=q)
                     m = np.dot(T_inv, np.hstack([closest, [1]]))[:-1]
                     # calculate the Jacobian for this point
-                    Jpsp = self.robot_config.J("link%i" % (ii + 1), x=m, q=q)[:3]
+                    Jpsp = self.robot_config.J(f"link{ii+1}", x=m, q=q)[:3]
 
                     # calculate the inertia matrix for the
                     # point subjected to the potential space

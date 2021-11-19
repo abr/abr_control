@@ -58,7 +58,7 @@ try:
         )
 
         name = "joint1"
-        vrep_angles = interface.get_orientation("UR5_%s" % name)
+        vrep_angles = interface.get_orientation(f"UR5_{name}")
 
         # calculate the control signal
         u = ctrlr.generate(

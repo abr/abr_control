@@ -16,7 +16,7 @@ class Interface:
         self.robot_config = robot_config
 
     def connect(self):
-        """ All initial setup. """
+        """All initial setup."""
 
         raise NotImplementedError
 

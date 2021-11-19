@@ -75,8 +75,8 @@ class PathPlanner:
             "--",
         )
         plt.legend(
-            ["%i" % ii for ii in range(n_states)]
-            + ["%i_target" % ii for ii in range(n_states)]
+            [f"{ii}" for ii in range(n_states)]
+            + [f"{ii}_target" for ii in range(n_states)]
         )
         plt.title("Trajectory positions")
 
@@ -86,7 +86,7 @@ class PathPlanner:
             * np.arange(self.n_timesteps)[:, None],
             self.velocity_path,
         )
-        plt.legend(["d%i" % ii for ii in range(n_states)])
+        plt.legend([f"d{ii}" for ii in range(n_states)])
         plt.title("Trajectory velocities")
         plt.tight_layout()
 

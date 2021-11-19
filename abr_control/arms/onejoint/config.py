@@ -130,6 +130,6 @@ class Config(BaseConfig):
                 self._T[name] = self._calc_T("link1") * self.Tl1ee
 
             else:
-                raise Exception("Invalid transformation name: %s" % name)
+                raise Exception(f"Invalid transformation name: {name}")
 
         return self._T[name]

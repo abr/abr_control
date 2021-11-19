@@ -95,12 +95,12 @@ class ArmSim:
         self._update_state()
 
     def get_feedback(self):
-        """ Return a dictionary of information needed by the controller. """
+        """Return a dictionary of information needed by the controller."""
 
         return {"q": self.q, "dq": self.dq}
 
     def get_xyz(self, name):
-        """ Not available in the MapleSim Interface"""
+        """Not available in the MapleSim Interface"""
 
         raise NotImplementedError(
             "Not an available method" + "in the MapleSim interface"
@@ -110,7 +110,7 @@ class ArmSim:
         """Compute x,y position of the hand"""
 
         xy = [
-            self.robot_config.Tx("joint%i" % ii, q=self.q)
+            self.robot_config.Tx("joint{ii}", q=self.q)
             for ii in range(self.robot_config.N_JOINTS)
         ]
         xy = np.vstack([xy, self.robot_config.Tx("EE", q=self.q)])

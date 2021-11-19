@@ -142,7 +142,7 @@ class InverseKinematics:
             plt.gca().set_prop_cycle(None)
             plt.plot(np.ones((n_timesteps, 3)) * target_position[:3], "--")
             plt.legend(
-                ["%i" % ii for ii in range(3)] + ["%i_target" % ii for ii in range(3)]
+                [f"{ii}" for ii in range(3)] + [f"{ii}_target" for ii in range(3)]
             )
             plt.title("Trajectory positions")
 
@@ -166,7 +166,7 @@ class InverseKinematics:
         return self.position_path, self.velocity_path
 
     def next(self):
-        """ Return the next target point along the generated position_path """
+        """Return the next target point along the generated position_path"""
 
         # get the next target state if we're not at the end of the position_path
         self.position = (

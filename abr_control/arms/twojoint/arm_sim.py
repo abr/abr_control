@@ -56,7 +56,7 @@ class ArmSim:
         print("Python model connection closed...")
 
     def get_feedback(self):
-        """ Return a dictionary of information needed by the controller. """
+        """Return a dictionary of information needed by the controller."""
 
         return {"q": self.q, "dq": self.dq}
 
@@ -90,7 +90,7 @@ class ArmSim:
         """Compute x,y position of the hand"""
 
         xy = [
-            self.robot_config.Tx("joint%i" % ii, q=self.q)
+            self.robot_config.Tx(f"joint{ii}", q=self.q)
             for ii in range(self.robot_config.N_JOINTS)
         ]
         xy = np.vstack([xy, self.robot_config.Tx("EE", q=self.q)])
@@ -137,7 +137,7 @@ class ArmSim:
         self._update_state()
 
     def _update_state(self):
-        """ Update local variables """
+        """Update local variables"""
 
         self._position()
         self.x = np.array([self.joints_x[-1], self.joints_y[-1]])

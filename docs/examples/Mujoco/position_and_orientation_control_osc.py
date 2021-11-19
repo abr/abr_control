@@ -24,7 +24,7 @@ robot_config = arm(arm_model)
 
 ctrlr_dof = [False, False, True, True, True, True]
 dof_labels = ["x", "y", "z", "a", "b", "g"]
-dof_print = "* DOF Controlled: %s *" % (np.array(dof_labels)[ctrlr_dof])
+dof_print = f"* DOF Controlled: {np.array(dof_labels)[ctrlr_dof]} *"
 stars = "*" * len(dof_print)
 print(stars)
 print(dof_print)

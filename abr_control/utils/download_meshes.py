@@ -55,7 +55,7 @@ def check_and_download(name, google_id, files=None, force_download=False):
                 name = name.split("/")
                 name = "/".join(s for s in name[:-1])
                 download_files(google_id, name + "/tmp")
-                print("Sim files saved to %s" % name)
+                print(f"Sim files saved to {name}")
                 answered = True
             elif reply[0] in no:
                 raise Exception("Please download the required files to run the demo")
@@ -80,10 +80,10 @@ def download_files(google_id, destination):
                     f.write(chunk)
 
     def _extract_zip_files(zip_file):
-        zip_file = "%s" % zip_file
-        zipball = zipfile.ZipFile(zip_file)
-        zipball.extractall(zip_file.split("tmp")[0])
-        zipball.close()
+        zip_file = f"{zip_file}"
+        with zipfile.ZipFile(zip_file) as zipball:
+            zipball.extractall(zip_file.split("tmp")[0])
+            zipball.close()
         os.remove(zip_file)
 
     URL = "https://docs.google.com/uc?export=download"

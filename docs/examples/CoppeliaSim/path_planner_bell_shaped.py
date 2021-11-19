@@ -126,10 +126,10 @@ finally:
         ax1 = fig.add_subplot(311)
         ax1.set_ylabel("3D position (m)")
         for ii, ee in enumerate(ee_track):
-            ax1.plot(ee, label="EE: %s" % label_pos[ii], c=c[ii])
+            ax1.plot(ee, label=f"EE: {label_pos[ii]}", c=c[ii])
             ax1.plot(
                 target_track[ii],
-                label="Target: %s" % label_pos[ii],
+                label=f"Target: {label_pos[ii]}",
                 c=c[ii],
                 linestyle="--",
             )
@@ -137,10 +137,10 @@ finally:
 
         ax2 = fig.add_subplot(312)
         for ii, ee in enumerate(ee_angles_track):
-            ax2.plot(ee, label="EE: %s" % label_or[ii], c=c[ii])
+            ax2.plot(ee, label=f"EE: {label_or[ii]}", c=c[ii])
             ax2.plot(
                 target_angles_track[ii],
-                label="Target: %s" % label_or[ii],
+                label=f"Target: {label_or[ii]}",
                 c=c[ii],
                 linestyle="--",
             )

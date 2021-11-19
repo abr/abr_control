@@ -46,10 +46,10 @@ class MujocoConfig:
         if folder is None:
             arm_dir = xml_file.split("_")[0]
             current_dir = os.path.dirname(__file__)
-            self.xml_file = os.path.join(current_dir, arm_dir, "%s.xml" % xml_file)
-            self.xml_dir = "%s/%s" % (current_dir, arm_dir)
+            self.xml_file = os.path.join(current_dir, arm_dir, f"{xml_file}.xml")
+            self.xml_dir = f"{current_dir}/{arm_dir}"
         else:
-            self.xml_dir = "%s" % (folder)
+            self.xml_dir = f"{folder}"
             self.xml_file = os.path.join(self.xml_dir, xml_file)
 
         self.N_GRIPPEPR_JOINTS = 0

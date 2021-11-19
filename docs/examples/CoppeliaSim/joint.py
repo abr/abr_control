@@ -30,7 +30,7 @@ target = feedback["q"] + np.ones(robot_config.N_JOINTS) * 0.3
 
 # For CoppeliaSim files that have a shadow arm to show the target configuration
 # get joint handles for shadow
-names = ["joint%i_shadow" % ii for ii in range(robot_config.N_JOINTS)]
+names = [f"joint{ii}_shadow" for ii in range(robot_config.N_JOINTS)]
 joint_handles = []
 for name in names:
     interface.get_xyz(name)  # this loads in the joint handle

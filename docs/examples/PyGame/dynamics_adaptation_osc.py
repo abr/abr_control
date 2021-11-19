@@ -68,7 +68,7 @@ interface.set_target(target_xyz)
 
 # get Jacobians to each link for calculating perturbation
 J_links = [
-    robot_config._calc_J("link%s" % ii, x=[0, 0, 0])
+    robot_config._calc_J(f"link{ii}", x=[0, 0, 0])
     for ii in range(robot_config.N_LINKS)
 ]
 

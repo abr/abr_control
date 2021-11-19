@@ -92,9 +92,9 @@ class OSC(Controller):
         try:
             if self.n_ctrlr_dof > robot_config.N_JOINTS:
                 print(
-                    "\nRobot has fewer DOF (%i) than the specified number of "
-                    % robot_config.N_JOINTS
-                    + "space dimensions to control (%i). " % self.n_ctrlr_dof
+                    f"\nRobot has fewer DOF ({robot_config.N_JOINTS}) "
+                    + "than the specified number of "
+                    + f"space dimensions to control ({self.n_ctrlr_dof}), "
                     + "Poor performance may result.\n"
                 )
         except AttributeError as e:
@@ -189,9 +189,8 @@ class OSC(Controller):
 
         else:
             raise Exception(
-                "Invalid algorithm number %i for calculating "
-                % self.orientation_algorithm
-                + "orientation error"
+                f"Invalid algorithm number {self.orientation_algorithm} for "
+                + "calculating orientation error"
             )
 
         return u_task_orientation

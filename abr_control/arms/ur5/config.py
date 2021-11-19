@@ -35,11 +35,11 @@ class Config(BaseConfig):
     def __init__(self, **kwargs):
 
         super().__init__(N_JOINTS=6, N_LINKS=7, ROBOT_NAME="ur5", **kwargs)
-        self.filename = "%s/ur5.ttt" % os.path.dirname(os.path.abspath(__file__))
+        self.filename = f"{os.path.dirname(os.path.abspath(__file__))}/ur5.ttt"
         self.google_id = "1EDM6H9hbFhCjcsfm0p2lQ1K55o5Yi1VV"
         self._T = {}  # dictionary for storing calculated transforms
 
-        self.JOINT_NAMES = ["UR5_joint%i" % ii for ii in range(self.N_JOINTS)]
+        self.JOINT_NAMES = [f"UR5_joint{ii}" for ii in range(self.N_JOINTS)]
 
         self.START_ANGLES = np.array(
             [0, np.pi / 4.0, -np.pi / 2.0, np.pi / 4.0, np.pi / 2.0, np.pi / 2.0],
@@ -334,6 +334,6 @@ class Config(BaseConfig):
                 self._T[name] = self._calc_T("joint5") * self.Tj5l6
 
             else:
-                raise Exception("Invalid transformation name: %s" % name)
+                raise Exception(f"Invalid transformation name: {name}")
 
         return self._T[name]

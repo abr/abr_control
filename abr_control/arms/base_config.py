@@ -101,7 +101,7 @@ class BaseConfig:
         self._M_JOINTS = []
 
         # specify / create the folder to save to and load from
-        self.config_folder = cache_dir + "/%s/saved_functions/" % ROBOT_NAME
+        self.config_folder = f"{cache_dir}/{ROBOT_NAME}/saved_functions/"
         # create a unique hash for the config file
         hasher = hashlib.md5()
         with open(sys.modules[self.__module__].__file__, "rb") as afile:
@@ -113,8 +113,8 @@ class BaseConfig:
         abr_control.utils.os_utils.makedirs(self.config_folder)
 
         # set up our joint angle symbols
-        self.q = [sp.Symbol("q%i" % ii) for ii in range(self.N_JOINTS)]
-        self.dq = [sp.Symbol("dq%i" % ii) for ii in range(self.N_JOINTS)]
+        self.q = [sp.Symbol(f"q{ii}") for ii in range(self.N_JOINTS)]
+        self.dq = [sp.Symbol(f"dq{ii}") for ii in range(self.N_JOINTS)]
         # set up an (x,y,z) offset
         self.x = [sp.Symbol("x"), sp.Symbol("y"), sp.Symbol("z")]
 
@@ -186,22 +186,26 @@ class BaseConfig:
                         # imports both 'filename.saved_file' and 'saved_file'.
                         # Having 'saved_file' in modules cause problems if
                         # the cython autofunc wrapper is used after this.
-                        if saved_file in sys.modules.keys():
+
+                        if saved_file in sys.modules.keys():  # pylint: disable=C0201
                             del sys.modules[saved_file]
 
             if function is None:
                 # if function not loaded, check for saved expression
-                if os.path.isfile(
-                    "%s/%s/%s" % (self.config_folder, filename, filename)
-                ):
-                    print("Loading expression from %s ..." % filename)
-                    expression = cloudpickle.load(
-                        open(
-                            "%s/%s/%s" % (self.config_folder, filename, filename), "rb"
-                        )
-                    )
+                filepath = os.path.join(self.config_folder, filename, filename)
+                if os.path.isfile(filepath):
+                    print(f"Loading expression from {filename} ...")
+                    with open(filepath, "rb") as fh:
+                        expression = cloudpickle.load(fh)
 
         return expression, function
+
+    def _save_to_file(self, filename, value):
+        dirpath = os.path.join(self.config_folder, filename)
+        filepath = os.path.join(dirpath, filename)
+        abr_control.utils.os_utils.makedirs(dirpath)
+        with open(filepath, "wb") as fh:
+            cloudpickle.dump(value, fh)
 
     def g(self, q):
         """Loads or calculates the force of gravity in joint space
@@ -352,14 +356,7 @@ class BaseConfig:
 
             if T is None and T_func is None:
                 T = self._calc_T(name)
-
-                # save to file
-                abr_control.utils.os_utils.makedirs(
-                    "%s/%s" % (self.config_folder, filename)
-                )
-                cloudpickle.dump(
-                    T, open("%s/%s/%s" % (self.config_folder, filename, filename), "wb")
-                )
+                self._save_to_file(filename, T)
 
             if T_func is None:
                 T_func = self._generate_and_save_function(
@@ -439,11 +436,11 @@ class BaseConfig:
 
             # get the Jacobians for each link's COM
             J_links = [
-                self._calc_J("link%s" % ii, x=self.x_zeros, lambdify=False)
+                self._calc_J(f"link{ii}", x=self.x_zeros, lambdify=False)
                 for ii in range(self.N_LINKS)
             ]
             J_joints = [
-                self._calc_J("joint%s" % ii, x=self.x_zeros, lambdify=False)
+                self._calc_J(f"joint{ii}", x=self.x_zeros, lambdify=False)
                 for ii in range(self.N_JOINTS)
             ]
 
@@ -458,9 +455,7 @@ class BaseConfig:
                 g += J_joints[ii].T * self._M_JOINTS[ii] * self.gravity
             g = sp.Matrix(g)
 
-            # save to file
-            abr_control.utils.os_utils.makedirs("%s/g" % self.config_folder)
-            cloudpickle.dump(g, open("%s/g/g" % self.config_folder, "wb"))
+            self._save_to_file(filename="g", value=g)
 
         if lambdify is False:
             # if should return expression not function
@@ -500,7 +495,7 @@ class BaseConfig:
 
         if dJ is None and dJ_func is None:
             # if no saved file was loaded, generate function
-            print("Generating derivative of Jacobian ", "function for %s" % filename)
+            print("Generating derivative of Jacobian ", f"function for {filename}")
 
             J = self._calc_J(name, x=x, lambdify=False)
             dJ = sp.Matrix(np.zeros(J.shape, dtype="float32"))
@@ -512,13 +507,7 @@ class BaseConfig:
                         dJ[ii, jj] += J[ii, jj].diff(self.q[kk]) * self.dq[kk]
             dJ = sp.Matrix(dJ)
 
-            # save expression to file
-            abr_control.utils.os_utils.makedirs(
-                "%s/%s" % (self.config_folder, filename)
-            )
-            cloudpickle.dump(
-                dJ, open("%s/%s/%s" % (self.config_folder, filename, filename), "wb")
-            )
+            self._save_to_file(filename, dJ)
 
         if lambdify is False:
             # if should return expression not function
@@ -556,7 +545,7 @@ class BaseConfig:
 
         if J is None and J_func is None:
             # if no saved file was loaded, generate function
-            print("Generating Jacobian function for %s" % filename)
+            print(f"Generating Jacobian function for {filename}")
 
             Tx = self._calc_Tx(name, x=x, lambdify=False)
             # NOTE: calculating the Jacobian this way doesn't incur any
@@ -590,13 +579,7 @@ class BaseConfig:
                 J[ii] = J[ii] + [0, 0, 0]
             J = sp.Matrix(J).T  # correct the orientation of J
 
-            # save to file
-            abr_control.utils.os_utils.makedirs(
-                "%s/%s" % (self.config_folder, filename)
-            )
-            cloudpickle.dump(
-                J, open("%s/%s/%s" % (self.config_folder, filename, filename), "wb")
-            )
+            self._save_to_file(filename, J)
 
         if lambdify is False:
             # if should return expression not function
@@ -630,11 +613,11 @@ class BaseConfig:
 
             # get the Jacobians for each link's COM
             J_links = [
-                self._calc_J("link%s" % ii, x=self.x_zeros, lambdify=False)
+                self._calc_J(f"link{ii}", x=self.x_zeros, lambdify=False)
                 for ii in range(self.N_LINKS)
             ]
             J_joints = [
-                self._calc_J("joint%s" % ii, x=self.x_zeros, lambdify=False)
+                self._calc_J(f"joint{ii}", x=self.x_zeros, lambdify=False)
                 for ii in range(self.N_JOINTS)
             ]
 
@@ -649,9 +632,7 @@ class BaseConfig:
                 M += J_joints[ii].T * self._M_JOINTS[ii] * J_joints[ii]
             M = sp.Matrix(M)
 
-            # save to file
-            abr_control.utils.os_utils.makedirs("%s/M" % (self.config_folder))
-            cloudpickle.dump(M, open("%s/M/M" % self.config_folder, "wb"))
+            self._save_to_file(filename="M", value=M)
 
         if lambdify is False:
             # if should return expression not function
@@ -686,14 +667,7 @@ class BaseConfig:
             print("Generating rotation matrix function.")
             R = self._calc_T(name=name)[:3, :3]
 
-            # save to file
-            abr_control.utils.os_utils.makedirs(
-                "%s/%s" % (self.config_folder, filename)
-            )
-            cloudpickle.dump(
-                sp.Matrix(R),
-                open("%s/%s/%s" % (self.config_folder, filename, filename), "wb"),
-            )
+            self._save_to_file(filename, sp.Matrix(R))
 
         if R_func is None:
             R_func = self._generate_and_save_function(
@@ -740,9 +714,7 @@ class BaseConfig:
                     C[kk, jj] = C[kk, jj]
             C = sp.Matrix(C)
 
-            # save to file
-            abr_control.utils.os_utils.makedirs("%s/C" % self.config_folder)
-            cloudpickle.dump(C, open("%s/C/C" % self.config_folder, "wb"))
+            self._save_to_file(filename="C", value=C)
 
         if lambdify is False:
             # if should return expression not function
@@ -791,7 +763,7 @@ class BaseConfig:
         Tx, Tx_func = self._load_from_file(filename, lambdify)
 
         if Tx is None and Tx_func is None:
-            print("Generating transform function for %s" % filename)
+            print(f"Generating transform function for {filename}")
             T = self._calc_T(name=name)
             # transform x into world coordinates
             if np.allclose(x, 0):
@@ -804,14 +776,7 @@ class BaseConfig:
                 Tx = T * sp.Matrix(self.x + [1])
             Tx = sp.Matrix(Tx)
 
-            # save to file
-            abr_control.utils.os_utils.makedirs(
-                "%s/%s" % (self.config_folder, filename)
-            )
-            cloudpickle.dump(
-                sp.Matrix(Tx),
-                open("%s/%s/%s" % (self.config_folder, filename, filename), "wb"),
-            )
+            self._save_to_file(filename, sp.Matrix(Tx))
 
         if lambdify is False:
             # if should return expression not function
@@ -850,7 +815,7 @@ class BaseConfig:
         T_inv, T_inv_func = self._load_from_file(filename, lambdify)
 
         if T_inv is None and T_inv_func is None:
-            print("Generating inverse transform function for %s" % filename)
+            print(f"Generating inverse transform function for {filename}")
             T = self._calc_T(name=name)
             rotation_inv = T[:3, :3].T
             translation_inv = -rotation_inv * T[:3, 3]
@@ -859,13 +824,7 @@ class BaseConfig:
             )
             T_inv = sp.Matrix(T_inv)
 
-            # save to file
-            abr_control.utils.os_utils.makedirs(
-                "%s/%s" % (self.config_folder, filename)
-            )
-            cloudpickle.dump(
-                T_inv, open("%s/%s/%s" % (self.config_folder, filename, filename), "wb")
-            )
+            self._save_to_file(filename, T_inv)
 
         if lambdify is False:
             # if should return expression not function

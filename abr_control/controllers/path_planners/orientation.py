@@ -89,8 +89,8 @@ class Orientation(PathPlanner):
             self.n_timesteps = int(min_angle_diff / dr)
 
             print(
-                "%i steps to cover %f rad in %f sized steps"
-                % (self.n_timesteps, angle_diff, dr)
+                f"{self.n_timesteps} steps to cover "
+                + f"{angle_diff} rad in {dr} sized steps"
             )
             self.timesteps = np.linspace(0, 1, self.n_timesteps)
 

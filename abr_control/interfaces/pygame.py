@@ -82,10 +82,8 @@ class PyGame:
 
         # create transparent arm lines
         self.lines_base = []
-        for ii in range(len(self.L)):
-            self.lines_base.append(
-                pygame.Surface((self.L[ii], line_width), pygame.SRCALPHA, 32)
-            )
+        for ii, L in enumerate(self.L):
+            self.lines_base.append(pygame.Surface((L, line_width), pygame.SRCALPHA, 32))
             # color in transparent arm lines
             self.lines_base[ii].fill(line_color)
 
@@ -113,7 +111,7 @@ class PyGame:
         print("PyGame connection closed...")
 
     def get_feedback(self):
-        """ Return a dictionary of information needed by the controller. """
+        """Return a dictionary of information needed by the controller."""
 
         return self.arm_sim.get_feedback()
 
@@ -192,7 +190,7 @@ class PyGame:
         return None
 
     def get_xyz(self, name):
-        """ Not available in the pygame interface"""
+        """Not available in the pygame interface"""
 
         raise NotImplementedError("Not an available method in the PyGame interface")
 
@@ -238,7 +236,7 @@ class PyGame:
 
         self.lines = []
         self.rects = []
-        for ii in range(len(self.L)):
+        for ii, L in enumerate(self.L):
             self.lines.append(
                 pygame.transform.rotozoom(
                     self.lines_base[ii], np.degrees(np.sum(q[: ii + 1])), 1
@@ -249,8 +247,8 @@ class PyGame:
             self.rects[ii].center += np.asarray(points[ii])
             self.rects[ii].center += np.array(
                 [
-                    np.cos(np.sum(q[: ii + 1])) * self.L[ii] / 2.0,
-                    -np.sin(np.sum(q[: ii + 1])) * self.L[ii] / 2.0,
+                    np.cos(np.sum(q[: ii + 1])) * L / 2.0,
+                    -np.sin(np.sum(q[: ii + 1])) * L / 2.0,
                 ]
             )
             self.rects[ii].center += np.array(
@@ -258,7 +256,7 @@ class PyGame:
             )
 
         # draw arm lines
-        for ii in range(len(self.L)):
+        for ii, L in enumerate(self.L):
             self.display.blit(self.lines[ii], self.rects[ii])
             # draw circles at joint
             pygame.draw.circle(
@@ -298,7 +296,7 @@ class PyGame:
                 pygame.quit()
 
         # render text
-        label = self.myfont.render("Time: %0.3fs" % self.arm_sim.t, 1, (0, 0, 0))
+        label = self.myfont.render(f"Time: {self.arm_sim.t}:.3f", 1, (0, 0, 0))
         self.display.blit(label, (10, 10))
 
         pygame.display.update()

@@ -16,7 +16,7 @@ def makedirs(folder):
     if os.path.isdir(folder):
         pass
     elif os.path.isfile(folder):
-        raise OSError("%s exists as a regular file." % folder)
+        raise OSError(f"{folder} exists as a regular file.")
     else:
         parent, directory = os.path.split(folder)
         if parent and not os.path.isdir(parent):
