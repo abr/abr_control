@@ -9,7 +9,6 @@ from abr_control.controllers import OSC, Damping
 from abr_control.interfaces import CoppeliaSim
 from abr_control.utils import transformations
 
-
 # initialize our robot config
 robot_config = arm.Config()
 

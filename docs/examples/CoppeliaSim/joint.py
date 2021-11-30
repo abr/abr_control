@@ -4,6 +4,7 @@ configuration in joint space, offset from its starting position.
 The simulation simulates 1500 time steps and then plots the results.
 """
 import traceback
+
 import numpy as np
 
 # from abr_control.arms import ur5 as arm
@@ -12,7 +13,6 @@ from abr_control.arms import jaco2 as arm
 # from abr_control.arms import onejoint as arm
 from abr_control.controllers import Joint
 from abr_control.interfaces import CoppeliaSim
-
 
 # initialize our robot config
 robot_config = arm.Config()

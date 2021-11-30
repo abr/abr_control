@@ -4,6 +4,7 @@ The simulation ends after 1500 time steps, and the
 trajectory of the end-effector is plotted in 3D.
 """
 import traceback
+
 import numpy as np
 
 # from abr_control.arms import ur5 as arm

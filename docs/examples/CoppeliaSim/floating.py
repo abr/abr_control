@@ -6,12 +6,12 @@ is recorded and plotted when the script is exited (with ctrl-c).
 In this example, the floating controller is applied in the joint space
 """
 import traceback
+
 import numpy as np
 
 from abr_control.arms import jaco2 as arm
 from abr_control.controllers import Floating
 from abr_control.interfaces import CoppeliaSim
-
 
 # initialize our robot config
 robot_config = arm.Config()

@@ -16,11 +16,10 @@ import timeit
 import numpy as np
 
 from abr_control.arms import threejoint as arm
+from abr_control.controllers import OSC, Damping, path_planners
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
-from abr_control.controllers import OSC, Damping, path_planners
-
 
 # if set to True, the simulation will plan the path to
 # last for 1 second of real-time

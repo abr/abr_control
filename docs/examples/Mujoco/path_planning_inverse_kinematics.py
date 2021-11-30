@@ -4,12 +4,12 @@ for a Mujoco simulation. The path planning system will generate
 a trajectory in joint space that moves the end effector in a straight line
 to the target, which changes every n time steps.
 """
-import numpy as np
 import glfw
+import numpy as np
 
-from abr_control.interfaces.mujoco import Mujoco
 from abr_control.arms.mujoco_config import MujocoConfig as arm
 from abr_control.controllers import path_planners
+from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
 
 # initialize our robot config for the jaco2

@@ -9,14 +9,15 @@ passed through sys.argv
 
 import sys
 import timeit
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # pylint: disable=W0611
-import glfw
 
+import glfw
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D  # pylint: disable=W0611
+
+from abr_control.arms.mujoco_config import MujocoConfig
 from abr_control.controllers import OSC, path_planners
 from abr_control.interfaces.mujoco import Mujoco
-from abr_control.arms.mujoco_config import MujocoConfig
 
 if len(sys.argv) > 1:
     use_wall_clock = True

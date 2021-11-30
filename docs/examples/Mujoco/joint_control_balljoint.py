@@ -4,17 +4,15 @@ The simulation ends after 1500 time steps, and the
 trajectory of the end-effector is plotted in 3D.
 """
 import traceback
-import numpy as np
+
 import glfw
+import numpy as np
 
-import mujoco_py as mjp
-
-from abr_control.controllers import Joint
 from abr_control.arms.mujoco_config import MujocoConfig as arm
+from abr_control.controllers import Joint
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
-from abr_control.utils.transformations import quaternion_multiply, quaternion_conjugate
-
+from abr_control.utils.transformations import quaternion_conjugate, quaternion_multiply
 
 # initialize our robot config for the jaco2
 robot_config = arm("mujoco_balljoint.xml", folder=".", use_sim_state=False)
@@ -45,13 +43,14 @@ threshold = 0.002  # threshold distance for being within target before moving on
 
 # get the end-effector's initial position
 np.random.seed(0)
-target_quaternions = [transformations.unit_vector(
-    transformations.random_quaternion()) for ii in range(4)]
+target_quaternions = [
+    transformations.unit_vector(transformations.random_quaternion()) for ii in range(4)
+]
 
 target_index = 0
 target = target_quaternions[target_index]
 print(target)
-target_xyz = robot_config.Tx('EE', q=target)
+target_xyz = robot_config.Tx("EE", q=target)
 interface.set_mocap_xyz(name="target", xyz=target_xyz)
 
 try:
@@ -70,7 +69,7 @@ try:
 
         # calculate the control signal
         u = ctrlr.generate(
-            q=feedback['q'],
+            q=feedback["q"],
             dq=feedback["dq"],
             target=target,
         )
@@ -79,13 +78,13 @@ try:
         interface.send_forces(u)
 
         # track data
-        q_track.append(np.copy(feedback['q']))
+        q_track.append(np.copy(feedback["q"]))
         target_track.append(np.copy(target))
 
         # calculate the distance between quaternions
         error = quaternion_multiply(
             target,
-            quaternion_conjugate(feedback['q']),
+            quaternion_conjugate(feedback["q"]),
         )
         error = 2 * np.arctan2(np.linalg.norm(error[1:]) * -np.sign(error[0]), error[0])
         # quaternion distance for same angles can be 0 or 2*pi, so use a sine
@@ -103,7 +102,7 @@ try:
         if count >= 1000:
             target_index += 1
             target = target_quaternions[target_index % len(target_quaternions)]
-            target_xyz = robot_config.Tx('EE', q=target)
+            target_xyz = robot_config.Tx("EE", q=target)
             interface.set_mocap_xyz(name="target", xyz=target_xyz)
             count = 0
 

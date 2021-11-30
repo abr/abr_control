@@ -6,11 +6,10 @@ The target location can be moved by clicking on the background.
 import numpy as np
 
 from abr_control.arms import threejoint as arm
+from abr_control.controllers import OSC, AvoidJointLimits, Damping
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
-from abr_control.controllers import OSC, AvoidJointLimits, Damping
-
 
 print("\nClick to move the target.\n")
 

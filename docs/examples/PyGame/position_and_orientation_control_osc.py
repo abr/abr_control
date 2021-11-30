@@ -5,18 +5,18 @@ the z axis. The (x, y) target can be changed by clicking on the background,
 and the target orientation can be changed with the left/right arrow keys.
 """
 from os import environ
+
 import numpy as np
 
 environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 
 from abr_control.arms import threejoint as arm
+from abr_control.controllers import OSC, Damping
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
 from abr_control.utils import transformations
-from abr_control.controllers import OSC, Damping
-
 
 # initialize our robot config
 robot_config = arm.Config()

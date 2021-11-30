@@ -11,7 +11,6 @@ from abr_control.arms import ur5 as arm
 from abr_control.controllers import OSC, AvoidObstacles, Damping
 from abr_control.interfaces import CoppeliaSim
 
-
 # initialize our robot config
 robot_config = arm.Config()
 

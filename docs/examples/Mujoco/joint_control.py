@@ -5,13 +5,13 @@ The simulation simulates 2500 time steps and then plots the results.
 """
 import sys
 import traceback
-import numpy as np
+
 import glfw
+import numpy as np
 
 from abr_control.arms.mujoco_config import MujocoConfig as arm
-from abr_control.interfaces.mujoco import Mujoco
 from abr_control.controllers import Joint
-
+from abr_control.interfaces.mujoco import Mujoco
 
 if len(sys.argv) > 1:
     arm_model = sys.argv[1]

@@ -4,16 +4,14 @@ using the PyGame display. The path planner system will generate a
 trajectory for the controller to follow, moving the end-effector in a
 straight line to the target, which changes every n time steps.
 """
+import matplotlib.pyplot as plt
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 from abr_control.arms import threejoint as arm
+from abr_control.controllers import OSC, Damping, path_planners
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
-from abr_control.controllers import OSC, Damping, path_planners
-
 
 # initialize our robot config
 robot_config = arm.Config()

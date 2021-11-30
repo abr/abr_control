@@ -1,7 +1,8 @@
 import numpy as np
 
+from abr_control.utils.transformations import quaternion_conjugate, quaternion_multiply
+
 from .controller import Controller
-from abr_control.utils.transformations import quaternion_multiply, quaternion_conjugate
 
 
 class Joint(Controller):
@@ -22,8 +23,9 @@ class Joint(Controller):
         a boolean list of which joints are quaternions
     """
 
-    def __init__(self, robot_config, kp=1, kv=None, quaternions=None,
-                 account_for_gravity=True):
+    def __init__(
+        self, robot_config, kp=1, kv=None, quaternions=None, account_for_gravity=True
+    ):
         super().__init__(robot_config)
 
         self.kp = kp
@@ -69,9 +71,9 @@ class Joint(Controller):
             if quat_bool:
 
                 # if the joint position is a quaternion, calculate error
-                joint_q = q[q_index:q_index+4]
+                joint_q = q[q_index : q_index + 4]
                 error = quaternion_multiply(
-                    target[q_index:q_index+4],
+                    target[q_index : q_index + 4],
                     quaternion_conjugate(joint_q),
                 )
 
@@ -82,18 +84,17 @@ class Joint(Controller):
                     quaternion_multiply(
                         error,
                         joint_q,
-                    )
+                    ),
                 )
 
                 # convert from quaternion to 3D angular forces to apply
                 # https://studywolf.wordpress.com/2018/12/03/force-control-of-task-space-orientation/
-                q_tilde[q_tilde_index:q_tilde_index+3] = u[1:] * np.sign(u[0])
+                q_tilde[q_tilde_index : q_tilde_index + 3] = u[1:] * np.sign(u[0])
 
                 q_index += 4
                 q_tilde_index += 3
             else:
-                q_tilde[q_tilde_index] = self.q_tilde_angle(
-                    q[q_index], target[q_index])
+                q_tilde[q_tilde_index] = self.q_tilde_angle(q[q_index], target[q_index])
 
                 q_index += 1
                 q_tilde_index += 1

@@ -12,12 +12,12 @@ There is largely no benefit to using wall clock time in simulation, but for
 implementation on real robots it can be a very helpful function.
 """
 import timeit
+
 import numpy as np
 
 from abr_control.arms import threejoint as arm
-from abr_control.interfaces.pygame import PyGame
 from abr_control.controllers import OSC, Damping, path_planners
-
+from abr_control.interfaces.pygame import PyGame
 
 # if set to True, the simulation will plan the path to
 # last for 1 second of real-time

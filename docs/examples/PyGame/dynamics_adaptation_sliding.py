@@ -6,17 +6,17 @@ can be by clicking inside the display.
 To turn adaptation on or off, press the spacebar.
 """
 from os import environ
+
 import numpy as np
 
 environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 
 from abr_control.arms import threejoint as arm
+from abr_control.controllers import Sliding, signals
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
-from abr_control.controllers import Sliding, signals
-
 
 # initialize our robot config
 robot_config = arm.Config()
@@ -59,8 +59,7 @@ interface.set_target(target_xyz)
 
 # get Jacobians to each link for calculating perturbation
 J_links = [
-    robot_config._calc_J(f"link{ii}", x=[0, 0, 0])
-    for ii in range(robot_config.N_LINKS)
+    robot_config._calc_J(f"link{ii}", x=[0, 0, 0]) for ii in range(robot_config.N_LINKS)
 ]
 
 

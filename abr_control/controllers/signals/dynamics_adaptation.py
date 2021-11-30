@@ -69,7 +69,9 @@ class DynamicsAdaptation:
         **kwargs
     ):
         # set up means and variances to be same dimensionality as original input signal
-        self.variances = np.ones(n_input) if variances is None else np.asarray(variances)
+        self.variances = (
+            np.ones(n_input) if variances is None else np.asarray(variances)
+        )
         self.means = np.zeros(n_input) if means is None else np.asarray(means)
 
         self.n_neurons = n_neurons

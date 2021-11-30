@@ -219,11 +219,11 @@ class Mujoco(Interface):
 
         # Update position of hand object
         feedback = self.get_feedback()
-        hand_xyz = self.robot_config.Tx(name="EE", q=feedback['q'])
+        hand_xyz = self.robot_config.Tx(name="EE", q=feedback["q"])
         self.set_mocap_xyz("hand", hand_xyz)
 
         # Update orientation of hand object
-        hand_quat = self.robot_config.quaternion(name="EE", q=feedback['q'])
+        hand_quat = self.robot_config.quaternion(name="EE", q=feedback["q"])
         self.set_mocap_orientation("hand", hand_quat)
 
         if self.visualize and update_display:

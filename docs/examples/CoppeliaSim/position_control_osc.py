@@ -4,6 +4,7 @@ The simulation ends after 1500 time steps, and the
 trajectory of the end-effector is plotted in 3D.
 """
 import traceback
+
 import numpy as np
 
 from abr_control.arms import ur5 as arm
@@ -12,7 +13,6 @@ from abr_control.arms import ur5 as arm
 # from abr_control.arms import onejoint as arm
 from abr_control.controllers import OSC, Damping
 from abr_control.interfaces import CoppeliaSim
-
 
 # initialize our robot config
 robot_config = arm.Config()

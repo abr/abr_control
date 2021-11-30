@@ -3,14 +3,14 @@ Running operational space control using Mujoco. The controller will
 move the end-effector to the target object's orientation.
 """
 import sys
-import numpy as np
-import glfw
 
-from abr_control.controllers import OSC, Damping
+import glfw
+import numpy as np
+
 from abr_control.arms.mujoco_config import MujocoConfig as arm
+from abr_control.controllers import OSC, Damping
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
-
 
 if len(sys.argv) > 1:
     arm_model = sys.argv[1]

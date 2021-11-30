@@ -8,14 +8,14 @@ and applies a second order path planner to both position and orientation targets
 After termination the script will plot results
 """
 import sys
-import numpy as np
-import glfw
 
-from abr_control.controllers import OSC, Damping, path_planners
+import glfw
+import numpy as np
+
 from abr_control.arms.mujoco_config import MujocoConfig as arm
+from abr_control.controllers import OSC, Damping, path_planners
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
-
 
 # initialize our robot config
 if len(sys.argv) > 1:

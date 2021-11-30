@@ -4,12 +4,12 @@ The simulation ends after 1.5 simulated seconds, and the
 trajectory of the end-effector is plotted in 3D.
 """
 import traceback
+
 import numpy as np
 
 from abr_control.arms import jaco2 as arm
 from abr_control.controllers import OSC, Damping, signals
 from abr_control.interfaces import CoppeliaSim
-
 
 # initialize our robot config for the jaco2
 robot_config = arm.Config()
@@ -48,8 +48,7 @@ target_track = []
 
 # get Jacobians to each link for calculating perturbation
 J_links = [
-    robot_config._calc_J(f"link{ii}", x=[0, 0, 0])
-    for ii in range(robot_config.N_LINKS)
+    robot_config._calc_J(f"link{ii}", x=[0, 0, 0]) for ii in range(robot_config.N_LINKS)
 ]
 
 

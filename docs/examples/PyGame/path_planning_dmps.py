@@ -14,11 +14,10 @@ except ImportError:
     print("\npydmps library required, see " + "https://github.com/studywolf/pydmps\n")
 
 from abr_control.arms import threejoint as arm
+from abr_control.controllers import OSC, Damping
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
-from abr_control.controllers import OSC, Damping
-
 
 # create a dmp that traces a circle
 x = np.linspace(0, np.pi * 2, 100)

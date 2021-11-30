@@ -4,11 +4,10 @@ move the end-effector to the target, which can be moved by
 clicking on the background.
 """
 from abr_control.arms import threejoint as arm
+from abr_control.controllers import Sliding
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
-from abr_control.controllers import Sliding
-
 
 # initialize our robot config
 robot_config = arm.Config()

@@ -3,7 +3,7 @@ import timeit
 import matplotlib.pyplot as plt
 import numpy as np
 
-from abr_control.arms import twojoint, ur5, jaco2
+from abr_control.arms import jaco2, twojoint, ur5
 from abr_control.controllers import OSC
 
 

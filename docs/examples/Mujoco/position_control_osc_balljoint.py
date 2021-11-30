@@ -4,14 +4,14 @@ The simulation ends after 1500 time steps, and the
 trajectory of the end-effector is plotted in 3D.
 """
 import traceback
-import numpy as np
-import glfw
 
-from abr_control.controllers import OSC
+import glfw
+import numpy as np
+
 from abr_control.arms.mujoco_config import MujocoConfig as arm
+from abr_control.controllers import OSC
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
-
 
 # initialize our robot config for the jaco2
 robot_config = arm("mujoco_balljoint.xml", folder=".")

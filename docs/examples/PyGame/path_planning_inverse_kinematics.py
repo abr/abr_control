@@ -7,12 +7,11 @@ to the target, which changes every n time steps.
 import numpy as np
 
 from abr_control.arms import threejoint as arm
+from abr_control.controllers import Joint, path_planners
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
-from abr_control.controllers import Joint, path_planners
 from abr_control.utils import transformations
-
 
 # change this flag to False to use position control
 use_force_control = True

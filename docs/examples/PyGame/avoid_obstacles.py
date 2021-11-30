@@ -6,9 +6,8 @@ by clicking on the background.
 import numpy as np
 
 from abr_control.arms import threejoint as arm
-from abr_control.interfaces.pygame import PyGame
 from abr_control.controllers import OSC, AvoidObstacles, Damping
-
+from abr_control.interfaces.pygame import PyGame
 
 # initialize our robot config
 robot_config = arm.Config()

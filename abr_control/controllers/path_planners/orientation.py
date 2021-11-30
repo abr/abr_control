@@ -21,7 +21,9 @@ class Orientation(PathPlanner):
         1 (target orientation)
     """
 
-    def __init__(self, n_timesteps=None, timesteps=None, axes="rxyz", output_format="euler"):
+    def __init__(
+        self, n_timesteps=None, timesteps=None, axes="rxyz", output_format="euler"
+    ):
         # assert n_timesteps is None or timesteps is None
         self.axes = axes
         self.output_format = output_format
@@ -97,7 +99,7 @@ class Orientation(PathPlanner):
 
         # stores the target Euler angles of the trajectory
         self.orientation_path = []
-        for ii in range(self.n_timesteps):
+        for _ in range(self.n_timesteps):
             quat = self._step(
                 orientation=orientation, target_orientation=target_orientation
             )
