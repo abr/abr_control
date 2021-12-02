@@ -110,7 +110,7 @@ class ArmSim:
         """Compute x,y position of the hand"""
 
         xy = [
-            self.robot_config.Tx("joint{ii}", q=self.q)
+            self.robot_config.Tx(f"joint{ii}", q=self.q)
             for ii in range(self.robot_config.N_JOINTS)
         ]
         xy = np.vstack([xy, self.robot_config.Tx("EE", q=self.q)])
