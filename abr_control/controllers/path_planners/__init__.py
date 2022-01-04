@@ -4,3 +4,5 @@ from .linear import Linear
 from .orientation import Orientation
 from .second_order_dmp import SecondOrderDMP
 from .second_order_filter import SecondOrderFilter
+from .gauss_path_planner import GaussianPathPlanner
+from .path_planner import PathPlanner
