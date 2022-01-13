@@ -2,8 +2,14 @@
 Functions that return a 1D array of velocities from a desired start to target velocity
 """
 import numpy as np
-class Gaussian():
-    def __init__(self, dt, a, n_sigma=3):
+class VelProf():
+    def __init__(self, dt):
+        self.dt = dt
+    def generate(self, start_velocity, target_velocity):
+        raise NotImplementedError
+
+class Gaussian(VelProf):
+    def __init__(self, dt, acceleration, n_sigma=3):
         """
         Parameters
         ----------
@@ -17,20 +23,21 @@ class Gaussian():
             A slower ramp up can be achieved with a larger sigma, and a faster ramp up by
             decreasing sigma.
         """
-        self.dt = dt
-        self.a = a
+        self.acceleration = acceleration
         self.n_sigma = n_sigma
 
-    def generate(self, start, target):
+        super().__init__(dt=dt)
+
+    def generate(self, start_velocity, target_velocity):
         """
         generates the left half of the gaussian curve with 3std, with sigma determined
         by the timestep and max_a
         """
         # calculate the time needed to reach our maximum velocity from vel
-        ramp_up_time = (target-start)/self.a
+        ramp_up_time = (target_velocity-start_velocity)/self.acceleration
 
         # Amplitude of Gaussian is max speed, get our sigma from here
-        s = 1/ ((target-start) * np.sqrt(np.pi*2))
+        s = 1/ ((target_velocity-start_velocity) * np.sqrt(np.pi*2))
 
         # Go 3 standard deviations so our tail ends get close to zero
         u = self.n_sigma*s
@@ -46,14 +53,14 @@ class Gaussian():
         )
 
         # Since the gaussian goes off to +/- infinity, we need to shift our
-        # curve down so that it starts at zero
+        # curve down so that it start_velocitys at zero
         vel_profile -= vel_profile[0]
 
         # scale back up so we reach our target v at the end of the curve
-        vel_profile *= ((target-start) / vel_profile[-1])
+        vel_profile *= ((target_velocity-start_velocity) / vel_profile[-1])
 
         # add to our baseline starting velocity
-        vel_profile += start
+        vel_profile += start_velocity
 
         return vel_profile
 

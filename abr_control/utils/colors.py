@@ -1,0 +1,5 @@
+blue = '\033[94m'
+green = '\033[92m'
+red = '\033[91m'
+yellow = '\u001b[33m'
+endc = '\033[0m'
