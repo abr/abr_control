@@ -18,9 +18,11 @@ class PosProf():
         assert sum(abs(self.step(0))) <= tol, (
             f"\n{c.red}Position profile must equal [0, 0, 0] at t=0\n" +
             f"step(0) function returning {self.step(0)}{endc}")
-        assert sum(abs(self.step(1))) - 3 <= tol, (
-            f"\n{c.red}Position profile must equal [1, 1, 1] at t=1\n" +
-            f"step(1) function returning {self.step(1)}{endc}")
+        step1 = self.step(1)
+        for step in step1:
+            assert abs(step-1) <= tol, (
+                f"\n{c.red}Position profile must equal [1, 1, 1] at t=1\n" +
+                f"step(1) function returning {self.step(1)}{endc}")
 
     def step(self, t):
         raise NotImplementedError
@@ -96,3 +98,25 @@ class FromPoints(PosProf):
 
         xyz = np.array([self.X(t), self.Y(t), self.Z(t)])
         return xyz
+
+class Ellipse(PosProf):
+    def __init__(self, b, n_sample_points=1000, **kwargs):
+        self.b = b
+        # Rotate about z by 45
+        G = -np.pi/4
+        self.R = np.array([
+            [np.cos(G), -np.sin(G)],
+            [np.sin(G), np.cos(G)]]
+        )
+        # magnitude to stretch our rotated curve to [1, 1]
+        self.mag = 2*np.sin(-G)
+
+        super().__init__(n_sample_points=n_sample_points, **kwargs)
+
+    def step(self, t):
+        # x = t in this case because we will rotate xy to [1, 1]
+        # equation of ellipse solving for y, with the ellipse
+        # centered at [0.5, 0], a=0.5, and b defined by the user
+        y = self.b * np.sqrt(1 - (t-0.5)**2/0.5**2)
+        xy = np.dot(np.array([t, y]), self.R) * self.mag
+        return np.array([xy[0], xy[1], t])

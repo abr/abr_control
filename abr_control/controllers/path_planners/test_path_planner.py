@@ -1,11 +1,17 @@
 from abr_control.controllers.path_planners import PathPlanner
 from abr_control.controllers.path_planners.position_profiles import Linear
 from abr_control.controllers.path_planners.position_profiles import SinCurve
+from abr_control.controllers.path_planners.position_profiles import Ellipse
 from abr_control.controllers.path_planners.velocity_profiles import Gaussian
+from abr_control.controllers.path_planners.velocity_profiles import Linear
+from abr_control.controllers.path_planners.velocity_profiles import SecondOrderFilter
 import numpy as np
 # Pprof = Linear()
-Pprof = SinCurve(axes=['x', 'z'], n_sample_points=1000)
-Vprof = Gaussian(dt=0.001, acceleration=1)
+# Pprof = SinCurve(axes=['x', 'z'], n_sample_points=1000)
+Pprof = Ellipse(b=3)
+# Vprof = Gaussian(dt=0.001, acceleration=1)
+Vprof = Linear(dt=0.001, acceleration=1)
+# Vprof = SecondOrderFilter(dt=0.001, acceleration=1)
 
 path = PathPlanner(
         pos_profile=Pprof,
