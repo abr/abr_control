@@ -128,23 +128,6 @@ class Orientation():
 
         return self.orientation_path
 
-    def _const_step(self, orientation, target_orientation):
-        """Calculates the next step along the planned trajectory
-
-        PARAMETERS
-        ----------
-        orientation: list of 4 floats
-            the starting orientation as a quaternion
-        target_orientation: list of 4 floats
-            the target orientation as a quaternion
-        """
-        orientation = transformations.quaternion_slerp(
-            quat0=orientation, quat1=target_orientation, fraction=self.timesteps[self.n]
-        )
-
-        self.n = min(self.n + 1, self.n_timesteps - 1)
-        return orientation
-
     def _step(self, orientation, target_orientation):
         """Calculates the next step along the planned trajectory
 

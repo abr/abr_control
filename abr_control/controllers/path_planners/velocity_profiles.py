@@ -64,4 +64,59 @@ class Gaussian(VelProf):
 
         return vel_profile
 
+class Linear(VelProf):
+    def __init__(self, dt, acceleration):
+        self.acceleration = acceleration
+
+        super().__init__(dt=dt)
+
+    def generate(self, start_velocity, target_velocity):
+        vdiff = target_velocity - start_velocity
+        t = vdiff/self.acceleration
+        steps = t/self.dt
+        vel_profile = np.linspace(start_velocity, target_velocity, int(steps))
+
+        return vel_profile
+
+
+class SecondOrderFilter(VelProf):
+    def __init__(self, dt, acceleration, zeta=1.0, w=1e4, threshold=0.02):
+        self.acceleration = acceleration
+        self.dt = dt
+        self.zeta = zeta
+        self.w = w
+        self.threshold = threshold
+
+        super().__init__(dt=dt)
+
+    def generate(self, start_velocity, target_velocity):
+        position = np.zeros(3)
+        target_position = np.ones(3)
+
+        n_timesteps = int(((target_velocity-start_velocity)/self.acceleration)/self.dt)
+        print(n_timesteps)
+        w = self.w/n_timesteps
+
+        velocity = start_velocity
+        # pos_path = []
+        vel_path = []
+
+        for ii in range(0, n_timesteps):
+            if np.linalg.norm(position - target_position) < self.threshold:
+                # if within a threshold distance, reduce the filter effect
+                # NOTE: this is a ad-hoc method of improving performance at
+                # short distances
+                w *= 3
+
+            accel = w ** 2 * target_position - velocity * self.zeta * w - position * w ** 2
+            velocity = velocity + accel * self.dt
+            position = position + velocity * self.dt
+
+            # pos_path.append(position)
+            vel_path.append(velocity)
+        return np.asarray(vel_path)
+
+
+
+
 

@@ -203,6 +203,7 @@ class PathPlanner():
 
         # distance is greater than our ramping up and down distance
         # add a linear velocity from between the ramps to converge to the correct position
+        self.remaining_dist = None
         if curve_length >= self.starting_dist + self.ending_dist:
             # calculate the remaining steps where we will be at constant max_v
             remaining_dist = curve_length - (self.ending_dist + self.starting_dist)
@@ -375,8 +376,9 @@ class PathPlanner():
         # add markers where our velocity ramps stop and end
         plt.plot(np.linalg.norm(self.position_path, axis=1))
         plt.scatter(len_start, self.starting_dist, c='m')
-        plt.scatter(steps-len_end, self.remaining_dist + self.starting_dist, c='c')
-        plt.scatter(steps, self.ending_dist + self.starting_dist + self.remaining_dist, c='k')
+        if self.remaining_dist is not None:
+            plt.scatter(steps-len_end, self.remaining_dist + self.starting_dist, c='c')
+            plt.scatter(steps, self.ending_dist + self.starting_dist + self.remaining_dist, c='k')
         # fill the space signifying the linear portion of the path
         ax_fillbetween.axvspan(len_start, steps-len_end, alpha=0.25, label='linear velocity')
 
