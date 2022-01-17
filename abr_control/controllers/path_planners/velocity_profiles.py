@@ -4,24 +4,35 @@ Functions that return a 1D array of velocities from a desired start to target ve
 import numpy as np
 class VelProf():
     def __init__(self, dt):
+        """
+        Must take the sim timestep on init, as the path_planner requires it
+        """
         self.dt = dt
     def generate(self, start_velocity, target_velocity):
+        """
+        Takes start and target velocities as a float, and returns a 1xN array
+        of velocities that go from start to target
+        """
         raise NotImplementedError
 
 class Gaussian(VelProf):
     def __init__(self, dt, acceleration, n_sigma=3):
         """
+        Velocity profile that follows a gaussian curve.
+
         Parameters
         ----------
         dt: float
             timestep in seconds
-        a: float
+        acceleration: float
             the acceleration that defines our velocity curve
         n_sigma: int, Optional (Default: 3)
             how many standard deviations of the gaussian function to use for the velocity
-            profile. The defaul value of 3 gives a smooth acceleration and deceleration.
+            profile. The default value of 3 gives a smooth acceleration and deceleration.
             A slower ramp up can be achieved with a larger sigma, and a faster ramp up by
-            decreasing sigma.
+            decreasing sigma. Note that the curve gets shifted so that it starts at zero,
+            since the gaussian has a domain of [-inf, inf]. At sigma==3 we get close to
+            zero and have a smooth ramp up.
         """
         self.acceleration = acceleration
         self.n_sigma = n_sigma
@@ -30,8 +41,15 @@ class Gaussian(VelProf):
 
     def generate(self, start_velocity, target_velocity):
         """
-        generates the left half of the gaussian curve with 3std, with sigma determined
+        Generates the left half of the gaussian curve with n_sigma std, with sigma determined
         by the timestep and max_a
+
+        Parameters
+        ----------
+        start_velocity: float
+            the starting velocity in our curve
+        target_velocity: float
+            The ending velocity in our curve
         """
         # calculate the time needed to reach our maximum velocity from vel
         ramp_up_time = (target_velocity-start_velocity)/self.acceleration
@@ -66,57 +84,35 @@ class Gaussian(VelProf):
 
 class Linear(VelProf):
     def __init__(self, dt, acceleration):
+        """
+        Velocity profile that follows a linear curve.
+        Parameters
+        ----------
+        dt: float
+            timestep in seconds
+        acceleration: float
+            the acceleration that defines our velocity curve
+        """
         self.acceleration = acceleration
 
         super().__init__(dt=dt)
 
     def generate(self, start_velocity, target_velocity):
+        """
+        Generates a linear ramp from start to target velocity, with a slope
+        of self.acceleration
+
+        Parameters
+        ----------
+        start_velocity: float
+            the starting velocity in our curve
+        target_velocity: float
+            The ending velocity in our curve
+        """
+
         vdiff = target_velocity - start_velocity
         t = vdiff/self.acceleration
         steps = t/self.dt
         vel_profile = np.linspace(start_velocity, target_velocity, int(steps))
 
         return vel_profile
-
-
-class SecondOrderFilter(VelProf):
-    def __init__(self, dt, acceleration, zeta=1.0, w=1e4, threshold=0.02):
-        self.acceleration = acceleration
-        self.dt = dt
-        self.zeta = zeta
-        self.w = w
-        self.threshold = threshold
-
-        super().__init__(dt=dt)
-
-    def generate(self, start_velocity, target_velocity):
-        position = np.zeros(3)
-        target_position = np.ones(3)
-
-        n_timesteps = int(((target_velocity-start_velocity)/self.acceleration)/self.dt)
-        print(n_timesteps)
-        w = self.w/n_timesteps
-
-        velocity = start_velocity
-        # pos_path = []
-        vel_path = []
-
-        for ii in range(0, n_timesteps):
-            if np.linalg.norm(position - target_position) < self.threshold:
-                # if within a threshold distance, reduce the filter effect
-                # NOTE: this is a ad-hoc method of improving performance at
-                # short distances
-                w *= 3
-
-            accel = w ** 2 * target_position - velocity * self.zeta * w - position * w ** 2
-            velocity = velocity + accel * self.dt
-            position = position + velocity * self.dt
-
-            # pos_path.append(position)
-            vel_path.append(velocity)
-        return np.asarray(vel_path)
-
-
-
-
-
