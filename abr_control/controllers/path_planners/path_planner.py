@@ -213,7 +213,7 @@ class PathPlanner():
             remaining_dist = curve_length - (self.ending_dist + self.starting_dist)
             constant_speed_steps = int(remaining_dist/ self.max_velocity / self.dt)
 
-            self.vel_profile = np.hstack((
+            self.stacked_vel_profile = np.hstack((
                 self.starting_vel_profile,
                 np.ones(constant_speed_steps) * self.max_velocity,
                 self.ending_vel_profile
@@ -228,19 +228,19 @@ class PathPlanner():
             # the same acceleration profile instead of maintaining the same number of steps
             # and accelerating more slowly
             scale = curve_length / (self.starting_dist + self.ending_dist)
-            self.vel_profile = np.hstack((
+            self.stacked_vel_profile = np.hstack((
                 scale*self.starting_vel_profile,
                 scale*self.ending_vel_profile
             ))
 
 
-        self.position_path = [start_position]
+        self.position_path = []
 
         # the distance covered over time with respect to our velocity profile
-        path_steps = np.cumsum(self.vel_profile*self.dt)
+        path_steps = np.cumsum(self.stacked_vel_profile*self.dt)
         # step along our curve, with our next path step being the
         # distance determined by our velocity profile, in the direction of the path curve
-        for ii in range(1, len(self.vel_profile)):
+        for ii in range(0, len(self.stacked_vel_profile)):
             # normalize step for the normalized pos_profile functions
             tt = path_steps[ii]/curve_length
 
@@ -484,22 +484,22 @@ class PathPlanner():
         plt.title('Warped X Path')
         plt.xlabel('Steps [unitless]')
         plt.plot(self.warped_xyz.T[0])
-        plt.hlines(start_position[0], 0, self.n_sample_points, linestyle='--', color='y', label='start')
-        plt.hlines(target_position[0], 0, self.n_sample_points, linestyle='--', color='g', label='target')
+        plt.hlines(start_position[0], 0, self.n_sample_points-1, linestyle='--', color='y', label='start')
+        plt.hlines(target_position[0], 0, self.n_sample_points-1, linestyle='--', color='g', label='target')
         plt.legend()
         plt.subplot(3,3,5)
         plt.title('Warped Y Path')
         plt.xlabel('Steps [unitless]')
         plt.plot(self.warped_xyz.T[1])
-        plt.hlines(start_position[1], 0, self.n_sample_points, linestyle='--', color='y', label='start')
-        plt.hlines(target_position[1], 0, self.n_sample_points, linestyle='--', color='g', label='target')
+        plt.hlines(start_position[1], 0, self.n_sample_points-1, linestyle='--', color='y', label='start')
+        plt.hlines(target_position[1], 0, self.n_sample_points-1, linestyle='--', color='g', label='target')
         plt.legend()
         plt.subplot(3,3,6)
         plt.title('Warped Z Path')
         plt.xlabel('Steps [unitless]')
         plt.plot(self.warped_xyz.T[2])
-        plt.hlines(start_position[2], 0, self.n_sample_points, linestyle='--', color='y', label='start')
-        plt.hlines(target_position[2], 0, self.n_sample_points, linestyle='--', color='g', label='target')
+        plt.hlines(start_position[2], 0, self.n_sample_points-1, linestyle='--', color='y', label='start')
+        plt.hlines(target_position[2], 0, self.n_sample_points-1, linestyle='--', color='g', label='target')
         plt.legend()
 
         # plot the components of the path from the interpolated function
