@@ -16,7 +16,10 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D  # pylint: disable=W0611
 
 from abr_control.arms.mujoco_config import MujocoConfig
-from abr_control.controllers import OSC, path_planners
+from abr_control.controllers import OSC
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Linear
+from abr_control.controllers.path_planners.velocity_profiles import Gaussian
 from abr_control.interfaces.mujoco import Mujoco
 
 if len(sys.argv) > 1:
@@ -68,7 +71,10 @@ else:
     params["n_timesteps"] = 2000  # time steps each trajectory lasts
     count = np.copy(params["n_timesteps"])
     time_elapsed = 0.0
-path_planner = path_planners.Arc(**params)
+path_planner = PathPlanner(
+        pos_profile=Linear(),
+        vel_profile=Gaussian(dt=dt, acceleration=1)
+)
 
 ee_track = []
 target_track = []
@@ -100,9 +106,12 @@ try:
             # update the position of the target
             interface.set_mocap_xyz("target", target_xyz)
 
-            pos_path, vel_path = path_planner.generate_path(
-                position=hand_xyz, target_position=target_xyz, plot=False
+            generated_path = path_planner.generate_path(
+                start_position=hand_xyz, target_position=target_xyz, max_velocity=1, plot=False
             )
+            pos_path = generated_path[:, :3]
+            vel_path = generated_path[:, 3:6]
+
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
                     path=pos_path, time_length=run_time
@@ -118,7 +127,9 @@ try:
                 function(min(time_elapsed, run_time)) for function in vel_path
             ]
         else:
-            target, target_velocity = path_planner.next()
+            next_target = path_planner.next()
+            target = next_target[:3]
+            target_velocity = next_target[3:]
 
         interface.set_mocap_xyz("path_planner", target)
         # generate an operational space control signal
@@ -148,10 +159,10 @@ try:
 
         if use_wall_clock:
             # either update target every 1s
-            update_target = time_elapsed >= run_time + 2
+            update_target = time_elapsed >= path_planner.time_to_converge + 2
         else:
             # or update target when trajectory is done
-            update_target = count == params["n_timesteps"] + 500
+            update_target = count == path_planner.n_timesteps + 500
 
 
 finally:

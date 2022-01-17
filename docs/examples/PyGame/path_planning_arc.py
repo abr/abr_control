@@ -20,11 +20,16 @@ import timeit
 import numpy as np
 
 from abr_control.arms import threejoint as arm
-from abr_control.controllers import OSC, Damping, path_planners
+from abr_control.controllers import OSC, Damping
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Ellipse
+from abr_control.controllers.path_planners.velocity_profiles import Linear
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
 
+np.random.seed(0)
+dt = 0.001
 # if set to True, the simulation will plan the path to
 # last for 1 second of real-time
 use_wall_clock = True
@@ -47,19 +52,21 @@ ctrlr = OSC(
 )
 
 # create our path planner
-params = {"n_timesteps": 500}
+count = 0
 if use_wall_clock:
-    run_time = 1  # wall clock time to run each trajectory for
+    run_time = 5  # wall clock time to run each trajectory for
     time_elapsed = np.copy(run_time)
-    count = 0
 else:
-    count = np.copy(params["n_timesteps"])
     time_elapsed = 0.0
-path_planner = path_planners.Arc(**params)
+path_planner = PathPlanner(
+        pos_profile=Ellipse(horz_stretch=0.5),
+        vel_profile=Linear(dt=dt, acceleration=1)
+        )
 
 # create our interface
-interface = PyGame(robot_config, arm_sim, dt=0.001)
+interface = PyGame(robot_config, arm_sim, dt=dt)
 interface.connect()
+first_pass = True
 
 try:
     print("\nSimulation starting...")
@@ -76,7 +83,12 @@ try:
             update_target = time_elapsed >= run_time
         else:
             # or update target when trajectory is done
-            update_target = count == params["n_timesteps"]
+            update_target = False
+            if count == path_planner.n_timesteps:
+                update_target = True
+            elif first_pass:
+                update_target =  True
+                first_pass = False
 
         if update_target:
             count = 0
@@ -87,23 +99,25 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
-            pos_path, vel_path = path_planner.generate_path(
-                position=hand_xyz, target_position=target_xyz, plot=False
+            generated_path = path_planner.generate_path(
+                start_position=hand_xyz, target_position=target_xyz, max_velocity=1, plot=False
             )
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
-                    path=pos_path, time_length=run_time
+                        path=generated_path[:, :3], time_length=path_planner.time_to_converge
                 )
                 vel_path = path_planner.convert_to_time(
-                    path=vel_path, time_length=run_time
+                        path=generated_path[:, 3:6], time_length=path_planner.time_to_converge
                 )
 
         # get next target along trajectory
         if use_wall_clock:
-            target = [function(time_elapsed) for function in pos_path]
-            target_velocity = [function(time_elapsed) for function in vel_path]
+            target = [function(min(path_planner.time_to_converge, time_elapsed)) for function in pos_path]
+            target_velocity = [function(min(path_planner.time_to_converge, time_elapsed)) for function in vel_path]
         else:
-            target, target_velocity = path_planner.next()
+            next_target = path_planner.next()
+            target = next_target[:3]
+            target_velocity = next_target[3:]
 
         # generate an operational space control signal
         u = ctrlr.generate(

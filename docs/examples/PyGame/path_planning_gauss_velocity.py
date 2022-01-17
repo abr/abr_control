@@ -16,14 +16,16 @@ import timeit
 import numpy as np
 
 from abr_control.arms import threejoint as arm
-from abr_control.controllers import OSC, Damping, path_planners
-
-# from abr_control.arms import twojoint as arm
+from abr_control.controllers import OSC, Damping
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Linear
+from abr_control.controllers.path_planners.velocity_profiles import Gaussian
 from abr_control.interfaces.pygame import PyGame
 
+dt = 0.001
 # if set to True, the simulation will plan the path to
 # last for 1 second of real-time
-use_wall_clock = True
+use_wall_clock = False
 
 # initialize our robot config for the ur5
 robot_config = arm.Config()
@@ -42,19 +44,25 @@ ctrlr = OSC(
 )
 
 # create our path planner
-params = {"w": 1e4, "zeta": 2}
+params = {}
 if use_wall_clock:
-    run_time = 1  # wall clock time to run each trajectory for
-    time_elapsed = np.copy(run_time)
+    run_time = 5  # wall clock time to run each trajectory for
+    time_elapsed = 0.0
     count = 0
 else:
-    params["n_timesteps"] = 250  # time steps each trajectory lasts
+    params["error_scale"] = 50
+    params["n_timesteps"] = 500  # time steps each trajectory lasts
     count = np.copy(params["n_timesteps"])
     time_elapsed = 0.0
-path_planner = path_planners.SecondOrderFilter(**params)
+first_pass = True
+
+path_planner = PathPlanner(
+        pos_profile=Linear(),
+        vel_profile=Gaussian(dt=dt, acceleration=2)
+)
 
 # create our interface
-interface = PyGame(robot_config, arm_sim, dt=0.001)
+interface = PyGame(robot_config, arm_sim, dt=dt)
 interface.connect()
 
 try:
@@ -67,12 +75,15 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx("EE", feedback["q"])
 
-        if use_wall_clock:
+        if first_pass:
+            update_target = True
+            first_pass = False
+        elif use_wall_clock:
             # either update target every 1s
-            update_target = time_elapsed >= run_time
+            update_target = time_elapsed >= path_planner.time_to_converge
         else:
             # or update target when trajectory is done
-            update_target = count == params["n_timesteps"]
+            update_target = count == path_planner.n_timesteps
 
         if update_target:
             count = 0
@@ -83,19 +94,18 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
 
-            J = robot_config.J("EE", feedback["q"])
-            pos_path, vel_path = path_planner.generate_path(
-                position=hand_xyz,
-                velocity=np.dot(J, feedback["dq"])[:3],
-                target_position=target_xyz,
-                plot=False,
+            generated_path = path_planner.generate_path(
+                start_position=hand_xyz, target_position=target_xyz, max_velocity=3, plot=False
             )
+            pos_path = generated_path[:, :3]
+            vel_path = generated_path[:, 3:6]
+
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
-                    path=pos_path, time_length=run_time
+                    pregenerated_path=pos_path, time_limit=path_planner.time_to_converge
                 )
                 vel_path = path_planner.convert_to_time(
-                    path=vel_path, time_length=run_time
+                    pregenerated_path=vel_path, time_limit=path_planner.time_to_converge
                 )
 
         # get next target along trajectory
@@ -103,7 +113,9 @@ try:
             target = [function(time_elapsed) for function in pos_path]
             target_velocity = [function(time_elapsed) for function in vel_path]
         else:
-            target, target_velocity = path_planner.next()
+            next_target = path_planner.next()
+            target = next_target[:3]
+            target_velocity = next_target[3:]
 
         # generate an operational space control signal
         u = ctrlr.generate(

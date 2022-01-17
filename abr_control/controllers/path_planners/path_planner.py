@@ -133,28 +133,52 @@ class PathPlanner():
         plot: bool, Optional (Default: False)
             True to plot path profiles for debugging
         """
-        assert start_velocity < max_velocity, (
+        assert start_velocity <= max_velocity, (
                 f"{c.red}start velocity({start_velocity}m/s) " +
                 f"> max velocity({max_velocity}m/s){c.endc}"
         )
-        assert target_velocity < max_velocity, (
+        assert target_velocity <= max_velocity, (
                 f"{c.red}target velocity({target_velocity}m/s) " +
                 f"> max velocity({max_velocity}m/s){c.endc}"
         )
+
+        if start_velocity == max_velocity:
+            self.starting_dist = 0
+            self.starting_vel_profile = [start_velocity*self.dt]
+        else:
+            self.starting_dist = None
+
+        if target_velocity == max_velocity:
+            self.ending_dist = 0
+            self.ending_vel_profile = [target_velocity*self.dt]
+        else:
+            self.ending_dist = None
+
         self.max_velocity = max_velocity
 
-        # Regenerate our velocity curves if start or end v have changed
-        if self.starting_vel_profile is None or self.start_velocity != start_velocity:
-            self.starting_vel_profile = self.vel_profile.generate(start_velocity=start_velocity, target_velocity=self.max_velocity)
+        if self.starting_dist is None:
+            # Regenerate our velocity curves if start or end v have changed
+            if self.starting_vel_profile is None or self.start_velocity != start_velocity:
+                self.starting_vel_profile = self.vel_profile.generate(start_velocity=start_velocity, target_velocity=self.max_velocity)
 
-        # if our start and end v are the same, just mirror the curve to avoid regenerating
-        if start_velocity == target_velocity:
-            self.ending_vel_profile = self.starting_vel_profile[::-1]
+            # calculate the distance covered ramping from start_velocity to max_v
+            # and from max_v to target_velocity
+            self.starting_dist = np.sum(self.starting_vel_profile*self.dt)
 
-        # if target velocity is different, generate its unique curve
-        elif self.ending_vel_profile is None or self.target_velocity != target_velocity:
-            self.ending_vel_profile = self.vel_profile.generate(start_velocity=target_velocity, target_velocity=self.max_velocity)[::-1]
+        if self.ending_dist is None:
+            # if our start and end v are the same, just mirror the curve to avoid regenerating
+            if start_velocity == target_velocity:
+                self.ending_vel_profile = self.starting_vel_profile[::-1]
 
+            # if target velocity is different, generate its unique curve
+            elif self.ending_vel_profile is None or self.target_velocity != target_velocity:
+                self.ending_vel_profile = self.vel_profile.generate(start_velocity=target_velocity, target_velocity=self.max_velocity)[::-1]
+
+            # calculate the distance covered ramping from start_velocity to max_v
+            # and from max_v to target_velocity
+            self.ending_dist = np.sum(self.ending_vel_profile*self.dt)
+
+        # save as self variables so we can check on the next generate call if we need a different profile
         self.start_velocity = start_velocity
         self.target_velocity = target_velocity
 
@@ -162,11 +186,6 @@ class PathPlanner():
             self.log.append(f"{c.blue}Generating a path from {start_position} to {target_position}{c.endc}")
             self.log.append(f"{c.blue}max_velocity={self.max_velocity}{c.endc}")
             self.log.append(f"{c.blue}start_velocity={self.start_velocity} | target_velocity={self.target_velocity}{c.endc}")
-
-        # calculate the distance covered ramping from start_velocity to max_v
-        # and from max_v to target_velocity
-        self.starting_dist = np.sum(self.starting_vel_profile*self.dt)
-        self.ending_dist = np.sum(self.ending_vel_profile*self.dt)
 
         # calculate the distance between our current state and the target
         target_direction = target_position - start_position
@@ -200,9 +219,9 @@ class PathPlanner():
         # create functions that return our path at a given distance
         # along that curve
         self.warped_xyz = np.array(warped_xyz)
-        X = scipy.interpolate.interp1d(dist_steps, self.warped_xyz.T[0])
-        Y = scipy.interpolate.interp1d(dist_steps, self.warped_xyz.T[1])
-        Z = scipy.interpolate.interp1d(dist_steps, self.warped_xyz.T[2])
+        X = scipy.interpolate.interp1d(dist_steps, self.warped_xyz.T[0], fill_value='extrapolate')
+        Y = scipy.interpolate.interp1d(dist_steps, self.warped_xyz.T[1], fill_value='extrapolate')
+        Z = scipy.interpolate.interp1d(dist_steps, self.warped_xyz.T[2], fill_value='extrapolate')
         XYZ = [X, Y, Z]
 
         # distance is greater than our ramping up and down distance
@@ -213,7 +232,7 @@ class PathPlanner():
             remaining_dist = curve_length - (self.ending_dist + self.starting_dist)
             constant_speed_steps = int(remaining_dist/ self.max_velocity / self.dt)
 
-            self.vel_profile = np.hstack((
+            self.stacked_vel_profile = np.hstack((
                 self.starting_vel_profile,
                 np.ones(constant_speed_steps) * self.max_velocity,
                 self.ending_vel_profile
@@ -228,22 +247,25 @@ class PathPlanner():
             # the same acceleration profile instead of maintaining the same number of steps
             # and accelerating more slowly
             scale = curve_length / (self.starting_dist + self.ending_dist)
-            self.vel_profile = np.hstack((
+            self.stacked_vel_profile = np.hstack((
                 scale*self.starting_vel_profile,
                 scale*self.ending_vel_profile
             ))
 
 
-        self.position_path = [start_position]
+        self.position_path = []
 
         # the distance covered over time with respect to our velocity profile
-        path_steps = np.cumsum(self.vel_profile*self.dt)
+        path_steps = np.cumsum(self.stacked_vel_profile*self.dt)
+        # due to the interpolation and discretization, we may have errors in our distances
+        # assure that we are not going passed our curve length to avoid errors interpolated
+        # passed the interpolation range
+
+        # path_steps[path_steps>curve_length] = curve_length
+
         # step along our curve, with our next path step being the
         # distance determined by our velocity profile, in the direction of the path curve
-        for ii in range(1, len(self.vel_profile)):
-            # normalize step for the normalized pos_profile functions
-            tt = path_steps[ii]/curve_length
-
+        for ii in range(0, len(self.stacked_vel_profile)):
             shiftx = XYZ[0](path_steps[ii])
             shifty = XYZ[1](path_steps[ii])
             shiftz = XYZ[2](path_steps[ii])
@@ -258,8 +280,8 @@ class PathPlanner():
         self.velocity_path = np.asarray(np.gradient(self.position_path, self.dt, axis=0))
 
         # check if we received start and target orientations
-        if isinstance(start_orientation, list) or isinstance(start_orientation, (np.ndarray, np.generic)):
-            if isinstance(target_orientation, list) or isinstance(target_orientation, (np.ndarray, np.generic)):
+        if (isinstance(start_orientation, (list, (np.ndarray, np.generic), tuple))):
+            if (isinstance(target_orientation, (list, (np.ndarray, np.generic), tuple))):
                 # Generate the orientation portion of our trajectory.
                 # We will use quaternions and SLERP for filtering from start_quat to target_quat.
                 quat0 = transform.quaternion_from_euler(
@@ -348,6 +370,32 @@ class PathPlanner():
             self.n += 1
 
         return path
+
+
+    def convert_to_time(self, path, time_length):
+        """Accepts a pregenerated path from current state to target and
+        interpolates with respect to the time_limit. The function can
+        then be stepped through to reach a target within the specified time.
+
+        PARAMETERS
+        ----------
+        path: numpy.array
+            The output from a subclasses generate_path() function
+        time_length: float
+            the desired time to go from state to target [seconds]
+        """
+
+        n_states = np.asarray(path).shape[1]
+
+        # interpolate the function to the specified time_limit
+        times = np.linspace(0, time_length, self.n_timesteps)
+        path_func = []
+        for dim in range(n_states):
+            path_func.append(
+                scipy.interpolate.interp1d(times, np.asarray(path)[:, dim])
+            )
+
+        return path_func
 
 
     def _plot(self, start_position, target_position, ang=None):
@@ -484,22 +532,22 @@ class PathPlanner():
         plt.title('Warped X Path')
         plt.xlabel('Steps [unitless]')
         plt.plot(self.warped_xyz.T[0])
-        plt.hlines(start_position[0], 0, self.n_sample_points, linestyle='--', color='y', label='start')
-        plt.hlines(target_position[0], 0, self.n_sample_points, linestyle='--', color='g', label='target')
+        plt.hlines(start_position[0], 0, self.n_sample_points-1, linestyle='--', color='y', label='start')
+        plt.hlines(target_position[0], 0, self.n_sample_points-1, linestyle='--', color='g', label='target')
         plt.legend()
         plt.subplot(3,3,5)
         plt.title('Warped Y Path')
         plt.xlabel('Steps [unitless]')
         plt.plot(self.warped_xyz.T[1])
-        plt.hlines(start_position[1], 0, self.n_sample_points, linestyle='--', color='y', label='start')
-        plt.hlines(target_position[1], 0, self.n_sample_points, linestyle='--', color='g', label='target')
+        plt.hlines(start_position[1], 0, self.n_sample_points-1, linestyle='--', color='y', label='start')
+        plt.hlines(target_position[1], 0, self.n_sample_points-1, linestyle='--', color='g', label='target')
         plt.legend()
         plt.subplot(3,3,6)
         plt.title('Warped Z Path')
         plt.xlabel('Steps [unitless]')
         plt.plot(self.warped_xyz.T[2])
-        plt.hlines(start_position[2], 0, self.n_sample_points, linestyle='--', color='y', label='start')
-        plt.hlines(target_position[2], 0, self.n_sample_points, linestyle='--', color='g', label='target')
+        plt.hlines(start_position[2], 0, self.n_sample_points-1, linestyle='--', color='y', label='start')
+        plt.hlines(target_position[2], 0, self.n_sample_points-1, linestyle='--', color='g', label='target')
         plt.legend()
 
         # plot the components of the path from the interpolated function

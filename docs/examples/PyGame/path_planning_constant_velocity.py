@@ -8,11 +8,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from abr_control.arms import threejoint as arm
-from abr_control.controllers import OSC, Damping, path_planners
+from abr_control.controllers import OSC, Damping
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Linear as LinearP
+from abr_control.controllers.path_planners.velocity_profiles import Linear as LinearV
 
 # from abr_control.arms import twojoint as arm
 from abr_control.interfaces.pygame import PyGame
 
+dt = 0.001
 # initialize our robot config
 robot_config = arm.Config()
 
@@ -32,11 +36,16 @@ ctrlr = OSC(
 
 # create our path planner
 target_dx = 0.001
-path_planner = path_planners.Linear(dx=target_dx)
+path_planner = PathPlanner(
+        pos_profile=LinearP(),
+        vel_profile=LinearV(dt=dt, acceleration=1)
+)
+
 
 # create our interface
-interface = PyGame(robot_config, arm_sim, dt=0.001)
+interface = PyGame(robot_config, arm_sim, dt=dt)
 interface.connect()
+first_pass = True
 
 
 try:
@@ -45,6 +54,8 @@ try:
 
     count = 0
     dx_track = []
+    # number of additional steps too allow for a reach
+    buffer_steps = 100
     while 1:
         # get arm feedback
         feedback = interface.get_feedback()
@@ -53,24 +64,27 @@ try:
             np.linalg.norm(np.dot(robot_config.J("EE", feedback["q"]), feedback["dq"]))
         )
 
-        if count % 1000 == 0:
+        if count-buffer_steps == path_planner.n_timesteps or first_pass:
+            count = 0
+            first_pass = False
             target_xyz = np.array(
                 [np.random.random() * 2 - 1, np.random.random() * 2 + 1, 0]
             )
             # update the position of the target
             interface.set_target(target_xyz)
             path_planner.generate_path(
-                position=hand_xyz, target_position=target_xyz, plot=False
+                start_position=hand_xyz, target_position=target_xyz,
+                start_velocity=1, target_velocity=1, max_velocity=1, plot=False
             )
 
         # returns desired [position, velocity]
-        target, _ = path_planner.next()
+        target = path_planner.next()
 
         # generate an operational space control signal
         u = ctrlr.generate(
             q=feedback["q"],
             dq=feedback["dq"],
-            target=np.hstack([target, np.zeros(3)]),
+            target=target
         )
 
         # apply the control signal, step the sim forward

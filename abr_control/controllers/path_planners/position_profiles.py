@@ -10,6 +10,7 @@ Restrictions
     at t==0 will be the start, and will end at the target
 """
 import numpy as np
+import scipy.interpolate
 from abr_control.utils import colors as c
 class PosProf():
     def __init__(self, tol=1e-6, n_sample_points=1000, **kwargs):
@@ -38,7 +39,7 @@ class PosProf():
 
 
 class Linear(PosProf):
-    def __init__(self, n_sample_points=1000, **kwargs):
+    def __init__(self, n_sample_points=10, **kwargs):
         """
         Position profile that follows a linear path.
 
@@ -129,26 +130,28 @@ class SinCurve(PosProf):
 
 
 class FromPoints(PosProf):
-    def __init__(self, pts, n_sample_points=1000, **kwargs):
+    def __init__(self, x, y, n_sample_points=1000, **kwargs):
         """
         Position profile generated from a list of points.
 
         Parameters
         ----------
-        pts: 3xN array of floats
+        x: 1xN array of floats that range from [0, 1]
+            The times that correspond to the y values
+        y: 3xN array of floats
             The cartesian points of the path we will generate a function
             for. The value at t==0 must be [0, 0, 0] and t==1 at [1, 1, 1].
         n_sample_points: int, Optional (Default: 1000)
             the number of points recommended to properly sample to curve function
         """
         # interpolate into function
-        if pts.shape[0] != 3:
-            pts = pts.T
-        x = np.linspace(0, 1, n_sample_points)
+        if y.shape[0] != 3:
+            y = y.T
+        # x = np.linspace(0, 1, n_sample_points)
 
-        self.X = scipy.interpolate.interp1d(x, pts[0])
-        self.Y = scipy.interpolate.interp1d(x, pts[1])
-        self.Z = scipy.interpolate.interp1d(x, pts[2])
+        self.X = scipy.interpolate.interp1d(x, y[0])
+        self.Y = scipy.interpolate.interp1d(x, y[1])
+        self.Z = scipy.interpolate.interp1d(x, y[2])
 
         super().__init__(n_sample_points=n_sample_points, **kwargs)
 
