@@ -13,10 +13,14 @@ import glfw
 import numpy as np
 
 from abr_control.arms.mujoco_config import MujocoConfig as arm
-from abr_control.controllers import OSC, Damping, path_planners
+from abr_control.controllers import OSC, Damping
 from abr_control.interfaces.mujoco import Mujoco
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Linear
+from abr_control.controllers.path_planners.velocity_profiles import Gaussian
 from abr_control.utils import transformations
 
+dt = 0.001
 # initialize our robot config
 if len(sys.argv) > 1:
     arm_model = sys.argv[1]
@@ -26,7 +30,7 @@ else:
 robot_config = arm(arm_model)
 
 # create our interface
-interface = Mujoco(robot_config, dt=0.001)
+interface = Mujoco(robot_config, dt=dt)
 interface.connect()
 interface.send_target_angles(robot_config.START_ANGLES)
 
@@ -47,32 +51,10 @@ ctrlr = OSC(
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx("EE", feedback["q"])
 
-
-def get_target(robot_config):
-    # pregenerate our path and orientation planners
-    n_timesteps = 2000
-    position_planner = path_planners.SecondOrderDMP(
-        error_scale=0.01, n_timesteps=n_timesteps
-    )
-    orientation_path = path_planners.Orientation()
-
-    starting_orientation = robot_config.quaternion("EE", feedback["q"])
-
-    mag = 0.6
-    target_position = np.random.random(3) * 0.5
-    target_position = target_position / np.linalg.norm(target_position) * mag
-
-    position_planner.generate_path(position=hand_xyz, target_position=target_position)
-
-    target_orientation = transformations.random_quaternion()
-
-    orientation_path.match_position_path(
-        orientation=starting_orientation,
-        target_orientation=target_orientation,
-        position_path=position_planner.position_path,
-    )
-
-    return position_planner, orientation_path, target_position, target_orientation
+path_planner = PathPlanner(
+        pos_profile=Linear(),
+        vel_profile=Gaussian(dt=dt, acceleration=2)
+)
 
 
 # set up lists for tracking data
@@ -80,6 +62,7 @@ ee_track = []
 ee_angles_track = []
 target_track = []
 target_angles_track = []
+first_pass = True
 
 
 try:
@@ -93,18 +76,39 @@ try:
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx("EE", feedback["q"])
-        if count % 3000 == 0:
-            (
-                position_planner,
-                orientation_path,
-                target_position,
-                target_orientation,
-            ) = get_target(robot_config)
-            interface.set_mocap_xyz("target_orientation", target_position)
-            interface.set_mocap_orientation("target_orientation", target_orientation)
+        if first_pass or count == path_planner.n_timesteps+500:
+            count = 0
+            first_pass = False
 
-        pos, vel = position_planner.next()
-        orient = orientation_path.next()
+            # pregenerate our path and orientation planners
+            q = robot_config.quaternion("EE", feedback["q"])
+            starting_orientation = transformations.euler_from_quaternion(q, axes='rxyz')
+
+            mag = 0.6
+            target_position = np.random.random(3) * 0.5
+            target_position = target_position / np.linalg.norm(target_position) * mag
+
+            target_orientation = np.random.uniform(low=-np.pi, high=np.pi, size=3)
+
+            path_planner.generate_path(
+                    start_position=hand_xyz, target_position=target_position,
+                    start_orientation=starting_orientation, target_orientation=target_orientation,
+                    max_velocity=2
+            )
+
+            interface.set_mocap_xyz("target_orientation", target_position)
+            # interface.set_mocap_orientation("target_orientation", target_orientation)
+            interface.set_mocap_orientation(
+                "target_orientation",
+                transformations.quaternion_from_euler(
+                    target_orientation[0], target_orientation[1], target_orientation[2], "rxyz"
+                )
+            )
+
+        next_target = path_planner.next()
+        pos = next_target[:3]
+        vel = next_target[3:6]
+        orient = next_target[6:9]
         target = np.hstack([pos, orient])
 
         interface.set_mocap_xyz("path_planner_orientation", target[:3])

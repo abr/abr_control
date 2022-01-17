@@ -280,7 +280,10 @@ class PathPlanner():
         self.velocity_path = np.asarray(np.gradient(self.position_path, self.dt, axis=0))
 
         # check if we received start and target orientations
-        if isinstance(start_orientation, list) or isinstance(start_orientation, (np.ndarray, np.generic)):
+        if (isinstance(start_orientation, list)
+                or isinstance(start_orientation, (np.ndarray, np.generic))
+                    or isinstance(start_orientation, tuple)
+            ):
             if isinstance(target_orientation, list) or isinstance(target_orientation, (np.ndarray, np.generic)):
                 # Generate the orientation portion of our trajectory.
                 # We will use quaternions and SLERP for filtering from start_quat to target_quat.

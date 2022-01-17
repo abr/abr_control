@@ -12,11 +12,12 @@ import numpy as np
 
 from abr_control.arms.mujoco_config import MujocoConfig as arm
 from abr_control.controllers import OSC, Damping
-from abr_control.controllers.path_planners.gauss_path_planner import GaussianPathPlanner
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Linear
+from abr_control.controllers.path_planners.velocity_profiles import Gaussian
 from abr_control.interfaces.mujoco import Mujoco
 from abr_control.utils import transformations
 
-max_v = 2
 max_a = 2
 n_targets = 100
 
@@ -55,7 +56,10 @@ ctrlr = OSC(
     ctrlr_dof=ctrlr_dof,
 )
 
-path_planner = GaussianPathPlanner(max_a=max_a, max_v=max_v, dt=dt)
+path_planner = PathPlanner(
+        pos_profile=Linear(),
+        vel_profile=Gaussian(dt=dt, acceleration=max_a)
+)
 
 # set up lists for tracking data
 ee_track = []
@@ -80,10 +84,9 @@ try:
         # ang_state = transformations.euler_from_quaternion(starting_orientation, 'rxyz')
 
         path_planner.generate_path(
-                lin_state=np.hstack((hand_xyz, np.zeros(3))),
-                lin_target=np.hstack((pos_target, np.zeros(3))),
-                # ang_state=[0, 0, ang_state[2]],
-                # ang_target=ang_target
+                start_position=hand_xyz,
+                target_position=pos_target,
+                max_velocity=2
                 )
 
         interface.set_mocap_xyz("target", pos_target)
