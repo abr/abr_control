@@ -22,7 +22,10 @@ class PathPlanner():
         - the generate_path function will warp the position profile so that it starts and
         ends at the defined location, while maintaining the velocity profile. The velocity
         profile will be limited to max_velocity. Once the max velocity is reached it will
-        be maintained until it is time to decelrate to the target velocity (wrt the vel_profile)
+        be maintained until it is time to decelrate to the target velocity (wrt the vel_profile).
+        The final velocity profile will go from start_velocity to max_velocity, and back down
+        the target_velocity. If we do not have enough time to reach max_velocity we will
+        accelerate until it is time to decelerate to target_velocity.
 
         - A start and target orientation can optionally be passed in to generate_path
         - the order of the euler angles is defined by 'axes' on init
@@ -62,6 +65,7 @@ class PathPlanner():
         self.ending_vel_profile = None
         self.start_velocity = 0  # can be overwritten by generate_path
         self.target_velocity = 0  # can be overwritten by generate_path
+        self.path = np.zeros((12, 1))
 
 
     def align_vectors(self, a, b):
@@ -334,7 +338,8 @@ class PathPlanner():
         return self.path
 
     def next(self):
-        """ Returns the next target from the generated path
+        """
+        Returns the next target from the generated path
         """
         path = self.path[self.n]
         if self.n_timesteps is not None:
@@ -348,7 +353,15 @@ class PathPlanner():
     def _plot(self, start_position, target_position, ang=None):
         """
         Only called internally if plot=True in the generate_path call
-        Plots several profiles of the path for debugging
+        Plots several profiles of the path for debugging. Most of the parameters accessed are
+        saved as self variables.
+
+        Parameters
+        ----------
+        start_position: 3x1 np.array of floats
+            starting position
+        target_position: 3x1 np.array of floats
+            target position
         """
         len_start = len(self.starting_vel_profile)
         len_end = len(self.ending_vel_profile)
