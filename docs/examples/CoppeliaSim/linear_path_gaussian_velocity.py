@@ -10,10 +10,14 @@ After termination the script will plot results
 import numpy as np
 
 from abr_control.arms import ur5 as arm
-from abr_control.controllers import OSC, Damping, path_planners
+from abr_control.controllers import OSC, Damping
+from abr_control.controllers.path_planners import PathPlanner
+from abr_control.controllers.path_planners.position_profiles import Linear
+from abr_control.controllers.path_planners.velocity_profiles import Gaussian
 from abr_control.interfaces import CoppeliaSim
 from abr_control.utils import transformations
 
+dt = 0.005
 # initialize our robot config
 robot_config = arm.Config()
 
@@ -31,13 +35,19 @@ ctrlr = OSC(
 )
 
 # create our interface
-interface = CoppeliaSim(robot_config, dt=0.005)
+interface = CoppeliaSim(robot_config, dt=dt)
 interface.connect()
 
 # pregenerate our path and orientation planners
 n_timesteps = 100
-traj_planner = path_planners.SecondOrderDMP(error_scale=50, n_timesteps=n_timesteps)
-orientation_planner = path_planners.Orientation()
+
+path_planner = PathPlanner(
+        pos_profile=Linear(),
+        vel_profile=Gaussian(dt=dt, acceleration=2)
+)
+
+# traj_planner = path_planners.SecondOrderDMP(error_scale=50, n_timesteps=n_timesteps)
+# orientation_planner = path_planners.Orientation()
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx("EE", feedback["q"])
@@ -49,12 +59,21 @@ target_orientation /= np.linalg.norm(target_orientation)
 target_orientation = [0] + list(target_orientation)
 target_position = [-0.4, -0.3, 0.6]
 
-traj_planner.generate_path(position=hand_xyz, target_position=target_position)
-orientation_planner.match_position_path(
-    orientation=starting_orientation,
-    target_orientation=target_orientation,
-    position_path=traj_planner.position_path,
+starting_orientation = transformations.euler_from_quaternion(starting_orientation, axes='rxyz')
+target_orientation = transformations.euler_from_quaternion(target_orientation, axes='rxyz')
+
+path_planner.generate_path(
+        start_position=hand_xyz, target_position=target_position,
+        start_orientation=starting_orientation, target_orientation=target_orientation,
+        max_velocity=2
 )
+
+# traj_planner.generate_path(position=hand_xyz, target_position=target_position)
+# orientation_planner.match_position_path(
+#     orientation=starting_orientation,
+#     target_orientation=target_orientation,
+#     position_path=traj_planner.position_path,
+# )
 
 # set up lists for tracking data
 ee_track = []
@@ -67,24 +86,27 @@ try:
     count = 0
     interface.set_xyz("target", target_position)
     interface.set_orientation(
-        "target", transformations.euler_from_quaternion(target_orientation, axes="rxyz")
+        "target", target_orientation
     )
 
     print("\nSimulation starting...\n")
-    while 1:
+    while count < path_planner.n_timesteps:
         # get arm feedback
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx("EE", feedback["q"])
 
-        pos, vel = traj_planner.next()[:3]
-        orient = orientation_planner.next()
+        next_target = path_planner.next()
+        pos = next_target[:3]
+        vel = next_target[3:6]
+        orient = next_target[6:9]
+
         target = np.hstack([pos, orient])
 
         u = ctrlr.generate(
             q=feedback["q"],
             dq=feedback["dq"],
             target=target,
-            # target_vel=np.hstack([vel, np.zeros(3)])
+            target_velocity=np.hstack([vel, np.zeros(3)])
         )
 
         # apply the control signal, step the sim forward
