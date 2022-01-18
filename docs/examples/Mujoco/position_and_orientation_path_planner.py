@@ -92,7 +92,8 @@ try:
 
             path_planner.generate_path(
                     start_position=hand_xyz, target_position=target_position,
-                    start_orientation=starting_orientation, target_orientation=target_orientation,
+                    start_orientation=starting_orientation,
+                    target_orientation=target_orientation,
                     max_velocity=2
             )
 
@@ -101,7 +102,10 @@ try:
             interface.set_mocap_orientation(
                 "target_orientation",
                 transformations.quaternion_from_euler(
-                    target_orientation[0], target_orientation[1], target_orientation[2], "rxyz"
+                    target_orientation[0],
+                    target_orientation[1],
+                    target_orientation[2],
+                    "rxyz"
                 )
             )
 

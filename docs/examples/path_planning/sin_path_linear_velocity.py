@@ -1,7 +1,9 @@
+import numpy as np
+
 from abr_control.controllers.path_planners import PathPlanner
 from abr_control.controllers.path_planners.position_profiles import SinCurve
 from abr_control.controllers.path_planners.velocity_profiles import Linear
-import numpy as np
+
 Pprof = SinCurve(axes=['x', 'z'], n_sample_points=1000, cycles=[1, 1, 2])
 Vprof = Linear(dt=0.001, acceleration=1)
 

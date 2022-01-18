@@ -1,4 +1,3 @@
-import math
 import warnings
 
 import matplotlib.pyplot as plt
@@ -177,8 +176,7 @@ class PathPlanner:
                 or self.start_velocity != start_velocity
             ):
                 self.starting_vel_profile = self.vel_profile.generate(
-                    start_velocity=start_velocity,
-                    target_velocity=self.max_velocity
+                    start_velocity=start_velocity, target_velocity=self.max_velocity
                 )
 
             # calculate the distance covered ramping from start_velocity to
@@ -197,8 +195,7 @@ class PathPlanner:
                 or self.target_velocity != target_velocity
             ):
                 self.ending_vel_profile = self.vel_profile.generate(
-                    start_velocity=target_velocity,
-                    target_velocity=self.max_velocity
+                    start_velocity=target_velocity, target_velocity=self.max_velocity
                 )[::-1]
 
             # calculate the distance covered ramping from start_velocity to
@@ -212,13 +209,13 @@ class PathPlanner:
 
         if self.verbose:
             self.log.append(
-                    f"{c.blue}Generating a path from {start_position} to "
-                    + f"{target_position}{c.endc}"
+                f"{c.blue}Generating a path from {start_position} to "
+                + f"{target_position}{c.endc}"
             )
             self.log.append(f"{c.blue}max_velocity={self.max_velocity}{c.endc}")
             self.log.append(
-                    f"{c.blue}start_velocity={self.start_velocity} | "
-                    + f"target_velocity={self.target_velocity}{c.endc}"
+                f"{c.blue}start_velocity={self.start_velocity} | "
+                + f"target_velocity={self.target_velocity}{c.endc}"
             )
 
         # calculate the distance between our current state and the target
@@ -296,8 +293,7 @@ class PathPlanner:
             # which is what we do by scaling the vel profile down
             scale = curve_length / (self.starting_dist + self.ending_dist)
             self.stacked_vel_profile = np.hstack(
-                (scale * self.starting_vel_profile,
-                    scale * self.ending_vel_profile)
+                (scale * self.starting_vel_profile, scale * self.ending_vel_profile)
             )
 
         self.position_path = []
@@ -352,8 +348,8 @@ class PathPlanner:
                 )
                 if self.verbose:
                     self.log.append(
-                            f"{c.blue}start_orientation={start_orientation} | "
-                            + f"target_orientation={target_orientation}{c.endc}"
+                        f"{c.blue}start_orientation={start_orientation} | "
+                        + f"target_orientation={target_orientation}{c.endc}"
                     )
             else:
                 raise NotImplementedError(
@@ -362,7 +358,7 @@ class PathPlanner:
 
             self.orientation_path = np.asarray(self.orientation_path)
             # TODO should this be included? look at proper derivation here...
-            # https://physics.stackexchange.com/questions/73961/angular-velocity-expressed-via-euler-angles  # disable C0301
+            # https://physics.stackexchange.com/questions/73961/angular-velocity-expressed-via-euler-angles  # pylint: disable=C0301
             self.ang_velocity_path = np.asarray(
                 np.gradient(self.orientation_path, self.dt, axis=0)
             )
@@ -421,7 +417,7 @@ class PathPlanner:
             )
             self.log.append(
                 f"{c.blue}2norm error at target: "
-                + f"{np.linalg.norm(self.position_path[-1] - target_position[:3])}{c.endc}"  # disable C0301
+                + f"{np.linalg.norm(self.position_path[-1] - target_position[:3])}{c.endc}"  # pylint: disable=C0301
             )
 
             dash = "".join((["-"] * len(max(self.log, key=len))))
@@ -436,11 +432,11 @@ class PathPlanner:
                 (
                     f"\n{c.yellow}WARNING: the distance at the end of the "
                     + f"generated path to your desired target position is {err}m."
-                    + f"If you desire a lower error you can try:"
-                    + f"\n\t- a path shape with lower frequency terms"
-                    + f"\n\t- more sample points (set on __init__)"
-                    + f"\n\t- smaller simulation timestep"
-                    + f"\n\t- lower maximum velocity and acceleration"
+                    + "If you desire a lower error you can try:"
+                    + "\n\t- a path shape with lower frequency terms"
+                    + "\n\t- more sample points (set on __init__)"
+                    + "\n\t- smaller simulation timestep"
+                    + "\n\t- lower maximum velocity and acceleration"
                     + f"\n\t- lower start and end velocities{c.endc}"
                 )
             )

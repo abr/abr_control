@@ -101,7 +101,7 @@ class SinCurve(PosProf):
         self.axes = axes
         self.cycles = cycles
         # let user pass cycles as int, this adjust the period scaling accordingly
-        for cc, cycle in enumerate(self.cycles):
+        for cc in range(0, len(self.cycles)):
             self.cycles[cc] = (self.cycles[cc] - 1) * 4 + 1
         super().__init__(n_sample_points=n_sample_points, **kwargs)
 
@@ -197,9 +197,9 @@ class Ellipse(PosProf):
         """
         self.indices = {"x": 0, "y": 1, "z": 2}
         self.plane = plane
-        for key in self.indices:
+        for key, val in self.indices.items():
             if key not in self.plane:
-                self.linear_index = self.indices[key]
+                self.linear_index = val
 
         # We generate the curve on the x axis, then rotate it to [1, 1, 1]
         self.b = horz_stretch

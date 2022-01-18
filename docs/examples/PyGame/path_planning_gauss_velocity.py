@@ -95,7 +95,10 @@ try:
             interface.set_target(target_xyz)
 
             generated_path = path_planner.generate_path(
-                start_position=hand_xyz, target_position=target_xyz, max_velocity=3, plot=False
+                start_position=hand_xyz,
+                target_position=target_xyz,
+                max_velocity=3,
+                plot=False
             )
             pos_path = generated_path[:, :3]
             vel_path = generated_path[:, 3:6]

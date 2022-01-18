@@ -1,7 +1,9 @@
+import numpy as np
+
 from abr_control.controllers.path_planners import PathPlanner
 from abr_control.controllers.path_planners.position_profiles import Linear as LinPos
 from abr_control.controllers.path_planners.velocity_profiles import Linear as LinVel
-import numpy as np
+
 Pprof = LinPos()
 Vprof = LinVel(dt=0.001, acceleration=1)
 

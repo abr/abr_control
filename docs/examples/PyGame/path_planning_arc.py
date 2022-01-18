@@ -100,20 +100,30 @@ try:
             interface.set_target(target_xyz)
 
             generated_path = path_planner.generate_path(
-                start_position=hand_xyz, target_position=target_xyz, max_velocity=1, plot=False
+                start_position=hand_xyz,
+                target_position=target_xyz,
+                max_velocity=1,
+                plot=False
             )
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
-                        path=generated_path[:, :3], time_length=path_planner.time_to_converge
+                        path=generated_path[:, :3],
+                        time_length=path_planner.time_to_converge
                 )
                 vel_path = path_planner.convert_to_time(
-                        path=generated_path[:, 3:6], time_length=path_planner.time_to_converge
+                        path=generated_path[:, 3:6],
+                        time_length=path_planner.time_to_converge
                 )
 
         # get next target along trajectory
         if use_wall_clock:
-            target = [function(min(path_planner.time_to_converge, time_elapsed)) for function in pos_path]
-            target_velocity = [function(min(path_planner.time_to_converge, time_elapsed)) for function in vel_path]
+            target = [function(min(path_planner.time_to_converge, time_elapsed))
+                    for function in pos_path
+            ]
+            target_velocity = [
+                    function(min(path_planner.time_to_converge, time_elapsed))
+                    for function in vel_path
+            ]
         else:
             next_target = path_planner.next()
             target = next_target[:3]

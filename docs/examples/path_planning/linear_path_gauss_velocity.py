@@ -1,7 +1,9 @@
+import numpy as np
+
 from abr_control.controllers.path_planners import PathPlanner
 from abr_control.controllers.path_planners.position_profiles import Linear
 from abr_control.controllers.path_planners.velocity_profiles import Gaussian
-import numpy as np
+
 Pprof = Linear()
 Vprof = Gaussian(dt=0.001, acceleration=1)
 

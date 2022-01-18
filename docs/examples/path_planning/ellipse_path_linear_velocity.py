@@ -1,7 +1,9 @@
+import numpy as np
+
 from abr_control.controllers.path_planners import PathPlanner
 from abr_control.controllers.path_planners.position_profiles import Ellipse
 from abr_control.controllers.path_planners.velocity_profiles import Linear
-import numpy as np
+
 Pprof = Ellipse(horz_stretch=3)
 Vprof = Linear(dt=0.001, acceleration=1)
 

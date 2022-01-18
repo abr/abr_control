@@ -1,7 +1,8 @@
+import numpy as np
+
 from abr_control.controllers.path_planners import PathPlanner
 from abr_control.controllers.path_planners.position_profiles import FromPoints
 from abr_control.controllers.path_planners.velocity_profiles import Gaussian
-import numpy as np
 
 pts = np.array([
     [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],

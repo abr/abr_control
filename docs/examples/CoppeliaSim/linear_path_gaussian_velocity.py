@@ -59,21 +59,17 @@ target_orientation /= np.linalg.norm(target_orientation)
 target_orientation = [0] + list(target_orientation)
 target_position = [-0.4, -0.3, 0.6]
 
-starting_orientation = transformations.euler_from_quaternion(starting_orientation, axes='rxyz')
-target_orientation = transformations.euler_from_quaternion(target_orientation, axes='rxyz')
+starting_orientation = transformations.euler_from_quaternion(
+        starting_orientation, axes='rxyz')
+
+target_orientation = transformations.euler_from_quaternion(
+        target_orientation, axes='rxyz')
 
 path_planner.generate_path(
         start_position=hand_xyz, target_position=target_position,
         start_orientation=starting_orientation, target_orientation=target_orientation,
         max_velocity=2
 )
-
-# traj_planner.generate_path(position=hand_xyz, target_position=target_position)
-# orientation_planner.match_position_path(
-#     orientation=starting_orientation,
-#     target_orientation=target_orientation,
-#     position_path=traj_planner.position_path,
-# )
 
 # set up lists for tracking data
 ee_track = []

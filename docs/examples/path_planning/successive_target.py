@@ -1,11 +1,14 @@
 """
-Example of moving between several randomly generated points where we stop at each target (v=0)
+Example of moving between several randomly generated points where we stop at
+each target (v=0)
 """
+import numpy as np
 import matplotlib.pyplot as plt
+
 from abr_control.controllers.path_planners import PathPlanner
 from abr_control.controllers.path_planners.position_profiles import Linear
 from abr_control.controllers.path_planners.velocity_profiles import Gaussian
-import numpy as np
+
 n_targets = 5
 
 Pprof = Linear()
