@@ -59,9 +59,9 @@ if use_wall_clock:
 else:
     time_elapsed = 0.0
 path_planner = PathPlanner(
-        pos_profile=Ellipse(horz_stretch=0.5),
-        vel_profile=Linear(dt=dt, acceleration=1)
-        )
+    pos_profile=Ellipse(horz_stretch=0.5),
+    vel_profile=Linear(dt=dt, acceleration=1)
+)
 
 # create our interface
 interface = PyGame(robot_config, arm_sim, dt=dt)
@@ -87,7 +87,7 @@ try:
             if count == path_planner.n_timesteps:
                 update_target = True
             elif first_pass:
-                update_target =  True
+                update_target = True
                 first_pass = False
 
         if update_target:
@@ -100,20 +100,31 @@ try:
             interface.set_target(target_xyz)
 
             generated_path = path_planner.generate_path(
-                start_position=hand_xyz, target_position=target_xyz, max_velocity=1, plot=False
+                start_position=hand_xyz,
+                target_position=target_xyz,
+                max_velocity=1,
+                plot=False
             )
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
-                        path=generated_path[:, :3], time_length=path_planner.time_to_converge
+                    path=generated_path[:, :3],
+                    time_length=path_planner.time_to_converge
                 )
                 vel_path = path_planner.convert_to_time(
-                        path=generated_path[:, 3:6], time_length=path_planner.time_to_converge
+                    path=generated_path[:, 3:6],
+                    time_length=path_planner.time_to_converge
                 )
 
         # get next target along trajectory
         if use_wall_clock:
-            target = [function(min(path_planner.time_to_converge, time_elapsed)) for function in pos_path]
-            target_velocity = [function(min(path_planner.time_to_converge, time_elapsed)) for function in vel_path]
+            target = [
+                function(min(path_planner.time_to_converge, time_elapsed))
+                for function in pos_path
+            ]
+            target_velocity = [
+                function(min(path_planner.time_to_converge, time_elapsed))
+                for function in vel_path
+            ]
         else:
             next_target = path_planner.next()
             target = next_target[:3]

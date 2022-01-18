@@ -16,7 +16,6 @@ from abr_control.controllers.path_planners import PathPlanner
 from abr_control.controllers.path_planners.position_profiles import Linear
 from abr_control.controllers.path_planners.velocity_profiles import Gaussian
 from abr_control.interfaces.mujoco import Mujoco
-from abr_control.utils import transformations
 
 max_a = 2
 n_targets = 100
@@ -57,8 +56,8 @@ ctrlr = OSC(
 )
 
 path_planner = PathPlanner(
-        pos_profile=Linear(),
-        vel_profile=Gaussian(dt=dt, acceleration=max_a)
+    pos_profile=Linear(),
+    vel_profile=Gaussian(dt=dt, acceleration=max_a)
 )
 
 # set up lists for tracking data
@@ -72,22 +71,16 @@ try:
         hand_xyz = robot_config.Tx("EE", feedback["q"])
 
         pos_target = np.array([
-                np.random.uniform(low=-0.4, high=0.4),
-                np.random.uniform(low=-0.4, high=0.4),
-                np.random.uniform(low=0.3, high=0.6)])
-
-        # ang_target = np.array([
-        #         0, 0,
-        #         np.random.uniform(low=0, high=2*np.pi)])
-
-        # starting_orientation = robot_config.quaternion("EE", feedback["q"])
-        # ang_state = transformations.euler_from_quaternion(starting_orientation, 'rxyz')
+            np.random.uniform(low=-0.4, high=0.4),
+            np.random.uniform(low=-0.4, high=0.4),
+            np.random.uniform(low=0.3, high=0.6)]
+        )
 
         path_planner.generate_path(
-                start_position=hand_xyz,
-                target_position=pos_target,
-                max_velocity=2
-                )
+            start_position=hand_xyz,
+            target_position=pos_target,
+            max_velocity=2
+        )
 
         interface.set_mocap_xyz("target", pos_target)
         at_target = 0
@@ -98,13 +91,6 @@ try:
                 break
             filtered_target = path_planner.next()
             interface.set_mocap_xyz("target_orientation", filtered_target[:3])
-            # interface.set_mocap_orientation(
-            #         "target_orientation",
-            #         transformations.quaternion_from_euler(
-            #             filtered_target[6],
-            #             filtered_target[7],
-            #             filtered_target[8],
-            #             'rxyz'))
 
             feedback = interface.get_feedback()
             hand_xyz = robot_config.Tx("EE", feedback["q"])
@@ -152,7 +138,7 @@ finally:
         from mpl_toolkits.mplot3d import axes3d  # pylint: disable=W0611
 
         fig = plt.figure(figsize=(8, 12))
-        ax1 = fig.add_subplot(311)
+        ax1 = fig.add_subplot(211)
         ax1.set_ylabel("3D position (m)")
         for ii, controlled_dof in enumerate(ctrlr_dof[:3]):
             if controlled_dof:
@@ -160,16 +146,7 @@ finally:
                 ax1.plot(target_track[:, ii], "--")
         ax1.legend()
 
-        # ax2 = fig.add_subplot(312)
-        # for ii, controlled_dof in enumerate(ctrlr_dof[3:]):
-        #     if controlled_dof:
-        #         ax2.plot(ee_angles_track[:, ii], label=dof_labels[ii + 3])
-        #         ax2.plot(target_angles_track[:, ii], "--")
-        # ax2.set_ylabel("3D orientation (rad)")
-        # ax2.set_xlabel("Time (s)")
-        # ax2.legend()
-
-        ax3 = fig.add_subplot(313, projection="3d")
+        ax3 = fig.add_subplot(212, projection="3d")
         ax3.set_title("End-Effector Trajectory")
         ax3.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label="ee_xyz")
         ax3.scatter(

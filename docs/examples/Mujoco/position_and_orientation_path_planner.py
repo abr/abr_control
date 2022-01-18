@@ -52,8 +52,8 @@ feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx("EE", feedback["q"])
 
 path_planner = PathPlanner(
-        pos_profile=Linear(),
-        vel_profile=Gaussian(dt=dt, acceleration=2)
+    pos_profile=Linear(),
+    vel_profile=Gaussian(dt=dt, acceleration=2)
 )
 
 
@@ -91,9 +91,10 @@ try:
             target_orientation = np.random.uniform(low=-np.pi, high=np.pi, size=3)
 
             path_planner.generate_path(
-                    start_position=hand_xyz, target_position=target_position,
-                    start_orientation=starting_orientation, target_orientation=target_orientation,
-                    max_velocity=2
+                start_position=hand_xyz, target_position=target_position,
+                start_orientation=starting_orientation,
+                target_orientation=target_orientation,
+                max_velocity=2
             )
 
             interface.set_mocap_xyz("target_orientation", target_position)
@@ -101,7 +102,10 @@ try:
             interface.set_mocap_orientation(
                 "target_orientation",
                 transformations.quaternion_from_euler(
-                    target_orientation[0], target_orientation[1], target_orientation[2], "rxyz"
+                    target_orientation[0],
+                    target_orientation[1],
+                    target_orientation[2],
+                    "rxyz"
                 )
             )
 
