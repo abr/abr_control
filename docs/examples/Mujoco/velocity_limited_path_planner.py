@@ -56,8 +56,8 @@ ctrlr = OSC(
 )
 
 path_planner = PathPlanner(
-        pos_profile=Linear(),
-        vel_profile=Gaussian(dt=dt, acceleration=max_a)
+    pos_profile=Linear(),
+    vel_profile=Gaussian(dt=dt, acceleration=max_a)
 )
 
 # set up lists for tracking data

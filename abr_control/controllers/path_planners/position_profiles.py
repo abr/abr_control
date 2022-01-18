@@ -82,7 +82,7 @@ class SinCurve(PosProf):
         ----------
         axes: list of strings, Optional (Default: ['x'])
             Contains any combination of, 'x', 'y', or 'z'. These
-            specify which dimensions will be warped by the sin curve. The indicies
+            specify which dimensions will be warped by the sin curve. The indices
             that are omitted from the list will have a straight path.
         cycles: list of ints, Optional (Default [1, 1, 1])
             Specifies the number of cycles of the sin curve to have. These are
@@ -101,7 +101,7 @@ class SinCurve(PosProf):
         self.axes = axes
         self.cycles = cycles
         # let user pass cycles as int, this adjust the period scaling accordingly
-        for cc in range(0, len(self.cycles)):  # pylint disable=C0200
+        for cc in range(0, len(self.cycles)):  # pylint: disable=C0200
             self.cycles[cc] = (self.cycles[cc] - 1) * 4 + 1
         super().__init__(n_sample_points=n_sample_points, **kwargs)
 
