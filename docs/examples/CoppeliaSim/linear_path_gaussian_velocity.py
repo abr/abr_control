@@ -42,8 +42,8 @@ interface.connect()
 n_timesteps = 100
 
 path_planner = PathPlanner(
-        pos_profile=Linear(),
-        vel_profile=Gaussian(dt=dt, acceleration=2)
+    pos_profile=Linear(),
+    vel_profile=Gaussian(dt=dt, acceleration=2)
 )
 
 # traj_planner = path_planners.SecondOrderDMP(error_scale=50, n_timesteps=n_timesteps)
@@ -60,15 +60,15 @@ target_orientation = [0] + list(target_orientation)
 target_position = [-0.4, -0.3, 0.6]
 
 starting_orientation = transformations.euler_from_quaternion(
-        starting_orientation, axes='rxyz')
+    starting_orientation, axes='rxyz')
 
 target_orientation = transformations.euler_from_quaternion(
-        target_orientation, axes='rxyz')
+    target_orientation, axes='rxyz')
 
 path_planner.generate_path(
-        start_position=hand_xyz, target_position=target_position,
-        start_orientation=starting_orientation, target_orientation=target_orientation,
-        max_velocity=2
+    start_position=hand_xyz, target_position=target_position,
+    start_orientation=starting_orientation, target_orientation=target_orientation,
+    max_velocity=2
 )
 
 # set up lists for tracking data

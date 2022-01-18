@@ -37,8 +37,8 @@ ctrlr = OSC(
 # create our path planner
 target_dx = 0.001
 path_planner = PathPlanner(
-        pos_profile=LinearP(),
-        vel_profile=LinearV(dt=dt, acceleration=1)
+    pos_profile=LinearP(),
+    vel_profile=LinearV(dt=dt, acceleration=1)
 )
 
 

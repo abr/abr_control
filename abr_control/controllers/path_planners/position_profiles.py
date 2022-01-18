@@ -101,7 +101,7 @@ class SinCurve(PosProf):
         self.axes = axes
         self.cycles = cycles
         # let user pass cycles as int, this adjust the period scaling accordingly
-        for cc in range(0, len(self.cycles)):
+        for cc in range(0, len(self.cycles)):  # pylint disable=C0200
             self.cycles[cc] = (self.cycles[cc] - 1) * 4 + 1
         super().__init__(n_sample_points=n_sample_points, **kwargs)
 

@@ -72,8 +72,8 @@ else:
     count = np.copy(params["n_timesteps"])
     time_elapsed = 0.0
 path_planner = PathPlanner(
-        pos_profile=Linear(),
-        vel_profile=Gaussian(dt=dt, acceleration=1)
+    pos_profile=Linear(),
+    vel_profile=Gaussian(dt=dt, acceleration=1)
 )
 
 ee_track = []

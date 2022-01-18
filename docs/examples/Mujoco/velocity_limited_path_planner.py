@@ -71,15 +71,16 @@ try:
         hand_xyz = robot_config.Tx("EE", feedback["q"])
 
         pos_target = np.array([
-                np.random.uniform(low=-0.4, high=0.4),
-                np.random.uniform(low=-0.4, high=0.4),
-                np.random.uniform(low=0.3, high=0.6)])
+            np.random.uniform(low=-0.4, high=0.4),
+            np.random.uniform(low=-0.4, high=0.4),
+            np.random.uniform(low=0.3, high=0.6)]
+        )
 
         path_planner.generate_path(
-                start_position=hand_xyz,
-                target_position=pos_target,
-                max_velocity=2
-                )
+            start_position=hand_xyz,
+            target_position=pos_target,
+            max_velocity=2
+        )
 
         interface.set_mocap_xyz("target", pos_target)
         at_target = 0

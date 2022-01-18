@@ -24,8 +24,8 @@ Pprof = Linear()
 Vprof = Gaussian(dt=0.001, acceleration=1)
 
 path_planner = PathPlanner(
-        pos_profile=Pprof,
-        vel_profile=Vprof
+    pos_profile=Pprof,
+    vel_profile=Vprof
 )
 start = np.zeros(3)
 targets = np.array([
@@ -44,11 +44,11 @@ for ii, target in enumerate(targets):
         start_velocity = target_velocities[ii-1]
 
     path = path_planner.generate_path(
-            start_position=start_position,
-            target_position=target,
-            max_velocity=2,
-            start_velocity=start_velocity,
-            target_velocity=target_velocities[ii],
+        start_position=start_position,
+        target_position=target,
+        max_velocity=2,
+        start_velocity=start_velocity,
+        target_velocity=target_velocities[ii],
     )
 
     if ii == 0:

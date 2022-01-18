@@ -57,8 +57,8 @@ else:
 first_pass = True
 
 path_planner = PathPlanner(
-        pos_profile=Linear(),
-        vel_profile=Gaussian(dt=dt, acceleration=2)
+    pos_profile=Linear(),
+    vel_profile=Gaussian(dt=dt, acceleration=2)
 )
 
 # create our interface
