@@ -11,23 +11,28 @@ Restrictions
 """
 import numpy as np
 import scipy.interpolate
+
 from abr_control.utils import colors as c
-class PosProf():
+
+
+class PosProf:
     def __init__(self, tol=1e-6, n_sample_points=1000, **kwargs):
         """
         Must take n_sample_points as an argument. This defines how many samples
         are required to properly follow the shape of the path curve.
         """
         self.n_sample_points = n_sample_points
-        endc = '\033[0m'
+        endc = "\033[0m"
         assert sum(abs(self.step(0))) <= tol, (
-            f"\n{c.red}Position profile must equal [0, 0, 0] at t=0\n" +
-            f"step(0) function returning {self.step(0)}{endc}")
+            f"\n{c.red}Position profile must equal [0, 0, 0] at t=0\n"
+            + f"step(0) function returning {self.step(0)}{endc}"
+        )
         step1 = self.step(1)
         for step in step1:
-            assert abs(step-1) <= tol, (
-                f"\n{c.red}Position profile must equal [1, 1, 1] at t=1\n" +
-                f"step(1) function returning {self.step(1)}{endc}")
+            assert abs(step - 1) <= tol, (
+                f"\n{c.red}Position profile must equal [1, 1, 1] at t=1\n"
+                + f"step(1) function returning {self.step(1)}{endc}"
+            )
 
     def step(self, t):
         """
@@ -90,14 +95,14 @@ class SinCurve(PosProf):
         """
 
         if axes is None:
-            axes = ['x']
+            axes = ["x"]
         if cycles is None:
             cycles = [1, 1, 1]
         self.axes = axes
         self.cycles = cycles
         # let user pass cycles as int, this adjust the period scaling accordingly
         for cc, cycle in enumerate(self.cycles):
-            self.cycles[cc] = (self.cycles[cc]-1)*4 + 1
+            self.cycles[cc] = (self.cycles[cc] - 1) * 4 + 1
         super().__init__(n_sample_points=n_sample_points, **kwargs)
 
     def step(self, t):
@@ -111,20 +116,20 @@ class SinCurve(PosProf):
         t: float
             the time in the range of [0, 1]
         """
-        if 'x' in self.axes:
-            x = np.sin(self.cycles[0] * t*np.pi/2)
+        if "x" in self.axes:
+            x = np.sin(self.cycles[0] * t * np.pi / 2)
         else:
-            x =t
+            x = t
 
-        if 'y' in self.axes:
-            y = np.sin(self.cycles[1] * t*np.pi/2)
+        if "y" in self.axes:
+            y = np.sin(self.cycles[1] * t * np.pi / 2)
         else:
-            y =t
+            y = t
 
-        if 'z' in self.axes:
-            z = np.sin(self.cycles[2] * t*np.pi/2)
+        if "z" in self.axes:
+            z = np.sin(self.cycles[2] * t * np.pi / 2)
         else:
-            z =t
+            z = t
 
         return np.array([x, y, z])
 
@@ -175,7 +180,7 @@ class FromPoints(PosProf):
 
 
 class Ellipse(PosProf):
-    def __init__(self, horz_stretch, plane='xy', n_sample_points=1000, **kwargs):
+    def __init__(self, horz_stretch, plane="xy", n_sample_points=1000, **kwargs):
         """
         Position profile that follows an ellipse
 
@@ -190,7 +195,7 @@ class Ellipse(PosProf):
         n_sample_points: int, Optional (Default: 1000)
             the number of points recommended to properly sample to curve function
         """
-        self.indices = {'x':0, 'y':1, 'z':2}
+        self.indices = {"x": 0, "y": 1, "z": 2}
         self.plane = plane
         for key in self.indices:
             if key not in self.plane:
@@ -199,13 +204,10 @@ class Ellipse(PosProf):
         # We generate the curve on the x axis, then rotate it to [1, 1, 1]
         self.b = horz_stretch
         # Rotate about z by 45
-        G = -np.pi/4
-        self.R = np.array([
-            [np.cos(G), -np.sin(G)],
-            [np.sin(G), np.cos(G)]]
-        )
+        G = -np.pi / 4
+        self.R = np.array([[np.cos(G), -np.sin(G)], [np.sin(G), np.cos(G)]])
         # magnitude to stretch our rotated curve to [1, 1]
-        self.mag = 2*np.sin(-G)
+        self.mag = 2 * np.sin(-G)
 
         super().__init__(n_sample_points=n_sample_points, **kwargs)
 
@@ -224,7 +226,7 @@ class Ellipse(PosProf):
         # x = t in this case because we will rotate xy to [1, 1]
         # equation of ellipse solving for y, with the ellipse
         # centered at [0.5, 0], a=0.5, and b defined by the user
-        y = self.b * np.sqrt(1 - (t-0.5)**2/0.5**2)
+        y = self.b * np.sqrt(1 - (t - 0.5) ** 2 / 0.5 ** 2)
         xy = np.dot(np.array([t, y]), self.R) * self.mag
         out = np.zeros(3)
         out[self.indices[self.plane[0]]] = xy[0]

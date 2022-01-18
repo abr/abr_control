@@ -9,7 +9,7 @@ from abr_control.utils import transformations
 # from .path_planner import PathPlanner
 
 
-class Orientation():
+class Orientation:
     """
     PARAMETERS
     ----------
