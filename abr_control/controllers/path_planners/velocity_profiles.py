@@ -1,5 +1,6 @@
 """
-Functions that return a 1D array of velocities from a desired start to target velocity
+Functions that return a 1D array of velocities from a desired start velocity to
+a target velocity
 """
 import numpy as np
 
@@ -31,12 +32,13 @@ class Gaussian(VelProf):
         acceleration: float
             the acceleration that defines our velocity curve
         n_sigma: int, Optional (Default: 3)
-            how many standard deviations of the gaussian function to use for the velocity
-            profile. The default value of 3 gives a smooth acceleration and deceleration.
-            A slower ramp up can be achieved with a larger sigma, and a faster ramp up by
-            decreasing sigma. Note that the curve gets shifted so that it starts at zero,
-            since the gaussian has a domain of [-inf, inf]. At sigma==3 we get close to
-            zero and have a smooth ramp up.
+            how many standard deviations of the gaussian function to use for the
+            velocity profile. The default value of 3 gives a smooth acceleration
+            and deceleration. A slower ramp up can be achieved with a larger
+            sigma, and a faster ramp up by decreasing sigma. Note that the curve
+            gets shifted so that it starts at zero, since the gaussian has a
+            domain of [-inf, inf]. At sigma==3 we get close to zero and have a
+            smooth ramp up.
         """
         self.acceleration = acceleration
         self.n_sigma = n_sigma
@@ -45,8 +47,8 @@ class Gaussian(VelProf):
 
     def generate(self, start_velocity, target_velocity):
         """
-        Generates the left half of the gaussian curve with n_sigma std, with sigma determined
-        by the timestep and max_a
+        Generates the left half of the gaussian curve with n_sigma std, with
+        sigma determined by the timestep and max_a
 
         Parameters
         ----------
