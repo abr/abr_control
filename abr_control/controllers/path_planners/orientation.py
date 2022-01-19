@@ -99,6 +99,7 @@ class Orientation:
 
         # stores the target Euler angles of the trajectory
         self.orientation_path = []
+        self.n = 0
         for _ in range(self.n_timesteps):
             quat = self._step(
                 orientation=orientation, target_orientation=target_orientation
