@@ -38,16 +38,11 @@ ctrlr = OSC(
 interface = CoppeliaSim(robot_config, dt=dt)
 interface.connect()
 
-# pregenerate our path and orientation planners
-n_timesteps = 100
 
 path_planner = PathPlanner(
     pos_profile=Linear(),
     vel_profile=Gaussian(dt=dt, acceleration=2)
 )
-
-# traj_planner = path_planners.SecondOrderDMP(error_scale=50, n_timesteps=n_timesteps)
-# orientation_planner = path_planners.Orientation()
 
 feedback = interface.get_feedback()
 hand_xyz = robot_config.Tx("EE", feedback["q"])
