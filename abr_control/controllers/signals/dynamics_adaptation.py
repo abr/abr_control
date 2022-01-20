@@ -66,6 +66,7 @@ class DynamicsAdaptation:
         tau_input=0.012,
         tau_training=0.012,
         tau_output=0.2,
+        dt=0.001,
         **kwargs
     ):
         # set up means and variances to be same dimensionality as original input signal
@@ -90,9 +91,9 @@ class DynamicsAdaptation:
         self.variances = variances
 
         # synapse time constants
-        self.tau_input = 0.012  # on input connection
-        self.tau_training = 0.012  # on the training signal
-        self.tau_output = 0.2  # on the output from the adaptive ensemble
+        self.tau_input = tau_input  # on input connection
+        self.tau_training = tau_training  # on the training signal
+        self.tau_output = tau_output  # on the output from the adaptive ensemble
         # NOTE: the time constant on the neural activity used in the learning
         # connection is the default 0.005, and can be set by specifying the
         # pre_synapse parameter inside the PES rule instantiation
@@ -193,7 +194,7 @@ class DynamicsAdaptation:
                 )
 
         nengo.rc.set("decoder_cache", "enabled", "False")
-        self.sim = nengo.Simulator(self.nengo_model, dt=0.001)
+        self.sim = nengo.Simulator(self.nengo_model, dt=dt)
 
     def generate(self, input_signal, training_signal):
         """Generates the control signal
