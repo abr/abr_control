@@ -67,14 +67,14 @@ If you would like to use the Pygame API, from your anaconda environment run::
     pip install pygame
 
 CoppeliaSim
-----
+-----------
 We support CoppeliaSim <=4.2. You will need to download
 `Vrep <http://coppeliarobotics.com/previousVersions/>`_ and follow the installation
 instructions.
 
 
 ABR Jaco2
-----
+---------
 In addition to simulation of the Kinova Jaco2 in CoppeliaSim and Mujoco, we have an
 API for controlling the real arm. For installation instructions, see the
 `ABR_Jaco2 <https://github.com/abr/abr_jaco2/>`_ repository.
@@ -122,7 +122,7 @@ functions that will calculate the transforms, Jacobian, Jacobian derivative, ine
 matrices, gravity forces, and centripetal and Coriolis effects for each joint and COM.
 There is also a base config class written for mujoco that has wrappers for these function
 so that they can be accessed in the same way. This way your code should work between
-various simulators with minimal changes requried. The different config files can be
+various simulators with minimal changes required. The different config files can be
 instantiated as:
 
 Pygame and CoppeliaSim::
@@ -201,11 +201,11 @@ This can greatly improve the stability of an arm's motion. The path planner can 
 12 dimensional path that follows velocity and acceleration limitations. The path planner determines these limits
 and the shape of the path to take by the position and velocity profiles passed on __init__.
 
-The path planner has a ``generate_path()`` function that takes in start and target positons,
+The path planner has a ``generate_path()`` function that takes in start and target positions,
 and a maximum velocity to travel. Optionally, start and target velocities (default 0 and 0)
 and orientations can be passed in. The path planner will generate a trajectory from your desired
 start to target positions (and optionally orientations). It will also discretize the path over
-time such that it will be moving at the set start velocity at the begining of the path, and will
+time such that it will be moving at the set start velocity at the beginning of the path, and will
 reach your target position and orientation while moving at your target velocity in that moment.
 The path planner will use the velocity profile to accelerate from your ``start_velocity`` up to your
 ``max_velocity``, and back down to your ``target_velocity``. If the path to travel is too short
@@ -234,7 +234,7 @@ the start and target positions.
 .. image:: docs/examples/linear_position_profile.png
 
 More complex shapes are available such as ellipse and sin curves are readily available, and custom
-ones can be added with relative ease. For example, an ellipse profile can be followed, with an additonal
+ones can be added with relative ease. For example, an ellipse profile can be followed, with an additional
 parameter than can adjust the stretching along the horizontal axis
 
 .. image:: docs/examples/ellipse_position_profile.png
