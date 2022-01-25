@@ -15,27 +15,24 @@ class PathPlanner:
         """
         Generalized path planner that outputs a velocity limited path
         - Takes a position and velocity profile to define the shape and speed
-            - position profile is a function that outputs a 3D value, with a
-            domain of [0, 1]
+            - Position profile is a function that outputs a 3D value
                 - at t==0 the profile must be [0, 0, 0]
                 - at t==1 the profile must be [1, 1, 1]
-            - velocity profile is a function that outputs a 1D list of
-            velocities from a start to a target velocity given some time step dt
+            - Velocity profile is a function that outputs a 1D list of velocities from
+            a start to a target velocity given some time step dt
 
-        - the generate_path function will warp the position profile so that it
-        starts and ends at the defined location, while maintaining the velocity
-        profile. The velocity profile will be limited to max_velocity. Once the
-        max velocity is reached it will be maintained until it is time to
-        decelerate to the target velocity (wrt the vel_profile). The final
-        velocity profile will go from start_velocity to max_velocity, and back
-        down the target_velocity. If we do not have enough time to reach
-        max_velocity we will accelerate until it is time to decelerate to
-        target_velocity.
+        - The generate_path function will warp the position profile so that it starts
+        and ends at the defined location, while maintaining the velocity profile. The
+        velocity profile will be limited to max_velocity. Once the max velocity is
+        reached it will be maintained until it is time to decelerate to the target
+        velocity (wrt the vel_profile). The final velocity profile will go from
+        start_velocity to max_velocity, and back down the target_velocity. If we do not
+        have enough time to reach max_velocity we will accelerate until it is time to
+        decelerate to target_velocity.
 
-        - A start and target orientation can optionally be passed in to
-        generate_path
-        - the order of the euler angles is defined by 'axes' on init
-        - quaternion slerp is used to smoothly transition from start to target
+        - A start and target orientation can optionally be passed in to generate_path
+        - The order of the euler angles is defined by 'axes' on init
+        - Quaternion SLERP is used to smoothly transition from start to target
         orientation, following the velocity profile so that we reach the target
         orientation at the same moment we reach out target position and target
         velocity.
@@ -43,20 +40,19 @@ class PathPlanner:
         Parameters
         ----------
         pos_profile: position_profiles class
-            must have a step function that takes in a float from 0 to 1, and
-            returns a 3x1 array. This defines the shape of the desired path,
-            with t(0) defining the starting position at [0, 0, 0], and t(1)
-            defining the target at [1, 1, 1]. The path planner will do the
-            appropriate warping to the actual start and target.
-        vel_profile: velocity profiles class
-            must accept dt on init.
-            must have a generate function that takes in start and target
-            velocities as floats, and returns a 1xN list that transitions
+            Must have a step function that takes in a float from 0 to 1, and returns a
+            3x1 array. This defines the shape of the desired path, with t(0) defining
+            the starting position at [0, 0, 0], and t(1) defining the target at
+            [1, 1, 1]. The path planner will do the appropriate warping to the actual
+            start and target.
+        vel_profile: velocity_profiles class
+            Must accept dt on init. Must have a generate function that takes in start
+            and target velocities as floats, and returns a 1xN list that transitions
             between them, where N is determined by dt.
         axes: string, Optional (Default: 'rxyz')
-            The euler order of state and target orientations
+            The euler order of state and target orientations.
         verbose: bool, Optional (Default: False)
-            True for extra debug prints
+            True for extra debug prints.
         """
         self.n_sample_points = pos_profile.n_sample_points
         self.dt = vel_profile.dt
@@ -83,9 +79,9 @@ class PathPlanner:
         Parameters
         ----------
         a: 3x1 array of floats
-            vector we are rotating
+            Vector being rotated.
         b: 3xa array of floats
-            vector we are trying to align to
+            vector to align to.
         """
         b = b / np.linalg.norm(b)  # normalize a
         a = a / np.linalg.norm(a)  # normalize b
@@ -112,39 +108,38 @@ class PathPlanner:
         plot=False,
     ):
         """
-        Takes a start and target position, along with an optional start and
-        target velocity, and generates a trajectory that smoothly accelerates,
-        at a rate defined by vel_profile, from start_velocity to max_v, and back
-        to target_v. If the path is too short to reach max_v and still
-        decelerate to target_v at a rate of max_a, then the path will be slowed
-        to the maximum allowable velocity so that we still reach target_velocity
-        at the moment we are at target_position. Optionally can pass in a 3D
-        angular state [a, b, g] and target orientation. Note that the orientation
-        should be given in euler angles, in the ordered specified by axes on init.
-        The orientation path will follow the same velocity profile as the
-        position path.
+        Takes a start and target position, along with an optional start and target
+        velocity, and generates a trajectory that smoothly accelerates, at a rate
+        defined by vel_profile, from start_velocity to max_v, and back to target_v.
+        If the path is too short to reach max_v and still decelerate to target_v at a
+        rate of max_a, then the path will be slowed to the maximum allowable velocity
+        so that we still reach target_velocity at the moment we are at target_position.
+        Optionally can pass in a 3D angular state [a, b, g] and target orientation.
+        Note that the orientation should be given in euler angles, in the ordered
+        specified by axes on init. The orientation path will follow the same velocity
+        profile as the position path.
 
         Parameters
         ----------
         start_position: 3x1 np.array of floats
-            starting position
+            The starting position (x, y, z).
         target_position: 3x1 np.array of floats
-            target position
+            The target position (x, y, z).
         max_velocity: float
-            the maximum allowable velocity of the path
+            The maximum allowable velocity of the path.
         start_velocity: float, Optional (Default: 0)
-            velocity at start of path
+            The velocity at start of path.
         target_velocity: float, Optional (Default: 0)
-            velocity at end of path
+            The velocity at end of path.
         start_orientation: 3x1 np.array of floats, Optional (Default: None)
-            orientation at start of path in euler angles, given in the order
-            specified on __init__ with the axes parameter (default rxyz).
-            When left as None no orientation path will be planned
+            The orientation at start of path in euler angles, given in the order
+            specified on __init__ with the axes parameter (default rxyz). When left as
+            `None`, no orientation path will be planned.
         target_orientation: 3x1 np.array of floats, Optional (Default: None)
-            the target orientation at the end of the path in euler angles,
-            given in the order specified on __init__ with the axes parameter
+            The target orientation at the end of the path in euler angles, given in the
+            order specified on __init__ with the axes parameter.
         plot: bool, Optional (Default: False)
-            True to plot path profiles for debugging
+            Set `True` to plot path profiles for debugging.
         """
         assert start_velocity <= max_velocity, (
             f"{c.red}start velocity({start_velocity}m/s) "
@@ -374,22 +369,14 @@ class PathPlanner:
                     self.ang_velocity_path,
                 )
             )
-            self.angular_planner = True
-            if plot:
-                self._plot(
-                    start_position=start_position,
-                    target_position=target_position,
-                    ang=True,
-                )
         else:
-            self.angular_planner = False
             self.path = np.hstack((self.position_path, self.velocity_path))
-            if plot:
-                self._plot(
-                    start_position=start_position,
-                    target_position=target_position,
-                    ang=False,
-                )
+
+        if plot:
+            self._plot(
+                start_position=start_position,
+                target_position=target_position,
+            )
 
         # Some parameters that are useful to have access to externally,
         # used in nengo-control
@@ -445,7 +432,7 @@ class PathPlanner:
 
     def next(self):
         """
-        Returns the next target from the generated path
+        Returns the next target from the generated path.
         """
         path = self.path[self.n]
         if self.n_timesteps is not None:
@@ -456,16 +443,16 @@ class PathPlanner:
         return path
 
     def convert_to_time(self, path, time_length):
-        """Accepts a pregenerated path from current state to target and
-        interpolates with respect to the time_limit. The function can
-        then be stepped through to reach a target within the specified time.
+        """Accepts a pregenerated path from current state to target and interpolates
+        with respect to the time_limit. The function can then be stepped through to
+        reach a target within the specified time.
 
-        PARAMETERS
+        Parameters
         ----------
         path: numpy.array
-            The output from a subclasses generate_path() function
+            The output from a subclasses generate_path() function.
         time_length: float
-            the desired time to go from state to target [seconds]
+            The desired time to go from state to target [seconds].
         """
 
         n_states = np.asarray(path).shape[1]
@@ -480,90 +467,79 @@ class PathPlanner:
 
         return path_func
 
-    def _plot(self, start_position, target_position, ang=None):
+    def _plot(self, start_position, target_position):
         """
-        Only called internally if plot=True in the generate_path call
-        Plots several profiles of the path for debugging. Most of the parameters
-        accessed are saved as self variables.
+        Only called internally if plot=True in the generate_path call. Plots several
+        profiles of the path for debugging. Most of the parameters accessed are saved
+        as self variables.
 
         Parameters
         ----------
         start_position: 3x1 np.array of floats
-            starting position
+            The starting (x, y, z) position.
         target_position: 3x1 np.array of floats
-            target position
+            The target (x, y, z) position.
         """
         len_start = len(self.starting_vel_profile)
         len_end = len(self.ending_vel_profile)
-        plt.figure()
-        if ang:
-            cols = 2
-        else:
-            cols = 1
+        cols = 2 if self.path.shape[1] == 12 else 1
 
-        # plot the components of the position path along with markers for the
-        # start and target
-        ax_fillbetween = plt.subplot(2, cols, 1)
-        plt.title("Position")
+        def _plot3(ax, array):
+            ax.plot(array[:, 0], "r")
+            ax.plot(array[:, 1], "b")
+            ax.plot(array[:, 2], "g")
+
+        def _scatter3(ax, x, y):
+            ax.scatter(x, y[0], c="r")
+            ax.scatter(x, y[1], c="b")
+            ax.scatter(x, y[2], c="g")
+
+        plt.figure(figsize=(8, 8))
+        # plot components of the position path, and markers for the start and target
+        ax0 = plt.subplot(2, cols, 1)
+        ax0.set_title("Position")
         steps = self.position_path.shape[0]
-        plt.plot(self.position_path[:, 0], "r")
-        plt.plot(self.position_path[:, 1], "b")
-        plt.plot(self.position_path[:, 2], "g")
-
-        plt.scatter(0, start_position[0], c="r")
-        plt.scatter(0, start_position[1], c="b")
-        plt.scatter(0, start_position[2], c="g")
-        plt.scatter(steps, target_position[0], c="r")
-        plt.scatter(steps, target_position[1], c="b")
-        plt.scatter(steps, target_position[2], c="g")
+        _plot3(ax0, self.position_path)
+        _scatter3(ax0, steps, target_position)
+        _scatter3(ax0, 0, start_position)
 
         # add markers where our velocity ramps stop and end
-        plt.plot(np.linalg.norm(self.position_path, axis=1))
-        plt.scatter(len_start, self.starting_dist, c="m")
-        if self.remaining_dist is not None:
-            plt.scatter(
-                steps - len_end, self.remaining_dist + self.starting_dist, c="c"
-            )
-            plt.scatter(
-                steps,
-                self.ending_dist + self.starting_dist + self.remaining_dist,
-                c="k",
-            )
+        # ax0.plot(np.cumsum(self.position_path))
+        # ax0.scatter(len_start, self.starting_dist, c="m")
+        # if self.remaining_dist is not None:
+        #     remain_plus_start = self.remaining_dist + self.starting_dist
+        #     ax0.scatter(steps - len_end, remain_plus_start, c="c")
+        #     ax0.scatter(steps, self.ending_dist + remain_plus_start, c="k")
         # fill the space signifying the linear portion of the path
-        ax_fillbetween.axvspan(
-            len_start, steps - len_end, alpha=0.25, label="linear velocity"
-        )
-
-        plt.legend(["x", "y", "z"])
+        ax0.axvspan(len_start, steps - len_end, alpha=0.25)
+        ax0.legend(["x", "y", "z"])
 
         # plot the components of the velocity profile
-        plt.subplot(2, cols, 2)
-        plt.title("Velocity")
-        plt.plot(self.velocity_path[:, 0], "r")
-        plt.plot(self.velocity_path[:, 1], "b")
-        plt.plot(self.velocity_path[:, 2], "g")
+        ax1 = plt.subplot(2, cols, 2)
+        ax1.set_title("Velocity")
+        _plot3(ax1, self.velocity_path)
 
         # plot the normalized velocities and markers for the limits
         norm = []
         for vel in self.velocity_path:
             norm.append(np.linalg.norm(vel))
-        plt.plot(norm, "y")
-        plt.plot([self.max_velocity] * len(norm), linestyle="--")
-        plt.plot([self.start_velocity] * len(norm), linestyle="--")
-        plt.plot([self.target_velocity] * len(norm), linestyle="--")
-        plt.legend(["dx", "dy", "dz", "norm", "vel limit", "start_vel", "target_vel"])
+        ax1.plot(norm, "y")
+        ax1.plot([self.max_velocity] * len(norm), linestyle="--")
+        ax1.plot([self.start_velocity] * len(norm), linestyle="-")
+        ax1.plot([self.target_velocity] * len(norm), linestyle="--")
+        ax1.legend(["dx", "dy", "dz", "norm", "vel limit", "start_vel", "target_vel"])
 
         # plot the orientation path if it exists
-        if ang:
-            plt.subplot(2, cols, 3)
-            plt.title("Orientation")
-            plt.plot(self.orientation_path)
-            plt.legend(["a", "b", "g"])
+        if self.path.shape[1] == 12:
+            ax2 = plt.subplot(2, cols, 3)
+            ax2.set_title("Orientation")
+            ax2.plot(self.orientation_path)
+            ax2.legend(["a", "b", "g"])
 
-            plt.subplot(2, cols, 4)
-            plt.title("Angular Velocity")
-            plt.plot(self.ang_velocity_path)
-            plt.legend(["da", "db", "dg"])
+            ax3 = plt.subplot(2, cols, 4)
+            ax3.set_title("Angular Velocity")
+            ax3.plot(self.ang_velocity_path)
+            ax3.legend(["da", "db", "dg"])
 
         plt.tight_layout()
 
@@ -575,163 +551,67 @@ class PathPlanner:
         curve = np.array(curve).T
 
         # plot the shape of the given curve
-        plt.figure()
+        plt.figure(figsize=(12, 4))
         ax1 = plt.subplot(131, projection="3d")
         ax1.set_title("Given Curve")
         ax1.plot(curve[0], curve[1], curve[2])
 
-        xerr = self.position_path[-1, 0] - target_position[0]
-        yerr = self.position_path[-1, 1] - target_position[1]
-        zerr = self.position_path[-1, 2] - target_position[2]
         dist_err = np.linalg.norm(self.position_path[-1] - target_position[:3])
 
-        # plot the transformed curve
-        # this is scaled, rotated, and shifted
+        # plot the transformed curve: scaled, rotated, and shifted
         ax3 = plt.subplot(132, projection="3d")
         ax3.set_title("Warped Curve")
-        ax3.plot(self.warped_xyz.T[0], self.warped_xyz.T[1], self.warped_xyz.T[2])
-        ax3.scatter(
-            start_position[0], start_position[1], start_position[2], label="start"
-        )
-        ax3.scatter(
-            target_position[0], target_position[1], target_position[2], label="target"
-        )
+        ax3.plot(*self.warped_xyz.T)
+        ax3.scatter(*start_position, label="start")
+        ax3.scatter(*target_position, label="target")
         ax3.legend()
 
         # plot the final path interpolated from the warped curve
         ax3 = plt.subplot(133, projection="3d")
         ax3.set_title("Interpolated Position Path")
-        ax3.plot(
-            self.position_path[:, 0],
-            self.position_path[:, 1],
-            self.position_path[:, 2],
-            label=f"error at target={dist_err:.4f}m",
-        )
-        ax3.scatter(
-            start_position[0], start_position[1], start_position[2], label="start"
-        )
-        ax3.scatter(
-            target_position[0], target_position[1], target_position[2], label="target"
-        )
+        ax3.plot(*self.position_path.T, label=f"error at target={dist_err:.4f}m")
+        ax3.scatter(*start_position, label="start")
+        ax3.scatter(*target_position, label="target")
         ax3.legend()
 
         # plot the components of the given curve
-        plt.figure()
-        plt.subplot(3, 3, 1)
-        plt.title("Given X Shape")
-        plt.xlabel("Steps [unitless]")
-        plt.plot(curve[0])
-        plt.subplot(3, 3, 2)
-        plt.title("Given Y Shape")
-        plt.xlabel("Steps [unitless]")
-        plt.plot(curve[1])
-        plt.subplot(3, 3, 3)
-        plt.title("Given Z Shape")
-        plt.xlabel("Steps [unitless]")
-        plt.plot(curve[2])
+        plt.figure(figsize=(8, 8))
+        labels = ["X", "Y", "Z"]
+        for ii in range(3):
+            ax = plt.subplot(3, 3, ii + 1)
+            ax.set_title(f"Given {labels[ii]} Shape")
+            ax.set_xlabel("Steps [unitless]")
+            ax.plot(curve[ii])
 
         # plot the components of the warped curve
-        plt.subplot(3, 3, 4)
-        plt.title("Warped X Path")
-        plt.xlabel("Steps [unitless]")
-        plt.plot(self.warped_xyz.T[0])
-        plt.hlines(
-            start_position[0],
-            0,
-            self.n_sample_points - 1,
-            linestyle="--",
-            color="y",
-            label="start",
-        )
-        plt.hlines(
-            target_position[0],
-            0,
-            self.n_sample_points - 1,
-            linestyle="--",
-            color="g",
-            label="target",
-        )
-        plt.legend()
-        plt.subplot(3, 3, 5)
-        plt.title("Warped Y Path")
-        plt.xlabel("Steps [unitless]")
-        plt.plot(self.warped_xyz.T[1])
-        plt.hlines(
-            start_position[1],
-            0,
-            self.n_sample_points - 1,
-            linestyle="--",
-            color="y",
-            label="start",
-        )
-        plt.hlines(
-            target_position[1],
-            0,
-            self.n_sample_points - 1,
-            linestyle="--",
-            color="g",
-            label="target",
-        )
-        plt.legend()
-        plt.subplot(3, 3, 6)
-        plt.title("Warped Z Path")
-        plt.xlabel("Steps [unitless]")
-        plt.plot(self.warped_xyz.T[2])
-        plt.hlines(
-            start_position[2],
-            0,
-            self.n_sample_points - 1,
-            linestyle="--",
-            color="y",
-            label="start",
-        )
-        plt.hlines(
-            target_position[2],
-            0,
-            self.n_sample_points - 1,
-            linestyle="--",
-            color="g",
-            label="target",
-        )
-        plt.legend()
+        args = [0, self.n_sample_points - 1]
+        plot_args = lambda c, l: {"linestyle": "--", "color": c, "label": l}
+        for ii in range(3):
+            ax = plt.subplot(3, 3, ii + 4)
+            ax.set_title(f"Warped {labels[ii]} Path")
+            ax.set_xlabel("Steps [unitless]")
+            ax.plot(self.warped_xyz.T[ii])
+            ax.hlines(start_position[ii], *args, **plot_args("y", "start"))
+            ax.hlines(target_position[ii], *args, **plot_args("g", "target"))
+            ax.legend()
 
         # plot the components of the path from the interpolated function
-        t = np.arange(0, self.position_path.shape[0])
-        t = self.dt * np.asarray(t)
+        err = self.position_path[-1] - target_position
+        t = np.arange(0, self.position_path.shape[0]) * self.dt
+        args = [0, t[-1]]
+        for ii in range(3):
+            ax = plt.subplot(3, 3, ii + 7)
 
-        plt.subplot(3, 3, 7)
-        plt.title("Interpolated X Path")
-        plt.plot(t, self.position_path[:, 0], label=f"x_err={xerr:.4f}m")
-        plt.hlines(
-            start_position[0], 0, t[-1], linestyle="--", color="y", label="start"
-        )
-        plt.hlines(
-            target_position[0], 0, t[-1], linestyle="--", color="g", label="target"
-        )
-        plt.xlabel("Time [sec]")
-        plt.legend()
-        plt.subplot(3, 3, 8)
-        plt.title("Interpolated Y Path")
-        plt.plot(t, self.position_path[:, 1], label=f"y_err={yerr:.4f}m")
-        plt.hlines(
-            start_position[1], 0, t[-1], linestyle="--", color="y", label="start"
-        )
-        plt.hlines(
-            target_position[1], 0, t[-1], linestyle="--", color="g", label="target"
-        )
-        plt.xlabel("Time [sec]")
-        plt.legend()
-        plt.subplot(3, 3, 9)
-        plt.title("Interpolated Z Path")
-        plt.plot(t, self.position_path[:, 2], label=f"z_err={zerr:.4f}m")
-        plt.hlines(
-            start_position[2], 0, t[-1], linestyle="--", color="y", label="start"
-        )
-        plt.hlines(
-            target_position[2], 0, t[-1], linestyle="--", color="g", label="target"
-        )
-        plt.xlabel("Time [sec]")
-        plt.legend()
+            ax.set_title(f"Interpolated {labels[ii]} Path")
+            ax.set_xlabel("Time [sec]")
+            ax.plot(
+                t,
+                self.position_path[:, ii],
+                label=f"{labels[ii]}_err={err[ii]:.4f}m",
+            )
+            ax.hlines(start_position[ii], *args, **plot_args("y", "start"))
+            ax.hlines(target_position[ii], *args, **plot_args("g", "target"))
+            ax.legend()
+
         plt.tight_layout()
-
         plt.show()

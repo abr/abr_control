@@ -1,6 +1,6 @@
 """
 Functions that return a 1D array of velocities from a desired start velocity to
-a target velocity
+a target velocity.
 """
 import numpy as np
 
@@ -8,14 +8,14 @@ import numpy as np
 class VelProf:
     def __init__(self, dt):
         """
-        Must take the sim timestep on init, as the path_planner requires it
+        Must take the sim timestep on init, as the path_planner requires it.
         """
         self.dt = dt
 
     def generate(self, start_velocity, target_velocity):
         """
         Takes start and target velocities as a float, and returns a 1xN array
-        of velocities that go from start to target
+        of velocities that go from start to target.
         """
         raise NotImplementedError
 
@@ -28,17 +28,16 @@ class Gaussian(VelProf):
         Parameters
         ----------
         dt: float
-            timestep in seconds
+            The timestep (in seconds).
         acceleration: float
-            the acceleration that defines our velocity curve
+            The acceleration that defines our velocity curve.
         n_sigma: int, Optional (Default: 3)
-            how many standard deviations of the gaussian function to use for the
-            velocity profile. The default value of 3 gives a smooth acceleration
-            and deceleration. A slower ramp up can be achieved with a larger
-            sigma, and a faster ramp up by decreasing sigma. Note that the curve
-            gets shifted so that it starts at zero, since the gaussian has a
-            domain of [-inf, inf]. At sigma==3 we get close to zero and have a
-            smooth ramp up.
+            How many standard deviations of the gaussian function to use for the
+            velocity profile. The default value of 3 gives a smooth acceleration and
+            deceleration. A slower ramp up can be achieved with a larger sigma, and a
+            faster ramp up by decreasing sigma. Note that the curve gets shifted so
+            that it starts at zero, since the gaussian has a domain of [-inf, inf].
+            At sigma==3 we get close to zero and have a smooth ramp up.
         """
         self.acceleration = acceleration
         self.n_sigma = n_sigma
@@ -48,14 +47,14 @@ class Gaussian(VelProf):
     def generate(self, start_velocity, target_velocity):
         """
         Generates the left half of the gaussian curve with n_sigma std, with
-        sigma determined by the timestep and max_a
+        sigma determined by the timestep and max_a.
 
         Parameters
         ----------
         start_velocity: float
-            the starting velocity in our curve
+            The starting velocity in the curve.
         target_velocity: float
-            The ending velocity in our curve
+            The ending velocity in the curve.
         """
         # calculate the time needed to reach our maximum velocity from vel
         ramp_up_time = (target_velocity - start_velocity) / self.acceleration
@@ -93,12 +92,13 @@ class Linear(VelProf):
     def __init__(self, dt, acceleration):
         """
         Velocity profile that follows a linear curve.
+
         Parameters
         ----------
         dt: float
-            timestep in seconds
+            The timestep (in seconds).
         acceleration: float
-            the acceleration that defines our velocity curve
+            The acceleration that defines the velocity curve.
         """
         self.acceleration = acceleration
 
@@ -106,15 +106,15 @@ class Linear(VelProf):
 
     def generate(self, start_velocity, target_velocity):
         """
-        Generates a linear ramp from start to target velocity, with a slope
-        of self.acceleration
+        Generates a linear ramp from start to target velocity, with a slope of
+        self.acceleration.
 
         Parameters
         ----------
         start_velocity: float
-            the starting velocity in our curve
+            The starting velocity in the curve.
         target_velocity: float
-            The ending velocity in our curve
+            The ending velocity in the curve.
         """
 
         vdiff = target_velocity - start_velocity

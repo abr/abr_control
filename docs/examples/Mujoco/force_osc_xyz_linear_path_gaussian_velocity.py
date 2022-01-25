@@ -56,8 +56,7 @@ ctrlr = OSC(
 )
 
 path_planner = PathPlanner(
-    pos_profile=Linear(),
-    vel_profile=Gaussian(dt=dt, acceleration=max_a)
+    pos_profile=Linear(), vel_profile=Gaussian(dt=dt, acceleration=max_a)
 )
 
 # set up lists for tracking data
@@ -70,16 +69,16 @@ try:
         feedback = interface.get_feedback()
         hand_xyz = robot_config.Tx("EE", feedback["q"])
 
-        pos_target = np.array([
-            np.random.uniform(low=-0.4, high=0.4),
-            np.random.uniform(low=-0.4, high=0.4),
-            np.random.uniform(low=0.3, high=0.6)]
+        pos_target = np.array(
+            [
+                np.random.uniform(low=-0.4, high=0.4),
+                np.random.uniform(low=-0.4, high=0.4),
+                np.random.uniform(low=0.3, high=0.6),
+            ]
         )
 
         path_planner.generate_path(
-            start_position=hand_xyz,
-            target_position=pos_target,
-            max_velocity=2
+            start_position=hand_xyz, target_position=pos_target, max_velocity=2
         )
 
         interface.set_mocap_xyz("target", pos_target)
@@ -115,7 +114,7 @@ try:
             ee_track.append(np.copy(hand_xyz))
             target_track.append(np.copy(pos_target[:3]))
 
-            if np.linalg.norm(hand_xyz-pos_target) < 0.02:
+            if np.linalg.norm(hand_xyz - pos_target) < 0.02:
                 at_target += 1
             else:
                 at_target = 0
@@ -128,9 +127,7 @@ finally:
     print("Simulation terminated...")
 
     ee_track = np.array(ee_track)
-    # ee_angles_track = np.array(ee_angles_track)
     target_track = np.array(target_track)
-    # target_angles_track = np.array(target_angles_track)
 
     if ee_track.shape[0] > 0:
         # plot distance from target and 3D trajectory

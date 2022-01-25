@@ -59,8 +59,7 @@ if use_wall_clock:
 else:
     time_elapsed = 0.0
 path_planner = PathPlanner(
-    pos_profile=Ellipse(horz_stretch=0.5),
-    vel_profile=Linear(dt=dt, acceleration=1)
+    pos_profile=Ellipse(horz_stretch=0.5), vel_profile=Linear(dt=dt, acceleration=1)
 )
 
 # create our interface
@@ -103,16 +102,16 @@ try:
                 start_position=hand_xyz,
                 target_position=target_xyz,
                 max_velocity=1,
-                plot=False
+                plot=False,
             )
             if use_wall_clock:
                 pos_path = path_planner.convert_to_time(
                     path=generated_path[:, :3],
-                    time_length=path_planner.time_to_converge
+                    time_length=path_planner.time_to_converge,
                 )
                 vel_path = path_planner.convert_to_time(
                     path=generated_path[:, 3:6],
-                    time_length=path_planner.time_to_converge
+                    time_length=path_planner.time_to_converge,
                 )
 
         # get next target along trajectory

@@ -72,8 +72,7 @@ else:
     count = np.copy(params["n_timesteps"])
     time_elapsed = 0.0
 path_planner = PathPlanner(
-    pos_profile=Linear(),
-    vel_profile=Gaussian(dt=dt, acceleration=1)
+    pos_profile=Linear(), vel_profile=Gaussian(dt=dt, acceleration=1)
 )
 
 ee_track = []
@@ -110,7 +109,7 @@ try:
                 start_position=hand_xyz,
                 target_position=target_xyz,
                 max_velocity=1,
-                plot=False
+                plot=False,
             )
             pos_path = generated_path[:, :3]
             vel_path = generated_path[:, 3:6]

@@ -40,8 +40,7 @@ interface.connect()
 
 
 path_planner = PathPlanner(
-    pos_profile=Linear(),
-    vel_profile=Gaussian(dt=dt, acceleration=2)
+    pos_profile=Linear(), vel_profile=Gaussian(dt=dt, acceleration=2)
 )
 
 feedback = interface.get_feedback()
@@ -55,15 +54,19 @@ target_orientation = [0] + list(target_orientation)
 target_position = [-0.4, -0.3, 0.6]
 
 starting_orientation = transformations.euler_from_quaternion(
-    starting_orientation, axes='rxyz')
+    starting_orientation, axes="rxyz"
+)
 
 target_orientation = transformations.euler_from_quaternion(
-    target_orientation, axes='rxyz')
+    target_orientation, axes="rxyz"
+)
 
 path_planner.generate_path(
-    start_position=hand_xyz, target_position=target_position,
-    start_orientation=starting_orientation, target_orientation=target_orientation,
-    max_velocity=2
+    start_position=hand_xyz,
+    target_position=target_position,
+    start_orientation=starting_orientation,
+    target_orientation=target_orientation,
+    max_velocity=2,
 )
 
 # set up lists for tracking data
@@ -76,9 +79,7 @@ target_angles_track = []
 try:
     count = 0
     interface.set_xyz("target", target_position)
-    interface.set_orientation(
-        "target", target_orientation
-    )
+    interface.set_orientation("target", target_orientation)
 
     print("\nSimulation starting...\n")
     while count < path_planner.n_timesteps:
@@ -97,7 +98,7 @@ try:
             q=feedback["q"],
             dq=feedback["dq"],
             target=target,
-            target_velocity=np.hstack([vel, np.zeros(3)])
+            target_velocity=np.hstack([vel, np.zeros(3)]),
         )
 
         # apply the control signal, step the sim forward

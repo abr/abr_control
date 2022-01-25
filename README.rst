@@ -79,18 +79,6 @@ In addition to simulation of the Kinova Jaco2 in CoppeliaSim and Mujoco, we have
 API for controlling the real arm. For installation instructions, see the
 `ABR_Jaco2 <https://github.com/abr/abr_jaco2/>`_ repository.
 
-PyDMPs
-------
-We have a generalized path planner made available in abr_control that allows planning of
-a 12D path. However, an alternative of interest may be path planning through the use of
-dynamic movement primitives (DMPs). DMPs allow for a stable, generalizable, and easily
-extensible  way of representing complex trajectories. For more details and tutorials, see the
-`PyDMPs Repo<https://studywolf.wordpress.com/category/robotics/dynamic-movement-primitive/>`_
-
-To install, from your Anaconda environment run::
-
-    pip install pydmps
-
 
 Usage
 =====

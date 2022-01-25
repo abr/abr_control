@@ -37,8 +37,7 @@ ctrlr = OSC(
 # create our path planner
 target_dx = 0.001
 path_planner = PathPlanner(
-    pos_profile=LinearP(),
-    vel_profile=LinearV(dt=dt, acceleration=1)
+    pos_profile=LinearP(), vel_profile=LinearV(dt=dt, acceleration=1)
 )
 
 
@@ -64,7 +63,7 @@ try:
             np.linalg.norm(np.dot(robot_config.J("EE", feedback["q"]), feedback["dq"]))
         )
 
-        if count-buffer_steps == path_planner.n_timesteps or first_pass:
+        if count - buffer_steps == path_planner.n_timesteps or first_pass:
             count = 0
             first_pass = False
             target_xyz = np.array(
@@ -73,19 +72,19 @@ try:
             # update the position of the target
             interface.set_target(target_xyz)
             path_planner.generate_path(
-                start_position=hand_xyz, target_position=target_xyz,
-                start_velocity=1, target_velocity=1, max_velocity=1, plot=False
+                start_position=hand_xyz,
+                target_position=target_xyz,
+                start_velocity=1,
+                target_velocity=1,
+                max_velocity=1,
+                plot=False,
             )
 
         # returns desired [position, velocity]
         target = path_planner.next()
 
         # generate an operational space control signal
-        u = ctrlr.generate(
-            q=feedback["q"],
-            dq=feedback["dq"],
-            target=target
-        )
+        u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"], target=target)
 
         # apply the control signal, step the sim forward
         interface.send_forces(u, update_display=(count % 20 == 0))
