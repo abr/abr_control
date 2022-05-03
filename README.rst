@@ -10,7 +10,8 @@ Mujoco, CoppeliaSim (formerly known as VREP), and Pygame simulation environments
 arm configuration files for one, two, and three-joint models, as well as the UR5 and
 Kinova Jaco 2 arms. Users can also easily extend the package to run with custom arm
 configurations. ABR Control auto-generates efficient C code for generating the control
-signals, or uses Mujoco's internal functions to carry out the calculations.
+signals, or uses Mujoco's internal functions to carry out the calculations. Example
+scripts showing how to use the ABR Control package are in the ``docs/examples`` folder.
 
 ABR also provides an interface and config available for controlling a real Jaco 2
 at the `ABR_Jaco2 <https://github.com/abr/abr_jaco2/>`_ repository.
@@ -134,11 +135,11 @@ Pygame and CoppeliaSim::
 
 Mujoco::
 
-    from abr_control.arms.mujoco_config import MujocoConfig as arm
+    from abr_control.arms import mujoco_config as arm
 
     # 'ur5', 'onelink', 'twolink', and 'threelink' also available as arm_model's
     arm_model = 'jaco2'
-    robot_config = arm.Config(arm_model)
+    robot_config = arm.MujocoConfig(arm_model)
 
 ABR Jaco2 (real arm)::
 
@@ -368,12 +369,12 @@ parsed from the xml once the arm config is linked to the mujoco interface, which
 happens upon connection. See Section 1 above for the difference in arm instantiation
 for a Mujoco sim.
 
-
 Examples
 ========
 
 The ABR Control repo comes with several examples that demonstrate the use of the
-different interfaces and controllers.
+different interfaces and controllers. You can find the examples in the `docs/examples`
+folder.
 
 By default all of the PyGame examples run with the three-link MapleSim arm. You can
 also run the examples using the two-link Python arm by changing the import statement at
