@@ -303,7 +303,7 @@ class MujocoConfig:
 
         return np.copy(M)
 
-    def R(self, name, q=None):
+    def R(self, name, q=None, object_type="body"):
         """Returns the rotation matrix of the specified body
 
         Parameters
@@ -317,8 +317,15 @@ class MujocoConfig:
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
-        mjp.cymj._mju_quat2Mat(self._R9, self.sim.data.get_body_xquat(name))
-        self._R = self._R9.reshape((3, 3))
+        if object_type == "body":
+            mjp.cymj._mju_quat2Mat(self._R9, self.sim.data.get_body_xquat(name))
+            self._R = self._R9.reshape((3, 3))
+        elif object_type == "geom":
+            R = self.sim.data.get_geom_xmat(name)
+        elif object_type == "site":
+            R = self.sim.data.get_site_xmat(name)
+        else:
+            raise Exception("Invalid object type specified: ", object_type)
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
