@@ -32,8 +32,7 @@ try:
 
     count = 0
     while 1:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
 
         if count % n_timesteps == 0:
@@ -65,7 +64,6 @@ try:
         target = path_planner.next()[0]
 
         # use position control
-        print("target angles: ", target[: robot_config.N_JOINTS])
         interface.send_target_angles(target[: robot_config.N_JOINTS])
         interface.viewer.render()
 

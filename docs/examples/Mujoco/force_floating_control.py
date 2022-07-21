@@ -24,7 +24,7 @@ robot_config = arm(arm_model)
 
 # create the Mujoco interface and connect up
 interface = Mujoco(robot_config, dt=0.001)
-interface.connect()
+interface.connect(joint_names=[f"joint{ii}" for ii in range(len(robot_config.START_ANGLES))])
 interface.send_target_angles(robot_config.START_ANGLES)
 
 # instantiate the controller
@@ -43,17 +43,13 @@ try:
     print("\nSimulation starting...\n")
 
     while 1:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
 
         # calculate the control signal
         u = ctrlr.generate(q=feedback["q"], dq=feedback["dq"])
-
-        # add gripper forces
-        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
 
         # send forces into Mujoco
         interface.send_forces(u)

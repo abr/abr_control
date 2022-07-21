@@ -71,8 +71,7 @@ link_name = "EE"
 try:
     while True:
 
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
 
         feedback = interface.get_feedback()

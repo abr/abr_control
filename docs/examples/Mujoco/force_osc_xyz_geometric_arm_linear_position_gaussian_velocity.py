@@ -56,7 +56,6 @@ interface.set_mocap_xyz("target", target_xyz)
 
 interface.set_mocap_xyz("hand", np.array([0.2, 0.4, 1]))
 
-target_geom_id = interface.sim.model.geom_name2id("target")
 green = [0, 0.9, 0, 0.5]
 red = [0.9, 0, 0, 0.5]
 
@@ -83,8 +82,7 @@ update_target = True
 link_name = "EE"
 try:
     while True:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
 
         start = timeit.default_timer()
@@ -152,9 +150,9 @@ try:
 
         error = np.linalg.norm(hand_xyz - target_xyz)
         if error < 0.02:
-            interface.sim.model.geom_rgba[target_geom_id] = green
+            interface.model.geom("target").rgba = green
         else:
-            interface.sim.model.geom_rgba[target_geom_id] = red
+            interface.model.geom("target").rgba = red
 
         if count % 500 == 0:
             print("error: ", error)

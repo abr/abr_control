@@ -51,7 +51,6 @@ adapt = signals.DynamicsAdaptation(
     **{"radius": 1},
 )
 
-target_geom_id = interface.sim.model.geom_name2id("target")
 green = [0, 0.9, 0, 0.5]
 red = [0.9, 0, 0, 0.5]
 
@@ -70,12 +69,11 @@ try:
     target_xyz = start + np.array([0.2, -0.2, -0.2])
     interface.set_mocap_xyz(name="target", xyz=target_xyz)
     # set the status of the top right text for adaptation
-    interface.viewer.adapt = True
+    interface.adapt = True
 
     count = 0.0
     while 1:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
 
         # get joint angle and velocity feedback
@@ -108,9 +106,6 @@ try:
         extra_gravity = robot_config.g(feedback["q"]) * 4
         u += extra_gravity
 
-        # add gripper forces
-        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
-
         # send forces into Mujoco, step the sim forward
         interface.send_forces(u)
 
@@ -126,9 +121,9 @@ try:
 
         error = np.linalg.norm(ee_xyz - target[:3])
         if error < 0.02:
-            interface.sim.model.geom_rgba[target_geom_id] = green
+            interface.model.geom("target").rgba = green
         else:
-            interface.sim.model.geom_rgba[target_geom_id] = red
+            interface.model.geom("target").rgba = red
 
 except:
     print(traceback.format_exc())

@@ -1,7 +1,7 @@
 import os
 from xml.etree import ElementTree
 
-import mujoco_py as mjp
+import mujoco
 import numpy as np
 
 from abr_control.utils import download_meshes
@@ -11,6 +11,20 @@ class MujocoConfig:
     """A wrapper on the Mujoco simulator to generate all the kinematics and
     dynamics calculations necessary for controllers.
     """
+
+    JNT_POS_LENGTH = {
+        mujoco.mjtJoint.mjJNT_FREE: 7,
+        mujoco.mjtJoint.mjJNT_BALL: 4,
+        mujoco.mjtJoint.mjJNT_SLIDE: 1,
+        mujoco.mjtJoint.mjJNT_HINGE: 1,
+    }
+
+    JNT_DYN_LENGTH = {
+        mujoco.mjtJoint.mjJNT_FREE: 6,
+        mujoco.mjtJoint.mjJNT_BALL: 3,
+        mujoco.mjtJoint.mjJNT_SLIDE: 1,
+        mujoco.mjtJoint.mjJNT_HINGE: 1,
+    }
 
     def __init__(self, xml_file, folder=None, use_sim_state=True, force_download=False):
         """Loads the Mujoco model from the specified xml file
@@ -56,7 +70,7 @@ class MujocoConfig:
             self.xml_dir = f"{folder}"
             self.xml_file = os.path.join(self.xml_dir, xml_file)
 
-        self.N_GRIPPEPR_JOINTS = 0
+        self.N_GRIPPER_JOINTS = 0
 
         # get access to some of our custom arm parameters from the xml definition
         tree = ElementTree.parse(self.xml_file)
@@ -96,10 +110,10 @@ class MujocoConfig:
                 files=files,
             )
 
-        self.model = mjp.load_model_from_path(self.xml_file)
+        # self.sim = mujoco.MjModel.from_xml_path(self.xml_file)
         self.use_sim_state = use_sim_state
 
-    def _connect(self, sim, joint_pos_addrs, joint_vel_addrs, joint_dyn_addrs):
+    def _connect(self, model, data, joint_pos_addrs, joint_dyn_addrs):
         """Called by the interface once the Mujoco simulation is created,
         this connects the config to the simulator so it can access the
         kinematics and dynamics information calculated by Mujoco.
@@ -111,23 +125,21 @@ class MujocoConfig:
         joint_pos_addrs: np.array of ints
             The index of the robot joints in the Mujoco simulation data joint
             position array
-        joint_vel_addrs: np.array of ints
-            The index of the robot joints in the Mujoco simulation data joint
-            velocity array
         joint_dyn_addrs: np.array of ints
             The index of the robot joints in the Mujoco simulation data joint
             Jacobian, inertia matrix, and gravity vector
         """
         # get access to the Mujoco simulation
-        self.sim = sim
+        self.model = model
+        self.data = data
+
         self.joint_pos_addrs = np.copy(joint_pos_addrs)
-        self.joint_vel_addrs = np.copy(joint_vel_addrs)
         self.joint_dyn_addrs = np.copy(joint_dyn_addrs)
 
         # number of controllable joints in the robot arm
         self.N_JOINTS = len(self.joint_dyn_addrs)
         # number of joints in the Mujoco simulation
-        N_ALL_JOINTS = self.sim.model.nv
+        N_ALL_JOINTS = self.model.nv
 
         # need to calculate the joint_dyn_addrs indices in flat vectors returned
         # for the Jacobian
@@ -145,11 +157,10 @@ class MujocoConfig:
 
         # a place to store data returned from Mujoco
         self._g = np.zeros(self.N_JOINTS)
-        self._J3NP = np.zeros(3 * N_ALL_JOINTS)
-        self._J3NR = np.zeros(3 * N_ALL_JOINTS)
+        self._J3NP = np.zeros((3, N_ALL_JOINTS))
+        self._J3NR = np.zeros((3, N_ALL_JOINTS))
         self._J6N = np.zeros((6, self.N_JOINTS))
-        self._MNN_vector = np.zeros(N_ALL_JOINTS ** 2)
-        self._MNN = np.zeros(self.N_JOINTS ** 2)
+        self._MNN = np.zeros((N_ALL_JOINTS, N_ALL_JOINTS))
         self._R9 = np.zeros(9)
         self._R = np.zeros((3, 3))
         self._x = np.ones(4)
@@ -168,19 +179,19 @@ class MujocoConfig:
             The set of joint forces to apply to the arm joints [Nm]
         """
         # save current state
-        old_q = np.copy(self.sim.data.qpos[self.joint_pos_addrs])
-        old_dq = np.copy(self.sim.data.qvel[self.joint_vel_addrs])
-        old_u = np.copy(self.sim.data.ctrl)
+        old_q = np.copy(self.data.qpos[self.joint_pos_addrs])
+        old_dq = np.copy(self.data.qvel[self.joint_dyn_addrs])
+        old_u = np.copy(self.data.ctrl)
 
         # update positions to specified state
-        self.sim.data.qpos[self.joint_pos_addrs] = np.copy(q)
+        self.data.qpos[self.joint_pos_addrs] = np.copy(q)
         if dq is not None:
-            self.sim.data.qvel[self.joint_vel_addrs] = np.copy(dq)
+            self.data.qvel[self.joint_dyn_addrs] = np.copy(dq)
         if u is not None:
-            self.sim.data.ctrl[:] = np.copy(u)
+            self.data.ctrl[:] = np.copy(u)
 
         # move simulation forward to calculate new kinematic information
-        self.sim.forward()
+        mujoco.mj_forward(self.model, self.data)
 
         return old_q, old_dq, old_u
 
@@ -199,7 +210,7 @@ class MujocoConfig:
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
-        g = -1 * self.sim.data.qfrc_bias[self.joint_dyn_addrs]
+        g = -1 * self.data.qfrc_bias[self.joint_dyn_addrs]
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -250,30 +261,30 @@ class MujocoConfig:
         if object_type == "body":
             # TODO: test if using this function is faster than the old way
             # NOTE: for bodies, the Jacobian for the COM is returned
-            mjp.cymj._mj_jacBodyCom(
+            mujoco.mj_jacBodyCom(
                 self.model,
-                self.sim.data,
+                self.data,
                 self._J3NP,
                 self._J3NR,
-                self.model.body_name2id(name),
+                mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
             )
         else:
             if object_type == "geom":
-                jacp = self.sim.data.get_geom_jacp
-                jacr = self.sim.data.get_geom_jacr
+                jacp = self.data.get_geom_jacp
+                jacr = self.data.get_geom_jacr
             elif object_type == "site":
-                jacp = self.sim.data.get_site_jacp
-                jacr = self.sim.data.get_site_jacr
+                jacp = self.data.get_site_jacp
+                jacr = self.data.get_site_jacr
             else:
                 raise Exception("Invalid object type specified: ", object_type)
 
-            jacp(name, self._J3NP)[self.jac_indices]  # pylint: disable=W0106
-            jacr(name, self._J3NR)[self.jac_indices]  # pylint: disable=W0106
+            jacp(name, self._J3NP)#[self.jac_indices]  # pylint: disable=W0106
+            jacr(name, self._J3NR)#[self.jac_indices]  # pylint: disable=W0106
 
         # get the position Jacobian hstacked (1 x N_JOINTS*3)
-        self._J6N[:3] = self._J3NP[self.jac_indices].reshape((3, self.N_JOINTS))
+        self._J6N[:3] = self._J3NP[:, self.joint_dyn_addrs].reshape((3, self.N_JOINTS))
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
-        self._J6N[3:] = self._J3NR[self.jac_indices].reshape((3, self.N_JOINTS))
+        self._J6N[3:] = self._J3NR[:, self.joint_dyn_addrs].reshape((3, self.N_JOINTS))
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -294,9 +305,8 @@ class MujocoConfig:
 
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM
-        mjp.cymj._mj_fullM(self.model, self._MNN_vector, self.sim.data.qM)
-        M = self._MNN_vector[self.M_indices]
-        M = M.reshape((self.N_JOINTS, self.N_JOINTS))
+        mujoco.mj_fullM(self.model, self._MNN, self.data.qM)
+        M = self._MNN[self.joint_dyn_addrs][:, self.joint_dyn_addrs]
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -318,12 +328,12 @@ class MujocoConfig:
             old_q, old_dq, old_u = self._load_state(q)
 
         if object_type == "body":
-            mjp.cymj._mju_quat2Mat(self._R9, self.sim.data.get_body_xquat(name))
+            mujoco.mju_quat2Mat(self._R9, self.data.body(name).xquat)
             self._R = self._R9.reshape((3, 3))
         elif object_type == "geom":
-            R = self.sim.data.get_geom_xmat(name)
+            R = self.data.geom(name).xmat
         elif object_type == "site":
-            R = self.sim.data.get_site_xmat(name)
+            R = self.data.site(name).xmat
         else:
             raise Exception("Invalid object type specified: ", object_type)
 
@@ -346,7 +356,7 @@ class MujocoConfig:
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
-        quaternion = np.copy(self.sim.data.get_body_xquat(name))
+        quaternion = np.copy(self.data.body(name).xquat)
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -401,19 +411,19 @@ class MujocoConfig:
             old_q, old_dq, old_u = self._load_state(q)
 
         if object_type == "body":
-            Tx = np.copy(self.sim.data.get_body_xpos(name))
+            Tx = np.copy(self.data.body(name).xpos)
         elif object_type == "geom":
-            Tx = np.copy(self.sim.data.get_geom_xpos(name))
+            Tx = np.copy(self.data.geom(name).xpos)
         elif object_type == "joint":
-            Tx = np.copy(self.sim.data.get_joint_xanchor(name))
+            Tx = np.copy(self.data.joint(name).xanchor)
         elif object_type == "site":
-            Tx = np.copy(self.sim.data.get_site_xpos(name))
+            Tx = np.copy(self.data.site(name).xpos)
         elif object_type == "camera":
-            Tx = np.copy(self.sim.data.get_cam_xpos(name))
+            Tx = np.copy(self.data.com(name).xpos)
         elif object_type == "light":
-            Tx = np.copy(self.sim.data.get_light_xpos(name))
+            Tx = np.copy(self.data.light(name).xpos)
         elif object_type == "mocap":
-            Tx = np.copy(self.sim.data.get_mocap_pos(name))
+            Tx = np.copy(self.data.mocap(name).pos)
         else:
             raise Exception("Invalid object type specified: ", object_type)
 

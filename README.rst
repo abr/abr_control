@@ -40,26 +40,14 @@ Optional Installation
 
 Mujoco
 ------
-If you would like to use the Mujoco API you will need to install a
-forked version of `mujoco-py <https://github.com/studywolf/mujoco-py/>`_ with hooks for
-exitting out of simulations with the ESC key. To use the mujoco API, make sure you are
-in your anaconda environment and run::
-
-    git clone https://github.com/studywolf/mujoco-py.git
-    cd mujoco-py
-    pip install -e .
-    pip install glfw>=1.8.3
-    pip install requests
-
-Additionally, in Ubuntu 20.04 you will need::
+To run Mujoco simulations, you will need the ``mujoco`` and ``mujoco-python-viewer``
+packages installed. You can either `pip install` these yourself or run the repo
+install with ``pip install -e . optional``.  Additionally, in Ubuntu 20.04 you
+will need::
 
     sudo apt install libomesa6-dev
     sudo apt install libglew-dev
     sudo apt install patchelf
-
-and add the following line to your `~/.bashrc` file::
-
-    export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so
 
 Pygame
 ------

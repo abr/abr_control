@@ -22,8 +22,9 @@ else:
 robot_config = arm(arm_model)
 
 # create our Mujoco interface
-interface = Mujoco(robot_config, dt=0.001)
-interface.connect()
+dt = 0.001
+interface = Mujoco(robot_config, dt=dt, visualize=True)
+interface.connect(joint_names=[f"joint{ii}" for ii in range(len(robot_config.START_ANGLES))])
 interface.send_target_angles(robot_config.START_ANGLES)
 
 # damp the movements of the arm
@@ -38,23 +39,20 @@ ctrlr = OSC(
     ctrlr_dof=[True, True, True, False, False, False],
 )
 
-interface.send_target_angles(robot_config.START_ANGLES)
-
 # set up lists for tracking data
 ee_track = []
 target_track = []
 
-target_geom_id = interface.sim.model.geom_name2id("target")
+target_geom = "target"
 green = [0, 0.9, 0, 0.5]
 red = [0.9, 0, 0, 0.5]
 
-
+np.random.seed(0)
 def gen_target(interface):
     target_xyz = (np.random.rand(3) + np.array([-0.5, -0.5, 0.5])) * np.array(
         [1, 1, 0.5]
     )
     interface.set_mocap_xyz(name="target", xyz=target_xyz)
-
 
 try:
     # get the end-effector's initial position
@@ -64,11 +62,10 @@ try:
     # make the target offset from that start position
     gen_target(interface)
 
-    count = 0.0
+    count = 0
     print("\nSimulation starting...\n")
     while 1:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
@@ -89,9 +86,6 @@ try:
             target=target,
         )
 
-        # add gripper forces
-        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
-
         # send forces into Mujoco, step the sim forward
         interface.send_forces(u)
 
@@ -103,13 +97,14 @@ try:
 
         error = np.linalg.norm(ee_xyz - target[:3])
         if error < 0.02:
-            interface.sim.model.geom_rgba[target_geom_id] = green
+            # interface.model.geom(target_geom).rgba = green
             count += 1
         else:
             count = 0
-            interface.sim.model.geom_rgba[target_geom_id] = red
+            # interface.model.geom(target_geom).rgba = red
 
         if count >= 50:
+            print("Generating a new target")
             gen_target(interface)
             count = 0
 
@@ -143,11 +138,18 @@ finally:
         ax2.set_title("End-Effector Trajectory")
         ax2.plot(ee_track[:, 0], ee_track[:, 1], ee_track[:, 2], label="ee_xyz")
         ax2.scatter(
-            target_track[0, 0],
-            target_track[0, 1],
-            target_track[0, 2],
+            target_track[1, 0],
+            target_track[1, 1],
+            target_track[1, 2],
             label="target",
             c="r",
+        )
+        ax2.scatter(
+            ee_track[0, 0],
+            ee_track[0, 1],
+            ee_track[0, 2],
+            label="start",
+            c="g",
         )
         ax2.legend()
         plt.show()

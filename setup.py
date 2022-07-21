@@ -39,7 +39,10 @@ install_req = [
     "sympy>=1.3",
 ]
 docs_req = []
-optional_req = []
+optional_req = [
+    "mujoco",
+    "mujoco-python-viewer",
+]
 tests_req = [
     "pytest>=4.4.0",
     "pytest-xdist>=1.26.0",

@@ -69,8 +69,7 @@ try:
 
     print("\nSimulation starting...\n")
     while 1:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
         # get arm feedback
         feedback = interface.get_feedback()
@@ -127,9 +126,6 @@ try:
             dq=feedback["dq"],
             target=target,
         )
-
-        # add gripper forces
-        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
 
         # apply the control signal, step the sim forward
         interface.send_forces(u)

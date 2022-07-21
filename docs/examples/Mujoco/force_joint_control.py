@@ -2,6 +2,9 @@
 A basic script for connecting and moving the arm to a target
 configuration in joint space, offset from its starting position.
 The simulation simulates 2500 time steps and then plots the results.
+
+NOTE: The number of joints controlled is specified by the
+n_dof_to_control variable below
 """
 import sys
 import traceback
@@ -22,15 +25,17 @@ robot_config = arm(arm_model)
 
 # create interface and connect
 interface = Mujoco(robot_config=robot_config, dt=0.001)
-interface.connect()
-interface.send_target_angles(robot_config.START_ANGLES)
+
+n_dof_to_control = 3
+interface.connect(joint_names=[f"joint{ii}" for ii in range(n_dof_to_control)])
+interface.send_target_angles(robot_config.START_ANGLES[:n_dof_to_control])
 
 # instantiate the REACH controller for the jaco2 robot
 ctrlr = Joint(robot_config, kp=20, kv=10)
 
 # make the target an offset of the current configuration
 feedback = interface.get_feedback()
-target = feedback["q"] + np.random.random(robot_config.N_JOINTS) * 2 - 1
+target = feedback["q"] + np.random.random(robot_config.N_JOINTS) * 1 - 0.5
 
 # set up arrays for tracking end-effector and target position
 q_track = []
@@ -40,8 +45,7 @@ try:
     count = 0
     print("\nSimulation starting...\n")
     while count < 2500:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
@@ -52,9 +56,6 @@ try:
             dq=feedback["dq"],
             target=target,
         )
-
-        # add gripper forces
-        u = np.hstack((u, np.zeros(robot_config.N_GRIPPER_JOINTS)))
 
         # send forces into Mujoco, step the sim forward
         interface.send_forces(u)

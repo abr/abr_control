@@ -15,7 +15,7 @@ from abr_control.utils import transformations
 from abr_control.utils.transformations import quaternion_conjugate, quaternion_multiply
 
 # initialize our robot config for the jaco2
-robot_config = arm("mujoco_balljoint.xml", folder=".", use_sim_state=False)
+robot_config = arm("mujoco_two_balljoints.xml", folder=".", use_sim_state=False)
 
 # create our Mujoco interface
 interface = Mujoco(robot_config, dt=0.001)
@@ -28,7 +28,7 @@ ctrlr = Joint(
     robot_config,
     kp=kp,
     kv=kv,
-    quaternions=[True],
+    quaternions=[True, True],
 )
 
 # set up lists for tracking data
@@ -36,7 +36,6 @@ q_track = []
 target_track = []
 error_track = []
 
-target_geom_id = interface.sim.model.geom_name2id("target")
 green = [0, 0.9, 0, 0.5]
 red = [0.9, 0, 0, 0.5]
 threshold = 0.002  # threshold distance for being within target before moving on
@@ -44,7 +43,13 @@ threshold = 0.002  # threshold distance for being within target before moving on
 # get the end-effector's initial position
 np.random.seed(0)
 target_quaternions = [
-    transformations.unit_vector(transformations.random_quaternion()) for ii in range(4)
+    np.hstack(
+        [
+            transformations.unit_vector(transformations.random_quaternion())
+            for jj in range(2)
+        ]
+    )
+    for ii in range(4)
 ]
 
 target_index = 0
@@ -61,8 +66,7 @@ try:
     count = 0.0
     print("\nSimulation starting...\n")
     while 1:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
@@ -82,22 +86,24 @@ try:
         target_track.append(np.copy(target))
 
         # calculate the distance between quaternions
-        error = quaternion_multiply(
-            target,
-            quaternion_conjugate(feedback["q"]),
-        )
-        error = 2 * np.arctan2(np.linalg.norm(error[1:]) * -np.sign(error[0]), error[0])
-        # quaternion distance for same angles can be 0 or 2*pi, so use a sine
-        # wave here so 0 and 2*np.pi = 0
-        error = np.sin(error / 2)
+        error = 0.0
+        for ii in range(2):
+            temp = quaternion_multiply(
+                target[ii * 4 : (ii * 4) + 4],
+                quaternion_conjugate(feedback["q"][ii * 4 : (ii * 4) + 4]),
+            )
+            temp = 2 * np.arctan2(np.linalg.norm(temp[1:]) * -np.sign(temp[0]), temp[0])
+            # quaternion distance for same angles can be 0 or 2*pi, so use a sine
+            # wave here so 0 and 2*np.pi = 0
+            error += np.sin(temp / 2)
         error_track.append(np.copy(error))
 
         if abs(error) < threshold:
-            interface.sim.model.geom_rgba[target_geom_id] = green
+            interface.model.geom("target").rgba = green
             count += 1
         else:
             count = 0
-            interface.sim.model.geom_rgba[target_geom_id] = red
+            interface.model.geom("target").rgba = red
 
         if count >= 1000:
             target_index += 1

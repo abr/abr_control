@@ -32,7 +32,6 @@ ctrlr = OSC(
 ee_track = []
 target_track = []
 
-target_geom_id = interface.sim.model.geom_name2id("target")
 green = [0, 0.9, 0, 0.5]
 red = [0.9, 0, 0, 0.5]
 
@@ -54,8 +53,7 @@ try:
     count = 0.0
     print("\nSimulation starting...\n")
     while 1:
-        if interface.viewer.exit:
-            glfw.destroy_window(interface.viewer.window)
+        if glfw.window_should_close(interface.viewer.window):
             break
         # get joint angle and velocity feedback
         feedback = interface.get_feedback()
@@ -87,11 +85,11 @@ try:
 
         error = np.linalg.norm(ee_xyz - target[:3])
         if error < 0.02:
-            interface.sim.model.geom_rgba[target_geom_id] = green
+            interface.model.geom("target").rgba = green
             count += 1
         else:
             count = 0
-            interface.sim.model.geom_rgba[target_geom_id] = red
+            interface.model.geom("target").rgba = red
 
         if count >= 50:
             target_index += 1
