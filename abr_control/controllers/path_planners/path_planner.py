@@ -313,9 +313,13 @@ class PathPlanner:
 
         if self.verbose:
             if max_v != self.max_velocity:
-                self.log.append(f"{c.yellow}Maximum reachable velocity given acceleration and distance: {max_v:.2f}m/s{c.endc}")
+                self.log.append(
+                    f"{c.yellow}Maximum reachable velocity given acceleration and distance: {max_v:.2f}m/s{c.endc}"
+                )
             else:
-                self.log.append(f"{c.green}Max velocity reached: {self.max_velocity}m/s{c.endc}")
+                self.log.append(
+                    f"{c.green}Max velocity reached: {self.max_velocity}m/s{c.endc}"
+                )
         self.position_path = []
 
         # the distance covered over time with respect to our velocity profile
@@ -475,11 +479,10 @@ class PathPlanner:
         if n > len(path) the last point is returned
         """
         if n >= self.n_timesteps:
-            n = self.n_timesteps-1
+            n = self.n_timesteps - 1
         path = self.path[n]
 
         return path
-
 
     def convert_to_time(self, path, time_length):
         """Accepts a pregenerated path from current state to target and interpolates
