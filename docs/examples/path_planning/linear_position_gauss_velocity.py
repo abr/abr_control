@@ -13,7 +13,7 @@ path.generate_path(
     target_position=np.array([5, 3, -2]),
     start_orientation=np.array([0, 0, 0]),
     target_orientation=np.array([0, 0, 3.14]),
-    max_velocity=2,
+    max_velocity=20,
     start_velocity=0,
     target_velocity=0,
     plot=True,

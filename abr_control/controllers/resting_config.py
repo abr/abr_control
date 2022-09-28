@@ -20,6 +20,15 @@ class RestingConfig(Joint):
 
         self.rest_angles = np.asarray(rest_angles)
         self.rest_indices = [val is not None for val in rest_angles]
+        self.q_tilde = self.q_tilde_angle
+
+    def q_tilde_angle(self, q, target):
+        # distance / direction
+        q_tilde = np.zeros(len(q))
+        q_tilde[self.rest_indices] = (
+            self.rest_angles[self.rest_indices] - q[self.rest_indices] + np.pi
+        ) % (np.pi * 2) - np.pi
+        return q_tilde
 
     def generate(self, q, dq):
         """Generates the control signal

@@ -48,6 +48,7 @@ adapt = signals.DynamicsAdaptation(
     means=[0.12, 2.14, 1.87, 4.32, 0.59, 0.12, -0.38, -0.42, -0.29, 0.36],
     variances=[0.08, 0.6, 0.7, 0.3, 0.6, 0.08, 1.4, 1.6, 0.7, 1.2],
     spherical=True,
+    **{'radius': 1}
 )
 
 target_geom_id = interface.sim.model.geom_name2id("target")

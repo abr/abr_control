@@ -20,7 +20,7 @@ arm_sim = arm.ArmSim(robot_config)
 damping = Damping(robot_config, kv=10)
 # keep the arm near a default configuration
 resting_config = RestingConfig(
-    robot_config, kp=50, kv=np.sqrt(50), rest_angles=[np.pi / 4, np.pi / 4, None]
+    robot_config, kp=50, kv=np.sqrt(50), rest_angles=[np.pi / 4, np.pi, None]
 )
 
 # create an operational space controller
@@ -28,7 +28,7 @@ ctrlr = OSC(
     robot_config,
     kp=20,
     use_C=True,
-    null_controllers=[damping],
+    null_controllers=[damping, resting_config],
     # control (x, y) out of [x, y, z, alpha, beta, gamma]
     ctrlr_dof=[True, True, False, False, False, False],
 )

@@ -164,39 +164,6 @@ class PathPlanner:
 
         self.max_velocity = max_velocity
 
-        if self.starting_dist is None:
-            # Regenerate our velocity curves if start or end v have changed
-            if (
-                self.starting_vel_profile is None
-                or self.start_velocity != start_velocity
-            ):
-                self.starting_vel_profile = self.vel_profile.generate(
-                    start_velocity=start_velocity, target_velocity=self.max_velocity
-                )
-
-            # calculate the distance covered ramping from start_velocity to
-            # max_v and from max_v to target_velocity
-            self.starting_dist = np.sum(self.starting_vel_profile * self.dt)
-
-        if self.ending_dist is None:
-            # if our start and end v are the same, just mirror the curve to
-            # avoid regenerating
-            if start_velocity == target_velocity:
-                self.ending_vel_profile = self.starting_vel_profile[::-1]
-
-            # if target velocity is different, generate its unique curve
-            elif (
-                self.ending_vel_profile is None
-                or self.target_velocity != target_velocity
-            ):
-                self.ending_vel_profile = self.vel_profile.generate(
-                    start_velocity=target_velocity, target_velocity=self.max_velocity
-                )[::-1]
-
-            # calculate the distance covered ramping from start_velocity to
-            # max_v and from max_v to target_velocity
-            self.ending_dist = np.sum(self.ending_vel_profile * self.dt)
-
         # save as self variables so we can check on the next generate call if we
         # need a different profile
         self.start_velocity = start_velocity
@@ -264,33 +231,91 @@ class PathPlanner:
         # distance is greater than our ramping up and down distance, add a linear
         # velocity between the ramps to converge to the correct position
         self.remaining_dist = None
-        if curve_length >= self.starting_dist + self.ending_dist:
-            # calculate the remaining steps where we will be at constant max_v
-            remaining_dist = curve_length - (self.ending_dist + self.starting_dist)
-            constant_speed_steps = int(remaining_dist / self.max_velocity / self.dt)
 
-            self.stacked_vel_profile = np.hstack(
-                (
-                    self.starting_vel_profile,
-                    np.ones(constant_speed_steps) * self.max_velocity,
-                    self.ending_vel_profile,
+        # if the max_v is not attainable in the distance from start to target
+        # start dropping it to reach the maximum possible velocity. This is
+        # better than scaling the profile as before, because the prior method
+        # results in a constant number of steps regarless of distance, which
+        # can really slow down short reaches.
+        searching_for_valid_velocity_profile = True
+
+        max_v = self.max_velocity
+        while searching_for_valid_velocity_profile:
+            if max_v <= 0:
+                raise ValueError
+
+            if self.starting_dist != 0:
+                # Regenerate our velocity curves if start or end v have changed
+                # if (
+                #     self.starting_vel_profile is None
+                #     or self.start_velocity != start_velocity
+                # ):
+                self.starting_vel_profile = self.vel_profile.generate(
+                    start_velocity=start_velocity, target_velocity=max_v
                 )
-            )
-            if plot:
-                self.remaining_dist = remaining_dist
-                self.dist = dist
-        else:
-            # scale our profile
-            # TODO to do this properly we should evaluate the integral to get
-            # the t where the sum of the profile is half our travel distance.
-            # This way we maintain the same acceleration profile instead of
-            # maintaining the same number of steps and accelerating more slowly,
-            # which is what we do by scaling the vel profile down
-            scale = curve_length / (self.starting_dist + self.ending_dist)
-            self.stacked_vel_profile = np.hstack(
-                (scale * self.starting_vel_profile, scale * self.ending_vel_profile)
-            )
 
+                # calculate the distance covered ramping from start_velocity to
+                # max_v and from max_v to target_velocity
+                self.starting_dist = np.sum(self.starting_vel_profile * self.dt)
+
+            if self.ending_dist != 0:
+                # if our start and end v are the same, just mirror the curve to
+                # avoid regenerating
+                # if start_velocity == target_velocity:
+                #     self.ending_vel_profile = self.starting_vel_profile[::-1]
+                #
+                # # if target velocity is different, generate its unique curve
+                # # elif (
+                # #     self.ending_vel_profile is None
+                # #     or self.target_velocity != target_velocity
+                # # ):
+                # else:
+                self.ending_vel_profile = self.vel_profile.generate(
+                    start_velocity=target_velocity, target_velocity=max_v
+                )[::-1]
+
+                # calculate the distance covered ramping from start_velocity to
+                # max_v and from max_v to target_velocity
+                self.ending_dist = np.sum(self.ending_vel_profile * self.dt)
+
+            if curve_length > self.starting_dist + self.ending_dist:
+                # calculate the remaining steps where we will be at constant max_v
+                remaining_dist = curve_length - (self.ending_dist + self.starting_dist)
+                constant_speed_steps = int(remaining_dist / max_v / self.dt)
+
+                self.stacked_vel_profile = np.hstack(
+                    (
+                        self.starting_vel_profile,
+                        np.ones(constant_speed_steps) * max_v,
+                        self.ending_vel_profile,
+                    )
+                )
+                if plot:
+                    self.remaining_dist = remaining_dist
+                    self.dist = dist
+
+                searching_for_valid_velocity_profile = False
+            elif curve_length == self.starting_dist + self.ending_dist:
+                self.stacked_vel_profile = np.hstack(
+                    (
+                        self.starting_vel_profile,
+                        self.ending_vel_profile,
+                    )
+                )
+                if plot:
+                    self.remaining_dist = remaining_dist
+                    self.dist = dist
+
+                searching_for_valid_velocity_profile = False
+
+            else:
+                max_v -= 0.1
+
+        if self.verbose:
+            if max_v != self.max_velocity:
+                self.log.append(f"{c.yellow}Maximum reachable velocity given acceleration and distance: {max_v:.2f}m/s{c.endc}")
+            else:
+                self.log.append(f"{c.green}Max velocity reached: {self.max_velocity}m/s{c.endc}")
         self.position_path = []
 
         # the distance covered over time with respect to our velocity profile
@@ -413,6 +438,8 @@ class PathPlanner:
                 print(log)
             print(f"{c.blue}{dash}{c.endc}")
 
+            self.log = []
+
         err = np.linalg.norm(self.position_path[-1] - target_position)
         if err >= 0.01:
             warnings.warn(
@@ -441,6 +468,18 @@ class PathPlanner:
             self.n += 1
 
         return path
+
+    def next_at_n(self, n):
+        """
+        Returns the nth point along the path without incrementing any internal coutners.
+        if n > len(path) the last point is returned
+        """
+        if n >= self.n_timesteps:
+            n = self.n_timesteps-1
+        path = self.path[n]
+
+        return path
+
 
     def convert_to_time(self, path, time_length):
         """Accepts a pregenerated path from current state to target and interpolates

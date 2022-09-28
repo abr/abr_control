@@ -67,8 +67,10 @@ class DynamicsAdaptation:
         tau_training=0.012,
         tau_output=0.2,
         dt=0.001,
-        **kwargs
+        **ens_kwargs
     ):
+        self.dt = dt
+
         # set up means and variances to be same dimensionality as original input signal
         self.variances = (
             np.ones(n_input) if variances is None else np.asarray(variances)
@@ -163,9 +165,8 @@ class DynamicsAdaptation:
                         n_neurons=self.n_neurons,
                         dimensions=n_input,
                         intercepts=intercepts[ii],
-                        radius=np.sqrt(n_input),
                         encoders=encoders[ii],
-                        **kwargs,
+                        **ens_kwargs,
                     )
                 )
 
@@ -212,11 +213,11 @@ class DynamicsAdaptation:
             input_signal = self.scale_inputs(input_signal)
 
         # store local copies to feed in to the adaptive population
-        self.input_signal = input_signal
+        self.input_signal = np.squeeze(input_signal)
         self.training_signal = training_signal
 
         # run the simulation t generate the adaptive signal
-        self.sim.run(time_in_seconds=0.001, progress_bar=False)
+        self.sim.run(time_in_seconds=self.dt, progress_bar=False)
 
         return self.output
 
