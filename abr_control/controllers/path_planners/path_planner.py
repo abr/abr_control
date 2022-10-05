@@ -246,10 +246,6 @@ class PathPlanner:
 
             if self.starting_dist != 0:
                 # Regenerate our velocity curves if start or end v have changed
-                # if (
-                #     self.starting_vel_profile is None
-                #     or self.start_velocity != start_velocity
-                # ):
                 self.starting_vel_profile = self.vel_profile.generate(
                     start_velocity=start_velocity, target_velocity=max_v
                 )
@@ -261,18 +257,12 @@ class PathPlanner:
             if self.ending_dist != 0:
                 # if our start and end v are the same, just mirror the curve to
                 # avoid regenerating
-                # if start_velocity == target_velocity:
-                #     self.ending_vel_profile = self.starting_vel_profile[::-1]
-                #
-                # # if target velocity is different, generate its unique curve
-                # # elif (
-                # #     self.ending_vel_profile is None
-                # #     or self.target_velocity != target_velocity
-                # # ):
-                # else:
-                self.ending_vel_profile = self.vel_profile.generate(
-                    start_velocity=target_velocity, target_velocity=max_v
-                )[::-1]
+                if start_velocity == target_velocity:
+                    self.ending_vel_profile = self.starting_vel_profile[::-1]
+                else:
+                    self.ending_vel_profile = self.vel_profile.generate(
+                        start_velocity=target_velocity, target_velocity=max_v
+                    )[::-1]
 
                 # calculate the distance covered ramping from start_velocity to
                 # max_v and from max_v to target_velocity
