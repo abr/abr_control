@@ -117,7 +117,7 @@ class Mujoco(Interface):
         print("MuJoCo session created")
 
     def disconnect(self):
-        """Stop and reset the simulation.
+        """Stop and reset the simulation
         """
         if self.visualize:
             self.viewer.close()
@@ -237,6 +237,9 @@ class Mujoco(Interface):
             xyz = self.data.geom(name).xpos
         elif object_type == "site":
             xyz = self.data.site(name).xpos
+            xyz = self.sim.data.get_site_xpos(name)
+        elif object_type == "camera":
+            xyz = self.sim.data.get_camera_xpos(name)
         else:
             raise Exception(f"get_xyz for {object_type} object type not supported")
 
@@ -253,13 +256,18 @@ class Mujoco(Interface):
             The type of mujoco object to get the orientation of.
             Can be: body, geom, site
         """
-        if object_type == "body":
+        if object_type == "mocap":  # commonly queried to find target
+            quat = self.sim.data.get_mocap_quat(name)
+        elif object_type == "body":
             quat = self.data.body(name).xquat
         elif object_type == "geom":
             xmat = self.data.geom(name).xmat
             quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
         elif object_type == "site":
             xmat = self.data.site(name).xmat
+            quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
+        elif object_type == "camera":
+            xmat = self.sim.data.get_camera_xmat(name)
             quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
         else:
             raise Exception(
