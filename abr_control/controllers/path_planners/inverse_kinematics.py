@@ -34,6 +34,7 @@ class InverseKinematics:
         plot=False,
         method=3,
         axes="rxyz",
+        EE="EE",
     ):
         """
 
@@ -84,13 +85,13 @@ class InverseKinematics:
 
         q = np.copy(position)
         for ii in range(n_timesteps):
-            J = self.robot_config.J("EE", q=q)
-            Tx = self.robot_config.Tx("EE", q=q)
+            J = self.robot_config.J(EE, q=q)
+            Tx = self.robot_config.Tx(EE, q=q)
             ee_track.append(Tx)
 
             dx = target_position[:3] - Tx
 
-            Qe = self.robot_config.quaternion("EE", q=q)
+            Qe = self.robot_config.quaternion(EE, q=q)
             # Method 4
             dr = Qe[0] * Qd[1:] - Qd[0] * Qe[1:] - np.cross(Qd[1:], Qe[1:])
 
