@@ -111,6 +111,10 @@ class Mujoco(Interface):
             # set the default display to skip frames to speed things up
             self.viewer._render_every_frame = False
 
+            if camera_id > -1:
+                self.viewer.cam.fixedcamid = camera_id
+                self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
+
         print("MuJoCo session created")
 
     def disconnect(self):
@@ -243,9 +247,11 @@ class Mujoco(Interface):
             xyz = self.data.geom(name).xpos
         elif object_type == "site":
             xyz = self.data.site(name).xpos
-            xyz = self.sim.data.get_site_xpos(name)
+            # xyz = self.data.get_site_xpos(name)
         elif object_type == "camera":
-            xyz = self.sim.data.get_camera_xpos(name)
+            xyz = self.data.get_camera_xpos(name)
+        elif object_type == "joint":
+            xyz = self.model.jnt(name).pos
         else:
             raise Exception(f"get_xyz for {object_type} object type not supported")
 
