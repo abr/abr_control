@@ -72,9 +72,11 @@ class MujocoConfig:
 
         self.N_GRIPPER_JOINTS = 0
 
+        with open(self.xml_file, 'r') as f:
+            self.xml = f.read()
+
         # get access to some of our custom arm parameters from the xml definition
-        tree = ElementTree.parse(self.xml_file)
-        root = tree.getroot()
+        root = ElementTree.fromstring(self.xml)
         for custom in root.findall("custom/numeric"):
             name = custom.get("name")
             if name == "START_ANGLES":
@@ -113,7 +115,6 @@ class MujocoConfig:
                 files=files,
             )
 
-        # self.sim = mujoco.MjModel.from_xml_path(self.xml_file)
         self.use_sim_state = use_sim_state
 
     def _connect(self, model, data, joint_pos_addrs, joint_vel_addrs):

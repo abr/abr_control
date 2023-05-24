@@ -72,7 +72,7 @@ class Mujoco(Interface):
         camera_id: int, optional (Default: -1)
             the id of the camera to use for the visualization
         """
-        self.model = mujoco.MjModel.from_xml_path(self.robot_config.xml_file)
+        self.model = mujoco.MjModel.from_xml_string(self.robot_config.xml)
         self.data = mujoco.MjData(self.model)
         # set the time step for simulation
         self.model.opt.timestep = self.dt
