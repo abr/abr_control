@@ -185,7 +185,7 @@ class Mujoco(Interface):
         """
         self.sim.data.xfrc_applied[self.model.body_name2id(name)] = u_ext
 
-    def send_target_angles(self, q):
+    def send_target_angles(self, q, use_joint_pos_addrs=True):
         """Move the robot to the specified configuration.
 
         Parameters
@@ -194,7 +194,10 @@ class Mujoco(Interface):
             configuration to move to [radians]
         """
 
-        self.data.qpos[self.joint_pos_addrs] = np.copy(q)
+        if use_joint_pos_addrs:
+            self.data.qpos[self.joint_pos_addrs] = np.copy(q)
+        else:
+            self.data.qpos[:] = q[:]
         mujoco.mj_forward(self.model, self.data)
 
     def set_joint_state(self, q, dq):
