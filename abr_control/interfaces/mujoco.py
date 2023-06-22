@@ -44,7 +44,7 @@ class Mujoco(Interface):
         # if we want the offscreen render context
         self.create_offscreen_rendercontext = create_offscreen_rendercontext
 
-    def connect(self, joint_names=None, camera_id=-1):
+    def connect(self, joint_names=None, camera_id=-1, EE="EE"):
         """
         joint_names: list, optional (Default: None)
             list of joint names to send control signal to and get feedback from
@@ -69,7 +69,7 @@ class Mujoco(Interface):
             bodyid = mujoco.mj_name2id(
                 self.model,
                 mujoco.mjtObj.mjOBJ_BODY,
-                "EE"
+                EE
             )
             # and working back to the world body
             while self.model.body_parentid[bodyid] != 0:
@@ -138,7 +138,7 @@ class Mujoco(Interface):
         joint_dyn_addr = list(range(first_dyn, first_dyn + dynvec_length))[::-1]
         return joint_dyn_addr
 
-    def send_forces(self, u, update_display=True, use_joint_dyn_addrs=True):
+    def send_forces(self, u, update_display=True, use_joint_dyn_addrs=True, EE="EE"):
         """Apply the specified torque to the robot joints, move the simulation
         one time step forward, and update the position of the hand object.
 
@@ -161,11 +161,11 @@ class Mujoco(Interface):
 
         # Update position of hand object
         feedback = self.get_feedback()
-        hand_xyz = self.robot_config.Tx(name="EE", q=feedback["q"])
+        hand_xyz = self.robot_config.Tx(name=EE, q=feedback["q"])
         self.set_mocap_xyz("hand", hand_xyz)
 
         # Update orientation of hand object
-        hand_quat = self.robot_config.quaternion(name="EE", q=feedback["q"])
+        hand_quat = self.robot_config.quaternion(name=EE, q=feedback["q"])
         self.set_mocap_orientation("hand", hand_quat)
 
         if self.visualize and update_display:
