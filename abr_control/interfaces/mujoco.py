@@ -61,6 +61,7 @@ class Mujoco(Interface):
         mujoco.mj_forward(self.model, self.data)  # run forward to fill in sim.data
 
         self.joint_pos_addrs = []
+        self.joint_vel_addrs = []
         self.joint_dyn_addrs = []
 
         if joint_names is None:
@@ -78,10 +79,12 @@ class Mujoco(Interface):
 
                 for jntadr in range(first_joint, first_joint + num_joints):
                     self.joint_pos_addrs += self.get_joint_pos_addrs(jntadr)
+                    self.joint_vel_addrs += self.get_joint_vel_addrs(jntadr)
                     self.joint_dyn_addrs += self.get_joint_dyn_addrs(jntadr)
                 bodyid = self.model.body_parentid[bodyid]
 
             self.joint_pos_addrs = self.joint_pos_addrs[::-1]
+            self.joint_vel_addrs = self.joint_vel_addrs[::-1]
             self.joint_dyn_addrs = self.joint_dyn_addrs[::-1]
 
         else:
@@ -91,16 +94,24 @@ class Mujoco(Interface):
                     mujoco.mjtObj.mjOBJ_JOINT,
                     name
                 )
-                self.joint_pos_addrs += self.get_joint_pos_addrs(jntadr)
-                self.joint_dyn_addrs += self.get_joint_dyn_addrs(jntadr)
+                self.joint_pos_addrs += self.get_joint_pos_addrs(jntadr)[::-1]
+                self.joint_vel_addrs += self.get_joint_vel_addrs(jntadr)[::-1]
+                self.joint_dyn_addrs += self.get_joint_dyn_addrs(jntadr)[::-1]
+                
 
         # give the robot config access to the sim for wrapping the
         # forward kinematics / dynamics functions
+        print("Connecting to robot config...")
+        # self.joint_pos_addrs.sort()
+        print("self.joint_pos_addrs", self.joint_pos_addrs)
+        print("self.joint_vel_addrs", self.joint_vel_addrs)
+        # self.joint_dyn_addrs.sort()
+        print("self.joint_dyn_addrs", self.joint_dyn_addrs)
         self.robot_config._connect(
             self.model,
             self.data,
             self.joint_pos_addrs,
-            self.joint_dyn_addrs,
+            self.joint_vel_addrs,
         )
 
         # if we want to use the offscreen render context create it before the
@@ -130,10 +141,21 @@ class Mujoco(Interface):
         posvec_length = self.robot_config.JNT_POS_LENGTH[self.model.jnt_type[jntadr]]
         joint_pos_addr = list(range(first_pos, first_pos + posvec_length))[::-1]
         return joint_pos_addr
+    
+    def get_joint_vel_addrs(self, jntadr):
+        # store the data.qvel and .ctrl indices associated with this joint
+        first_vel = self.model.jnt_dofadr[jntadr]
+        velvec_length = self.robot_config.JNT_DYN_LENGTH[self.model.jnt_type[jntadr]]
+        joint_vel_addr = list(range(first_vel, first_vel + velvec_length))[::-1]
+        return joint_vel_addr
 
     def get_joint_dyn_addrs(self, jntadr):
         # store the data.qvel and .ctrl indices associated with this joint
-        first_dyn = self.model.jnt_dofadr[jntadr]
+        # first_dyn = self.model.jnt_dofadr[jntadr]
+        for i, v in enumerate(self.model.actuator_trnid):
+            if v[0] == jntadr:
+                first_dyn = i
+                break
         dynvec_length = self.robot_config.JNT_DYN_LENGTH[self.model.jnt_type[jntadr]]
         joint_dyn_addr = list(range(first_dyn, first_dyn + dynvec_length))[::-1]
         return joint_dyn_addr
@@ -151,6 +173,7 @@ class Mujoco(Interface):
         use_joint_dyn_addrs: boolean
             set false to update the control signal for all actuators
         """
+        
         if use_joint_dyn_addrs:
             self.data.ctrl[self.joint_dyn_addrs] = u[:]
         else:
@@ -162,11 +185,11 @@ class Mujoco(Interface):
         # Update position of hand object
         feedback = self.get_feedback()
         hand_xyz = self.robot_config.Tx(name="EE", q=feedback["q"])
-        self.set_mocap_xyz("hand", hand_xyz)
+        self.set_mocap_xyz("right_hand", hand_xyz)
 
         # Update orientation of hand object
         hand_quat = self.robot_config.quaternion(name="EE", q=feedback["q"])
-        self.set_mocap_orientation("hand", hand_quat)
+        self.set_mocap_orientation("right_hand", hand_quat)
 
         if self.visualize and update_display:
             self.viewer.render()
@@ -185,7 +208,7 @@ class Mujoco(Interface):
         """
         self.sim.data.xfrc_applied[self.model.body_name2id(name)] = u_ext
 
-    def send_target_angles(self, q, use_joint_pos_addrs=True):
+    def send_target_angles(self, q):
         """Move the robot to the specified configuration.
 
         Parameters
@@ -194,10 +217,7 @@ class Mujoco(Interface):
             configuration to move to [radians]
         """
 
-        if use_joint_pos_addrs:
-            self.data.qpos[self.joint_pos_addrs] = np.copy(q)
-        else:
-            self.data.qpos[:] = q[:]
+        self.data.qpos[self.joint_pos_addrs] = np.copy(q)
         mujoco.mj_forward(self.model, self.data)
 
     def set_joint_state(self, q, dq):
@@ -212,7 +232,7 @@ class Mujoco(Interface):
         """
 
         self.data.qpos[self.joint_pos_addrs] = np.copy(q)
-        self.data.qvel[self.joint_dyn_addrs] = np.copy(dq)
+        self.data.qvel[self.joint_vel_addrs] = np.copy(dq)
         mujoco.mj_forward(self.model, self.data)
 
     def get_feedback(self):
@@ -221,7 +241,7 @@ class Mujoco(Interface):
         """
 
         self.q = np.copy(self.data.qpos[self.joint_pos_addrs])
-        self.dq = np.copy(self.data.qvel[self.joint_dyn_addrs])
+        self.dq = np.copy(self.data.qvel[self.joint_vel_addrs])
 
         return {"q": self.q, "dq": self.dq}
 

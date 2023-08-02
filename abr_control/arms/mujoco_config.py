@@ -113,7 +113,7 @@ class MujocoConfig:
         # self.sim = mujoco.MjModel.from_xml_path(self.xml_file)
         self.use_sim_state = use_sim_state
 
-    def _connect(self, model, data, joint_pos_addrs, joint_dyn_addrs):
+    def _connect(self, model, data, joint_pos_addrs, joint_vel_addrs):
         """Called by the interface once the Mujoco simulation is created,
         this connects the config to the simulator so it can access the
         kinematics and dynamics information calculated by Mujoco.
@@ -125,7 +125,7 @@ class MujocoConfig:
         joint_pos_addrs: np.array of ints
             The index of the robot joints in the Mujoco simulation data joint
             position array
-        joint_dyn_addrs: np.array of ints
+        joint_vel_addrs: np.array of ints
             The index of the robot joints in the Mujoco simulation data joint
             Jacobian, inertia matrix, and gravity vector
         """
@@ -134,25 +134,25 @@ class MujocoConfig:
         self.data = data
 
         self.joint_pos_addrs = np.copy(joint_pos_addrs)
-        self.joint_dyn_addrs = np.copy(joint_dyn_addrs)
+        self.joint_vel_addrs = np.copy(joint_vel_addrs)
 
         # number of controllable joints in the robot arm
-        self.N_JOINTS = len(self.joint_dyn_addrs)
+        self.N_JOINTS = len(self.joint_vel_addrs)
         # number of joints in the Mujoco simulation
         N_ALL_JOINTS = self.model.nv
 
-        # need to calculate the joint_dyn_addrs indices in flat vectors returned
+        # need to calculate the joint_vel_addrs indices in flat vectors returned
         # for the Jacobian
         self.jac_indices = np.hstack(
             # 6 because position and rotation Jacobians are 3 x N_JOINTS
-            [self.joint_dyn_addrs + (ii * N_ALL_JOINTS) for ii in range(3)]
+            [self.joint_vel_addrs + (ii * N_ALL_JOINTS) for ii in range(3)]
         )
 
         # for the inertia matrix
         self.M_indices = [
             ii * N_ALL_JOINTS + jj
-            for jj in self.joint_dyn_addrs
-            for ii in self.joint_dyn_addrs
+            for jj in self.joint_vel_addrs
+            for ii in self.joint_vel_addrs
         ]
 
         # a place to store data returned from Mujoco
@@ -180,13 +180,13 @@ class MujocoConfig:
         """
         # save current state
         old_q = np.copy(self.data.qpos[self.joint_pos_addrs])
-        old_dq = np.copy(self.data.qvel[self.joint_dyn_addrs])
+        old_dq = np.copy(self.data.qvel[self.joint_vel_addrs])
         old_u = np.copy(self.data.ctrl)
 
         # update positions to specified state
         self.data.qpos[self.joint_pos_addrs] = np.copy(q)
         if dq is not None:
-            self.data.qvel[self.joint_dyn_addrs] = np.copy(dq)
+            self.data.qvel[self.joint_vel_addrs] = np.copy(dq)
         if u is not None:
             self.data.ctrl[:] = np.copy(u)
 
@@ -210,7 +210,7 @@ class MujocoConfig:
         if not self.use_sim_state and q is not None:
             old_q, old_dq, old_u = self._load_state(q)
 
-        g = -1 * self.data.qfrc_bias[self.joint_dyn_addrs]
+        g = -1 * self.data.qfrc_bias[self.joint_vel_addrs]
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -282,9 +282,9 @@ class MujocoConfig:
             jacr(name, self._J3NR)#[self.jac_indices]  # pylint: disable=W0106
 
         # get the position Jacobian hstacked (1 x N_JOINTS*3)
-        self._J6N[:3] = self._J3NP[:, self.joint_dyn_addrs].reshape((3, self.N_JOINTS))
+        self._J6N[:3] = self._J3NP[:, self.joint_vel_addrs].reshape((3, self.N_JOINTS))
         # get the rotation Jacobian hstacked (1 x N_JOINTS*3)
-        self._J6N[3:] = self._J3NR[:, self.joint_dyn_addrs].reshape((3, self.N_JOINTS))
+        self._J6N[3:] = self._J3NR[:, self.joint_vel_addrs].reshape((3, self.N_JOINTS))
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
@@ -306,7 +306,7 @@ class MujocoConfig:
         # stored in mjData.qM, stored in custom sparse format,
         # convert qM to a dense matrix with mj_fullM
         mujoco.mj_fullM(self.model, self._MNN, self.data.qM)
-        M = self._MNN[self.joint_dyn_addrs][:, self.joint_dyn_addrs]
+        M = self._MNN[self.joint_vel_addrs][:, self.joint_vel_addrs]
 
         if not self.use_sim_state and q is not None:
             self._load_state(old_q, old_dq, old_u)
