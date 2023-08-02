@@ -7,6 +7,7 @@ from abr_control.utils import transformations
 
 from .interface import Interface
 
+
 class Mujoco(Interface):
     """An interface for MuJoCo.
 
@@ -31,7 +32,6 @@ class Mujoco(Interface):
         visualize=True,
         create_offscreen_rendercontext=False,
     ):
-
         super().__init__(robot_config)
 
         self.dt = dt  # time step
@@ -61,16 +61,13 @@ class Mujoco(Interface):
         mujoco.mj_forward(self.model, self.data)  # run forward to fill in sim.data
 
         self.joint_pos_addrs = []
+        self.joint_vel_addrs = []
         self.joint_dyn_addrs = []
 
         if joint_names is None:
             # if no joint names provided, get addresses of joints in the kinematic
             # tree from end-effector (EE) to world body
-            bodyid = mujoco.mj_name2id(
-                self.model,
-                mujoco.mjtObj.mjOBJ_BODY,
-                "EE"
-            )
+            bodyid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "EE")
             # and working back to the world body
             while self.model.body_parentid[bodyid] != 0:
                 first_joint = self.model.body_jntadr[bodyid]
@@ -78,29 +75,29 @@ class Mujoco(Interface):
 
                 for jntadr in range(first_joint, first_joint + num_joints):
                     self.joint_pos_addrs += self.get_joint_pos_addrs(jntadr)
+                    self.joint_vel_addrs += self.get_joint_vel_addrs(jntadr)
                     self.joint_dyn_addrs += self.get_joint_dyn_addrs(jntadr)
                 bodyid = self.model.body_parentid[bodyid]
 
             self.joint_pos_addrs = self.joint_pos_addrs[::-1]
+            self.joint_vel_addrs = self.joint_vel_addrs[::-1]
             self.joint_dyn_addrs = self.joint_dyn_addrs[::-1]
 
         else:
             for name in joint_names:
-                jntadr = mujoco.mj_name2id(
-                    self.model,
-                    mujoco.mjtObj.mjOBJ_JOINT,
-                    name
-                )
-                self.joint_pos_addrs += self.get_joint_pos_addrs(jntadr)
-                self.joint_dyn_addrs += self.get_joint_dyn_addrs(jntadr)
+                jntadr = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name)
+                self.joint_pos_addrs += self.get_joint_pos_addrs(jntadr)[::-1]
+                self.joint_vel_addrs += self.get_joint_vel_addrs(jntadr)[::-1]
+                self.joint_dyn_addrs += self.get_joint_dyn_addrs(jntadr)[::-1]
 
         # give the robot config access to the sim for wrapping the
         # forward kinematics / dynamics functions
+        print("Connecting to robot config...")
         self.robot_config._connect(
             self.model,
             self.data,
             self.joint_pos_addrs,
-            self.joint_dyn_addrs,
+            self.joint_vel_addrs,
         )
 
         # if we want to use the offscreen render context create it before the
@@ -117,8 +114,7 @@ class Mujoco(Interface):
         print("MuJoCo session created")
 
     def disconnect(self):
-        """Stop and reset the simulation
-        """
+        """Stop and reset the simulation"""
         if self.visualize:
             self.viewer.close()
 
@@ -131,9 +127,18 @@ class Mujoco(Interface):
         joint_pos_addr = list(range(first_pos, first_pos + posvec_length))[::-1]
         return joint_pos_addr
 
+    def get_joint_vel_addrs(self, jntadr):
+        # store the data.qvel indices associated with this joint
+        first_vel = self.model.jnt_dofadr[jntadr]
+        velvec_length = self.robot_config.JNT_DYN_LENGTH[self.model.jnt_type[jntadr]]
+        joint_vel_addr = list(range(first_vel, first_vel + velvec_length))[::-1]
+        return joint_vel_addr
+
     def get_joint_dyn_addrs(self, jntadr):
-        # store the data.qvel and .ctrl indices associated with this joint
-        first_dyn = self.model.jnt_dofadr[jntadr]
+        # store the .ctrl indices associated with this joint
+        for first_dyn, v in enumerate(self.model.actuator_trnid):
+            if v[0] == jntadr:
+                break
         dynvec_length = self.robot_config.JNT_DYN_LENGTH[self.model.jnt_type[jntadr]]
         joint_dyn_addr = list(range(first_dyn, first_dyn + dynvec_length))[::-1]
         return joint_dyn_addr
@@ -151,6 +156,7 @@ class Mujoco(Interface):
         use_joint_dyn_addrs: boolean
             set false to update the control signal for all actuators
         """
+
         if use_joint_dyn_addrs:
             self.data.ctrl[self.joint_dyn_addrs] = u[:]
         else:
@@ -185,7 +191,7 @@ class Mujoco(Interface):
         """
         self.sim.data.xfrc_applied[self.model.body_name2id(name)] = u_ext
 
-    def send_target_angles(self, q, use_joint_pos_addrs=True):
+    def send_target_angles(self, q):
         """Move the robot to the specified configuration.
 
         Parameters
@@ -194,10 +200,7 @@ class Mujoco(Interface):
             configuration to move to [radians]
         """
 
-        if use_joint_pos_addrs:
-            self.data.qpos[self.joint_pos_addrs] = np.copy(q)
-        else:
-            self.data.qpos[:] = q[:]
+        self.data.qpos[self.joint_pos_addrs] = np.copy(q)
         mujoco.mj_forward(self.model, self.data)
 
     def set_joint_state(self, q, dq):
@@ -212,7 +215,7 @@ class Mujoco(Interface):
         """
 
         self.data.qpos[self.joint_pos_addrs] = np.copy(q)
-        self.data.qvel[self.joint_dyn_addrs] = np.copy(dq)
+        self.data.qvel[self.joint_vel_addrs] = np.copy(dq)
         mujoco.mj_forward(self.model, self.data)
 
     def get_feedback(self):
@@ -221,7 +224,7 @@ class Mujoco(Interface):
         """
 
         self.q = np.copy(self.data.qpos[self.joint_pos_addrs])
-        self.dq = np.copy(self.data.qvel[self.joint_dyn_addrs])
+        self.dq = np.copy(self.data.qvel[self.joint_vel_addrs])
 
         return {"q": self.q, "dq": self.dq}
 
@@ -331,12 +334,10 @@ class Mujoco(Interface):
         jnt_qpos_adr = self.model.jnt_qposadr[jnt_adr]
         if xyz is not None:
             # set the new position
-            self.data.qpos[jnt_qpos_adr:jnt_qpos_adr + 3] = xyz
+            self.data.qpos[jnt_qpos_adr : jnt_qpos_adr + 3] = xyz
         if quat is not None:
             # set the new orientation
-            self.data.qpos[jnt_qpos_adr + 3:jnt_qpos_adr + 7] = quat
+            self.data.qpos[jnt_qpos_adr + 3 : jnt_qpos_adr + 7] = quat
 
         # run mj_forward to propogate the change immediately
         mujoco.mj_forward(self.model, self.data)
-
-
