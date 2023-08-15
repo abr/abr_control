@@ -42,7 +42,7 @@ Mujoco
 ------
 To run Mujoco simulations, you will need the ``mujoco`` and ``mujoco-python-viewer``
 packages installed. You can either `pip install` these yourself or run the repo
-install with ``pip install -e . optional``.  Additionally, in Ubuntu 20.04 you
+install with ``pip install -e .[optional]``.  Additionally, in Ubuntu 20.04 you
 may need::
 
     sudo apt install libomesa6-dev

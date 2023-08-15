@@ -23,7 +23,7 @@ robot_config = arm(arm_model)
 
 # create our Mujoco interface
 dt = 0.001
-interface = Mujoco(robot_config, dt=dt, visualize=True)
+interface = Mujoco(robot_config, dt=dt)
 interface.connect(joint_names=[f"joint{ii}" for ii in range(len(robot_config.START_ANGLES))])
 interface.send_target_angles(robot_config.START_ANGLES)
 

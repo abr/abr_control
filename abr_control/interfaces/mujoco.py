@@ -18,31 +18,54 @@ class Mujoco(Interface):
         such as: number of joints, number of links, mass information etc.
     dt: float, optional (Default: 0.001)
         simulation time step in seconds
-    visualize: boolean, optional (Default: True)
-        turns visualization on or off
-    create_offscreen_rendercontext: boolean, optional (Default: False)
-        create the offscreen rendercontext behind the main visualizer
-        (helpful for rendering images from other cameras without displaying them)
+    display_frequency: int, optional (Default: 1)
+        How often to render the frame to display on screen.
+        EX:
+            a value of 1 displays every sim frame
+            a value of 5 displays every 5th frame
+            a value of 0 runs the simulation offscreen
+    render_params : dict, optional (Default: None)
+        'cameras' : list
+            camera ids, the order the camera output is appended in
+        'resolution' : list
+            the resolution to return
+        'update_frequency' : int, optional (Default: 1)
+            How often to render the image
+        Used to render offscreen cameras for RGB camera feedback
     """
 
     def __init__(
         self,
         robot_config,
         dt=0.001,
-        visualize=True,
-        create_offscreen_rendercontext=False,
+        display_frequency=1,
+        render_params=None
     ):
         super().__init__(robot_config)
 
-        self.dt = dt  # time step
-        self.count = 0  # keep track of how many times send forces is called
-
         self.robot_config = robot_config
+        self.dt = dt  # time step
+        self.display_frequency = display_frequency
+        self.render_params = render_params
+        self.count = 0  # keep track of how many times send forces is called
+        self.timestep = 0
 
-        # turns the visualization on or off
-        self.visualize = visualize
-        # if we want the offscreen render context
-        self.create_offscreen_rendercontext = create_offscreen_rendercontext
+        self.camera_feedback = np.array([])
+        if self.render_params:
+            # if not empty, create array for storing rendered camera feedback
+            self.camera_feedback = np.zeros(
+                (
+                    self.render_params["resolution"][0],
+                    self.render_params["resolution"][1]
+                    * len(self.render_params["cameras"]),
+                    3,
+                )
+            )
+            self.subpixels = np.product(self.camera_feedback.shape)
+            if "frequency" not in self.render_params.keys():
+                self.render_params["frequency"] = 1
+
+
 
     def connect(self, joint_names=None, camera_id=-1):
         """
@@ -100,13 +123,8 @@ class Mujoco(Interface):
             self.joint_vel_addrs,
         )
 
-        # if we want to use the offscreen render context create it before the
-        # viewer so the corresponding window is behind the viewer
-        if self.create_offscreen_rendercontext:
-            self.offscreen = mujoco.MjRenderContextOffscreen(self.sim, 0)
-
         # create the visualizer
-        if self.visualize:
+        if self.display_frequency > 0:
             self.viewer = mujoco_viewer.MujocoViewer(self.model, self.data)
             # set the default display to skip frames to speed things up
             self.viewer._render_every_frame = False
@@ -115,11 +133,23 @@ class Mujoco(Interface):
                 self.viewer.cam.fixedcamid = camera_id
                 self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
 
+        if self.render_params is not None:
+            self.offscreen = mujoco_viewer.MujocoViewer(
+                self.model,
+                self.data,
+                height=self.render_params["resolution"][1],
+                width=self.render_params["resolution"][0],
+                mode="offscreen",
+            )
+            # set the default display to skip frames to speed things up
+            self.offscreen._render_every_frame = False
+
+        glfw.make_context_current(self.viewer.window)
         print("MuJoCo session created")
 
     def disconnect(self):
         """Stop and reset the simulation"""
-        if self.visualize:
+        if self.display_frequency > 0:
             self.viewer.close()
 
         print("MuJoCO session closed...")
@@ -169,19 +199,13 @@ class Mujoco(Interface):
         # move simulation ahead one time step
         mujoco.mj_step(self.model, self.data)
 
-        # Update position of hand object
-        feedback = self.get_feedback()
-        hand_xyz = self.robot_config.Tx(name="EE", q=feedback["q"])
-        self.set_mocap_xyz("hand", hand_xyz)
-
-        # Update orientation of hand object
-        hand_quat = self.robot_config.quaternion(name="EE", q=feedback["q"])
-        self.set_mocap_orientation("hand", hand_quat)
-
-        if self.visualize and update_display:
-            self.viewer.render()
-
         self.count += self.dt
+        self.timestep = int(self.count / self.dt)
+
+        freq_display = not self.timestep % self.display_frequency
+
+        if freq_display and update_display:
+            self.viewer.render()
 
     def set_external_force(self, name, u_ext):
         """Applies an external force to a specified body
@@ -193,7 +217,8 @@ class Mujoco(Interface):
         name: string
             name of the body to apply the force to
         """
-        self.sim.data.xfrc_applied[self.model.body_name2id(name)] = u_ext
+        bodyid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "EE")
+        self.data.xfrc_applied[bodyid] = u_ext
 
     def send_target_angles(self, q):
         """Move the robot to the specified configuration.
@@ -230,7 +255,20 @@ class Mujoco(Interface):
         self.q = np.copy(self.data.qpos[self.joint_pos_addrs])
         self.dq = np.copy(self.data.qvel[self.joint_vel_addrs])
 
-        return {"q": self.q, "dq": self.dq}
+        if self.render_params:
+            res = self.render_params['resolution']
+            if self.timestep % self.render_params["frequency"] == 0:
+                for ii, jj in enumerate(self.render_params["cameras"]):
+                    glfw.make_context_current(self.offscreen.window)
+                    self.camera_feedback[
+                        :, ii * res[1] : (ii + 1) * res[1]
+                    ] = self.offscreen.read_pixels(camid=jj)
+
+                    glfw.make_context_current(None)
+
+            glfw.make_context_current(self.viewer.window)
+
+        return {"q": self.q, "dq": self.dq, "rgb": self.camera_feedback}
 
     def get_xyz(self, name, object_type="body"):
         """Returns the xyz position of the specified object
@@ -241,15 +279,17 @@ class Mujoco(Interface):
             type of object you want the xyz position of
             Can be: body, geom, site
         """
-        if object_type == "body":
+        if object_type == "mocap":  # commonly queried to find target
+            mocap_id = self.model.body(name).mocapid
+            xyz = self.data.mocap_pos[mocap_id]
+        elif object_type == "body":
             xyz = self.data.body(name).xpos
         elif object_type == "geom":
             xyz = self.data.geom(name).xpos
         elif object_type == "site":
             xyz = self.data.site(name).xpos
-            # xyz = self.data.get_site_xpos(name)
         elif object_type == "camera":
-            xyz = self.data.get_camera_xpos(name)
+            xyz = self.data.camera(name).xpos
         elif object_type == "joint":
             xyz = self.model.jnt(name).pos
         else:
@@ -269,7 +309,8 @@ class Mujoco(Interface):
             Can be: body, geom, site
         """
         if object_type == "mocap":  # commonly queried to find target
-            quat = self.sim.data.get_mocap_quat(name)
+            mocap_id = self.model.body(name).mocapid
+            quat = self.data.mocap_quat[mocap_id]
         elif object_type == "body":
             quat = self.data.body(name).xquat
         elif object_type == "geom":
@@ -279,7 +320,7 @@ class Mujoco(Interface):
             xmat = self.data.site(name).xmat
             quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
         elif object_type == "camera":
-            xmat = self.sim.data.get_camera_xmat(name)
+            xmat = self.data.camera(name).xmat
             quat = transformations.quaternion_from_matrix(xmat.reshape((3, 3)))
         else:
             raise Exception(

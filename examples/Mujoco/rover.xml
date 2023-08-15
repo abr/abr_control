@@ -1,0 +1,171 @@
+<mujoco model="rover">
+    <compiler angle="radian" meshdir="meshes" balanceinertia="true"/>
+
+    <default>
+        <light castshadow="false" diffuse="1 1 1" />
+        <camera fovy="90" />
+        <geom contype="1" conaffinity="1" />
+    </default>
+
+
+	<default class="acker_solver_param">
+		<!--solver impedance and reference(?) for ackerman equality constraint-->
+		<!--solref: (timeconst, dampratio)
+			b = 2 / (dmax * timeconst)
+			k = d(r) / (dmax * dmax * timeconst * timeconst * dampratio * dampratio)
+		-->
+		<equality solimp="0.9950 0.9990 0.0001" solref="0.0100 0.7500"/>
+	</default>
+
+    <asset>
+        <material name="blue_steel" specular="1" shininess="1" reflectance="1" rgba="0.1 0.125 0.15 1" emission="1" />
+        <material name="light_grey" specular="0.5" shininess="0" reflectance="0" rgba="0.12 0.14 0.14 1" emission="1" />
+        <material name="carbon" specular="1" shininess="1" reflectance="1" rgba="0.05 0.05 0.05 1" emission="1" />
+        <material name="green" specular="1" shininess="1" reflectance="0" rgba="0.1 0.7 0.1 1" emission="1" />
+        <material name="brown" specular="1" shininess="1" reflectance="0" rgba="0.396 0.263 0.03 1" emission="1" />
+        <material name="blue" rgba="0.17 0.51 0.79 1"/>
+    </asset>
+
+    <worldbody>
+        <geom name="floor" pos="0 0 -0.001" size="0 0 0.5" type="plane"/>
+
+        <body pos="3 0 3">
+            <camera mode="targetbody" target="base_link"/>
+        </body>
+
+        <!-- control visualizations -->
+        <body name="target" pos="0 0 -0.15" mocap="true">
+            <geom name="target" type="sphere" size="0.075" rgba="1 0 0 1" contype="4" conaffinity="4"/>
+        </body>
+
+        <light directional="true" pos="-0.5 0.5 3" dir="0 0 -1" />
+
+        <body name="base_link" pos="0 0 0.1">
+
+            <!-- body -->
+            <geom name="link0" type="box" size="0.15 0.08 0.03" pos="0 0 0.09" material="blue_steel"/>
+            <camera name="vision1" pos="0 0 0.2" quat="0.50039816  0.49999984 -0.49999984 -0.49960184"/>
+            <camera name="vision2" pos="0 0 0.2" quat="-0.4996012  -0.49920352 -0.50079617 -0.50039753"/>
+            <camera name="vision3" pos="0 0 0.2" quat="5.63312174e-04 -5.62863772e-04 -7.06824957e-01 -7.07388045e-01"/>
+            <camera name="vision4" pos="0 0 0.2" quat="0.7073882691671998 0.706825181105366 0.0 0.0"/>
+
+            <inertial pos="0 0 0.125" mass="20" diaginertia="0.25 0.25 0.25"/>
+            <freejoint/>
+
+			<body name="steering_wheel" pos="0 0 .2">
+                <joint name="steering_wheel" type="hinge" pos="0 0 0" axis="0 0 1" limited="true" range="-.29 .29" damping="0"/>
+				<geom type="cylinder" size=".05 .01" axisangle="1 0 0 1.57" contype="16" conaffinity="16" mass="0.002"/>
+			</body>
+
+            <!-- turning axl -->
+            <body name="turning_axl" pos="-0.1 0 0.05">
+                <geom name="turning_axl_cyl" type="cylinder" size="0.015 0.025" pos="0 0 0" material="light_grey" contype="2" conaffinity="2"/>
+                <!-- front axl -->
+                <body name="front_axl" pos="0 0 -0.02">
+                    <geom name="front_axl" type="cylinder" pos="0 0 0" material="blue_steel" size="0.015 0.15" euler="1.57 0 0" contype="16" conaffinity="16"/>
+                    <!-- front right axl -->
+                    <body name="FR_axl_box" pos="0 0.12 0">
+                        <geom name="FR_axl_box" type="box" size="0.025 0.015 0.025" pos="0 0 0" material="light_grey" contype="16" conaffinity="16"/>
+                        <!-- front right wheel -->
+                        <body name="FR_wheel" pos="0 0.045 -0.065">
+                            <joint name="FR_joint0" axis="0 0 1" pos="0 0 0" damping="0.01" limited="true" range="-.6 .6"/>
+                            <joint name="FR_joint1" axis="0 -1 0" pos="0 0 0" damping="0.01"/>
+                            <geom name="FR_wheel" type="cylinder" pos="0 0 0" material="carbon" size="0.05 0.015" euler="1.57 0 0"/>
+                            <geom name="FR_hub" type="cylinder" pos="0 0.0151 0" material="light_grey" size="0.03 0.001" euler="1.57 0 0"/>
+                            <geom name="FR_nut1" type="cylinder" pos="0 0.0152 0.02" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                            <geom name="FR_nut2" type="cylinder" pos="0 0.0152 -0.02" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                            <geom name="FR_nut3" type="cylinder" pos="0.02 0.0152 0" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                            <geom name="FR_nut4" type="cylinder" pos="-0.02 0.0152 0" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                        </body>
+                    </body>
+                    <!-- front left axl -->
+                    <body name="FL_axl_box" pos="0 -0.12 0">
+                        <geom name="FL_axl_box" type="box" size="0.025 0.015 0.025" pos="0 0 0" material="light_grey" contype="16" conaffinity="16"/>
+                        <!-- front left wheel -->
+                        <body name="FL_wheel" pos="0 -0.045 -0.065">
+                            <geom name="FL_wheel" type="cylinder" pos="0 0 0" material="carbon" size="0.05 0.015" euler="1.57 0 0"/>
+                            <joint name="FL_joint0" axis="0 0 1" pos="0 0 0" damping="0.01" limited="true" range="-.6 .6"/>
+                            <joint name="FL_joint1" axis="0 -1 0" pos="0 0 0" damping="0.01"/>
+                            <geom name="FL_hub" type="cylinder" pos="0 -0.0151 0" material="light_grey" size="0.03 0.001" euler="1.57 0 0"/>
+                            <geom name="FL_nut1" type="cylinder" pos="0 -0.0152 0.02" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                            <geom name="FL_nut2" type="cylinder" pos="0 -0.0152 -0.02" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                            <geom name="FL_nut3" type="cylinder" pos="0.02 -0.0152 0" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                            <geom name="FL_nut4" type="cylinder" pos="-0.02 -0.0152 0" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                        </body>
+                    </body>
+                </body>
+            </body>
+
+            <!-- rear axl -->
+            <body name="static_axl" pos="0.1 0 0.05">
+                <geom name="static_axl_cyl" type="cylinder" size="0.015 0.025" pos="0 0 0" material="light_grey" contype="2" conaffinity="2"/>
+                <body name="rear_axl" pos="0 0 -0.02">
+                    <geom name="rear_axl" type="cylinder" pos="0 0 0" material="blue_steel" size="0.015 0.15" euler="1.57 0 0"/>
+                    <!-- rear right axl -->
+                    <body name="RR_axl_box" pos="0 0.12 0">
+                        <geom name="RR_axl_box" type="box" size="0.025 0.015 0.025" pos="0 0 0" material="light_grey"/>
+                        <!-- rear right strut -->
+                        <body name="RR_strut" pos="0.025 0 -0.025">
+                            <geom name="RR_strut" type="cylinder" pos="0 0 0" material="blue_steel" size="0.01 0.05" euler="0 2.356194 0"/>
+                            <!-- rear right motor box -->
+                            <body name="RR_motor_box" pos="0.04 0 -0.04">
+                                <geom name="RR_motor_box" type="box" size="0.015 0.03 0.015" pos="0 0 0" material="light_grey" contype="2" conaffinity="2"/>
+                                <!-- rear right wheel -->
+                                <body name="RR_wheel" pos="0 0.045 0">
+                                    <geom name="RR_wheel" type="cylinder" pos="0 0 0" material="carbon" size="0.05 0.015" euler="1.57 0 0" friction="2 0.005 0.0001"/>
+                                    <joint name="RR_joint" axis="0 -1 0" pos="0 0 0" damping="0.01"/>
+                                    <geom name="RR_hub" type="cylinder" pos="0 0.0151 0" material="light_grey" size="0.03 0.001" euler="1.57 0 0"/>
+                                    <geom name="RR_nut1" type="cylinder" pos="0 0.0152 0.02" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                                    <geom name="RR_nut2" type="cylinder" pos="0 0.0152 -0.02" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                                    <geom name="RR_nut3" type="cylinder" pos="0.02 0.0152 0" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                                    <geom name="RR_nut4" type="cylinder" pos="-0.02 0.0152 0" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                    <!-- rear left axl -->
+                    <body name="RL_axl_box" pos="0 -0.12 0">
+                        <geom name="RL_axl_box" type="box" size="0.025 0.015 0.025" pos="0 0 0" material="light_grey"/>
+                        <!-- rear left strut -->
+                        <body name="RL_strut" pos="0.025 0 -0.025">
+                            <geom name="RL_strut" type="cylinder" pos="0 0 0" material="blue_steel" size="0.01 0.05" euler="0 2.356194 0"/>
+                            <!-- rear left motor box -->
+                            <body name="RL_motor_box" pos="0.04 0 -0.04">
+                                <geom name="RL_motor_box" type="box" size="0.015 0.03 0.015" pos="0 0 0" material="light_grey" contype="2" conaffinity="2"/>
+                                <!-- rear left wheel -->
+                                <body name="RL_wheel" pos="0 -0.045 0">
+                                    <geom name="RL_wheel" type="cylinder" pos="0 0 0" material="carbon" size="0.05 0.015" euler="1.57 0 0" friction="2 0.005 0.0001"/>
+                                    <joint name="RL_joint" axis="0 -1 0" pos="0 0 0" damping="0.01"/>
+                                    <geom name="RL_hub" type="cylinder" pos="0 -0.0151 0" material="light_grey" size="0.03 0.001" euler="1.57 0 0"/>
+                                    <geom name="RL_nut1" type="cylinder" pos="0 -0.0152 0.02" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                                    <geom name="RL_nut2" type="cylinder" pos="0 -0.0152 -0.02" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                                    <geom name="RL_nut3" type="cylinder" pos="0.02 -0.0152 0" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                                    <geom name="RL_nut4" type="cylinder" pos="-0.02 -0.0152 0" material="blue_steel" size="0.005 0.001" euler="1.57 0 0"/>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+
+    </worldbody>
+
+	<tendon>
+		<fixed name="rear_differential">
+			<joint joint="RR_joint" coef="1"/>
+			<joint joint="RL_joint" coef="1"/>
+		</fixed>
+	</tendon>
+
+    <actuator>
+        <motor name="wheel" joint="steering_wheel" ctrllimited="true" ctrlrange="-1 1" gear="2"/>
+        <motor name="drive" tendon="rear_differential" ctrllimited="true" ctrlrange="-1.0 1.0" gear="1.5"/>
+    </actuator>
+
+	<equality>
+		<joint name="FL-steer" joint1="FL_joint0" joint2="steering_wheel" polycoef="0.000093610018132620019 2.0041497325730204 1.4716131190668178 -1.0929725380842041 -3.2252012765547819" class="acker_solver_param"/>
+		<joint name="FR-steer" joint1="FR_joint0" joint2="steering_wheel" polycoef="-0.00017013070152971507 2.0039379507086514 -1.4684576386267671 -1.0901354124362155 3.1974185558159771" class="acker_solver_param"/>
+	</equality>
+
+</mujoco>

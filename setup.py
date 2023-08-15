@@ -42,6 +42,7 @@ docs_req = []
 optional_req = [
     "mujoco",
     "mujoco-python-viewer",
+    "pyyaml",
 ]
 tests_req = [
     "pytest>=4.4.0",

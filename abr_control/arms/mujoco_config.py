@@ -90,6 +90,9 @@ class MujocoConfig:
             if name == "google_id":
                 self.google_id = custom.get("data")
 
+        actuators = root.find(f'actuator')
+        self.joint_names = [actuator.get("joint") for actuator in actuators]
+
         # check if the user has downloaded the required mesh files
         # if not prompt them to do so
         if self.google_id is not None:
