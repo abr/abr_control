@@ -14,16 +14,16 @@
 
     <asset>
         <!-- arm models -->
-        <mesh file="link0.STL" />
-        <mesh file="link1.STL"/>
-        <mesh file="link2.STL"/>
-        <mesh file="link3.STL"/>
-        <mesh file="link4_5.STL"/>
-        <mesh file="hand_3finger.STL"/>
-        <mesh file="finger_distal.STL"/>
-        <mesh file="finger_proximal.STL"/>
-        <mesh file="ring_big.STL"/>
-        <mesh file="ring_small.STL"/>
+        <mesh file="link0.stl" />
+        <mesh file="link1.stl"/>
+        <mesh file="link2.stl"/>
+        <mesh file="link3.stl"/>
+        <mesh file="link4_5.stl"/>
+        <mesh file="hand_3finger.stl"/>
+        <mesh file="finger_distal.stl"/>
+        <mesh file="finger_proximal.stl"/>
+        <mesh file="ring_big.stl"/>
+        <mesh file="ring_small.stl"/>
 
         <texture name="floor_tile" file="meshes/floor_tile.png" width="3000" height="3000" type="2d"/>
         <material name="tile" texture="floor_tile" specular="0" shininess="0" reflectance="0" emission="1" />

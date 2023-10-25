@@ -109,6 +109,8 @@ class Mujoco(Interface):
         else:
             for name in joint_names:
                 jntadr = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, name)
+                if jntadr == -1:
+                    raise Exception(f"Joint name {name} does not exist in model")
                 self.joint_pos_addrs += self.get_joint_pos_addrs(jntadr)[::-1]
                 self.joint_vel_addrs += self.get_joint_vel_addrs(jntadr)[::-1]
                 self.joint_dyn_addrs += self.get_joint_dyn_addrs(jntadr)[::-1]
@@ -169,9 +171,13 @@ class Mujoco(Interface):
         return joint_vel_addr
 
     def get_joint_dyn_addrs(self, jntadr):
-        # store the .ctrl indices associated with this joint
+        # store the data.ctrl indices associated with this joint
+        print(f"{jntadr=}")
         for first_dyn, v in enumerate(self.model.actuator_trnid):
+            print(f"{first_dyn=}")
+            print(f"{v=}")
             if v[0] == jntadr:
+                print(f"v[0] == jntadr")
                 break
         dynvec_length = self.robot_config.JNT_DYN_LENGTH[self.model.jnt_type[jntadr]]
         joint_dyn_addr = list(range(first_dyn, first_dyn + dynvec_length))[::-1]
