@@ -172,12 +172,8 @@ class Mujoco(Interface):
 
     def get_joint_dyn_addrs(self, jntadr):
         # store the data.ctrl indices associated with this joint
-        print(f"{jntadr=}")
         for first_dyn, v in enumerate(self.model.actuator_trnid):
-            print(f"{first_dyn=}")
-            print(f"{v=}")
             if v[0] == jntadr:
-                print(f"v[0] == jntadr")
                 break
         dynvec_length = self.robot_config.JNT_DYN_LENGTH[self.model.jnt_type[jntadr]]
         joint_dyn_addr = list(range(first_dyn, first_dyn + dynvec_length))[::-1]
@@ -362,6 +358,28 @@ class Mujoco(Interface):
         mocap_id = self.model.body(name).mocapid
         self.data.mocap_quat[mocap_id] = quat
         mujoco.mj_forward(self.model, self.data)
+
+    def set_mocap_state_equal_to(self, mocap_name, object_name, q=None):
+        """Matches the position and orientation of an object in the Mujoco environment
+        to another object in the environment
+
+        Parameters
+        ----------
+        mocap_name: string
+            the name of the mocap_object to move
+        object_name: string
+            the name of the object to match
+        q: np.array
+            configuration for reading object position and orientation [radians]
+        """
+
+        # Update position
+        object_xyz = self.robot_config.Tx(name=object_name, q=q)
+        self.set_mocap_xyz(mocap_name, object_xyz)
+
+        # Update orientation of hand object
+        object_quat = self.robot_config.quaternion(name=object_name, q=q)
+        self.set_mocap_orientation(mocap_name, object_quat)
 
     def set_state(self, name, xyz=None, quat=None):
         """Sets the state of an object attached to the world with a free joint.
