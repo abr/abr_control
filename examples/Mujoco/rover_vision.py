@@ -48,13 +48,13 @@ dt = 0.001
 interface = Mujoco(
     robot_config=rover,
     dt=dt,
-    render_params={
+    offscreen_render_params={
         "cameras": [4, 1, 3, 2],  # camera ids and order to render
         "resolution": [32, 32],
         "frequency": 1,  # render images from cameras every time step
     },
 )
-interface.connect(joint_names=["steering_wheel", "rear_differential"])
+interface.connect(joint_names=["steering_wheel", "RR_joint"])
 
 # set up the target position
 target = np.array([-0.0, 0.0, 0.2])

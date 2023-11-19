@@ -18,13 +18,9 @@ class Mujoco(Interface):
         such as: number of joints, number of links, mass information etc.
     dt: float, optional (Default: 0.001)
         simulation time step in seconds
-    display_frequency: int, optional (Default: 1)
-        How often to render the frame to display on screen.
-        EX:
-            a value of 1 displays every sim frame
-            a value of 5 displays every 5th frame
-            a value of 0 runs the simulation offscreen
-    render_params : dict, optional (Default: None)
+    visualize: boolean, optional (Default: True)
+        turns visualization on or off
+    offscreen_render_params : dict, optional (Default: None)
         'cameras' : list
             camera ids, the order the camera output is appended in
         'resolution' : list
@@ -38,32 +34,32 @@ class Mujoco(Interface):
         self,
         robot_config,
         dt=0.001,
-        display_frequency=1,
-        render_params=None
+        visualize=True,
+        offscreen_render_params=None
     ):
         super().__init__(robot_config)
 
         self.robot_config = robot_config
         self.dt = dt  # time step
-        self.display_frequency = display_frequency
-        self.render_params = render_params
+        self.visualize = visualize
+        self.offscreen_render_params = offscreen_render_params
         self.count = 0  # keep track of how many times send forces is called
         self.timestep = 0
 
         self.camera_feedback = np.array([])
-        if self.render_params:
+        if self.offscreen_render_params:
             # if not empty, create array for storing rendered camera feedback
             self.camera_feedback = np.zeros(
                 (
-                    self.render_params["resolution"][0],
-                    self.render_params["resolution"][1]
-                    * len(self.render_params["cameras"]),
+                    self.offscreen_render_params["resolution"][0],
+                    self.offscreen_render_params["resolution"][1]
+                    * len(self.offscreen_render_params["cameras"]),
                     3,
                 )
             )
             self.subpixels = np.product(self.camera_feedback.shape)
-            if "frequency" not in self.render_params.keys():
-                self.render_params["frequency"] = 1
+            if "frequency" not in self.offscreen_render_params.keys():
+                self.offscreen_render_params["frequency"] = 1
 
 
 
@@ -126,7 +122,7 @@ class Mujoco(Interface):
         )
 
         # create the visualizer
-        if self.display_frequency > 0:
+        if self.visualize:
             self.viewer = mujoco_viewer.MujocoViewer(self.model, self.data)
             # set the default display to skip frames to speed things up
             self.viewer._render_every_frame = False
@@ -135,12 +131,12 @@ class Mujoco(Interface):
                 self.viewer.cam.fixedcamid = camera_id
                 self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
 
-        if self.render_params is not None:
+        if self.offscreen_render_params is not None:
             self.offscreen = mujoco_viewer.MujocoViewer(
                 self.model,
                 self.data,
-                height=self.render_params["resolution"][1],
-                width=self.render_params["resolution"][0],
+                height=self.offscreen_render_params["resolution"][1],
+                width=self.offscreen_render_params["resolution"][0],
                 mode="offscreen",
             )
             # set the default display to skip frames to speed things up
@@ -151,7 +147,7 @@ class Mujoco(Interface):
 
     def disconnect(self):
         """Stop and reset the simulation"""
-        if self.display_frequency > 0:
+        if self.visualize:
             self.viewer.close()
 
         print("MuJoCO session closed...")
@@ -187,8 +183,6 @@ class Mujoco(Interface):
         ----------
         u: np.array
             the torques to apply to the robot [Nm]
-        update_display: boolean, Optional (Default:True)
-            toggle for updating display
         use_joint_dyn_addrs: boolean
             set false to update the control signal for all actuators
         """
@@ -204,9 +198,7 @@ class Mujoco(Interface):
         self.count += self.dt
         self.timestep = int(self.count / self.dt)
 
-        freq_display = not self.timestep % self.display_frequency
-
-        if freq_display and update_display:
+        if self.visualize and update_display:
             self.viewer.render()
 
     def set_external_force(self, name, u_ext):
@@ -257,10 +249,10 @@ class Mujoco(Interface):
         self.q = np.copy(self.data.qpos[self.joint_pos_addrs])
         self.dq = np.copy(self.data.qvel[self.joint_vel_addrs])
 
-        if self.render_params:
-            res = self.render_params['resolution']
-            if self.timestep % self.render_params["frequency"] == 0:
-                for ii, jj in enumerate(self.render_params["cameras"]):
+        if self.offscreen_render_params:
+            res = self.offscreen_render_params['resolution']
+            if self.timestep % self.offscreen_render_params["frequency"] == 0:
+                for ii, jj in enumerate(self.offscreen_render_params["cameras"]):
                     glfw.make_context_current(self.offscreen.window)
                     self.camera_feedback[
                         :, ii * res[1] : (ii + 1) * res[1]
