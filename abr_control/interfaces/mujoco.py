@@ -130,6 +130,7 @@ class Mujoco(Interface):
             if camera_id > -1:
                 self.viewer.cam.fixedcamid = camera_id
                 self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
+            glfw.make_context_current(self.viewer.window)
 
         if self.offscreen_render_params is not None:
             self.offscreen = mujoco_viewer.MujocoViewer(
@@ -142,7 +143,6 @@ class Mujoco(Interface):
             # set the default display to skip frames to speed things up
             self.offscreen._render_every_frame = False
 
-        glfw.make_context_current(self.viewer.window)
         print("MuJoCo session created")
 
     def disconnect(self):
