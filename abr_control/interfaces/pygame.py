@@ -83,7 +83,7 @@ class PyGame:
         # create transparent arm lines
         self.lines_base = []
         for ii, L in enumerate(self.L):
-            self.lines_base.append(pygame.Surface((L, line_width), pygame.SRCALPHA, 32))
+            self.lines_base.append(pygame.Surface((int(L), line_width), pygame.SRCALPHA, 32))
             # color in transparent arm lines
             self.lines_base[ii].fill(line_color)
 
