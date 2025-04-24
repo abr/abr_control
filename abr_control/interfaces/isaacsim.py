@@ -4,19 +4,16 @@ from isaacsim import SimulationApp
 from .interface import Interface
 
 
-
-
 class IsaacSim(Interface):
     """An interface for IsaacSim.
+
+    Parameters
+    ----------
     robot_config : class instance
         contains all relevant information about the arm
         such as: number of joints, number of links, mass information etc.
     dt : float, optional (Default: 0.001)
         simulation time step in seconds
-
-
-    Parameters
-    ----------
 
     """
     def __init__(self, robot_config, dt=0.001):

@@ -1,6 +1,5 @@
 import numpy as np
 from abr_control.arms import ur5 as arm
-
 from abr_control.interfaces.isaacsim import IsaacSim
 from abr_control.utils import transformations
 
@@ -10,21 +9,15 @@ dt = 0.005
 # Initialize our robot config
 robot_config = arm.Config()
 
-
 # Create our interface
-# interface = CoppeliaSim(robot_config, dt=dt)
 interface = IsaacSim(robot_config, dt=dt)
 interface.connect()
 # Imports must be done after instantiating the SimulationApp, which is done by the setup in the isaacsim interface
 from isaacsim.core.api import World # type: ignore
 from isaacsim.core.api.objects import DynamicCuboid # type: ignore
 
-
-
-#TODO add this in interface setup
-#world = World(physics_dt=dt,rendering_dt=dt)
-
-world = World()
+# Create a world
+world = World(physics_dt=dt,rendering_dt=dt)
 world.scene.add_default_ground_plane()
 fancy_cube =  world.scene.add(
 
