@@ -115,10 +115,21 @@ class IsaacSim(Interface):
         raise NotImplementedError
 
     def get_feedback(self):
-        """Returns a dictionary of the relevant feedback
+        """Return a dictionary of information needed by the controller.
 
-        Returns a dictionary of relevant feedback to the
-        controller. At very least this contains q, dq.
+        Returns the joint angles and joint velocities in [rad] and [rad/sec],
+        respectively
         """
 
-        raise NotImplementedError
+        from omni.isaac.urdf import _urdf # type: ignore
+        _urdf.import_articulation(self.urdf_path)
+
+        # Get the articulation
+        from omni.physx import _physx # type: ignore
+        articulation = _physx.get_articulations()[0]
+
+        self.q = articulation.get_q()
+        self.dq = articulation.get_qd()
+
+        return {"q": self.q, "dq": self.dq}
+
