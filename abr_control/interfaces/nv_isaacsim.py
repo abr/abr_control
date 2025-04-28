@@ -85,7 +85,6 @@ class IsaacSim(Interface):
             
         # Get the articulation
         from omni.isaac.core.articulations import Articulation, ArticulationSubset # type: ignore
-        from omni.isaac.core.utils.types import ArticulationAction # type: ignore
         import omni.isaac.core.utils.stage as stage_utils # type: ignore
 
         # Import the robot onto the current stage and retrieve its prim path
@@ -118,17 +117,11 @@ class IsaacSim(Interface):
         u : np.array
             An array of joint torques [Nm]
         """
-
         # Apply some torque
-        #TODO : replace with actual torque values
-        torque = [1.0] * len(q)  
-        self.articulation.add_torque(torque)
+        self.articulation.set_joint_efforts(u)
 
-        # Step the simulation
-        from omni.physx import _physx # type: ignore
-        _physx.step()
-
-
+         # move simulation ahead one time step
+        self.world.step(render=True) # execute one physics step and one rendering step
 
 
 
@@ -139,9 +132,11 @@ class IsaacSim(Interface):
             the target joint angles [radians]
         """
         # Set the target angles for the joints
-        self.articulation.set_joint_positions(q)
-        return
+        from isaacsim.core.utils.types import ArticulationAction # type: ignore
+        self.articulation.get_articulation_controller().apply_action(ArticulationAction(q))
 
+        # move simulation ahead one time step
+        #self.world.step(render=True) # execute one physics step and one rendering step
 
 
 
