@@ -29,9 +29,6 @@ class IsaacSim(Interface):
         #self.misc_handles = {}  # for tracking miscellaneous object handles
 
         '''
-        self.q = np.zeros(self.robot_config.N_JOINTS)  # joint angles
-        self.dq = np.zeros(self.robot_config.N_JOINTS)  # joint_velocities
-
         # joint target velocities, as part of the torque limiting control
         # these need to be super high so that the joints are always moving
         # at the maximum allowed torque
@@ -82,18 +79,37 @@ class IsaacSim(Interface):
                 urdf_path="{}/{}".format(root_path, file_name),
                 import_config=self.import_config
                 )
+            # Resetting the world needs to be called before querying anything related to an articulation specifically.
+            # Its recommended to always do a reset after adding your assets, for physics handles to be propagated properly
+            self.world.reset()
+            
+        # Get the articulation
+        from omni.isaac.core.articulations import Articulation, ArticulationSubset # type: ignore
+        from omni.isaac.core.utils.types import ArticulationAction # type: ignore
+        import omni.isaac.core.utils.stage as stage_utils # type: ignore
 
-        # Resetting the world needs to be called before querying anything related to an articulation specifically.
-        # Its recommended to always do a reset after adding your assets, for physics handles to be propagated properly
-        self.world.reset()
+        # Import the robot onto the current stage and retrieve its prim path
+        result, prim_path = omni.kit.commands.execute(
+            "URDFImportRobot",
+            urdf_robot=self.robot_model,
+            import_config=self.import_config,
+            )
+        print("result: ", result)
 
+        self.world.initialize_physics()
 
+        # Load robot
+        self.articulation = Articulation(prim_path=prim_path, name="ur10")
+        self.articulation.initialize()
+        
         print("Started Isaacsim as stand alone app...")
 
     def disconnect(self):
         """Any socket closing etc that must be done to properly shut down"""
         self.simulation_app.close() # close Isaac Sim
         print("IsaacSim connection closed...")
+
+
 
     def send_forces(self, u):
         """Applies the set of torques u to the arm. If interfacing to
@@ -103,7 +119,18 @@ class IsaacSim(Interface):
             An array of joint torques [Nm]
         """
 
-        raise NotImplementedError
+        # Apply some torque
+        #TODO : replace with actual torque values
+        torque = [1.0] * len(q)  
+        self.articulation.add_torque(torque)
+
+        # Step the simulation
+        from omni.physx import _physx # type: ignore
+        _physx.step()
+
+
+
+
 
     def send_target_angles(self, q):
         """Moves the arm to the specified joint angles
@@ -111,8 +138,12 @@ class IsaacSim(Interface):
         q : numpy.array
             the target joint angles [radians]
         """
+        # Set the target angles for the joints
+        self.articulation.set_joint_positions(q)
+        return
 
-        raise NotImplementedError
+
+
 
     def get_feedback(self):
         """Return a dictionary of information needed by the controller.
@@ -120,15 +151,7 @@ class IsaacSim(Interface):
         Returns the joint angles and joint velocities in [rad] and [rad/sec],
         respectively
         """
-
-        from omni.isaac.urdf import _urdf # type: ignore
-        _urdf.import_articulation(self.urdf_path)
-
-        # Get the articulation
-        from omni.physx import _physx # type: ignore
-        articulation = _physx.get_articulations()[0]
-
-        self.q = articulation.get_q()
-        self.dq = articulation.get_qd()
-
+        # Get the joint angles and velocities
+        self.q = self.articulation.get_joint_positions()
+        self.dq = self.articulation.get_joint_velocities()
         return {"q": self.q, "dq": self.dq}
