@@ -132,4 +132,3 @@ class IsaacSim(Interface):
         self.dq = articulation.get_qd()
 
         return {"q": self.q, "dq": self.dq}
-
