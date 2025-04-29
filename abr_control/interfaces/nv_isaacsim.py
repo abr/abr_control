@@ -26,6 +26,11 @@ class IsaacSim(Interface):
         self.q = np.zeros(self.robot_config.N_JOINTS)  # joint angles
         self.dq = np.zeros(self.robot_config.N_JOINTS)  # joint_velocities
 
+        self.robot_model = None
+        self.urdf_path = None
+        self.import_config = None
+        self.world = None
+
         #self.misc_handles = {}  # for tracking miscellaneous object handles
 
         '''
@@ -37,19 +42,16 @@ class IsaacSim(Interface):
         
 
     def connect(self, load_scene=True):
-        """All initial setup."""
-        self.simulation_app = SimulationApp({"headless": False}) 
-        from isaacsim.core.api import World # type: ignore
-        from isaacsim.core.utils.extensions import get_extension_path_from_name # type: ignore
-        from isaacsim.asset.importer.urdf import _urdf # type: ignore
-        import omni.kit.commands # type: ignore
-        import omni.usd # type: ignore
 
-        self.robot_model = None
-        self.urdf_path = None
-        self.import_config = None
-        self.world = None
+        
         if load_scene:
+            """All initial setup."""
+            self.simulation_app = SimulationApp({"headless": False}) 
+            from isaacsim.core.api import World # type: ignore
+            from isaacsim.core.utils.extensions import get_extension_path_from_name # type: ignore
+            from isaacsim.asset.importer.urdf import _urdf # type: ignore
+            import omni.kit.commands # type: ignore
+            import omni.usd # type: ignore
             # Create a world
             self.world = World(physics_dt=self.dt,rendering_dt=self.dt)
             self.world.scene.add_default_ground_plane()
@@ -82,6 +84,11 @@ class IsaacSim(Interface):
             # Resetting the world needs to be called before querying anything related to an articulation specifically.
             # Its recommended to always do a reset after adding your assets, for physics handles to be propagated properly
             self.world.reset()
+
+
+        else:
+            self.world = SimulationApp.getWorld()
+            
             
         # Get the articulation
         from omni.isaac.core.articulations import Articulation, ArticulationSubset # type: ignore
