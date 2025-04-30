@@ -31,6 +31,7 @@ class IsaacSim(Interface):
         self.import_config = None
         self.world = None
 
+        
         #self.misc_handles = {}  # for tracking miscellaneous object handles
 
         '''
@@ -48,13 +49,16 @@ class IsaacSim(Interface):
             """All initial setup."""
             self.simulation_app = SimulationApp({"headless": False}) 
             from isaacsim.core.api import World # type: ignore
+            from isaacsim.core.api.objects import DynamicCuboid # type: ignore
             from isaacsim.core.utils.extensions import get_extension_path_from_name # type: ignore
             from isaacsim.asset.importer.urdf import _urdf # type: ignore
             import omni.kit.commands # type: ignore
             import omni.usd # type: ignore
+            import omni
             # Create a world
             self.world = World(physics_dt=self.dt,rendering_dt=self.dt)
             self.world.scene.add_default_ground_plane()
+
 
             # Acquire the URDF extension interface for parsing and importing URDF files
             urdf_interface = _urdf.acquire_urdf_interface()
@@ -67,6 +71,7 @@ class IsaacSim(Interface):
             self.import_config.self_collision = False  # Disable self-collision for performance
             self.import_config.distance_scale = 1     # Set distance scale for the robot
             self.import_config.density = 0.0          # Set density to 0 (use default values)
+
 
             # Retrieve the path of the URDF file from the extension
             extension_path = get_extension_path_from_name("isaacsim.asset.importer.urdf")
@@ -89,26 +94,28 @@ class IsaacSim(Interface):
         else:
             self.world = SimulationApp.getWorld()
             
-            
+
         # Get the articulation
         from omni.isaac.core.articulations import Articulation, ArticulationSubset # type: ignore
         import omni.isaac.core.utils.stage as stage_utils # type: ignore
 
         # Import the robot onto the current stage and retrieve its prim path
-        result, prim_path = omni.kit.commands.execute(
+        result, prim_path_ur = omni.kit.commands.execute(
             "URDFImportRobot",
             urdf_robot=self.robot_model,
             import_config=self.import_config,
             )
-        print("result: ", result)
-
-        self.world.initialize_physics()
 
         # Load robot
-        self.articulation = Articulation(prim_path=prim_path, name="ur10")
+        self.articulation = Articulation(prim_path=prim_path_ur, name="ur10")
         self.articulation.initialize()
         
+
         print("Started Isaacsim as stand alone app...")
+
+
+
+
 
     def disconnect(self):
         """Any socket closing etc that must be done to properly shut down"""
@@ -143,8 +150,7 @@ class IsaacSim(Interface):
         self.articulation.get_articulation_controller().apply_action(ArticulationAction(q))
 
         # move simulation ahead one time step
-        #self.world.step(render=True) # execute one physics step and one rendering step
-
+        self.world.step(render=True) # execute one physics step and one rendering step
 
 
     def get_feedback(self):
@@ -157,3 +163,16 @@ class IsaacSim(Interface):
         self.q = self.articulation.get_joint_positions()
         self.dq = self.articulation.get_joint_velocities()
         return {"q": self.q, "dq": self.dq}
+
+
+    def get_xyz(self, name):
+                """Returns the xyz position of the specified object
+
+                name : string
+                    name of the object you want the xyz position of
+                """
+                #TODO check if we need misc handles for this
+                obj = self.world.scene.get_object(name) 
+                object_position, object_orientation = obj.get_world_pose()
+
+                return object_position
