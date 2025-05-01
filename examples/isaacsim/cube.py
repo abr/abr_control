@@ -1,6 +1,6 @@
 import numpy as np
 from abr_control.arms import ur5 as arm
-from abr_control.interfaces.isaacsim import IsaacSim
+from abr_control.interfaces.nv_isaacsim import IsaacSim
 from abr_control.utils import transformations
 
 # Sim step size
@@ -44,6 +44,5 @@ for i in range(500):
     # we have control over stepping physics and rendering in this workflow
     # things run in sync
     world.step(render=True) # execute one physics step and one rendering step
-
 
 interface.disconnect()
