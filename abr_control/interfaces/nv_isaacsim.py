@@ -105,6 +105,9 @@ class IsaacSim(Interface):
             urdf_robot=self.robot_model,
             import_config=self.import_config,
             )
+        
+        # necessary so self.q and self.dq are accessible
+        self.world.initialize_physics()
 
         # Load robot
         self.articulation = Articulation(prim_path=prim_path_ur, name="ur10")
